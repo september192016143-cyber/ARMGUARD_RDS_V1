@@ -535,7 +535,8 @@ if [[ -f "$SCRIPT_DIR/db-backup-cron.sh" ]]; then
     chown "$DEPLOY_USER:$DEPLOY_USER" "$CRON_SCRIPT"
 
     # Install cron for armguard user (daily at 02:00)
-    (crontab -u "$DEPLOY_USER" -l 2>/dev/null; \
+    # crontab -l exits 1 when no crontab exists; || true prevents set -e from aborting
+    (crontab -u "$DEPLOY_USER" -l 2>/dev/null || true; \
      echo "0 2 * * * $CRON_SCRIPT >> $LOG_DIR/backup.log 2>&1") \
         | crontab -u "$DEPLOY_USER" -
     success "Daily backup cron job installed (02:00 AM)."
