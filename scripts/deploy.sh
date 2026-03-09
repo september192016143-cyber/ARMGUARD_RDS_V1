@@ -529,7 +529,8 @@ step "Installing backup cron job"
 CRON_SCRIPT="$DEPLOY_DIR/scripts/db-backup-cron.sh"
 if [[ -f "$SCRIPT_DIR/db-backup-cron.sh" ]]; then
     mkdir -p "$DEPLOY_DIR/scripts"
-    cp "$SCRIPT_DIR/db-backup-cron.sh" "$CRON_SCRIPT"
+    [[ "$(realpath "$SCRIPT_DIR/db-backup-cron.sh")" != "$(realpath "$CRON_SCRIPT")" ]] && \
+        cp "$SCRIPT_DIR/db-backup-cron.sh" "$CRON_SCRIPT"
     chmod +x "$CRON_SCRIPT"
     chown "$DEPLOY_USER:$DEPLOY_USER" "$CRON_SCRIPT"
 
