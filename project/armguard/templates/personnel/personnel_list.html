@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Personnel — ArmGuard RDS{% endblock %}
+{% block page_title %}Personnel{% endblock %}
+{% block page_sub %}All registered members{% endblock %}
+
+{% block topbar_actions %}
+{% with role=request.user.profile.role %}
+{% if role != 'Armorer' %}
+<a href="{% url 'personnel-create' %}" class="btn btn-primary btn-sm">
+  <i class="fa-solid fa-user-plus"></i> Add Personnel
+</a>
+{% endif %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <!-- Search / Filter bar -->
+  <div class="filter-bar">
+    <form method="get" class="search-bar" style="flex:1">
+      <div class="input-wrap" style="flex:1;max-width:320px">
+        <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;pointer-events:none"></i>
+        <input type="text" name="q" value="{{ request.GET.q }}" class="form-control"
+               placeholder="Search name, ID, AFSN…" style="padding-left:2.1rem">
+      </div>
+      <select name="status" class="form-control" style="max-width:140px">
+        <option value="">All Status</option>
+        <option value="Active" {% if request.GET.status == 'Active' %}selected{% endif %}>Active</option>
+        <option value="Inactive" {% if request.GET.status == 'Inactive' %}selected{% endif %}>Inactive</option>
+      </select>
+      <select name="group" class="form-control" style="max-width:140px">
+        <option value="">All Groups</option>
+        {% for g in groups %}
+        <option value="{{ g }}" {% if request.GET.group == g %}selected{% endif %}>{{ g }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-secondary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+      {% if request.GET.q or request.GET.status or request.GET.group %}
+      <a href="{% url 'personnel-list' %}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
+      {% endif %}
+    </form>
+    <span class="text-muted" style="font-size:.75rem;white-space:nowrap">{{ personnel_list.paginator.count|default:page_obj.paginator.count }} records</span>
+  </div>
+
+  <div class="table-wrap">
+    {% if page_obj.object_list %}
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Rank, Name &amp; AFSN</th>
+          <th>Group / Squadron</th>
+          <th>Tel</th>
+          <th>Status</th>
+          {% if request.user.profile.role != 'Armorer' %}<th style="width:90px"></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in page_obj %}
+        <tr>
+          <td class="text-muted" style="font-size:.75rem">{{ p.Personnel_ID }}</td>
+          <td>
+            <a href="{% url 'personnel-detail' p.Personnel_ID %}" class="fw-600" style="color:var(--text)">
+              {{ p.rank }} {{ p.first_name }}{% if p.middle_initial %} {{ p.middle_initial }}{% endif %} {{ p.last_name }}{% if p.AFSN %} {{ p.AFSN }} PAF{% endif %}
+            </a>
+          </td>
+          <td class="text-muted">{{ p.group|default:"—" }}{% if p.squadron %} / {{ p.squadron }}{% endif %}</td>
+          <td class="text-muted">{{ p.tel|default:"—" }}</td>
+          <td>
+            {% if p.status == 'Active' %}
+              <span class="badge badge-green">Active</span>
+            {% else %}
+              <span class="badge badge-gray">{{ p.status|default:"—" }}</span>
+            {% endif %}
+          </td>
+          {% if request.user.profile.role != 'Armorer' %}
+          <td>
+            <div class="flex gap-2">
+              <a href="{% url 'personnel-update' p.Personnel_ID %}" class="btn btn-secondary btn-sm btn-icon" title="Edit"><i class="fa-solid fa-pen"></i></a>
+              <a href="{% url 'personnel-delete' p.Personnel_ID %}" class="btn btn-secondary btn-sm btn-icon" title="Delete" style="color:var(--red)"><i class="fa-solid fa-trash"></i></a>
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+      {% if page_obj.has_previous %}
+        <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
+      {% endif %}
+      {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+          <a class="page-link active">{{ num }}</a>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+          <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ num }}" class="page-link">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+        <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-users-slash"></i>
+      <p>No personnel found.</p>
+      <a href="{% url 'personnel-create' %}" class="btn btn-primary btn-sm mt-2">Add first member</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

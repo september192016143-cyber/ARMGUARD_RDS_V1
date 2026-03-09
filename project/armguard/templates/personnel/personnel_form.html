@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Edit Personnel{% else %}Add Personnel{% endif %} — ArmGuard RDS{% endblock %}
+{% block page_title %}{% if object %}Edit Personnel{% else %}Add Personnel{% endif %}{% endblock %}
+{% block page_sub %}{% if object %}{{ object.rank }} {{ object.last_name }}{% else %}New member registration{% endif %}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% if object %}{% url 'personnel-detail' object.Personnel_ID %}{% else %}{% url 'personnel-list' %}{% endif %}" class="btn btn-secondary btn-sm">
+  <i class="fa-solid fa-arrow-left"></i> Back
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Flip card ─────────────────────────────────────────────── */
+.flip-card {
+  width: 100%;
+  aspect-ratio: 638 / 1013;
+  perspective: 1200px;
+  cursor: pointer;
+}
+.flip-card-inner {
+  position: relative; width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .6s cubic-bezier(.4,0,.2,1);
+}
+.flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+.flip-card-front, .flip-card-back {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  backface-visibility: hidden;
+  border-radius: .5rem; overflow: hidden;
+  background: var(--card); border: 1px solid var(--border);
+}
+.flip-card-back { transform: rotateY(180deg); }
+.flip-card-front img, .flip-card-back img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.flip-placeholder {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: .65rem; color: var(--muted); font-size: .8rem;
+  padding: 1rem; text-align: center;
+}
+.flip-placeholder i { font-size: 2.5rem; opacity: .4; }
+.flip-hint { font-size: .68rem; color: var(--muted); text-align: center; margin-top: .4rem; }
+/* ── Mock data card (back) ──────────────────────────────────── */
+.mock-card {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  background: linear-gradient(145deg, #1e3a5f, #0f172a);
+  padding: 1.1rem; color: #e2e8f0;
+  font-family: 'Courier New', monospace; gap: .35rem;
+}
+.mock-card .mc-logo { font-size: .6rem; font-weight: 700; letter-spacing: .15em; color: #f59e0b; text-transform: uppercase; }
+.mock-card .mc-label { font-size: .5rem; color: #94a3b8; text-transform: uppercase; letter-spacing: .1em; margin-top: .2rem; }
+.mock-card .mc-value { font-size: .75rem; font-weight: 600; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mock-card .mc-divider { border: none; border-top: 1px solid rgba(255,255,255,.1); margin: .3rem 0; }
+.mock-card .mc-row { display: flex; gap: .75rem; }
+.mock-card .mc-col { flex: 1; min-width: 0; }
+.mock-card .mc-id { font-size: .55rem; color: #475569; margin-top: auto; word-break: break-all; }
+/* ── sticky panel ───────────────────────────────────────────── */
+.preview-panel { position: sticky; top: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data" id="personnelForm"
+      data-preview-url="{% url 'personnel-card-preview' %}"
+      data-show-back="{% if not id_card_front_url %}1{% else %}0{% endif %}">
+  {% csrf_token %}
+  {% if object %}<input type="hidden" name="Personnel_ID" value="{{ object.Personnel_ID }}">{% endif %}
+  {% if object and object.personnel_image %}<input type="hidden" name="existing_personnel_image" value="{{ object.personnel_image }}">{% endif %}
+
+  {% if form.non_field_errors %}
+  <div class="alert alert-error" style="margin-bottom:1rem">
+    <i class="fa-solid fa-circle-exclamation"></i>
+    {{ form.non_field_errors }}
+  </div>
+  {% endif %}
+
+  <div style="display:grid;grid-template-columns:1fr 260px;gap:1.25rem;align-items:start">
+
+    <!-- ── Left: form fields ─────────────────────────────────── -->
+    <div>
+
+      <!-- Identity -->
+      <div class="card mb-2">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-id-card"></i> Identity</span></div>
+        <div class="form-row cols-3">
+          <div class="form-group">
+            <label class="form-label">Personnel ID</label>
+            {% if object %}
+              <div class="form-control" style="background:var(--surface2);color:var(--muted);cursor:default">{{ object.Personnel_ID }}</div>
+              <div class="form-hint">Auto-generated — cannot be changed.</div>
+            {% else %}
+              <div class="form-control" id="previewPersonnelId" style="background:var(--surface2);color:var(--muted);cursor:default;font-family:monospace;font-size:.82rem">Auto-generated on save</div>
+            {% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.rank.id_for_label }}">Rank <span class="req">*</span></label>
+            {{ form.rank }}
+            {% if form.rank.errors %}<div class="form-error">{{ form.rank.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.AFSN.id_for_label }}">AFSN <span class="req">*</span></label>
+            {{ form.AFSN }}
+            {% if form.AFSN.errors %}<div class="form-error">{{ form.AFSN.errors|join:", " }}</div>{% endif %}
+          </div>
+        </div>
+        <div class="form-row cols-3">
+          <div class="form-group">
+            <label class="form-label" for="{{ form.first_name.id_for_label }}">First Name <span class="req">*</span></label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}<div class="form-error">{{ form.first_name.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.middle_initial.id_for_label }}">Middle Initial <span class="req">*</span></label>
+            {{ form.middle_initial }}
+            {% if form.middle_initial.errors %}<div class="form-error">{{ form.middle_initial.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.last_name.id_for_label }}">Last Name <span class="req">*</span></label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}<div class="form-error">{{ form.last_name.errors|join:", " }}</div>{% endif %}
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="{{ form.tel.id_for_label }}">Tel Number <span class="req">*</span></label>
+            {{ form.tel }}
+            {% if form.tel.errors %}<div class="form-error">{{ form.tel.errors|join:", " }}</div>{% endif %}
+            {% if form.tel.help_text %}<div class="form-hint">{{ form.tel.help_text }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.status.id_for_label }}">Status <span class="req">*</span></label>
+            {{ form.status }}
+            {% if form.status.errors %}<div class="form-error">{{ form.status.errors|join:", " }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Assignment -->
+      <div class="card mb-2">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-sitemap"></i> Assignment</span></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="{{ form.group.id_for_label }}">Group <span class="req">*</span></label>
+            {{ form.group }}
+            {% if form.group.errors %}<div class="form-error">{{ form.group.errors|join:", " }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="{{ form.squadron.id_for_label }}">Squadron <span class="req">*</span></label>
+            {{ form.squadron }}
+            {% if form.squadron.errors %}<div class="form-error">{{ form.squadron.errors|join:", " }}</div>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Photo -->
+      <div class="card mb-2">
+        <div class="card-header"><span class="card-title"><i class="fa-solid fa-camera"></i> Photo <span class="req">*</span></span></div>
+        <div class="form-group" style="margin-bottom:0">
+          {% if form.personnel_image %}
+          {{ form.personnel_image }}
+          {% if object.personnel_image %}
+            <div class="form-hint mt-1">Current: <a href="{{ object.personnel_image.url }}" target="_blank">{{ object.personnel_image }}</a></div>
+          {% endif %}
+          {% if form.personnel_image.errors %}<div class="form-error">{{ form.personnel_image.errors|join:", " }}</div>{% endif %}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-floppy-disk"></i> {% if object %}Save Changes{% else %}Register Personnel{% endif %}
+        </button>
+        <a href="{% if object %}{% url 'personnel-detail' object.Personnel_ID %}{% else %}{% url 'personnel-list' %}{% endif %}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </div>
+
+    <!-- ── Right: flip card preview ──────────────────────────── -->
+    <div class="preview-panel">
+      <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem">ID Card Preview</div>
+
+      <div class="flip-card" id="previewFlipCard" title="Click to flip">
+        <div class="flip-card-inner">
+
+          <!-- Front -->
+          <div class="flip-card-front">
+            <img id="previewFront"
+              src="{% if id_card_front_url %}{{ id_card_front_url }}{% else %}data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs={% endif %}"
+              alt="ID Card Front" style="width:100%;height:100%;object-fit:cover;display:block">
+          </div>
+
+          <!-- Back -->
+          <div class="flip-card-back">
+            <img id="previewBack"
+              src="{% if id_card_back_url %}{{ id_card_back_url }}{% else %}data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs={% endif %}"
+              alt="ID Card Back" style="width:100%;height:100%;object-fit:cover;display:block">
+          </div>
+
+        </div>
+      </div>
+      <div class="flip-hint">Click to flip &bull; <span style="color:var(--primary)">Live preview</span></div>
+    </div>
+
+  </div><!-- /grid -->
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/personnel_form.js' %}" defer></script>
+{% endblock %}

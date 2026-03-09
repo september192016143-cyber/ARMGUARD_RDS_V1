@@ -1,0 +1,102 @@
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User
+from .models import UserProfile, AuditLog
+from armguard.apps.personnel.models import Personnel
+
+
+class UserProfileInline(admin.StackedInline):
+    """Role selection inline — always shown on the User form."""
+    model = UserProfile
+    can_delete = False
+    verbose_name = "Role"
+    verbose_name_plural = "Role"
+    fields = ('role',)
+    extra = 1
+    max_num = 1
+
+
+class PersonnelInline(admin.StackedInline):
+    """
+    Personnel record inline — lets you create/edit the linked Personnel
+    record directly from the User add/change page.
+    Personnel.user is a OneToOneField(AUTH_USER_MODEL) so at most one record appears.
+    """
+    model = Personnel
+    fk_name = 'user'
+    can_delete = False
+    verbose_name = "Personnel Record"
+    verbose_name_plural = "Personnel Record"
+    extra = 1
+    max_num = 1
+    fields = (
+        'rank',
+        'first_name',
+        'middle_initial',
+        'last_name',
+        'AFSN',
+        'group',
+        'squadron',
+        'status',
+        'personnel_image',
+    )
+
+    def save_new(self, form, commit=True):
+        """Set created_by/updated_by from request when saving a new Personnel via inline."""
+        obj = super().save_new(form, commit=False)
+        request = self._request  # set by PersonnelInlineMixin below
+        if request:
+            obj.created_by = request.user.username
+            obj.updated_by = request.user.username
+        if commit:
+            obj.save()
+        return obj
+
+
+class CustomUserAdmin(BaseUserAdmin):
+    """
+    Extends the default UserAdmin to include:
+      - Role (UserProfile) inline at the top of the change/add form
+      - Personnel Record inline below
+    """
+    inlines = [UserProfileInline, PersonnelInline]
+
+    def save_formset(self, request, form, formset, change):
+        """Pass request into personnel formset so created_by/updated_by are captured."""
+        instances = formset.save(commit=False)
+        for obj in instances:
+            if isinstance(obj, Personnel):
+                if not obj.pk:
+                    obj.created_by = request.user.username
+                obj.updated_by = request.user.username
+                obj.user = form.instance   # link to the just-saved User
+                obj.save()
+        formset.save_m2m()
+
+    def get_inline_instances(self, request, obj=None):
+        return [inline(self.model, self.admin_site) for inline in [UserProfileInline, PersonnelInline]]
+
+
+# Replace the default User admin with our custom one
+admin.site.unregister(User)
+admin.site.register(User, CustomUserAdmin)
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    """Read-only audit log viewer. No records may be added, changed, or deleted via admin."""
+    list_display = ('timestamp', 'user', 'action', 'model_name', 'object_pk', 'ip_address')
+    list_filter = ('action', 'model_name')
+    search_fields = ('user__username', 'model_name', 'object_pk', 'message', 'ip_address')
+    date_hierarchy = 'timestamp'
+    readonly_fields = ('timestamp', 'user', 'action', 'model_name', 'object_pk', 'message', 'ip_address')
+    ordering = ('-timestamp',)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

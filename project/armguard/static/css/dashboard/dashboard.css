@@ -1,0 +1,39 @@
+/* Dashboard Stat Cards & Grid */
+.stat-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 1.5rem;
+	margin-bottom: 2rem;
+}
+.stat-card {
+	background: var(--card);
+	border-radius: var(--radius);
+	box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+	padding: 1.25rem 1.1rem;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	border: 1px solid var(--border);
+}
+.stat-label {
+	font-size: .92rem;
+	font-weight: 600;
+	color: var(--muted);
+	margin-bottom: .35rem;
+}
+.stat-value {
+	font-size: 2.1rem;
+	font-weight: 700;
+	color: var(--light);
+	margin-bottom: .25rem;
+}
+.stat-sub {
+	font-size: .85rem;
+	color: var(--muted);
+}
+.accent-blue { border-left: 4px solid var(--blue); }
+.accent-amber { border-left: 4px solid var(--primary); }
+.accent-indigo { border-left: 4px solid var(--indigo); }
+.text-green { color: var(--green); }
+.text-red { color: var(--red); }
+.mb-2 { margin-bottom: 2rem; }

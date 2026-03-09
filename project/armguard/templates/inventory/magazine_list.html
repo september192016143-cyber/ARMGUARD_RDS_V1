@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}Magazines — ArmGuard RDS{% endblock %}
+{% block page_title %}Magazines{% endblock %}
+{% block page_sub %}Inventory stock levels{% endblock %}
+
+{% block topbar_actions %}
+<div class="flex gap-2" style="align-items:center">
+  {% if can_manage %}
+  <a href="{% url 'magazine-add' %}" class="btn btn-primary btn-sm">
+    <i class="fa-solid fa-plus"></i> Add Magazine Pool
+  </a>
+  {% endif %}
+  <span class="text-muted" style="font-size:.82rem"><i class="fa-solid fa-layer-group"></i> {{ total_qty }} total magazines in stock</span>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="filter-bar">
+    <form method="get" class="search-bar" style="flex:1">
+      <div class="input-wrap" style="flex:1;max-width:300px">
+        <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;pointer-events:none"></i>
+        <input type="text" name="q" value="{{ request.GET.q }}" class="form-control"
+               placeholder="Type, weapon type…" style="padding-left:2.1rem">
+      </div>
+      <select name="weapon_type" class="form-control" style="max-width:140px">
+        <option value="">All Weapons</option>
+        <option value="Pistol" {% if request.GET.weapon_type == 'Pistol' %}selected{% endif %}>Pistol</option>
+        <option value="Rifle" {% if request.GET.weapon_type == 'Rifle' %}selected{% endif %}>Rifle</option>
+      </select>
+      <button type="submit" class="btn btn-secondary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+      {% if request.GET.q or request.GET.weapon_type %}
+        <a href="{% url 'magazine-list' %}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    {% if page_obj.object_list %}
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Weapon Type</th>
+          <th>Magazine Type</th>
+          <th>Capacity</th>
+          <th>Qty in Stock</th>
+          {% if can_edit_delete %}<th style="width:80px"></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in page_obj %}
+        <tr>
+          <td class="text-muted">{{ m.pk }}</td>
+          <td>
+            {% if m.weapon_type == 'Pistol' %}
+              <span class="badge badge-blue">Pistol</span>
+            {% else %}
+              <span class="badge badge-amber">Rifle</span>
+            {% endif %}
+          </td>
+          <td class="fw-600">{{ m.type|default:"—" }}</td>
+          <td class="text-muted">{{ m.capacity|default:"—" }} rounds</td>
+          <td>
+            <span class="fw-600" style="{% if m.quantity == 0 %}color:var(--red){% elif m.quantity < 5 %}color:var(--primary){% else %}color:var(--green){% endif %}">
+              {{ m.quantity }}
+            </span>
+          </td>
+          {% if can_edit_delete %}
+          <td>
+            <div class="flex gap-2">
+              <a href="{% url 'magazine-edit' m.pk %}" class="btn btn-secondary btn-sm btn-icon" title="Edit"><i class="fa-solid fa-pen"></i></a>
+              <a href="{% url 'magazine-delete' m.pk %}" class="btn btn-danger btn-sm btn-icon" title="Delete"><i class="fa-solid fa-trash"></i></a>
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if page_obj.has_other_pages %}
+    <div class="pagination">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
+      {% endif %}
+      {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+          <a class="page-link active">{{ num }}</a>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+          <a href="?page={{ num }}" class="page-link">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+      <i class="fa-solid fa-layer-group"></i>
+      <p>No magazines found.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

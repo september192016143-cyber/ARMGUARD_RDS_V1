@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Printing...</title>
+    <style>
+        @page {
+            size: legal;
+            margin: 1.1in 0.2in 0.3in 0.2in;  /* Extra top margin to prevent logo cutting */
+        }
+        
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 100vh;
+            border: none;
+        }
+        
+        /* Print instructions overlay (hidden after print starts) */
+        #print-instructions {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 9999;
+            max-width: 300px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+        
+        #print-instructions h3 {
+            margin: 0 0 10px 0;
+            color: #856404;
+            font-size: 16px;
+        }
+        
+        #print-instructions ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        #print-instructions li {
+            margin-bottom: 5px;
+            color: #856404;
+        }
+        
+        @media print {
+            #print-instructions {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Print instructions overlay -->
+    <div id="print-instructions">
+        <h3>⚠️ IMPORTANT Print Settings</h3>
+        <ul>
+            <li><strong>Paper Size:</strong> Legal (8.5" × 14") - NOT A4!</li>
+            <li><strong>Quality:</strong> Fast / Standard</li>
+            <li><strong>Scaling:</strong> None / 100% / Actual size</li>
+            <li><strong>Orientation:</strong> Portrait</li>
+        </ul>
+        <p style="color: #d32f2f; font-weight: bold; margin-top: 10px;">⚠️ If using A4 paper, content will be cut off!</p>
+    </div>
+    
+    <iframe id="pdfFrame" src="{{ pdf_url }}" type="application/pdf"></iframe>
+    
+    <script>
+        let printAttempted = false;
+        let pdfLoadTimeout = null;
+        
+        // Trigger print when ready
+        function attemptPrint() {
+            if (printAttempted) return;
+            printAttempted = true;
+            
+            // Clear any pending timeouts
+            if (pdfLoadTimeout) {
+                clearTimeout(pdfLoadTimeout);
+            }
+            
+            console.log('PDF ready - triggering print dialog...');
+            
+            try {
+                // Try to print the iframe content directly
+                var iframe = document.getElementById('pdfFrame');
+                if (iframe.contentWindow) {
+                    iframe.contentWindow.print();
+                } else {
+                    // Fallback to window.print()
+                    window.print();
+                }
+                console.log('Print dialog triggered successfully');
+                
+                // Hide instructions after print dialog appears
+                setTimeout(function() {
+                    var instructions = document.getElementById('print-instructions');
+                    if (instructions) {
+                        instructions.style.display = 'none';
+                    }
+                }, 1000);
+            } catch (e) {
+                console.error('Failed to trigger print:', e);
+                // Try fallback
+                try {
+                    window.print();
+                } catch (e2) {
+                    alert('Print failed. Please use Ctrl+P to print manually.');
+                }
+            }
+        }
+        
+        // Listen for iframe load event
+        var pdfFrame = document.getElementById('pdfFrame');
+        
+        // Method 1: Listen for load event on iframe
+        pdfFrame.addEventListener('load', function() {
+            console.log('PDF iframe loaded - ready to print');
+            attemptPrint();
+        });
+        
+        // Method 2: Fallback timeout in case load event doesn't fire
+        pdfLoadTimeout = setTimeout(function() {
+            console.log('Fallback timeout reached - triggering print anyway');
+            attemptPrint();
+        }, 2000);
+        
+        // Close window after printing (optional)
+        window.onafterprint = function() {
+            console.log('Print completed or cancelled');
+            setTimeout(function() {
+                window.close();
+            }, 1000);
+        };
+        
+        // Log when print dialog is opened
+        window.onbeforeprint = function() {
+            console.log('Print dialog opened');
+        };
+    </script>
+</body>
+</html>

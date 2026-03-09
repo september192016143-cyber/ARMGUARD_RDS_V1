@@ -1,0 +1,728 @@
+﻿{% extends 'base.html' %}
+
+{% block extra_css %}
+{% if item_type == 'pistol' or item_type == 'rifle' %}
+<style>
+#serial-crop-modal-overlay {
+  position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,.8);
+  display:flex;align-items:center;justify-content:center;
+  padding:.75rem;
+}
+#serial-crop-modal {
+  background:var(--card-bg,#1e2535);
+  border:1px solid var(--border,#2d3550);
+  border-radius:.75rem;
+  padding:1.25rem;
+  width:min(720px,96vw);
+  max-height:96vh;
+  overflow-y:auto;
+  display:flex;flex-direction:column;gap:.75rem;
+}
+#serial-crop-modal h3 { margin:0;font-size:1rem;font-weight:600; }
+#serial-crop-wrap {
+  width:100%;background:#111;border-radius:.5rem;
+  overflow:hidden;line-height:0;
+  display:flex;align-items:center;justify-content:center;
+}
+#canvas-inner { position:relative; line-height:0; }
+#serial-crop-canvas { display:block;cursor:crosshair;touch-action:none; }
+#zoom-bar {
+  position:absolute;bottom:8px;right:8px;
+  display:flex;align-items:center;gap:4px;
+  background:rgba(0,0,0,.6);border-radius:6px;padding:3px 6px;
+}
+.zoom-btn {
+  background:rgba(255,255,255,.15);border:none;color:#fff;
+  width:26px;height:26px;border-radius:4px;font-size:.9rem;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
+}
+.zoom-btn:hover { background:rgba(255,255,255,.3); }
+.zoom-btn:disabled { opacity:.35;cursor:default; }
+#zoom-level { color:#fff;font-size:.75rem;min-width:2.8rem;text-align:center; }
+#enhance-panel {
+  display:grid;grid-template-columns:1fr 1fr;gap:.5rem .75rem;
+  padding:.25rem 0;
+}
+#enhance-panel > button { grid-column:1/-1;width:fit-content; }
+.enh-item { display:flex;flex-direction:column;gap:3px; }
+.enh-label { font-size:.75rem;color:var(--muted,#6b7897);display:flex;justify-content:space-between; }
+.enh-slider { width:100%;accent-color:var(--primary,#c9952b); }
+#enhance-reset {
+  padding:.25rem .6rem;background:none;
+  border:1px solid var(--border,#2d3550);
+  border-radius:.375rem;color:var(--text,#e2e8f0);
+  font-size:.75rem;cursor:pointer;
+}
+#enhance-reset:hover { background:var(--border,#2d3550); }
+.serial-crop-hint { font-size:.75rem;color:var(--muted,#6b7897);margin:0; }
+.serial-crop-actions { display:flex;gap:.5rem;justify-content:flex-end; }
+#serial-crop-preview-row {
+  display:none;align-items:center;gap:.75rem;margin-top:.5rem;flex-wrap:wrap;
+}
+</style>
+{% endif %}
+{% endblock %}
+
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} {{ item_label }} — ArmGuard RDS{% endblock %}
+{% block page_title %}{% if object %}Edit {{ item_label }}{% else %}Add {{ item_label }}{% endif %}{% endblock %}
+{% block page_sub %}
+  {% if object %}
+    {% if item_type == 'pistol' or item_type == 'rifle' %}{{ object }}{% else %}ID {{ object.pk }}{% endif %}
+  {% else %}New record{% endif %}
+{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ back_url }}" class="btn btn-secondary btn-sm">
+  <i class="fa-solid fa-arrow-left"></i> Back
+</a>
+{% endblock %}
+
+{% block content %}
+
+{% if form.errors %}
+<div class="alert alert-error" style="margin-bottom:1rem">
+  <i class="fa-solid fa-circle-exclamation"></i>
+  <div>
+    <strong>Please correct the errors below.</strong>
+    {% for field in form %}{% for err in field.errors %}<div>{{ field.label }}: {{ err }}</div>{% endfor %}{% endfor %}
+    {% for err in form.non_field_errors %}<div>{{ err }}</div>{% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card" style="max-width:720px">
+  <form method="post"
+        {% if item_type == 'pistol' or item_type == 'rifle' %}enctype="multipart/form-data"{% endif %}
+        novalidate>
+    {% csrf_token %}
+
+    {% if item_type == 'pistol' %}
+    <!-- ── Pistol fields ──────────────────────────────────────────────────── -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="{{ form.model.id_for_label }}">
+          Model <span class="req">*</span>
+        </label>
+        {{ form.model }}
+        {% if form.model.errors %}<div class="form-error">{{ form.model.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="{{ form.serial_number.id_for_label }}">
+          Serial Number <span class="req">*</span>
+        </label>
+        {{ form.serial_number }}
+        {% if form.serial_number.errors %}<div class="form-error">{{ form.serial_number.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="{{ form.item_condition.id_for_label }}">Condition</label>
+        {{ form.item_condition }}
+        {% if form.item_condition.errors %}<div class="form-error">{{ form.item_condition.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="{{ form.item_status.id_for_label }}">Status</label>
+        {{ form.item_status }}
+        {% if form.item_status.errors %}<div class="form-error">{{ form.item_status.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+      {{ form.description }}
+      {% if form.description.errors %}<div class="form-error">{{ form.description.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="{{ form.serial_image.id_for_label }}">Serial Image</label>
+      {% if object and object.serial_image %}
+        <div style="margin-bottom:.5rem">
+          <img src="{{ object.serial_image.url }}" style="max-height:80px;border-radius:.375rem;border:1px solid var(--border)">
+          <div class="form-hint">Current image — upload a new one to replace it.</div>
+        </div>
+      {% endif %}
+      {{ form.serial_image }}
+      <div id="serial-crop-preview-row">
+        <img id="serial-crop-thumb" src="" alt="Cropped preview" style="max-height:80px;border-radius:.375rem;border:1px solid var(--border)">
+        <button type="button" class="btn btn-secondary btn-sm" id="serial-recrop-btn">
+          <i class="fa-solid fa-crop-simple"></i> Re-crop
+        </button>
+        <span class="form-hint" style="margin:0">Cropped preview</span>
+      </div>
+      {% if form.serial_image.errors %}<div class="form-error">{{ form.serial_image.errors|join:", " }}</div>{% endif %}
+    </div>
+
+    {% elif item_type == 'rifle' %}
+    <!-- ── Rifle fields ───────────────────────────────────────────────────── -->
+    <div class="form-group">
+      <label class="form-label" for="{{ form.model.id_for_label }}">
+        Model <span class="req">*</span>
+      </label>
+      {{ form.model }}
+      {% if form.model.errors %}<div class="form-error">{{ form.model.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="form-group" id="factory-qr-group" style="display:none">
+      <label class="form-label" for="{{ form.factory_qr.id_for_label }}">
+        Factory QR Code <span class="req">*</span>
+      </label>
+      {{ form.factory_qr }}
+      <div class="form-hint">Required for M4 Carbine DSAR-15 5.56mm. Contains the PAF serial number.</div>
+      {% if form.factory_qr.errors %}<div class="form-error">{{ form.factory_qr.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="{{ form.serial_number.id_for_label }}">
+        Serial Number <span class="req" id="serial-req">*</span>
+      </label>
+      {{ form.serial_number }}
+      <div class="form-hint" id="serial-hint" style="display:none">Auto-extracted from the Factory QR code for M4 DSAR-15.</div>
+      {% if form.serial_number.errors %}<div class="form-error">{{ form.serial_number.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="{{ form.item_condition.id_for_label }}">Condition</label>
+        {{ form.item_condition }}
+        {% if form.item_condition.errors %}<div class="form-error">{{ form.item_condition.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="{{ form.item_status.id_for_label }}">Status</label>
+        {{ form.item_status }}
+        {% if form.item_status.errors %}<div class="form-error">{{ form.item_status.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+      {{ form.description }}
+      {% if form.description.errors %}<div class="form-error">{{ form.description.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="{{ form.serial_image.id_for_label }}">Serial Image</label>
+      {% if object and object.serial_image %}
+        <div style="margin-bottom:.5rem">
+          <img src="{{ object.serial_image.url }}" style="max-height:80px;border-radius:.375rem;border:1px solid var(--border)">
+          <div class="form-hint">Current image — upload a new one to replace it.</div>
+        </div>
+      {% endif %}
+      {{ form.serial_image }}
+      <div id="serial-crop-preview-row">
+        <img id="serial-crop-thumb" src="" alt="Cropped preview" style="max-height:80px;border-radius:.375rem;border:1px solid var(--border)">
+        <button type="button" class="btn btn-secondary btn-sm" id="serial-recrop-btn">
+          <i class="fa-solid fa-crop-simple"></i> Re-crop
+        </button>
+        <span class="form-hint" style="margin:0">Cropped preview</span>
+      </div>
+      {% if form.serial_image.errors %}<div class="form-error">{{ form.serial_image.errors|join:", " }}</div>{% endif %}
+    </div>
+
+    {% elif item_type == 'magazine' %}
+    <!-- ── Magazine fields ───────────────────────────────────────────────── -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="{{ form.type.id_for_label }}">
+          Magazine Type <span class="req">*</span>
+        </label>
+        {{ form.type }}
+        <div class="form-hint">Weapon type and capacity are auto-set from the magazine type.</div>
+        {% if form.type.errors %}<div class="form-error">{{ form.type.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="{{ form.quantity.id_for_label }}">
+          Quantity <span class="req">*</span>
+        </label>
+        {{ form.quantity }}
+        {% if form.quantity.errors %}<div class="form-error">{{ form.quantity.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+      {{ form.description }}
+      {% if form.description.errors %}<div class="form-error">{{ form.description.errors|join:", " }}</div>{% endif %}
+    </div>
+
+    {% elif item_type == 'ammunition' %}
+    <!-- ── Ammunition fields ─────────────────────────────────────────────── -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="{{ form.type.id_for_label }}">
+          Caliber / Type <span class="req">*</span>
+        </label>
+        {{ form.type }}
+        {% if form.type.errors %}<div class="form-error">{{ form.type.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="{{ form.lot_number.id_for_label }}">
+          Lot Number <span class="req">*</span>
+        </label>
+        {{ form.lot_number }}
+        {% if form.lot_number.errors %}<div class="form-error">{{ form.lot_number.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+    <div class="form-group" style="max-width:200px">
+      <label class="form-label" for="{{ form.quantity.id_for_label }}">
+        Quantity (rounds) <span class="req">*</span>
+      </label>
+      {{ form.quantity }}
+      {% if form.quantity.errors %}<div class="form-error">{{ form.quantity.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+      {{ form.description }}
+      {% if form.description.errors %}<div class="form-error">{{ form.description.errors|join:", " }}</div>{% endif %}
+    </div>
+
+    {% elif item_type == 'accessory' %}
+    <!-- ── Accessory fields ──────────────────────────────────────────────── -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="{{ form.type.id_for_label }}">
+          Accessory Type <span class="req">*</span>
+        </label>
+        {{ form.type }}
+        {% if form.type.errors %}<div class="form-error">{{ form.type.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="{{ form.quantity.id_for_label }}">
+          Quantity <span class="req">*</span>
+        </label>
+        {{ form.quantity }}
+        {% if form.quantity.errors %}<div class="form-error">{{ form.quantity.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+      {{ form.description }}
+      {% if form.description.errors %}<div class="form-error">{{ form.description.errors|join:", " }}</div>{% endif %}
+    </div>
+    {% endif %}
+
+    <hr class="divider">
+    <div class="flex gap-2">
+      <button type="submit" class="btn btn-primary">
+        <i class="fa-solid fa-floppy-disk"></i>
+        {% if object %}Save Changes{% else %}Add {{ item_label }}{% endif %}
+      </button>
+      <a href="{{ back_url }}" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+
+{% if item_type == 'pistol' or item_type == 'rifle' %}
+<!-- ── Serial Image Crop Modal ──────────────────────────────────────────── -->
+<div id="serial-crop-modal-overlay" style="display:none" aria-modal="true" role="dialog">
+  <div id="serial-crop-modal">
+    <h3><i class="fa-solid fa-crop-simple"></i> Crop &amp; Enhance Serial Image</h3>
+    <p class="serial-crop-hint">Drag to draw selection &nbsp;&middot;&nbsp; Drag inside to move &nbsp;&middot;&nbsp; Drag corners/edges to resize &nbsp;&middot;&nbsp; Scroll to zoom</p>
+    <div id="serial-crop-wrap">
+      <div id="canvas-inner">
+        <canvas id="serial-crop-canvas"></canvas>
+        <div id="zoom-bar">
+          <button type="button" class="zoom-btn" id="zoom-out-btn" title="Zoom out">−</button>
+          <span id="zoom-level">1.0&times;</span>
+          <button type="button" class="zoom-btn" id="zoom-in-btn" title="Zoom in">+</button>
+          <button type="button" class="zoom-btn" id="zoom-reset-btn" title="Reset zoom" style="font-size:.7rem;width:auto;padding:0 .4rem">reset</button>
+        </div>
+      </div>
+    </div>
+    <div id="enhance-panel">
+      <div class="enh-item">
+        <div class="enh-label">Brightness <span id="enh-brightness-val">100%</span></div>
+        <input type="range" class="enh-slider" id="enh-brightness" min="0" max="300" value="100">
+      </div>
+      <div class="enh-item">
+        <div class="enh-label">Contrast <span id="enh-contrast-val">100%</span></div>
+        <input type="range" class="enh-slider" id="enh-contrast" min="0" max="300" value="100">
+      </div>
+      <div class="enh-item">
+        <div class="enh-label">Saturation <span id="enh-saturation-val">100%</span></div>
+        <input type="range" class="enh-slider" id="enh-saturation" min="0" max="300" value="100">
+      </div>
+      <div class="enh-item">
+        <div class="enh-label">Sharpness <span id="enh-sharpness-val">0</span></div>
+        <input type="range" class="enh-slider" id="enh-sharpness" min="0" max="5" value="0" step="1">
+      </div>
+      <button type="button" id="enhance-reset"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+    </div>
+    <div class="serial-crop-actions">
+      <button type="button" class="btn btn-secondary btn-sm" id="serial-crop-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary btn-sm" id="serial-crop-apply">
+        <i class="fa-solid fa-check"></i> Crop &amp; Apply
+      </button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if item_type == 'rifle' %}
+<script>
+(function () {
+  const modelSel   = document.getElementById('{{ form.model.id_for_label }}');
+  const qrGroup    = document.getElementById('factory-qr-group');
+  const qrInput    = document.getElementById('{{ form.factory_qr.id_for_label }}');
+  const serialInput = document.getElementById('{{ form.serial_number.id_for_label }}');
+  const descInput  = document.getElementById('{{ form.description.id_for_label }}');
+  const serialHint = document.getElementById('serial-hint');
+  const M4 = 'M4 Carbine DSAR-15 5.56mm';
+
+  function toggle() {
+    const isM4 = modelSel.value === M4;
+    qrGroup.style.display  = isM4 ? '' : 'none';
+    if (serialHint) serialHint.style.display = isM4 ? '' : 'none';
+  }
+
+  modelSel.addEventListener('change', toggle);
+  toggle();
+
+  // Auto-fill Serial Number + Description from scanned QR
+  function autofillFromQR() {
+    const qr = qrInput.value.trim();
+    if (!qr) return;
+    const match = qr.match(/PAF\d{8}/);
+    if (match) {
+      const serial = match[0];
+      const idx = qr.indexOf(serial);
+      const before = qr.slice(0, idx);
+      const after  = qr.slice(idx + serial.length);
+      if (serialInput && !serialInput.value) serialInput.value = serial;
+      if (descInput   && !descInput.value)   descInput.value   = (before + after).trim();
+    }
+  }
+
+  // Prevent QR scanner's trailing Enter from submitting the form
+  if (qrInput) {
+    qrInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); autofillFromQR(); }
+    });
+    qrInput.addEventListener('change', autofillFromQR);
+  }
+})();
+</script>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+{% if item_type == 'pistol' or item_type == 'rifle' %}
+<script>
+(function () {
+  const fileInput   = document.getElementById('{{ form.serial_image.id_for_label }}');
+  const overlay     = document.getElementById('serial-crop-modal-overlay');
+  const canvas      = document.getElementById('serial-crop-canvas');
+  const ctx         = canvas.getContext('2d');
+  const applyBtn    = document.getElementById('serial-crop-apply');
+  const cancelBtn   = document.getElementById('serial-crop-cancel');
+  const previewRow  = document.getElementById('serial-crop-preview-row');
+  const previewImg  = document.getElementById('serial-crop-thumb');
+  const recropBtn   = document.getElementById('serial-recrop-btn');
+  const zoomInBtn   = document.getElementById('zoom-in-btn');
+  const zoomOutBtn  = document.getElementById('zoom-out-btn');
+  const zoomRstBtn  = document.getElementById('zoom-reset-btn');
+  const zoomLevelEl = document.getElementById('zoom-level');
+  const enhBrightness = document.getElementById('enh-brightness');
+  const enhContrast   = document.getElementById('enh-contrast');
+  const enhSaturation = document.getElementById('enh-saturation');
+  const enhSharpness  = document.getElementById('enh-sharpness');
+  const enhResetBtn   = document.getElementById('enhance-reset');
+
+  const HS = 7;           // handle half-size px
+  let img = new Image();
+  let viewZoom = 1;       // 1 = fit, up to 8
+  let viewPan  = {x:0, y:0};  // top-left of visible area in IMAGE pixels
+  let sel  = null;        // selection in IMAGE pixels {x,y,w,h}
+  let drag = null;
+  let originalFile = null;
+  let hasCropped   = false;
+
+  /* ── coordinate helpers ─────────────────────────────────────── */
+  function visW() { return img.naturalWidth  / viewZoom; }
+  function visH() { return img.naturalHeight / viewZoom; }
+
+  // canvas display px → image px
+  function c2i(cx, cy) {
+    return { x: cx / canvas.width  * visW() + viewPan.x,
+             y: cy / canvas.height * visH() + viewPan.y };
+  }
+  // image px → canvas display px
+  function i2c(ix, iy) {
+    return { x: (ix - viewPan.x) / visW() * canvas.width,
+             y: (iy - viewPan.y) / visH() * canvas.height };
+  }
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function clampPan() {
+    viewPan.x = clamp(viewPan.x, 0, img.naturalWidth  - visW());
+    viewPan.y = clamp(viewPan.y, 0, img.naturalHeight - visH());
+  }
+
+  function normSel(s) {
+    return { x: s.w >= 0 ? s.x : s.x+s.w, y: s.h >= 0 ? s.y : s.y+s.h,
+             w: Math.abs(s.w), h: Math.abs(s.h) };
+  }
+
+  // sel converted to canvas coords (for hit-test & drawing)
+  function selCanvas() {
+    if (!sel) return null;
+    const s = normSel(sel);
+    const tl = i2c(s.x, s.y);
+    const br = i2c(s.x+s.w, s.y+s.h);
+    return {x:tl.x, y:tl.y, w:br.x-tl.x, h:br.y-tl.y};
+  }
+
+  function getHandles(x,y,w,h) {
+    return [{id:'nw',x,y},{id:'n',x:x+w/2,y},{id:'ne',x:x+w,y},
+            {id:'w',x,y:y+h/2},              {id:'e',x:x+w,y:y+h/2},
+            {id:'sw',x,y:y+h},{id:'s',x:x+w/2,y:y+h},{id:'se',x:x+w,y:y+h}];
+  }
+
+  function hitHandle(mx, my) {
+    const sc = selCanvas(); if (!sc) return null;
+    for (const hp of getHandles(sc.x,sc.y,sc.w,sc.h))
+      if (Math.abs(mx-hp.x)<=HS+2 && Math.abs(my-hp.y)<=HS+2) return hp.id;
+    return null;
+  }
+
+  function insideSel(mx, my) {
+    const sc = selCanvas(); if (!sc) return false;
+    return mx>sc.x && mx<sc.x+sc.w && my>sc.y && my<sc.y+sc.h;
+  }
+
+  function getPos(e) {
+    const r  = canvas.getBoundingClientRect();
+    const sx = canvas.width  / r.width;
+    const sy = canvas.height / r.height;
+    const src = e.touches ? e.touches[0] : e;
+    return {x:(src.clientX-r.left)*sx, y:(src.clientY-r.top)*sy};
+  }
+
+  function setCursor(id) {
+    const map={nw:'nw-resize',n:'n-resize',ne:'ne-resize',w:'w-resize',
+               e:'e-resize',sw:'sw-resize',s:'s-resize',se:'se-resize',
+               move:'move',pan:'grab',draw:'crosshair'};
+    canvas.style.cursor=map[id]||'crosshair';
+  }
+
+  /* ── enhance ───────────────────────────────────────────────── */
+  function getFilter() {
+    return 'brightness('+enhBrightness.value+'%) contrast('+enhContrast.value+'%) saturate('+enhSaturation.value+'%)';
+  }
+  function updateEnhLabels() {
+    document.getElementById('enh-brightness-val').textContent = enhBrightness.value+'%';
+    document.getElementById('enh-contrast-val').textContent   = enhContrast.value+'%';
+    document.getElementById('enh-saturation-val').textContent = enhSaturation.value+'%';
+    document.getElementById('enh-sharpness-val').textContent  = enhSharpness.value;
+  }
+  [enhBrightness,enhContrast,enhSaturation,enhSharpness].forEach(function(sl){
+    sl.addEventListener('input', function(){ updateEnhLabels(); draw(); });
+  });
+  enhResetBtn.addEventListener('click', function(){
+    enhBrightness.value=100; enhContrast.value=100;
+    enhSaturation.value=100; enhSharpness.value=0;
+    updateEnhLabels(); draw();
+  });
+
+  function applySharpness(srcCanvas, level) {
+    if (level<=0) return srcCanvas;
+    const w=srcCanvas.width, h=srcCanvas.height;
+    const tmp=document.createElement('canvas'); tmp.width=w; tmp.height=h;
+    const tc=tmp.getContext('2d');
+    const amount=level*0.4;
+    tc.filter='none'; tc.drawImage(srcCanvas,0,0);
+    const bd=tc.getImageData(0,0,w,h).data;
+    tc.clearRect(0,0,w,h);
+    tc.filter='blur('+(1+level*0.3)+'px)'; tc.drawImage(srcCanvas,0,0);
+    const blur=tc.getImageData(0,0,w,h).data;
+    const out=tc.createImageData(w,h); const od=out.data;
+    for (let i=0;i<bd.length;i+=4){
+      od[i  ]=clamp(bd[i  ]+amount*(bd[i  ]-blur[i  ]),0,255);
+      od[i+1]=clamp(bd[i+1]+amount*(bd[i+1]-blur[i+1]),0,255);
+      od[i+2]=clamp(bd[i+2]+amount*(bd[i+2]-blur[i+2]),0,255);
+      od[i+3]=bd[i+3];
+    }
+    tc.putImageData(out,0,0); return tmp;
+  }
+
+  /* ── zoom ──────────────────────────────────────────────────── */
+  function updateZoomUI() {
+    zoomLevelEl.textContent = viewZoom.toFixed(1)+'×';
+    zoomOutBtn.disabled = viewZoom <= 1.01;
+    zoomInBtn.disabled  = viewZoom >= 8;
+  }
+
+  function zoomAt(cx, cy, factor) {
+    const before = c2i(cx, cy);
+    viewZoom = clamp(viewZoom*factor, 1, 8);
+    viewPan.x = before.x - cx/canvas.width  * visW();
+    viewPan.y = before.y - cy/canvas.height * visH();
+    clampPan(); updateZoomUI(); draw();
+  }
+
+  canvas.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    const cp = getPos(e);
+    zoomAt(cp.x, cp.y, e.deltaY<0 ? 1.2 : 1/1.2);
+  }, {passive:false});
+
+  zoomInBtn.addEventListener ('click', function(){ zoomAt(canvas.width/2, canvas.height/2, 1.5); });
+  zoomOutBtn.addEventListener('click', function(){ zoomAt(canvas.width/2, canvas.height/2, 1/1.5); });
+  zoomRstBtn.addEventListener('click', function(){ viewZoom=1; viewPan={x:0,y:0}; updateZoomUI(); draw(); });
+
+  /* ── draw ─────────────────────────────────────────────────────── */
+  function draw() {
+    const cw=canvas.width, ch=canvas.height;
+    ctx.clearRect(0,0,cw,ch);
+    ctx.filter=getFilter();
+    ctx.drawImage(img, viewPan.x, viewPan.y, visW(), visH(), 0, 0, cw, ch);
+    ctx.filter='none';
+
+    const sc=selCanvas();
+    if (!sc || sc.w<2 || sc.h<2) return;
+    const {x,y,w,h}=sc;
+    const ns=normSel(sel);
+
+    // dim outside
+    ctx.fillStyle='rgba(0,0,0,.55)';
+    ctx.fillRect(0,0,cw,ch);
+    ctx.save();
+    ctx.globalCompositeOperation='destination-out';
+    ctx.fillRect(x,y,w,h);
+    ctx.restore();
+    // re-draw image in crop area with filters
+    ctx.filter=getFilter();
+    ctx.drawImage(img, ns.x, ns.y, ns.w, ns.h, x, y, w, h);
+    ctx.filter='none';
+    // border
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
+    ctx.strokeRect(x+.5,y+.5,w-1,h-1);
+    // thirds grid
+    ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=.7;
+    [1,2].forEach(function(i){
+      ctx.beginPath(); ctx.moveTo(x+w*i/3,y); ctx.lineTo(x+w*i/3,y+h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x,y+h*i/3); ctx.lineTo(x+w,y+h*i/3); ctx.stroke();
+    });
+    // handles
+    getHandles(x,y,w,h).forEach(function(hp){
+      ctx.fillStyle='#fff'; ctx.strokeStyle='#333'; ctx.lineWidth=1;
+      ctx.fillRect(hp.x-HS,hp.y-HS,HS*2,HS*2);
+      ctx.strokeRect(hp.x-HS,hp.y-HS,HS*2,HS*2);
+    });
+  }
+
+  /* ── pointer events ─────────────────────────────────────────────── */
+  canvas.addEventListener('pointerdown', function(e) {
+    e.preventDefault(); canvas.setPointerCapture(e.pointerId);
+    const cp=getPos(e), ip=c2i(cp.x,cp.y);
+    const handle=hitHandle(cp.x,cp.y);
+    if (handle) {
+      drag={mode:'resize', handle, oImg:ip, origSel:{...normSel(sel)}}; setCursor(handle);
+    } else if (insideSel(cp.x,cp.y)) {
+      drag={mode:'move', oImg:ip, origSel:{...normSel(sel)}}; setCursor('move');
+    } else if (e.buttons===4 || e.altKey) {  // middle-click or alt = pan
+      drag={mode:'pan', oImg:ip}; setCursor('pan');
+    } else {
+      drag={mode:'draw', oImg:ip};
+      sel={x:ip.x, y:ip.y, w:0, h:0}; setCursor('draw');
+    }
+  });
+
+  canvas.addEventListener('pointermove', function(e) {
+    e.preventDefault();
+    const cp=getPos(e), ip=c2i(cp.x,cp.y);
+    if (!drag) {
+      const h=hitHandle(cp.x,cp.y);
+      setCursor(h||(insideSel(cp.x,cp.y)?'move':'draw')); return;
+    }
+    const dx=ip.x-drag.oImg.x, dy=ip.y-drag.oImg.y;
+    const IW=img.naturalWidth, IH=img.naturalHeight;
+    if (drag.mode==='draw') {
+      sel={x:drag.oImg.x, y:drag.oImg.y,
+           w:clamp(ip.x,0,IW)-drag.oImg.x,
+           h:clamp(ip.y,0,IH)-drag.oImg.y};
+    } else if (drag.mode==='move') {
+      const o=drag.origSel;
+      sel={x:clamp(o.x+dx,0,IW-o.w), y:clamp(o.y+dy,0,IH-o.h), w:o.w, h:o.h};
+    } else if (drag.mode==='resize') {
+      const o=drag.origSel, id=drag.handle;
+      let {x:rx, y:ry, w:rw, h:rh}=o;
+      if (id.includes('e')) rw=Math.max(2, o.w+dx);
+      if (id.includes('s')) rh=Math.max(2, o.h+dy);
+      if (id.includes('w')){ const nw=Math.max(2,o.w-dx); rx=o.x+o.w-nw; rw=nw; }
+      if (id.includes('n')){ const nh=Math.max(2,o.h-dy); ry=o.y+o.h-nh; rh=nh; }
+      sel={x:clamp(rx,0,IW), y:clamp(ry,0,IH), w:rw, h:rh};
+    } else if (drag.mode==='pan') {
+      viewPan.x-=dx; viewPan.y-=dy; clampPan();
+    }
+    draw();
+  });
+
+  canvas.addEventListener('pointerup', function(e) {
+    e.preventDefault(); drag=null;
+    if (sel){ sel=normSel(sel); if(sel.w<2||sel.h<2) sel=null; }
+    draw(); setCursor('draw');
+  });
+
+  /* ── open modal ─────────────────────────────────────────────────── */
+  function openCropModal(file) {
+    overlay.style.display='flex';
+    sel=null; drag=null; viewZoom=1; viewPan={x:0,y:0};
+    enhBrightness.value=100; enhContrast.value=100;
+    enhSaturation.value=100; enhSharpness.value=0;
+    updateEnhLabels(); updateZoomUI();
+    const url=URL.createObjectURL(file);
+    img.onload=function(){
+      URL.revokeObjectURL(url);
+      const wrap=document.getElementById('serial-crop-wrap');
+      const maxW=wrap.clientWidth||680;
+      const maxH=Math.round(window.innerHeight*0.55);
+      // Size canvas to fill wrap width; cap height so it doesn't overflow
+      let cw=maxW, ch=Math.round(img.naturalHeight*maxW/img.naturalWidth);
+      if(ch>maxH){ ch=maxH; cw=Math.round(img.naturalWidth*maxH/img.naturalHeight); }
+      canvas.width=cw; canvas.height=ch;
+      draw();
+    };
+    img.src=url;
+  }
+
+  fileInput.addEventListener('change', function(){
+    const file=fileInput.files[0]; if(!file) return;
+    originalFile=file; hasCropped=false; openCropModal(file);
+  });
+
+  if (recropBtn) recropBtn.addEventListener('click', function(){
+    if (originalFile){ hasCropped=false; openCropModal(originalFile); }
+  });
+
+  /* ── apply ──────────────────────────────────────────────────────── */
+  applyBtn.addEventListener('click', function(){
+    const s=sel?normSel(sel):null;
+    if(!s||s.w<2||s.h<2){ alert('Draw a crop area first.'); return; }
+    // full-res offscreen with enhance
+    const full=document.createElement('canvas');
+    full.width=img.naturalWidth; full.height=img.naturalHeight;
+    const fc=full.getContext('2d');
+    fc.filter=getFilter(); fc.drawImage(img,0,0); fc.filter='none';
+    const sharpened=applySharpness(full,parseInt(enhSharpness.value));
+    // crop in image coords (no scale conversion needed)
+    const out=document.createElement('canvas');
+    out.width=Math.round(s.w); out.height=Math.round(s.h);
+    out.getContext('2d').drawImage(sharpened, s.x,s.y,s.w,s.h, 0,0,s.w,s.h);
+    out.toBlob(function(blob){
+      const fname=(originalFile?originalFile.name.replace(/\.[^.]+$/,''):'serial')+'_cropped.jpg';
+      const f=new File([blob],fname,{type:'image/jpeg'});
+      const dt=new DataTransfer(); dt.items.add(f); fileInput.files=dt.files;
+      const pu=URL.createObjectURL(f);
+      previewImg.onload=function(){ URL.revokeObjectURL(pu); };
+      previewImg.src=pu;
+      previewRow.style.display='flex';
+      hasCropped=true; closeModal();
+    },'image/jpeg',0.93);
+  });
+
+  /* ── cancel ───────────────────────────────────────────────────────── */
+  cancelBtn.addEventListener('click', function(){
+    closeModal();
+    if (!hasCropped){ fileInput.value=''; previewRow.style.display='none'; originalFile=null; }
+  });
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) cancelBtn.click(); });
+  function closeModal(){ overlay.style.display='none'; }
+})();
+</script>
+{% endif %}
+{% endblock %}

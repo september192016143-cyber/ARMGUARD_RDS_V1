@@ -1,0 +1,96 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign In — ArmGuard RDS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
+<link rel="shortcut icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--border:#334155;--muted:#64748b;--text:#e2e8f0;--light:#f8fafc;--primary:#f59e0b;--primary-d:#d97706;--red:#ef4444;--radius:.5rem}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.login-wrap{width:100%;max-width:380px}
+.login-header{text-align:center;margin-bottom:1.75rem}
+.logo{width:80px;height:80px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:.85rem}
+.logo img{width:80px;height:80px;object-fit:contain;border-radius:.75rem}
+.login-title{font-size:1.4rem;font-weight:700;color:var(--light)}
+.login-sub{font-size:.8rem;color:var(--muted);margin-top:.25rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.75rem}
+.form-group{margin-bottom:1rem}
+.form-label{display:block;font-size:.8rem;font-weight:500;color:var(--text);margin-bottom:.35rem}
+.input-wrap{position:relative}
+.input-icon{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.85rem;pointer-events:none}
+.form-control{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:.375rem;padding:.55rem .75rem .55rem 2.25rem;color:var(--text);font-size:.88rem;transition:border-color .15s}
+.form-control:focus{outline:none;border-color:var(--primary);background:rgba(245,158,11,.05)}
+.btn-login{width:100%;padding:.65rem;background:var(--primary);color:#000;font-weight:700;font-size:.9rem;border:none;border-radius:.375rem;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:.5rem}
+.btn-login:hover{background:var(--primary-d)}
+.error-block{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:.375rem;padding:.6rem .85rem;font-size:.8rem;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.footer-text{text-align:center;font-size:.72rem;color:var(--muted);margin-top:1.25rem}
+.footer-text a{color:var(--primary);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-header">
+    <div class="logo"><img src="{% static 'images/logo.png' %}" alt="ArmGuard RDS"></div>
+    <div class="login-title">ArmGuard Armory Management System</div>
+    <div class="login-sub">— Sign in to continue —</div>
+  </div>
+
+  <div class="card">
+    {% if form.errors %}
+    <div class="error-block">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      Invalid username or password. Please try again.
+    </div>
+    {% endif %}
+
+    {% if messages %}
+      {% for msg in messages %}
+      <div class="error-block" style="{% if 'success' in msg.tags %}background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:#4ade80{% endif %}">
+        <i class="fa-solid fa-circle-info"></i> {{ msg }}
+      </div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+
+      <div class="form-group">
+        <label class="form-label" for="id_username">Username</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-user input-icon"></i>
+          <input type="text" name="username" id="id_username" class="form-control"
+                 autocomplete="username" autofocus required
+                 value="{{ form.username.value|default:'' }}">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.25rem">
+        <label class="form-label" for="id_password">Password</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-lock input-icon"></i>
+          <input type="password" name="password" id="id_password" class="form-control"
+                 autocomplete="current-password" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login">
+        <i class="fa-solid fa-right-to-bracket"></i> Sign In
+      </button>
+    </form>
+  </div>
+
+  <div class="footer-text">
+    &copy;  2025 ArmGuard Armory Management System &mdash; Developed by 9533 R&D Squadron for 953 Support Group.
+    {% if user.is_authenticated %}<a href="{% url 'dashboard' %}">Go to Dashboard</a>{% endif %}
+  </div>
+</div>
+</body>
+</html>
