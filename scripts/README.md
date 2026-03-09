@@ -222,7 +222,7 @@ Wrapper for `manage.py db_backup`. Creates a safe hot-copy SQLite backup using P
 # Install cron job for armguard user (daily at 2 AM)
 sudo crontab -u armguard -e
 # Add:
-# 0 2 * * * /var/www/armguard-v1/scripts/db-backup-cron.sh >> /var/log/armguard/backup.log 2>&1
+# 0 2 * * * /var/www/ARMGUARD_RDS_V1/scripts/db-backup-cron.sh >> /var/log/armguard/backup.log 2>&1
 ```
 
 **Manual run:**
@@ -231,7 +231,7 @@ sudo crontab -u armguard -e
 sudo bash scripts/db-backup-cron.sh
 ```
 
-Backups are stored in `/var/www/armguard-v1/backups/`. 14 daily backups are retained (configurable via `KEEP_DAYS`).
+Backups are stored in `/var/www/ARMGUARD_RDS_V1/backups/`. 14 daily backups are retained (configurable via `KEEP_DAYS`).
 
 ---
 
@@ -260,8 +260,8 @@ sudo systemctl reload armguard-gunicorn
 ## Management Commands
 
 ```bash
-PYTHON="/var/www/armguard-v1/venv/bin/python"
-MANAGE="$PYTHON /var/www/armguard-v1/project/manage.py"
+PYTHON="/var/www/ARMGUARD_RDS_V1/venv/bin/python"
+MANAGE="$PYTHON /var/www/ARMGUARD_RDS_V1/project/manage.py"
 DJANGO_SETTINGS_MODULE=armguard.settings.production
 
 # Cleanup expired sessions
@@ -282,7 +282,7 @@ sudo -u armguard $MANAGE check --deploy
 ## Deployment Directory Layout
 
 ```
-/var/www/armguard-v1/
+/var/www/ARMGUARD_RDS_V1/
 ├── .env                    # Production environment variables (chmod 600)
 ├── requirements.txt
 ├── venv/                   # Python virtual environment
@@ -315,7 +315,7 @@ sudo -u armguard $MANAGE check --deploy
 
 ## Environment Variables (.env)
 
-Key variables in `/var/www/armguard-v1/.env`:
+Key variables in `/var/www/ARMGUARD_RDS_V1/.env`:
 
 | Variable | Required | Notes |
 |----------|----------|-------|
@@ -347,13 +347,13 @@ sudo systemctl status armguard-gunicorn
 
 **Static files not served:**
 ```bash
-sudo -u armguard /var/www/armguard-v1/venv/bin/python \
-    /var/www/armguard-v1/project/manage.py collectstatic --noinput
+sudo -u armguard /var/www/ARMGUARD_RDS_V1/venv/bin/python \
+    /var/www/ARMGUARD_RDS_V1/project/manage.py collectstatic --noinput
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
 **Permission errors:**
 ```bash
-sudo chown -R armguard:armguard /var/www/armguard-v1
+sudo chown -R armguard:armguard /var/www/ARMGUARD_RDS_V1
 sudo chown -R armguard:armguard /var/log/armguard
 ```
