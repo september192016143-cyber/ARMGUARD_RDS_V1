@@ -7,7 +7,7 @@
 # sqlite3.Connection.backup() for a safe, consistent snapshot.
 #
 # Cron installation (as root or via crontab -u armguard -e):
-#   0 2 * * * /var/www/armguard-v1/scripts/db-backup-cron.sh >> /var/log/armguard/backup.log 2>&1
+#   0 2 * * * /var/www/ARMGUARD_RDS_V1/scripts/db-backup-cron.sh >> /var/log/armguard/backup.log 2>&1
 #
 # Configuration:
 #   Edit the variables below to match your deployment.
@@ -19,7 +19,7 @@ set -Eeo pipefail
 # Configuration
 # ---------------------------------------------------------------------------
 DEPLOY_USER="armguard"
-DEPLOY_DIR="/var/www/armguard-v1"
+DEPLOY_DIR="/var/www/ARMGUARD_RDS_V1"
 PROJECT_DIR="$DEPLOY_DIR/project"
 VENV_PYTHON="$DEPLOY_DIR/venv/bin/python"
 ENV_FILE="$DEPLOY_DIR/.env"

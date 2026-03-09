@@ -27,7 +27,7 @@ set -Eeo pipefail
 # Constants (edit to match your deployment)
 # ---------------------------------------------------------------------------
 DEPLOY_USER="armguard"
-DEPLOY_DIR="/var/www/armguard-v1"
+DEPLOY_DIR="/var/www/ARMGUARD_RDS_V1"
 PROJECT_DIR="$DEPLOY_DIR/project"
 VENV_DIR="$DEPLOY_DIR/venv"
 ENV_FILE="$DEPLOY_DIR/.env"

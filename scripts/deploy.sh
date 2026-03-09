@@ -16,7 +16,7 @@
 #   1. Validates OS and privileges
 #   2. Installs system packages (Python, Nginx, SQLite libs, image libs)
 #   3. Creates a dedicated system user 'armguard'
-#   4. Clones/copies project files to /var/www/armguard-v1/
+#   4. Clones/copies project files to /var/www/ARMGUARD_RDS_V1/
 #   5. Creates Python virtual environment and installs requirements
 #   6. Generates a production .env file
 #   7. Runs Django migrations and collectstatic
@@ -33,7 +33,7 @@ set -Eeo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 DEPLOY_USER="armguard"
-DEPLOY_DIR="/var/www/armguard-v1"
+DEPLOY_DIR="/var/www/ARMGUARD_RDS_V1"
 VENV_DIR="$DEPLOY_DIR/venv"
 PROJECT_DIR="$DEPLOY_DIR/project"
 LOG_DIR="/var/log/armguard"
@@ -272,7 +272,7 @@ DJANGO_ADMIN_URL=secure-admin-$(python3 -c "import secrets; print(secrets.token_
 
 # Database (SQLite for V1 — paths relative to project dir)
 # DB_ENGINE=django.db.backends.sqlite3
-# DB_NAME=/var/www/armguard-v1/project/db.sqlite3
+# DB_NAME=/var/www/ARMGUARD_RDS_V1/project/db.sqlite3
 
 # Security
 # Keep the three SECURE_* flags False until SSL is installed and certbot has run.

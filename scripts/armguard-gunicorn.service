@@ -3,7 +3,7 @@
 # =============================================================================
 # Installation:
 #   1. Edit the paths below if your deployment directory differs from
-#      /var/www/armguard-v1 (deploy.sh does this automatically via sed).
+#      /var/www/ARMGUARD_RDS_V1 (deploy.sh does this automatically via sed).
 #   2. Copy to /etc/systemd/system/armguard-gunicorn.service
 #   3. Run:
 #        sudo systemctl daemon-reload

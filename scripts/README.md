@@ -43,8 +43,8 @@ After deployment:
 
 ```bash
 # Create the first superuser account
-sudo -u armguard /var/www/armguard-v1/venv/bin/python \
-    /var/www/armguard-v1/project/manage.py createsuperuser
+sudo -u armguard /var/www/ARMGUARD_RDS_V1/venv/bin/python \
+    /var/www/ARMGUARD_RDS_V1/project/manage.py createsuperuser
 ```
 
 ---
