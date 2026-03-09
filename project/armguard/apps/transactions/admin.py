@@ -7,9 +7,6 @@ from django.contrib import admin
 import os
 
 
-from django.templatetags.static import static
-
-
 class TransactionAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.save(user=request.user)
@@ -75,7 +72,7 @@ class TransactionAdmin(admin.ModelAdmin):
     )
 
     class Media:
-        js = [static('admin/js/transaction_qr_autofill.js')]
+        js = ['admin/js/transaction_qr_autofill.js']
 
 admin.site.register(Transaction, TransactionAdmin)
 

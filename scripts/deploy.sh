@@ -316,8 +316,8 @@ sudo -u "$DEPLOY_USER" bash -c "
     source '$ENV_FILE' 2>/dev/null || true
     export DJANGO_SETTINGS_MODULE=armguard.settings.production
     cd '$PROJECT_DIR'
-    '$VENV_PYTHON' manage.py migrate --noinput
     '$VENV_PYTHON' manage.py collectstatic --noinput --clear
+    '$VENV_PYTHON' manage.py migrate --noinput
 "
 
 success "Migrations applied and static files collected."
