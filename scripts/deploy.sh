@@ -253,9 +253,7 @@ ENV_FILE="$DEPLOY_DIR/.env"
 if [[ -f "$ENV_FILE" ]]; then
     info ".env already exists — skipping generation. Edit manually if needed."
 else
-    SECRET_KEY=$(python3 -c "import secrets,string; \
-        chars=string.ascii_letters+string.digits+'!@#\$%^&*(-_=+)'; \
-        print(''.join(secrets.choice(chars) for _ in range(64)))")
+    SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
 
     cat > "$ENV_FILE" <<EOF
 # ARMGUARD RDS V1 — Production Environment
@@ -309,7 +307,7 @@ DJANGO_ENV="DJANGO_SETTINGS_MODULE=armguard.settings.production"
 # Source env vars for manage.py calls
 set -a
 # shellcheck source=/dev/null
-[[ -f "$ENV_FILE" ]] && source <(grep -v '^\s*#' "$ENV_FILE" | grep '=')
+[[ -f "$ENV_FILE" ]] && source "$ENV_FILE"
 set +a
 
 export DJANGO_SETTINGS_MODULE=armguard.settings.production
