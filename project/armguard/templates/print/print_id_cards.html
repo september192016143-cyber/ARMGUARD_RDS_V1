@@ -185,6 +185,8 @@
     {% for entry in personnel_cards %}
     <div class="card-wrapper" data-pid="{{ entry.personnel.Personnel_ID }}" data-has-card="{{ entry.has_card|yesno:'1,0' }}">
       <input type="checkbox" class="select-checkbox card-checkbox"
+             id="cb-{{ entry.personnel.Personnel_ID|slugify }}"
+             name="selected_card"
              value="{{ entry.personnel.Personnel_ID }}">
       <div class="id-card-item" id="card-item-{{ entry.personnel.Personnel_ID|slugify }}">
         {% if entry.thumb_url %}
