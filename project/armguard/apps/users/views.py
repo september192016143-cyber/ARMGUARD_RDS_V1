@@ -51,14 +51,14 @@ class _PersonnelChoiceField(forms.ModelChoiceField):
 
 
 class UserCreateForm(forms.Form):
-    username    = forms.CharField(max_length=150)
-    first_name  = forms.CharField(max_length=150, required=False)
-    last_name   = forms.CharField(max_length=150, required=False)
-    email       = forms.EmailField(required=False)
+    username    = forms.CharField(max_length=150, widget=forms.TextInput(attrs={'autocomplete': 'username'}))
+    first_name  = forms.CharField(max_length=150, required=False, widget=forms.TextInput(attrs={'autocomplete': 'given-name'}))
+    last_name   = forms.CharField(max_length=150, required=False, widget=forms.TextInput(attrs={'autocomplete': 'family-name'}))
+    email       = forms.EmailField(required=False, widget=forms.EmailInput(attrs={'autocomplete': 'email'}))
     role        = forms.ChoiceField(choices=ROLE_CHOICES)
     is_staff    = forms.BooleanField(required=False, label='Staff (Django admin access)')
-    password1   = forms.CharField(widget=forms.PasswordInput, label='Password')
-    password2   = forms.CharField(widget=forms.PasswordInput, label='Confirm password')
+    password1   = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), label='Password')
+    password2   = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), label='Confirm password')
     linked_personnel = _PersonnelChoiceField(
         queryset=Personnel.objects.filter(user__isnull=True).order_by('last_name', 'first_name'),
         required=False,
@@ -89,16 +89,16 @@ class UserCreateForm(forms.Form):
 
 
 class UserUpdateForm(forms.Form):
-    first_name    = forms.CharField(max_length=150, required=False)
-    last_name     = forms.CharField(max_length=150, required=False)
-    email         = forms.EmailField(required=False)
+    first_name    = forms.CharField(max_length=150, required=False, widget=forms.TextInput(attrs={'autocomplete': 'given-name'}))
+    last_name     = forms.CharField(max_length=150, required=False, widget=forms.TextInput(attrs={'autocomplete': 'family-name'}))
+    email         = forms.EmailField(required=False, widget=forms.EmailInput(attrs={'autocomplete': 'email'}))
     role          = forms.ChoiceField(choices=ROLE_CHOICES)
     is_staff      = forms.BooleanField(required=False, label='Staff (Django admin access)')
     is_active     = forms.BooleanField(required=False, label='Active', initial=True)
-    new_password1 = forms.CharField(widget=forms.PasswordInput, required=False,
+    new_password1 = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), required=False,
                                     label='New password',
                                     help_text='Leave blank to keep current password.')
-    new_password2 = forms.CharField(widget=forms.PasswordInput, required=False,
+    new_password2 = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), required=False,
                                     label='Confirm new password')
     linked_personnel = _PersonnelChoiceField(
         queryset=Personnel.objects.none(),   # overridden in __init__
