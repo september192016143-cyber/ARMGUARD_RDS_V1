@@ -1,4 +1,4 @@
-﻿# personnel_id_card_generator.py
+# personnel_id_card_generator.py
 """
 Personnel ID Card Generator  -  utils/personnel_id_card_generator.py
 

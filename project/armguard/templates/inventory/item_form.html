@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block extra_css %}
 {% if item_type == 'pistol' or item_type == 'rifle' %}
@@ -64,7 +65,7 @@
 {% endif %}
 {% endblock %}
 
-{% block title %}{% if object %}Edit{% else %}Add{% endif %} {{ item_label }} — ArmGuard RDS{% endblock %}
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} {{ item_label }} ï¿½ ArmGuard RDS{% endblock %}
 {% block page_title %}{% if object %}Edit {{ item_label }}{% else %}Add {{ item_label }}{% endif %}{% endblock %}
 {% block page_sub %}
   {% if object %}
@@ -137,7 +138,7 @@
       {% if object and object.serial_image %}
         <div style="margin-bottom:.5rem">
           <img src="{{ object.serial_image.url }}" style="max-height:80px;border-radius:.375rem;border:1px solid var(--border)">
-          <div class="form-hint">Current image — upload a new one to replace it.</div>
+          <div class="form-hint">Current image ï¿½ upload a new one to replace it.</div>
         </div>
       {% endif %}
       {{ form.serial_image }}
@@ -198,7 +199,7 @@
       {% if object and object.serial_image %}
         <div style="margin-bottom:.5rem">
           <img src="{{ object.serial_image.url }}" style="max-height:80px;border-radius:.375rem;border:1px solid var(--border)">
-          <div class="form-hint">Current image — upload a new one to replace it.</div>
+          <div class="form-hint">Current image ï¿½ upload a new one to replace it.</div>
         </div>
       {% endif %}
       {{ form.serial_image }}
