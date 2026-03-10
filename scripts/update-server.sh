@@ -13,13 +13,14 @@
 #   --help              Show this help message
 #
 # What this script does:
-#   1. Pulls latest code from git
-#   2. Updates pip dependencies
-#   3. Runs database migrations
-#   4. Downloads Font Awesome 6.5.0 locally (no CDN tracking warnings)
-#   5. Collects static files
-#   6. Gracefully reloads Gunicorn (zero-downtime)
-#   7. Verifies the service is healthy
+#   1. Creates a pre-update database backup
+#   2. Pulls latest code from git
+#   3. Updates pip dependencies
+#   4. Runs database migrations
+#   5. Downloads Font Awesome 6.5.0 locally (no CDN tracking warnings)
+#   6. Collects static files
+#   7. Gracefully reloads Gunicorn (zero-downtime)
+#   8. Verifies the service is healthy
 # =============================================================================
 
 set -Eeo pipefail
@@ -96,7 +97,7 @@ info "Branch    : $BRANCH"
 # ---------------------------------------------------------------------------
 # 1. Pre-update backup
 # ---------------------------------------------------------------------------
-step "1/7 Pre-update database backup"
+step "1/8 Pre-update database backup"
 
 BACKUP_DIR="$DEPLOY_DIR/backups"
 mkdir -p "$BACKUP_DIR"
@@ -122,7 +123,7 @@ fi
 # ---------------------------------------------------------------------------
 # 2. Git pull
 # ---------------------------------------------------------------------------
-step "2/7 Pulling latest code (branch: $BRANCH)"
+step "2/8 Pulling latest code (branch: $BRANCH)"
 
 # Fix ownership so the armguard user can write to .git/objects
 # (Happens when root previously cloned the repo or ran git operations)
@@ -148,7 +149,7 @@ fi
 # ---------------------------------------------------------------------------
 # 3. Update Python dependencies
 # ---------------------------------------------------------------------------
-step "3/7 Updating Python dependencies"
+step "3/8 Updating Python dependencies"
 
 REQUIREMENTS="$DEPLOY_DIR/requirements.txt"
 [[ -f "$REQUIREMENTS" ]] || REQUIREMENTS="$PROJECT_DIR/requirements.txt"
@@ -164,7 +165,7 @@ success "Dependencies updated."
 # 4. Database migrations
 # ---------------------------------------------------------------------------
 if [[ "$SKIP_MIGRATE" == "false" ]]; then
-    step "4/7 Running database migrations"
+    step "4/8 Running database migrations"
     sudo -u "$DEPLOY_USER" bash -c "
         export DJANGO_SETTINGS_MODULE=armguard.settings.production
         [[ -f '$ENV_FILE' ]] && set -a && source <(grep -v '^\s*#' '$ENV_FILE' | grep '=') && set +a
@@ -179,7 +180,7 @@ fi
 # ---------------------------------------------------------------------------
 # 4b. Download Font Awesome locally (eliminates CDN tracking-prevention warning)
 # ---------------------------------------------------------------------------
-step "4b/7 Downloading Font Awesome 6.5.0 to local static files"
+step "5/8 Downloading Font Awesome 6.5.0 to local static files"
 
 FA_VERSION="6.5.0"
 FA_BASE_URL="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/${FA_VERSION}"
@@ -226,7 +227,7 @@ fi
 # 5. Collect static files
 # ---------------------------------------------------------------------------
 if [[ "$SKIP_STATIC" == "false" ]]; then
-    step "5/7 Collecting static files"
+    step "6/8 Collecting static files"
     sudo -u "$DEPLOY_USER" bash -c "
         export DJANGO_SETTINGS_MODULE=armguard.settings.production
         [[ -f '$ENV_FILE' ]] && set -a && source <(grep -v '^\s*#' '$ENV_FILE' | grep '=') && set +a
@@ -242,7 +243,7 @@ fi
 # 6. Reload Gunicorn (graceful — zero downtime)
 # ---------------------------------------------------------------------------
 if [[ "$NO_RESTART" == "false" ]]; then
-    step "6/7 Reloading Gunicorn service"
+    step "7/8 Reloading Gunicorn service"
     if systemctl is-active --quiet "$SERVICE_NAME"; then
         # HUP = graceful reload; workers finish current requests before cycling
         systemctl reload "$SERVICE_NAME" 2>/dev/null || systemctl restart "$SERVICE_NAME"
@@ -261,6 +262,26 @@ if [[ "$NO_RESTART" == "false" ]]; then
     fi
 else
     info "Skipping service restart (--no-restart)."
+fi
+
+# ---------------------------------------------------------------------------
+# 8. Post-update health check
+# ---------------------------------------------------------------------------
+step "8/8 Post-update health check"
+
+HEALTH_OK=true
+if systemctl is-active --quiet "$SERVICE_NAME"; then
+    success "Gunicorn ($SERVICE_NAME) is running."
+else
+    error "Gunicorn is NOT running!"
+    journalctl -u "$SERVICE_NAME" -n 20 --no-pager
+    HEALTH_OK=false
+fi
+
+if systemctl is-active --quiet nginx; then
+    success "Nginx is running."
+else
+    warn "Nginx is not running. Check: journalctl -u nginx -n 20"
 fi
 
 # ---------------------------------------------------------------------------

@@ -24,6 +24,9 @@
 #   9. Creates and enables systemd service for Gunicorn
 #  10. Installs Nginx configuration
 #  11. Configures UFW firewall
+#  12. Sets up log rotation
+#  13. Installs database backup cron job (daily at 02:00)
+#  14. Installs SSL certificate renewal cron job (monthly)
 # =============================================================================
 
 set -Eeo pipefail
