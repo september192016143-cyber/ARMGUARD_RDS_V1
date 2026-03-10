@@ -1,11 +1,11 @@
 :root {
-  --bg:       #0f172a;
+  --bg:       #ffffff;
   --sidebar:  #1e293b;
-  --card:     #1e293b;
-  --border:   #334155;
-  --muted:    #64748b;
-  --text:     #e2e8f0;
-  --light:    #f8fafc;
+  --card:     #ffffff;
+  --border:   #d1d5db;
+  --muted:    #374151;
+  --text:     #111827;
+  --light:    #111827;
   --primary:  #f59e0b;
   --primary-d:#d97706;
   --green:    #22c55e;
@@ -175,7 +175,7 @@ thead th{padding:.6rem .85rem;text-align:left;font-size:.72rem;font-weight:600;t
 tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s}
 tbody tr:hover{background:rgba(255,255,255,.03)}
 tbody td{padding:.65rem .85rem;color:var(--text);vertical-align:middle}
-.analytics-table th{color:#fff !important}
+.analytics-table th{color:#111827 !important}
 
 /* Badges */
 .badge{display:inline-block;padding:.2rem .55rem;border-radius:9999px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
@@ -190,9 +190,9 @@ tbody td{padding:.65rem .85rem;color:var(--text);vertical-align:middle}
 .form-group{margin-bottom:1rem}
 .form-label{display:block;font-size:.8rem;font-weight:500;color:var(--text);margin-bottom:.35rem}
 .form-label .req{color:var(--red);margin-left:.2rem}
-.form-control{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:.375rem;padding:.5rem .75rem;color:var(--text);font-size:.85rem;transition:border-color .15s}
+.form-control{width:100%;background:#f9fafb;border:1px solid var(--border);border-radius:.375rem;padding:.5rem .75rem;color:var(--text);font-size:.85rem;transition:border-color .15s}
 .form-control:focus{outline:none;border-color:var(--primary);background:rgba(245,158,11,.05)}
-.form-control option{background:#1e293b;color:var(--text)}
+.form-control option{background:#ffffff;color:var(--text)}
 textarea.form-control{resize:vertical;min-height:90px}
 .form-hint{font-size:.72rem;color:var(--muted);margin-top:.25rem}
 .form-error{font-size:.75rem;color:var(--red);margin-top:.25rem}
