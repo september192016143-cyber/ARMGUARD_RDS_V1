@@ -25,10 +25,18 @@ User = get_user_model()
 
 
 def _personnel_map_json(qs):
-    """Return a JSON string mapping pk -> {first, last} for auto-fill."""
+    """Return a JSON string mapping pk -> {first, last, pid} for auto-fill."""
     return json.dumps({
-        str(p['pk']): {'first': p['first_name'], 'last': p['last_name']}
-        for p in qs.values('pk', 'first_name', 'last_name')
+        str(p['pk']): {'first': p['first_name'], 'last': p['last_name'], 'pid': p['Personnel_ID']}
+        for p in qs.values('pk', 'first_name', 'last_name', 'Personnel_ID')
+    })
+
+
+def _personnel_pid_map_json(qs):
+    """Return a JSON string mapping Personnel_ID -> pk for QR scan / ID search."""
+    return json.dumps({
+        p['Personnel_ID']: str(p['pk'])
+        for p in qs.values('pk', 'Personnel_ID')
     })
 
 
@@ -154,7 +162,8 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         qs = Personnel.objects.filter(user__isnull=True)
         return self.render_to_response({
             'form': UserCreateForm(), 'action': 'Add',
-            'personnel_json': _personnel_map_json(qs),
+            'personnel_json':     _personnel_map_json(qs),
+            'personnel_pid_json': _personnel_pid_map_json(qs),
         })
 
     def post(self, request, *args, **kwargs):
@@ -223,7 +232,8 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         ) if current_linked_pk else Personnel.objects.filter(user__isnull=True)
         return self.render_to_response({
             'form': self._make_form(), 'action': 'Edit', 'edit_user': self.object,
-            'personnel_json': _personnel_map_json(qs),
+            'personnel_json':     _personnel_map_json(qs),
+            'personnel_pid_json': _personnel_pid_map_json(qs),
         })
 
     def post(self, request, *args, **kwargs):
