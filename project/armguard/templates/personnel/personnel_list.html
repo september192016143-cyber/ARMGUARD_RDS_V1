@@ -15,6 +15,15 @@
 {% endblock %}
 
 {% block content %}
+<style>
+.main{height:100vh;min-height:unset;overflow:hidden}
+.page-body{display:flex;flex-direction:column;overflow:hidden;padding-bottom:.75rem}
+.page-body>.card{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.page-body>.card>.filter-bar{flex-shrink:0}
+.page-body>.card>.table-wrap{flex:1;overflow-y:auto;min-height:0}
+.page-body>.card table tbody td{padding:.45rem .85rem}
+.page-body>.card table thead th{padding:.45rem .85rem}
+</style>
 <div class="card">
   <!-- Search / Filter bar -->
   <div class="filter-bar">
