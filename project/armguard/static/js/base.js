@@ -158,14 +158,32 @@ document.addEventListener('DOMContentLoaded', function () {
           btn.textContent = 'View Install Guide';
           btn.addEventListener('click', function (e) {
             e.preventDefault();
+            e.stopPropagation(); // prevent item click from double-firing
+            markNotifRead(notifId, null);
             if (typeof window.openSslModal === 'function') window.openSslModal();
           });
           el.querySelector('.notif-body').appendChild(btn);
         })(n.id, n.actionUrl);
       }
+      // Clicking the item itself marks it as read and clears the badge dot
+      (function (notif) {
+        el.addEventListener('click', function (e) {
+          if (e.target.classList.contains('notif-action-btn')) return;
+          markNotifRead(notif.id, notif.time);
+        });
+      })(n);
       list.insertBefore(el, empty);
     });
   };
+
+  // Mark a single notification as read. Match by id (if set) else by time.
+  function markNotifRead(id, time) {
+    saveNotifs(getNotifs().map(function (x) {
+      var match = id ? x.id === id : x.time === time;
+      return match ? Object.assign({}, x, { unread: false }) : x;
+    }));
+    renderNotifs();
+  }
 
   window.clearNotifs = function () {
     saveNotifs(getNotifs().map(function (n) { return Object.assign({}, n, { unread: false }); }));
