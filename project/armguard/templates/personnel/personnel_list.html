@@ -89,21 +89,23 @@
 
     <!-- Pagination -->
     {% if page_obj.has_other_pages %}
+    {% with q=request.GET.q status=request.GET.status group=request.GET.group %}
     <div class="pagination">
       {% if page_obj.has_previous %}
-        <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
+        <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if group %}group={{ group }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
       {% endif %}
       {% for num in page_obj.paginator.page_range %}
         {% if page_obj.number == num %}
           <a class="page-link active">{{ num }}</a>
         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-          <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ num }}" class="page-link">{{ num }}</a>
+          <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if group %}group={{ group }}&{% endif %}page={{ num }}" class="page-link">{{ num }}</a>
         {% endif %}
       {% endfor %}
       {% if page_obj.has_next %}
-        <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
+        <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if group %}group={{ group }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
       {% endif %}
     </div>
+    {% endwith %}
     {% endif %}
 
     {% else %}
