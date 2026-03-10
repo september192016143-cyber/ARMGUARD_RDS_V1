@@ -194,15 +194,13 @@
             <div class="flip-face front">
               <img src="{% url 'print_handler:serve_id_card_image' entry.personnel.Personnel_ID 'front' %}"
                    alt="Front — {{ entry.personnel.last_name }}"
-                   id="thumb-{{ entry.personnel.Personnel_ID|slugify }}"
-                   loading="lazy">
+                   id="thumb-{{ entry.personnel.Personnel_ID|slugify }}">
               <span class="flip-hint">FRONT ↩</span>
             </div>
             <!-- Back -->
             <div class="flip-face back">
               <img src="{% url 'print_handler:serve_id_card_image' entry.personnel.Personnel_ID 'back' %}"
-                   alt="Back — {{ entry.personnel.last_name }}"
-                   loading="lazy">
+                   alt="Back — {{ entry.personnel.last_name }}">
               <span class="flip-hint">BACK ↩</span>
             </div>
           </div>
