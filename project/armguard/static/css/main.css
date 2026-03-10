@@ -17,32 +17,32 @@
   --sidebar-w:240px;
 }
 
-/* ── Light / Day theme — Military Command Center palette ─────────── */
-/*    Air Force Blue #00308F  Header / navbar                         */
-/*    Steel Gray     #6E7B8B  Panels / cards                          */
-/*    White          #FFFFFF  Background / text / clean areas         */
-/*    Sky Blue       #4FA3FF  Buttons / links                         */
-/*    Radar Green    #00FF9C  Status indicators                       */
-/*    Warning Red    #D72638  Alerts                                  */
+/* ── Light / Day theme — Military Command Center v2 ────────────── */
+/*    Deep Navy      #001f6b  Sidebar / navbar — authority & depth    */
+/*    Royal Blue     #1867d4  Buttons / links / primary accents       */
+/*    Cool Off-White #eef2f7  Page background — easy on the eyes      */
+/*    Midnight Navy  #0d1f35  Body text — richer than pure black      */
+/*    Deep Emerald   #0ca678  Status indicators — refined, not neon   */
+/*    Deep Crimson   #c92a2a  Alerts — serious, not fire-engine red   */
 [data-theme="light"] {
-  --bg:       #ffffff;       /* white page background                  */
-  --sidebar:  #00308F;       /* Air Force Blue — navbar / sidebar      */
-  --card:     transparent;   /* no fill — border only                  */
-  --border:   #6E7B8B;       /* Steel Gray border                      */
-  --muted:    #555555;       /* dark muted text on white bg            */
-  --text:     #000000;       /* black page text                        */
-  --light:    #000000;       /* dark — stat values on transparent cards */
-  --primary:  #4FA3FF;       /* Sky Blue — buttons / links             */
-  --primary-d:#2a7fd9;
-  --green:    #00FF9C;       /* Radar Green — status indicators        */
-  --green-d:  #00cc7d;
-  --red:      #D72638;       /* Warning Red — alerts                   */
-  --blue:     #4FA3FF;
-  --indigo:   #00308F;
+  --bg:       #eef2f7;       /* cool off-white — softer than pure white */
+  --sidebar:  #001f6b;       /* deep navy — authoritative command      */
+  --card:     transparent;   /* no fill — border + shadow only         */
+  --border:   #b8cce0;       /* light steel — refined card borders     */
+  --muted:    #5e7087;       /* blue-tinted gray — readable muted text */
+  --text:     #0d1f35;       /* midnight navy — richer than pure black */
+  --light:    #0d1f35;       /* dark — stat values on transparent cards*/
+  --primary:  #1867d4;       /* royal blue — buttons / links           */
+  --primary-d:#1558b5;
+  --green:    #0ca678;       /* deep emerald — status indicators       */
+  --green-d:  #099268;
+  --red:      #c92a2a;       /* deep crimson — alerts                  */
+  --blue:     #1867d4;
+  --indigo:   #001f6b;
 }
 
 /* ── Day-mode sidebar overrides (Air Force Blue, white text) ──────── */
-[data-theme="light"] .sidebar { background: #00308F; border-right-color: rgba(255,255,255,.15); }
+[data-theme="light"] .sidebar { background: #001f6b; border-right-color: rgba(255,255,255,.1); }
 [data-theme="light"] .sidebar .brand-name { color: #ffffff; }
 [data-theme="light"] .sidebar .brand-sub  { color: rgba(255,255,255,.72); }
 [data-theme="light"] .sidebar .nav-section { color: rgba(255,255,255,.55); }
@@ -60,7 +60,7 @@
 [data-theme="light"] .sidebar .nav-item-add { color: rgba(255,255,255,.85); }
 [data-theme="light"] .sidebar .nav-group-header { color: rgba(255,255,255,.82); }
 [data-theme="light"] .sidebar .nav-group.open .nav-group-header { color: #ffffff; border-left-color: #4FA3FF; }
-[data-theme="light"] .sidebar .nav-flyout { background: #001f6b; border-color: rgba(79,163,255,.3); }
+[data-theme="light"] .sidebar .nav-flyout { background: #000d4d; border-color: rgba(79,163,255,.25); }
 [data-theme="light"] .sidebar .nav-flyout a { color: rgba(255,255,255,.88); }
 [data-theme="light"] .sidebar .nav-flyout a:hover { background: rgba(79,163,255,.2); color: #ffffff; }
 [data-theme="light"] .sidebar .user-name { color: #ffffff; }
@@ -72,15 +72,31 @@
 [data-theme="light"] .sidebar .theme-sidebar-btn:hover { color: #4FA3FF !important; }
 
 /* ── Day-mode topbar (Air Force Blue) ─────────────────────────────── */
-[data-theme="light"] .topbar { background: #00308F; border-bottom-color: rgba(255,255,255,.15); }
+[data-theme="light"] .topbar { background: #001f6b; border-bottom-color: rgba(255,255,255,.1); }
 [data-theme="light"] .topbar-title { color: #ffffff; }
 [data-theme="light"] .topbar-sub { color: rgba(255,255,255,.72); }
 
-/* ── Day-mode main content (white bg, dark text for readability) ───── */
-[data-theme="light"] .page-body { background: #ffffff; color: #1e293b; }
-[data-theme="light"] tbody td { color: #1e293b; }
-[data-theme="light"] thead th { color: #374151; }
-[data-theme="light"] .card-title { color: #1e293b; }
+/* ── Day-mode main content ──────────────────────────────────────────── */
+[data-theme="light"] .page-body { background: #eef2f7; color: #0d1f35; }
+[data-theme="light"] tbody td { color: #0d1f35; }
+[data-theme="light"] thead th { color: #3d536b; }
+[data-theme="light"] .card-title { color: #0d1f35; }
+/* ── Day-mode card depth (shadow gives visual lift without fill) ─────── */
+[data-theme="light"] .card,
+[data-theme="light"] .stat-card { box-shadow: 0 1px 8px rgba(0,31,107,.09); border-color: #b8cce0; }
+/* ── Day-mode table rows ─────────────────────────────────────────────── */
+[data-theme="light"] tbody tr { border-bottom-color: rgba(0,31,107,.08); }
+[data-theme="light"] tbody tr:hover { background: rgba(24,103,212,.05); }
+/* ── Day-mode secondary button ──────────────────────────────────────── */
+[data-theme="light"] .btn-secondary { background: rgba(24,103,212,.06); border-color: #b8cce0; color: #0d1f35; }
+[data-theme="light"] .btn-secondary:hover { background: rgba(24,103,212,.12); }
+/* ── Day-mode badges (readable on light background) ─────────────────── */
+[data-theme="light"] .badge-green  { background: rgba(12,166,120,.14);  color: #066a4a; }
+[data-theme="light"] .badge-amber  { background: rgba(202,138,4,.14);   color: #7c4a03; }
+[data-theme="light"] .badge-blue   { background: rgba(24,103,212,.14);  color: #1456a6; }
+[data-theme="light"] .badge-red    { background: rgba(201,42,42,.14);   color: #8b1a1a; }
+[data-theme="light"] .badge-gray   { background: rgba(94,112,135,.14);  color: #3d536b; }
+[data-theme="light"] .badge-indigo { background: rgba(0,31,107,.14);    color: #001f6b; }
 
 
 /* Theme toggle in sidebar footer */
@@ -186,7 +202,7 @@ tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s
 tbody tr:hover{background:rgba(255,255,255,.03)}
 tbody td{padding:.65rem .85rem;color:var(--text);vertical-align:middle}
 .analytics-table th{color:#fff !important}
-[data-theme="light"] .analytics-table th{color:#000000 !important}
+[data-theme="light"] .analytics-table th{color:#0d1f35 !important}
 
 /* Badges */
 .badge{display:inline-block;padding:.2rem .55rem;border-radius:9999px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
@@ -202,7 +218,8 @@ tbody td{padding:.65rem .85rem;color:var(--text);vertical-align:middle}
 .form-label{display:block;font-size:.8rem;font-weight:500;color:var(--text);margin-bottom:.35rem}
 .form-label .req{color:var(--red);margin-left:.2rem}
 .form-control{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:.375rem;padding:.5rem .75rem;color:var(--text);font-size:.85rem;transition:border-color .15s}
-[data-theme="light"] .form-control{background:#f8fafc;color:#000000;border-color:#6E7B8B}
+[data-theme="light"] .form-control{background:#f4f7fb;color:#0d1f35;border-color:#b8cce0}
+[data-theme="light"] .form-control:focus{border-color:#1867d4;background:rgba(24,103,212,.04)}
 .form-control:focus{outline:none;border-color:var(--primary);background:rgba(245,158,11,.05)}
 .form-control option{background:#1e293b;color:var(--text)}
 [data-theme="light"] .form-control option{background:#00308F;color:#ffffff}
