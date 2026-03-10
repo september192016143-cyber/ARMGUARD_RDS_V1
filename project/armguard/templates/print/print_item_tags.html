@@ -160,7 +160,7 @@
            title="{{ entry.item.get_item_type_display }} — {{ entry.item.model }} {{ entry.item.serial }}">
         {% if entry.has_tag %}
         <img id="thumb-{{ entry.item.id }}" src="{{ entry.thumb_url }}"
-             alt="Tag {{ entry.item.id }}" loading="lazy">
+             alt="Tag {{ entry.item.id }}">
         {% else %}
         <div class="tag-no-thumb" id="thumb-{{ entry.item.id }}"></div>
         {% endif %}
