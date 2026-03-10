@@ -231,15 +231,13 @@ def download_ssl_cert(request):
     "Install Certificate → Local Machine → Trusted Root Certification Authorities"
     to eliminate the browser "Not secure" warning on the LAN.
 
-    Also records the cert's mtime in the session so ssl_cert_status knows
-    this device has installed the current certificate version.
+    Windows users can open the downloaded .crt file and click
+    "Install Certificate → Local Machine → Trusted Root Certification Authorities"
+    to eliminate the browser "Not secure" warning on the LAN.
     """
     cert_path = settings.SSL_CERT_PATH
     if not os.path.isfile(cert_path):
         raise Http404("SSL certificate file not found on this server.")
-    # ACK: record the current cert version so the notification won't reappear
-    # after the user downloads it.
-    request.session['ssl_cert_acked_mtime'] = os.path.getmtime(cert_path)
     response = FileResponse(
         open(cert_path, 'rb'),
         content_type='application/x-x509-ca-cert',
@@ -250,19 +248,12 @@ def download_ssl_cert(request):
 
 @login_required
 def ssl_cert_status(request):
-    """Return whether the SSL cert has been renewed since this device last downloaded it.
-
-    The frontend polls this endpoint and shows a notification when True.
-    Response: {"needs_reinstall": bool}
+    """Return the current SSL cert mtime so the frontend can compare against its
+    localStorage ack. The ack is stored client-side so it persists across logins.
+    Response: {"cert_mtime": float}  (0.0 when no cert file exists)
     """
     from django.http import JsonResponse
     cert_path = settings.SSL_CERT_PATH
     if not os.path.isfile(cert_path):
-        return JsonResponse({'needs_reinstall': False})
-    cert_mtime = os.path.getmtime(cert_path)
-    acked_mtime = request.session.get('ssl_cert_acked_mtime')
-    if acked_mtime is None:
-        # First poll this session — establish baseline silently, no notification
-        request.session['ssl_cert_acked_mtime'] = cert_mtime
-        return JsonResponse({'needs_reinstall': False})
-    return JsonResponse({'needs_reinstall': cert_mtime > acked_mtime})
+        return JsonResponse({'cert_mtime': 0.0})
+    return JsonResponse({'cert_mtime': os.path.getmtime(cert_path)})

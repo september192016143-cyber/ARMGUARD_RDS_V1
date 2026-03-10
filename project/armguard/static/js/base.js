@@ -245,9 +245,10 @@ document.addEventListener('DOMContentLoaded', function () {
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && overlay.style.display !== 'none') closeModal();
     });
-    // Download button: remove the ssl-cert notif and close modal after download starts
+    // Download button: ack in localStorage (removes notif) then close modal
     dlBtn.addEventListener('click', function () {
-      window.removeNotifById('ssl-cert');
+      if (typeof window.ackSslCert === 'function') window.ackSslCert();
+      else window.removeNotifById('ssl-cert');
       setTimeout(closeModal, 400);
     });
 
@@ -301,6 +302,9 @@ document.addEventListener('DOMContentLoaded', function () {
       var SSL_CERT_URL   = '/download/ssl-cert/';
       var SSL_POLL_MS    = 6 * 60 * 60 * 1000; // re-check every 6 hours
 
+      var LS_KEY = 'armguard_ssl_cert_acked';
+      var _lastCertMtime = 0;
+
       function checkSslCert() {
         fetch(SSL_STATUS_URL, {
           credentials: 'same-origin',
@@ -308,11 +312,16 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) {
-          if (!data || !data.needs_reinstall) return;
+          if (!data || !data.cert_mtime) return;
+          _lastCertMtime = data.cert_mtime;
+          var acked = parseFloat(localStorage.getItem(LS_KEY) || '0');
+          if (acked >= _lastCertMtime) return; // already installed this version
+          var isRenewal = acked > 0;
           var added = window.addNotif(
-            'SSL Certificate Renewed',
-            'A new security certificate was issued for this server. ' +
-            'Reinstall it on this device to keep the secure padlock.',
+            isRenewal ? 'SSL Certificate Renewed' : 'Install SSL Certificate',
+            isRenewal
+              ? 'A new security certificate was issued for this server. Reinstall it on this device to keep the secure padlock.'
+              : 'This server uses a self-signed certificate. Install it on this device to remove the "Not secure" warning.',
             'warning', 'fa-certificate', 'ssl-cert', '#ssl-install'
           );
           // Auto-open the notification panel so the user sees it right away.
@@ -322,6 +331,12 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .catch(function () { /* network error — silently skip */ });
       }
+
+      // Called when the user clicks Download in the modal — acks in localStorage.
+      window.ackSslCert = function () {
+        if (_lastCertMtime) localStorage.setItem(LS_KEY, _lastCertMtime);
+        window.removeNotifById('ssl-cert');
+      };
 
       setTimeout(checkSslCert, 2000); // slight delay so page fully loads first
       setInterval(checkSslCert, SSL_POLL_MS);
