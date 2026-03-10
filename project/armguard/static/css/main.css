@@ -204,7 +204,7 @@ tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s
 tbody tr:hover{background:rgba(255,255,255,.03)}
 tbody td{padding:.65rem .85rem;color:var(--text);vertical-align:middle}
 .analytics-table th{color:#fff !important}
-[data-theme="light"] .analytics-table th{color:#0d1f35 !important}
+[data-theme="light"] .analytics-table th{color:#ffffff !important}
 
 /* Badges */
 .badge{display:inline-block;padding:.2rem .55rem;border-radius:9999px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
