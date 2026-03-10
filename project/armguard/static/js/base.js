@@ -424,10 +424,22 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(function () { /* network error — silently skip */ });
     }
 
+    function hideSidebarBtn() {
+      var btn = document.getElementById('ssl-cert-sidebar-btn');
+      if (btn) btn.style.display = 'none';
+    }
+
     window.ackSslCert = function () {
       if (_lastCertMtime) localStorage.setItem(LS_KEY, _lastCertMtime);
       window.removeNotifById('ssl-cert');
+      hideSidebarBtn();
     };
+
+    // Hide sidebar button immediately if already acked on this device
+    (function () {
+      var acked = parseFloat(localStorage.getItem(LS_KEY) || '0');
+      if (acked > 0) hideSidebarBtn();
+    })();
 
     setTimeout(checkSslCert, 2000);
     setInterval(checkSslCert, SSL_POLL_MS);
