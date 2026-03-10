@@ -260,5 +260,9 @@ def ssl_cert_status(request):
     if not os.path.isfile(cert_path):
         return JsonResponse({'needs_reinstall': False})
     cert_mtime = os.path.getmtime(cert_path)
-    acked_mtime = request.session.get('ssl_cert_acked_mtime', 0)
+    acked_mtime = request.session.get('ssl_cert_acked_mtime')
+    if acked_mtime is None:
+        # First poll this session — establish baseline silently, no notification
+        request.session['ssl_cert_acked_mtime'] = cert_mtime
+        return JsonResponse({'needs_reinstall': False})
     return JsonResponse({'needs_reinstall': cert_mtime > acked_mtime})
