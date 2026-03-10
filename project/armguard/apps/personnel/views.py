@@ -81,7 +81,7 @@ class PersonnelListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 	model = Personnel
 	template_name = "personnel/personnel_list.html"
 	context_object_name = "personnel_list"
-	paginate_by = 9
+	paginate_by = 10
 	ordering = ['rank', 'last_name']
 
 	def get_queryset(self):
