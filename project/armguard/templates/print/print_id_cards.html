@@ -161,16 +161,16 @@
     </label>
 
     <div class="toolbar-right">
-      <button id="btn-print-selected" class="btn btn-primary btn-sm" disabled onclick="printSelected()">
+      <button id="btn-print-selected" class="btn btn-primary btn-sm" disabled>
         <i class="fas fa-print"></i> Print Selected
       </button>
       <a href="{% url 'print_handler:print_id_cards_view' %}?all=1" class="btn btn-success btn-sm" target="_blank">
         <i class="fas fa-print"></i> Print All
       </a>
-      <button id="btn-regen-missing" class="btn btn-sm btn-amber" onclick="regenMissing()">
+      <button id="btn-regen-missing" class="btn btn-sm btn-amber">
         <i class="fas fa-sync-alt"></i> Generate Missing
       </button>
-      <button id="btn-regen-all" class="btn btn-sm btn-red-soft" onclick="regenAll()"
+      <button id="btn-regen-all" class="btn btn-sm btn-red-soft"
               title="Regenerate every card — use when photos changed">
         <i class="fas fa-redo"></i> Regenerate All
       </button>
@@ -188,7 +188,7 @@
              value="{{ entry.personnel.Personnel_ID }}">
       <div class="id-card-item" id="card-item-{{ entry.personnel.Personnel_ID|slugify }}">
         {% if entry.thumb_url %}
-        <div class="flip-scene" onclick="toggleFlip(this)" title="Click to flip">
+        <div class="flip-scene" data-action="flip" title="Click to flip">
           <div class="flip-inner" id="flip-{{ entry.personnel.Personnel_ID|slugify }}">
             <!-- Front -->
             <div class="flip-face front">
@@ -233,7 +233,9 @@
         <div class="id-card-actions">
           <button class="btn btn-secondary"
                   title="Regenerate Card"
-                  onclick="regenCard('{{ entry.personnel.Personnel_ID }}', '{{ entry.personnel.Personnel_ID|slugify }}')"
+                  data-action="regen"
+                  data-pid="{{ entry.personnel.Personnel_ID }}"
+                  data-slug="{{ entry.personnel.Personnel_ID|slugify }}"
                   id="regen-btn-{{ entry.personnel.Personnel_ID|slugify }}">
             <span class="regen-icon-{{ entry.personnel.Personnel_ID|slugify }}"><i class="fas fa-sync-alt"></i></span>
             <span class="regen-spinner-{{ entry.personnel.Personnel_ID|slugify }}" style="display:none;">
@@ -265,201 +267,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-const REGEN_URL_BASE       = "{% url 'print_handler:regenerate_id_card' personnel_id='PLACEHOLDER' %}".replace('PLACEHOLDER', '');
-const PRINT_VIEW_URL       = "{% url 'print_handler:print_id_cards_view' %}";
-const GEN_MISSING_URL      = "{% url 'print_handler:generate_missing_cards' %}";
-const CSRF_TOKEN = '{{ csrf_token }}';
-
-// ---- Flip ----
-function toggleFlip(scene) {
-    scene.querySelector('.flip-inner').classList.toggle('flipped');
-}
-
-// ---- Select All ----
-document.getElementById('select-all').addEventListener('change', function () {
-    const boxes = document.querySelectorAll('.card-checkbox');
-    boxes.forEach(cb => {
-        cb.checked = this.checked;
-        cb.closest('.card-wrapper').querySelector('.id-card-item').classList.toggle('selected', this.checked);
-    });
-    updatePrintBtn();
-});
-
-document.addEventListener('change', function (e) {
-    if (e.target.classList.contains('card-checkbox')) {
-        e.target.closest('.card-wrapper').querySelector('.id-card-item').classList.toggle('selected', e.target.checked);
-        updatePrintBtn();
-    }
-});
-
-function updatePrintBtn() {
-    const count = document.querySelectorAll('.card-checkbox:checked').length;
-    const btn = document.getElementById('btn-print-selected');
-    btn.disabled = count === 0;
-    btn.innerHTML = `<i class="fas fa-print"></i> Print Selected${count ? ' (' + count + ')' : ''}`;
-}
-
-// ---- Print Selected ----
-function printSelected() {
-    const ids = [...document.querySelectorAll('.card-checkbox:checked')].map(cb => cb.value);
-    if (!ids.length) return;
-    window.open(PRINT_VIEW_URL + '?ids=' + ids.join(','), '_blank');
-}
-
-// ---- Regen Single ----
-function regenCard(pid, slug) {
-    const btn     = document.getElementById('regen-btn-' + slug);
-    const iconEl  = document.querySelector('.regen-icon-' + slug);
-    const spinEl  = document.querySelector('.regen-spinner-' + slug);
-
-    btn.disabled = true;
-    iconEl.style.display = 'none';
-    spinEl.style.display = 'inline';
-
-    fetch(REGEN_URL_BASE + pid + '/', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json' }
-    })
-    .then(r => {
-        const ct = r.headers.get('Content-Type') || '';
-        if (!ct.includes('application/json')) {
-            return r.text().then(t => { throw new Error('Server returned HTTP ' + r.status + ' (not JSON). Check server logs.'); });
-        }
-        return r.json();
-    })
-    .then(data => {
-        if (data.success) {
-            const thumbContainer = document.getElementById('thumb-' + slug);
-            if (thumbContainer && thumbContainer.tagName === 'IMG') {
-                // Existing flip card — bust cache on both faces
-                thumbContainer.src = data.thumb_url + '?t=' + Date.now();
-                const cardItem = thumbContainer.closest('.id-card-item');
-                if (cardItem) {
-                    cardItem.querySelectorAll('.flip-face.back img').forEach(img => {
-                        img.src = img.src.split('?')[0] + '?t=' + Date.now();
-                    });
-                }
-            } else if (thumbContainer) {
-                // Was a placeholder — reload so the full flip scaffold renders
-                setTimeout(() => location.reload(), 400);
-            }
-            // Update status badge
-            const statusEl = document.getElementById('status-' + slug);
-            if (statusEl) {
-                statusEl.className = 'status-badge badge-ok';
-                statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Generated';
-                statusEl.id = '';
-            }
-        } else {
-            alert('Error: ' + (data.error || 'Unknown error'));
-        }
-    })
-    .catch(err => alert('Regenerate failed: ' + err))
-    .finally(() => {
-        btn.disabled = false;
-        iconEl.style.display = 'inline';
-        spinEl.style.display = 'none';
-    });
-}
-
-// ---- Regen All (force) ----
-function regenAll() {
-    if (!confirm(
-        `Regenerate ALL ${document.querySelectorAll('.card-wrapper').length} ID cards?\n\n` +
-        'Use this when profile photos have been uploaded or migrated since cards were last generated.\n' +
-        'This may take 30–60 seconds.'
-    )) return;
-
-    const btn = document.getElementById('btn-regen-all');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Regenerating all…';
-
-    const form = new FormData();
-    form.append('force', '1');
-
-    fetch(GEN_MISSING_URL, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': CSRF_TOKEN },
-        body: form
-    })
-    .then(r => {
-        const ct = r.headers.get('Content-Type') || '';
-        if (!ct.includes('application/json')) {
-            return r.text().then(() => { throw new Error('Server returned HTTP ' + r.status + ' (not JSON). Pull latest code and restart.'); });
-        }
-        return r.json();
-    })
-    .then(data => {
-        if (data.success) {
-            let msg = `Regenerated ${data.generated} cards.`;
-            if (data.errors && data.errors.length) {
-                msg += `\n\n${data.errors.length} error(s):\n` + data.errors.map(e => `• ${e.id}: ${e.error}`).join('\n');
-            }
-            btn.innerHTML = `<i class="fas fa-check"></i> Done (${data.generated})`;
-            alert(msg);
-            setTimeout(() => location.reload(), 500);
-        } else {
-            alert('Error regenerating cards.');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-redo"></i> Regenerate All';
-        }
-    })
-    .catch(err => {
-        alert(err.message || ('Request failed: ' + err));
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-redo"></i> Regenerate All';
-    });
-}
-
-// ---- Regen All Missing ----
-function regenMissing() {
-    const missing = [...document.querySelectorAll('.card-wrapper[data-has-card="0"]')];
-    if (!missing.length) { alert('No missing cards — all personnel already have ID cards!'); return; }
-    if (!confirm(`Generate ID cards for ${missing.length} personnel without cards?\n\nThis will run on the server and may take a moment.`)) return;
-
-    const btn = document.getElementById('btn-regen-missing');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating on server…';
-
-    fetch(GEN_MISSING_URL, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': CSRF_TOKEN }
-    })
-    .then(r => {
-        const ct = r.headers.get('Content-Type') || '';
-        if (!ct.includes('application/json')) {
-            return r.text().then(t => {
-                throw new Error(
-                    'Server returned HTTP ' + r.status + ' instead of JSON.\n' +
-                    'Make sure the server has the latest code (git pull + restart).'
-                );
-            });
-        }
-        return r.json();
-    })
-    .then(data => {
-        if (data.success) {
-            let msg = `Done — ${data.generated} generated, ${data.skipped} already existed.`;
-            if (data.errors && data.errors.length) {
-                msg += `\n\n${data.errors.length} error(s):\n`
-                     + data.errors.map(e => `• ${e.id}: ${e.error}`).join('\n');
-            }
-            btn.innerHTML = `<i class="fas fa-check"></i> Done (${data.generated} generated)`;
-            alert(msg);
-            // Reload so all thumbnails and badges refresh from server
-            setTimeout(() => location.reload(), 500);
-        } else {
-            alert('Error generating cards.');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-sync-alt"></i> Generate Missing';
-        }
-    })
-    .catch(err => {
-        alert(err.message || ('Request failed: ' + err));
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-sync-alt"></i> Generate Missing';
-    });
-}
-</script>
+<script type="application/json" id="id-cards-config">{"regenUrlTemplate": "{% url 'print_handler:regenerate_id_card' personnel_id='__PID__' %}", "printViewUrl": "{% url 'print_handler:print_id_cards_view' %}", "genMissingUrl": "{% url 'print_handler:generate_missing_cards' %}", "csrfToken": "{{ csrf_token }}"}</script>
+<script src="{% static 'js/print_id_cards.js' %}"></script>
 {% endblock %}
