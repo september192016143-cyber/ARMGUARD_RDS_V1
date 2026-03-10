@@ -17,23 +17,34 @@
   --sidebar-w:240px;
 }
 
-/* ── Light / Day theme ────────────────────────────────────────────── */
+/* ── Light / Day theme — 9533rd RDS military palette ─────────────── */
+/*    Navy shield  #0b1d35 · Teal shield  #0e8fa6                     */
+/*    Gold gear    #c9a227 · Steel-blue uniform  #dce8f4              */
 [data-theme="light"] {
-  --bg:       #f1f5f9;
-  --sidebar:  #ffffff;
-  --card:     #ffffff;
-  --border:   #cbd5e1;
-  --muted:    #94a3b8;
-  --text:     #1e293b;
-  --light:    #f8fafc;
-  --primary:  #d97706;
-  --primary-d:#b45309;
-  --green:    #16a34a;
-  --green-d:  #15803d;
+  --bg:       #dce8f4;   /* steel-blue, like the dress uniform fabric  */
+  --sidebar:  #0b1d35;   /* deep navy — shield / seal body colour      */
+  --card:     #ffffff;   /* white cards                                */
+  --border:   #a0bdd4;   /* medium steel-blue border                   */
+  --muted:    #7090aa;   /* muted steel-blue (readable on dark sidebar)*/
+  --text:     #0b1d35;   /* deep navy body text                        */
+  --light:    #f2f7fc;
+  --primary:  #c9a227;   /* gold — RDS squadron gear / seal            */
+  --primary-d:#a47820;   /* darker gold                                */
+  --green:    #22c55e;
+  --green-d:  #16a34a;
   --red:      #dc2626;
-  --blue:     #2563eb;
-  --indigo:   #4f46e5;
+  --blue:     #0e8fa6;   /* teal — shield gradient highlight           */
+  --indigo:   #1e3a8a;   /* deep navy-indigo                           */
 }
+
+/* Sidebar stays dark-navy in day mode — override hover/active text
+   that inherits var(--text) so it stays light on the dark background */
+[data-theme="light"] .sidebar { border-right-color: rgba(255,255,255,.08); }
+[data-theme="light"] .sidebar .nav-item:hover,
+[data-theme="light"] .sidebar .nav-group-header:hover { color: #e2e8f0; }
+[data-theme="light"] .sidebar .nav-item:hover i.nav-icon,
+[data-theme="light"] .sidebar .nav-group-header:hover i.nav-icon { color: #e2e8f0; }
+[data-theme="light"] .sidebar .nav-group.open .nav-group-header { color: #e2e8f0; }
 
 /* Theme toggle in sidebar footer */
 .theme-sidebar-btn .icon-sun  { display: none; }
