@@ -27,8 +27,8 @@
 [data-theme="light"] {
   --bg:       #ffffff;       /* white page background                  */
   --sidebar:  #00308F;       /* Air Force Blue — navbar / sidebar      */
-  --card:     #6E7B8B;       /* Steel Gray — panels / cards            */
-  --border:   rgba(255,255,255,.18);
+  --card:     transparent;   /* no fill — border only                  */
+  --border:   #6E7B8B;       /* Steel Gray border                      */
   --muted:    rgba(255,255,255,.72);
   --text:     #000000;       /* black page text                        */
   --light:    #ffffff;
