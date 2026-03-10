@@ -292,55 +292,53 @@ document.addEventListener('DOMContentLoaded', function () {
       setTimeout(function () { poll(); setInterval(poll, POLL_MS); }, 5000);
     })();
 
-    // ── SSL certificate renewal check (on load + every 6 hours) ────────────
-    // Polls the server to see if the cert has been renewed since this device
-    // last downloaded it. If so, shows a notification with a download link.
-    // Clicking "Download & Install" fetches the new cert, acks the session,
-    // and auto-dismisses the notification.
-    (function () {
-      var SSL_STATUS_URL = '/download/ssl-cert-status/';
-      var SSL_CERT_URL   = '/download/ssl-cert/';
-      var SSL_POLL_MS    = 6 * 60 * 60 * 1000; // re-check every 6 hours
-
-      var LS_KEY = 'armguard_ssl_cert_acked';
-      var _lastCertMtime = 0;
-
-      function checkSslCert() {
-        fetch(SSL_STATUS_URL, {
-          credentials: 'same-origin',
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (data) {
-          if (!data || !data.cert_mtime) return;
-          _lastCertMtime = data.cert_mtime;
-          var acked = parseFloat(localStorage.getItem(LS_KEY) || '0');
-          if (acked >= _lastCertMtime) return; // already installed this version
-          var isRenewal = acked > 0;
-          var added = window.addNotif(
-            isRenewal ? 'SSL Certificate Renewed' : 'Install SSL Certificate',
-            isRenewal
-              ? 'A new security certificate was issued for this server. Reinstall it on this device to keep the secure padlock.'
-              : 'This server uses a self-signed certificate. Install it on this device to remove the "Not secure" warning.',
-            'warning', 'fa-certificate', 'ssl-cert', '#ssl-install'
-          );
-          // Auto-open the notification panel so the user sees it right away.
-          if (added) {
-            document.getElementById('notif-panel').classList.add('open');
-          }
-        })
-        .catch(function () { /* network error — silently skip */ });
-      }
-
-      // Called when the user clicks Download in the modal — acks in localStorage.
-      window.ackSslCert = function () {
-        if (_lastCertMtime) localStorage.setItem(LS_KEY, _lastCertMtime);
-        window.removeNotifById('ssl-cert');
-      };
-
-      setTimeout(checkSslCert, 2000); // slight delay so page fully loads first
-      setInterval(checkSslCert, SSL_POLL_MS);
-    })();
+    setTimeout(function () { poll(); setInterval(poll, POLL_MS); }, 5000);
+  })();
   }
+
+  // ── SSL certificate renewal check (on load + every 6 hours) ─────────────
+  // Runs for all authenticated users regardless of poll flag.
+  // Polls the server to see if the cert has been renewed since this device
+  // last downloaded it. If so, shows a notification with a download link.
+  (function () {
+    var SSL_STATUS_URL = '/download/ssl-cert-status/';
+    var SSL_POLL_MS    = 6 * 60 * 60 * 1000; // re-check every 6 hours
+    var LS_KEY         = 'armguard_ssl_cert_acked';
+    var _lastCertMtime = 0;
+
+    function checkSslCert() {
+      fetch(SSL_STATUS_URL, {
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !data.cert_mtime) return;
+        _lastCertMtime = data.cert_mtime;
+        var acked = parseFloat(localStorage.getItem(LS_KEY) || '0');
+        if (acked >= _lastCertMtime) return; // already installed this version
+        var isRenewal = acked > 0;
+        var added = window.addNotif(
+          isRenewal ? 'SSL Certificate Renewed' : 'Install SSL Certificate',
+          isRenewal
+            ? 'A new security certificate was issued for this server. Reinstall it on this device to keep the secure padlock.'
+            : 'This server uses a self-signed certificate. Install it on this device to remove the "Not secure" warning.',
+          'warning', 'fa-certificate', 'ssl-cert', '#ssl-install'
+        );
+        if (added) {
+          document.getElementById('notif-panel').classList.add('open');
+        }
+      })
+      .catch(function () { /* network error — silently skip */ });
+    }
+
+    window.ackSslCert = function () {
+      if (_lastCertMtime) localStorage.setItem(LS_KEY, _lastCertMtime);
+      window.removeNotifById('ssl-cert');
+    };
+
+    setTimeout(checkSslCert, 2000);
+    setInterval(checkSslCert, SSL_POLL_MS);
+  })();
 
 }); // end DOMContentLoaded
