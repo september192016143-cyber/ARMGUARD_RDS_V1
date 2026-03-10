@@ -223,6 +223,26 @@
 </div>
 {# ===== End SSL Modal ===== #}
 
+{# ===== Notification Detail Modal ===== #}
+<div id="notif-detail-overlay" class="notif-detail-overlay" role="dialog" aria-modal="true" aria-labelledby="notif-detail-title" style="display:none">
+  <div class="notif-detail-modal">
+    <div class="notif-detail-header">
+      <div class="notif-detail-icon" id="notif-detail-icon"></div>
+      <span class="notif-detail-title" id="notif-detail-title"></span>
+      <button class="notif-detail-close" id="notif-detail-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="notif-detail-body">
+      <p class="notif-detail-msg" id="notif-detail-msg"></p>
+      <div class="notif-detail-time" id="notif-detail-time"></div>
+    </div>
+    <div class="notif-detail-footer">
+      <a href="#" id="notif-detail-action" class="notif-detail-action-btn" style="display:none"></a>
+      <button id="notif-detail-dismiss" class="notif-detail-dismiss-btn">Dismiss</button>
+    </div>
+  </div>
+</div>
+{# ===== End Notification Detail Modal ===== #}
+
 {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -244,6 +244,26 @@ body.sidebar-collapsed .logout-label{display:none}
 .notif-footer a{font-size:.75rem;color:var(--primary)}
 .notif-action-btn{display:inline-block;margin-top:.45rem;padding:.25rem .65rem;background:rgba(245,158,11,.18);border:1px solid var(--primary);border-radius:.35rem;color:var(--primary);font-size:.7rem;font-weight:600;text-decoration:none;cursor:pointer;transition:background .15s}
 .notif-action-btn:hover{background:rgba(245,158,11,.35)}
+/* ── Notification Detail Modal ─────────────────────────────────────────────── */
+.notif-detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}
+.notif-detail-modal{background:var(--sidebar);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.6);overflow:hidden}
+.notif-detail-header{display:flex;align-items:center;gap:.75rem;padding:1rem 1.25rem;border-bottom:1px solid var(--border)}
+.notif-detail-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
+.notif-detail-icon.info{background:rgba(59,130,246,.15);color:#93c5fd}
+.notif-detail-icon.warning{background:rgba(245,158,11,.15);color:#fcd34d}
+.notif-detail-icon.danger{background:rgba(239,68,68,.15);color:#f87171}
+.notif-detail-icon.success{background:rgba(34,197,94,.15);color:#4ade80}
+.notif-detail-title{flex:1;font-size:.95rem;font-weight:700;color:var(--text)}
+.notif-detail-close{background:none;border:none;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer;padding:0;transition:color .15s}
+.notif-detail-close:hover{color:var(--text)}
+.notif-detail-body{padding:1.25rem 1.25rem .75rem;font-size:.85rem;color:var(--muted);line-height:1.65}
+.notif-detail-msg{margin:0 0 .5rem}
+.notif-detail-time{font-size:.72rem;color:var(--muted);opacity:.6}
+.notif-detail-footer{display:flex;align-items:center;justify-content:flex-end;gap:.65rem;padding:.85rem 1.25rem;border-top:1px solid var(--border)}
+.notif-detail-action-btn{padding:.4rem .9rem;background:var(--primary);border:none;border-radius:.35rem;color:#000;font-size:.8rem;font-weight:700;text-decoration:none;cursor:pointer;transition:opacity .15s}
+.notif-detail-action-btn:hover{opacity:.85}
+.notif-detail-dismiss-btn{padding:.4rem .9rem;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:.35rem;color:var(--muted);font-size:.8rem;cursor:pointer;transition:background .15s}
+.notif-detail-dismiss-btn:hover{background:rgba(255,255,255,.12);color:var(--text)}
 
 /* ── SSL Certificate Install Modal ────────────────────────────────────────── */
 .ssl-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}

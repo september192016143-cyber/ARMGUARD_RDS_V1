@@ -165,11 +165,12 @@ document.addEventListener('DOMContentLoaded', function () {
           el.querySelector('.notif-body').appendChild(btn);
         })(n.id, n.actionUrl);
       }
-      // Clicking the item itself marks it as read and clears the badge dot
+      // Clicking the item opens the detail modal and marks it as read
       (function (notif) {
         el.addEventListener('click', function (e) {
           if (e.target.classList.contains('notif-action-btn')) return;
           markNotifRead(notif.id, notif.time);
+          if (typeof window.openNotifDetail === 'function') window.openNotifDetail(notif);
         });
       })(n);
       list.insertBefore(el, empty);
@@ -272,6 +273,70 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Expose so the notification "Download & Install" button can also open the modal
     window.openSslModal = openModal;
+  })();
+
+  // ── Notification Detail Modal ───────────────────────────────────────────
+  (function () {
+    var overlay    = document.getElementById('notif-detail-overlay');
+    var titleEl    = document.getElementById('notif-detail-title');
+    var iconEl     = document.getElementById('notif-detail-icon');
+    var msgEl      = document.getElementById('notif-detail-msg');
+    var timeEl     = document.getElementById('notif-detail-time');
+    var actionBtn  = document.getElementById('notif-detail-action');
+    var dismissBtn = document.getElementById('notif-detail-dismiss');
+    var closeBtn   = document.getElementById('notif-detail-close');
+    if (!overlay) return;
+
+    var _cur = null;
+
+    function openDetail(notif) {
+      _cur = notif;
+      titleEl.textContent = notif.title;
+      iconEl.className = 'notif-detail-icon ' + (notif.type || 'info');
+      iconEl.innerHTML = '<i class="fa-solid ' + (notif.icon || 'fa-info') + '"></i>';
+      msgEl.textContent = notif.msg;
+      timeEl.textContent = notif.time;
+      if (notif.actionUrl) {
+        actionBtn.textContent = notif.actionUrl === '#ssl-install' ? 'View Install Guide' : 'Open';
+        actionBtn.style.display = 'inline-block';
+      } else {
+        actionBtn.style.display = 'none';
+      }
+      // Close the notif panel so the modal is visible
+      var panel = document.getElementById('notif-panel');
+      if (panel) panel.classList.remove('open');
+      overlay.style.display = 'flex';
+    }
+
+    function closeDetail() { overlay.style.display = 'none'; _cur = null; }
+
+    closeBtn.addEventListener('click', closeDetail);
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeDetail();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && overlay.style.display !== 'none') closeDetail();
+    });
+    actionBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      closeDetail();
+      if (_cur && _cur.actionUrl === '#ssl-install') {
+        if (typeof window.openSslModal === 'function') window.openSslModal();
+      }
+    });
+    dismissBtn.addEventListener('click', function () {
+      if (_cur) {
+        if (_cur.id) window.removeNotifById(_cur.id);
+        else {
+          var t = _cur.time;
+          saveNotifs(getNotifs().filter(function (x) { return x.time !== t; }));
+          renderNotifs();
+        }
+      }
+      closeDetail();
+    });
+
+    window.openNotifDetail = openDetail;
   })();
 
   // ── 4. G13: Inventory-change polling (only for authenticated users) ────────
