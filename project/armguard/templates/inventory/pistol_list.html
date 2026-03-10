@@ -27,6 +27,15 @@
 {% endblock %}
 
 {% block content %}
+<style>
+.main{height:100vh;min-height:unset;overflow:hidden}
+.page-body{display:flex;flex-direction:column;overflow:hidden;padding-bottom:.75rem}
+.page-body>.card{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.page-body>.card>.filter-bar{flex-shrink:0}
+.page-body>.card>.table-wrap{flex:1;overflow-y:auto;min-height:0}
+.page-body>.card table tbody td{padding:.45rem .85rem}
+.page-body>.card table thead th{padding:.45rem .85rem}
+</style>
 <div class="card">
   <!-- Filter -->
   <div class="filter-bar">
@@ -110,21 +119,23 @@
     </table>
 
     {% if page_obj.has_other_pages %}
+    {% with q=request.GET.q status=request.GET.status %}
     <div class="pagination">
       {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
+        <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
       {% endif %}
       {% for num in page_obj.paginator.page_range %}
         {% if page_obj.number == num %}
           <a class="page-link active">{{ num }}</a>
         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-          <a href="?page={{ num }}" class="page-link">{{ num }}</a>
+          <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}page={{ num }}" class="page-link">{{ num }}</a>
         {% endif %}
       {% endfor %}
       {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
+        <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
       {% endif %}
     </div>
+    {% endwith %}
     {% endif %}
 
     {% else %}

@@ -46,7 +46,7 @@ class PistolListView(LoginRequiredMixin, ListView):
     model = Pistol
     template_name = 'inventory/pistol_list.html'
     context_object_name = 'pistols'
-    paginate_by = 25
+    paginate_by = 10
 
     def get_queryset(self):
         qs = Pistol.objects.select_related('item_issued_to', 'item_assigned_to').order_by('model', 'serial_number')
@@ -109,7 +109,7 @@ class RifleListView(LoginRequiredMixin, ListView):
     model = Rifle
     template_name = 'inventory/rifle_list.html'
     context_object_name = 'rifles'
-    paginate_by = 25
+    paginate_by = 10
 
     def get_queryset(self):
         qs = Rifle.objects.select_related('item_issued_to', 'item_assigned_to').order_by('model', 'serial_number')
