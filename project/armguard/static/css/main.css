@@ -83,8 +83,10 @@
 [data-theme="light"] .card-title { color: #0d1f35; }
 /* ── Day-mode card depth (shadow gives visual lift without fill) ─────── */
 [data-theme="light"] .card,
-[data-theme="light"] .stat-card { box-shadow: 0 1px 8px rgba(0,31,107,.09); border-color: #b8cce0; }
-/* ── Day-mode table rows ─────────────────────────────────────────────── */
+[data-theme="light"] .stat-card { box-shadow: 0 1px 8px rgba(0,31,107,.09); border-color: #b8cce0; }/* ── Day-mode stat labels (override inline !important in dashboard template) ──── */
+[data-theme="light"] .stat-label { color: #5e7087 !important; }
+[data-theme="light"] .stat-value { color: #0d1f35 !important; }
+[data-theme="light"] .stat-sub   { color: #5e7087 !important; }/* ── Day-mode table rows ─────────────────────────────────────────────── */
 [data-theme="light"] tbody tr { border-bottom-color: rgba(0,31,107,.08); }
 [data-theme="light"] tbody tr:hover { background: rgba(24,103,212,.05); }
 /* ── Day-mode secondary button ──────────────────────────────────────── */
