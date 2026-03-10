@@ -29,9 +29,9 @@
   --sidebar:  #00308F;       /* Air Force Blue — navbar / sidebar      */
   --card:     transparent;   /* no fill — border only                  */
   --border:   #6E7B8B;       /* Steel Gray border                      */
-  --muted:    rgba(255,255,255,.72);
+  --muted:    #555555;       /* dark muted text on white bg            */
   --text:     #000000;       /* black page text                        */
-  --light:    #ffffff;
+  --light:    #000000;       /* dark — stat values on transparent cards */
   --primary:  #4FA3FF;       /* Sky Blue — buttons / links             */
   --primary-d:#2a7fd9;
   --green:    #00FF9C;       /* Radar Green — status indicators        */
@@ -186,7 +186,7 @@ tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s
 tbody tr:hover{background:rgba(255,255,255,.03)}
 tbody td{padding:.65rem .85rem;color:var(--text);vertical-align:middle}
 .analytics-table th{color:#fff !important}
-[data-theme="light"] .analytics-table th{color:#ffffff !important}
+[data-theme="light"] .analytics-table th{color:#000000 !important}
 
 /* Badges */
 .badge{display:inline-block;padding:.2rem .55rem;border-radius:9999px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
@@ -202,7 +202,7 @@ tbody td{padding:.65rem .85rem;color:var(--text);vertical-align:middle}
 .form-label{display:block;font-size:.8rem;font-weight:500;color:var(--text);margin-bottom:.35rem}
 .form-label .req{color:var(--red);margin-left:.2rem}
 .form-control{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:.375rem;padding:.5rem .75rem;color:var(--text);font-size:.85rem;transition:border-color .15s}
-[data-theme="light"] .form-control{background:rgba(255,255,255,.12);color:#ffffff;border-color:rgba(255,255,255,.3)}
+[data-theme="light"] .form-control{background:#f8fafc;color:#000000;border-color:#6E7B8B}
 .form-control:focus{outline:none;border-color:var(--primary);background:rgba(245,158,11,.05)}
 .form-control option{background:#1e293b;color:var(--text)}
 [data-theme="light"] .form-control option{background:#00308F;color:#ffffff}
