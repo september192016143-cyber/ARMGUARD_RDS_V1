@@ -16,6 +16,35 @@
   --radius:   0.5rem;
   --sidebar-w:240px;
 }
+
+/* ── Light / Day theme ────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:       #f1f5f9;
+  --sidebar:  #ffffff;
+  --card:     #ffffff;
+  --border:   #cbd5e1;
+  --muted:    #94a3b8;
+  --text:     #1e293b;
+  --light:    #f8fafc;
+  --primary:  #d97706;
+  --primary-d:#b45309;
+  --green:    #16a34a;
+  --green-d:  #15803d;
+  --red:      #dc2626;
+  --blue:     #2563eb;
+  --indigo:   #4f46e5;
+}
+
+/* Theme toggle in sidebar footer */
+.theme-sidebar-btn .icon-sun  { display: none; }
+.theme-sidebar-btn .icon-moon { display: inline-block; }
+.theme-sidebar-btn .theme-label-day   { display: none; }
+.theme-sidebar-btn .theme-label-night { display: inline-block; }
+[data-theme="light"] .theme-sidebar-btn .icon-sun  { display: inline-block; }
+[data-theme="light"] .theme-sidebar-btn .icon-moon { display: none; }
+[data-theme="light"] .theme-sidebar-btn .theme-label-day   { display: inline-block; }
+[data-theme="light"] .theme-sidebar-btn .theme-label-night { display: none; }
+[data-theme="light"] .theme-sidebar-btn { color: var(--primary) !important; }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:15px}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}

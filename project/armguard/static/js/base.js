@@ -18,6 +18,14 @@ if (document.body && localStorage.getItem('sidebarCollapsed') === 'true') {
   document.body.classList.add('sidebar-collapsed');
 }
 
+// ── 1b. Anti-FOUC: restore light/dark theme BEFORE paint ─────────────────────
+// Reads the stored preference and sets data-theme on <html> immediately so the
+// page renders with the correct colours without a flash.
+(function () {
+  var t = localStorage.getItem('armguardTheme');
+  if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+})();
+
 // ── 2 & 3. Sidebar + Notifications (after DOM is ready) ──────────────────────
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -25,6 +33,26 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.nav-group').forEach(function (g) {
     if (g.querySelector('.nav-item.active')) g.classList.add('open');
   });
+
+  // ── Theme toggle ────────────────────────────────────────────────────────
+  (function () {
+    var btn = document.getElementById('theme-toggle-btn');
+    if (!btn) return;
+
+    function applyTheme(theme) {
+      if (theme === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+      localStorage.setItem('armguardTheme', theme);
+    }
+
+    btn.addEventListener('click', function () {
+      var current = document.documentElement.getAttribute('data-theme');
+      applyTheme(current === 'light' ? 'dark' : 'light');
+    });
+  })();
 
   // Sidebar toggle button (replaces CSP-blocked onclick="toggleSidebar()")
   window.toggleSidebar = function () {

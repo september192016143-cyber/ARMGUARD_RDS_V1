@@ -122,6 +122,12 @@
       <i class="fa-solid fa-certificate" style="width:16px;text-align:center;flex-shrink:0;"></i>
       <span class="logout-label">Install SSL Cert</span>
     </a>
+    <button type="button" id="theme-toggle-btn" class="logout-btn theme-sidebar-btn" title="Toggle day / night mode" style="background:none;border:none;cursor:pointer;width:100%;text-align:left;margin-bottom:.1rem;">
+      <i class="fa-solid fa-sun icon-sun" style="width:16px;text-align:center;flex-shrink:0;"></i>
+      <i class="fa-solid fa-moon icon-moon" style="width:16px;text-align:center;flex-shrink:0;"></i>
+      <span class="logout-label theme-label-day">Day Mode</span>
+      <span class="logout-label theme-label-night">Night Mode</span>
+    </button>
     <form method="post" action="{% url 'logout' %}" style="margin:0">
       {% csrf_token %}
       <button type="submit" class="logout-btn" style="background:none;border:none;cursor:pointer;width:100%;text-align:left" title="Sign out">
