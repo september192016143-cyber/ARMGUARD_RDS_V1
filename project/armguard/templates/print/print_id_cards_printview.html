@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -173,7 +174,7 @@
 <div class="no-print">
     <h2>🖨️ ID Card Print – {{ cards|length }} card{{ cards|length|pluralize }}</h2>
     <span class="info">Recommended: A4 Landscape · Actual Size · No scaling</span>
-    <button onclick="window.print()">🖨️ Print Now</button>
+    <button data-action="print">🖨️ Print Now</button>
     <a href="{% url 'print_handler:print_id_cards' %}" class="back-link">← Back to Manager</a>
 </div>
 
@@ -207,5 +208,6 @@
 </div>
 {% endif %}
 
+<script src="{% static 'js/print_page.js' %}"></script>
 </body>
 </html>

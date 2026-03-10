@@ -116,10 +116,10 @@
   </div>
 
   <div class="toolbar">
-    <button class="btn btn-primary btn-sm" onclick="printSelected()">
+    <button class="btn btn-primary btn-sm" data-action="print-selected">
       <i class="fas fa-print"></i> Print Selected
     </button>
-    <button class="btn btn-secondary btn-sm" onclick="printAll()">
+    <button class="btn btn-secondary btn-sm" data-action="print-all">
       <i class="fas fa-print"></i> Print All
     </button>
     <select id="stackCount" class="btn btn-secondary btn-sm"
@@ -129,11 +129,11 @@
       <option value="3" style="background:#1e293b; color:#e2e8f0;">Stacks 3×</option>
     </select>
     <div class="toolbar-right">
-      <button class="btn btn-sm btn-amber" onclick="genMissing(this)">
+      <button class="btn btn-sm btn-amber" data-action="gen-missing">
         <i class="fas fa-magic regen-icon"></i>
         <i class="fas fa-spinner fa-spin regen-spinner"></i> Generate Missing
       </button>
-      <button class="btn btn-sm btn-red-soft" onclick="regenAll(this)">
+      <button class="btn btn-sm btn-red-soft" data-action="regen-all">
         <i class="fas fa-sync-alt regen-icon"></i>
         <i class="fas fa-spinner fa-spin regen-spinner"></i> Regenerate All
       </button>
@@ -141,9 +141,9 @@
   </div>
 
   <div style="font-size:.75rem; color:var(--muted); margin-top:.6rem;">
-    <a href="#" onclick="selectAll();return false;" style="color:var(--primary);">Select All</a>
+    <a href="#" data-action="select-all" style="color:var(--primary);">Select All</a>
     &nbsp;·&nbsp;
-    <a href="#" onclick="clearAll();return false;" style="color:var(--muted);">Clear All</a>
+    <a href="#" data-action="clear-all" style="color:var(--muted);">Clear All</a>
     &nbsp;·&nbsp;<span id="selCount">0</span> selected
   </div>
 </div>
@@ -153,10 +153,10 @@
   {% for entry in item_tags %}
   <div class="tag-wrapper" id="wrap-{{ entry.item.id }}">
     <input type="checkbox" class="select-checkbox tag-checkbox"
-           value="{{ entry.item.id }}" onchange="updateCount()">
+           value="{{ entry.item.id }}">
     <div class="tag-card">
       <div class="tag-thumb-wrap"
-           onclick="toggleCheck('{{ entry.item.id }}')"
+           data-item-action="toggle-check" data-item-id="{{ entry.item.id }}"
            title="{{ entry.item.get_item_type_display }} — {{ entry.item.model }} {{ entry.item.serial }}">
         {% if entry.has_tag %}
         <img id="thumb-{{ entry.item.id }}" src="{{ entry.thumb_url }}"
@@ -177,18 +177,17 @@
         <span class="tag-sub">{{ entry.item.item_status }}</span>
       </div>
       <div class="tag-actions">
-        <button class="btn btn-secondary btn-sm" onclick="regenTag('{{ entry.item.id }}', this)" title="Regenerate">
+        <button class="btn btn-secondary btn-sm" data-item-action="regen" data-item-id="{{ entry.item.id }}" title="Regenerate">
           <i class="fas fa-sync-alt regen-icon"></i>
           <i class="fas fa-spinner fa-spin regen-spinner"></i> Regen
         </button>
         {% if entry.has_tag %}
-        <a href="{% url 'print_handler:print_item_tags_view' %}?ids={{ entry.item.id }}&stack=1"
-           class="btn btn-primary btn-sm" target="_blank"
-           onclick="this.href='{% url 'print_handler:print_item_tags_view' %}?ids={{ entry.item.id }}&stack='+getStack(); return true;">
+        <a href="#" class="btn btn-primary btn-sm" target="_blank"
+           data-item-action="print-single" data-item-id="{{ entry.item.id }}">
           <i class="fas fa-print"></i> Print
         </a>
         {% if is_admin %}
-        <button class="btn btn-sm btn-red-soft" onclick="deleteTag('{{ entry.item.id }}', this)" title="Delete tag PNG">
+        <button class="btn btn-sm btn-red-soft" data-item-action="delete" data-item-id="{{ entry.item.id }}" title="Delete tag PNG">
           <i class="fas fa-trash regen-icon"></i>
           <i class="fas fa-spinner fa-spin regen-spinner"></i>
         </button>
@@ -205,170 +204,8 @@
   {% endfor %}
 </div>
 
-<script>
-const GEN_URL   = "{% url 'print_handler:generate_item_tags' %}";
-const REGEN_BASE = "{% url 'print_handler:regenerate_item_tag' item_id='PLACEHOLDER' %}".replace('PLACEHOLDER/', '');
-const DELETE_BASE = "{% url 'print_handler:delete_item_tag' item_id='PLACEHOLDER' %}".replace('PLACEHOLDER/', '');
-const PRINT_URL = "{% url 'print_handler:print_item_tags_view' %}";
-const CSRF      = "{{ csrf_token }}";
+<script type="application/json" id="item-tags-config">{"genUrl": "{% url 'print_handler:generate_item_tags' %}", "regenBase": "{% url 'print_handler:regenerate_item_tag' item_id='PLACEHOLDER' %}", "deleteBase": "{% url 'print_handler:delete_item_tag' item_id='PLACEHOLDER' %}", "printUrl": "{% url 'print_handler:print_item_tags_view' %}", "csrf": "{{ csrf_token }}"}</script>
+<script src="{% static 'js/print_item_tags.js' %}"></script>
+{% endblock %}
 
 function updateCount() {
-    document.getElementById('selCount').textContent =
-        document.querySelectorAll('.tag-checkbox:checked').length;
-}
-function toggleCheck(id) {
-    const cb = document.querySelector(`.tag-checkbox[value="${id}"]`);
-    if (cb) { cb.checked = !cb.checked; updateCount(); }
-}
-function selectAll() {
-    document.querySelectorAll('.tag-checkbox').forEach(c => c.checked = true);
-    updateCount();
-}
-function clearAll() {
-    document.querySelectorAll('.tag-checkbox').forEach(c => c.checked = false);
-    updateCount();
-}
-
-function getStack() {
-    return document.getElementById('stackCount').value || '1';
-}
-function printSelected() {
-    const ids = [...document.querySelectorAll('.tag-checkbox:checked')].map(c => c.value);
-    if (!ids.length) { alert('Select at least one item.'); return; }
-    window.open(PRINT_URL + '?ids=' + ids.join(',') + '&stack=' + getStack(), '_blank');
-}
-function printAll() {
-    window.open(PRINT_URL + '?all=1&stack=' + getStack(), '_blank');
-}
-
-function _setBusy(btn, busy) {
-    btn.querySelector('.regen-icon').style.display = busy ? 'none' : 'inline';
-    btn.querySelector('.regen-spinner').style.display = busy ? 'inline' : 'none';
-    btn.disabled = busy;
-}
-
-async function regenTag(itemId, btn) {
-    _setBusy(btn, true);
-    const url = REGEN_BASE + encodeURIComponent(itemId) + '/';
-    try {
-        const resp = await fetch(url, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' }
-        });
-        const ct = resp.headers.get('content-type') || '';
-        if (!ct.includes('application/json')) {
-            const txt = await resp.text();
-            throw new Error('Server returned non-JSON: ' + txt.substring(0, 120));
-        }
-        const data = await resp.json();
-        if (data.success) {
-            const wrap = document.getElementById('wrap-' + itemId);
-            // Update thumbnail
-            let img = wrap.querySelector('img');
-            if (img) {
-                img.src = data.thumb_url + '?v=' + Date.now();
-            } else {
-                const div = wrap.querySelector('.tag-no-thumb');
-                if (div) {
-                    const newImg = document.createElement('img');
-                    newImg.id = 'thumb-' + itemId;
-                    newImg.src = data.thumb_url;
-                    newImg.alt = 'Tag for ' + itemId;
-                    div.replaceWith(newImg);
-                }
-            }
-            // Update badge
-            const badge = wrap.querySelector('.status-badge');
-            if (badge) { badge.textContent = 'OK'; badge.className = 'status-badge badge-ok'; }
-            // Add print button if missing
-            const actions = wrap.querySelector('.tag-actions');
-            if (actions && !actions.querySelector('a.btn-primary')) {
-                const a = document.createElement('a');
-                a.href = PRINT_URL + '?ids=' + itemId;
-                a.target = '_blank';
-                a.className = 'btn btn-primary btn-sm';
-                a.innerHTML = '<i class="fas fa-print"></i> Print';
-                actions.appendChild(a);
-            }
-        } else {
-            alert('Error: ' + (data.error || 'Unknown error'));
-        }
-    } catch(e) {
-        alert('Request failed: ' + e.message);
-    }
-    _setBusy(btn, false);
-}
-
-async function _bulkGenerate(force, btn) {
-    if (force && !confirm('Regenerate ALL item tags? This may take a while.')) return;
-    _setBusy(btn, true);
-    try {
-        const fd = new FormData();
-        fd.append('force', force ? '1' : '0');
-        fd.append('csrfmiddlewaretoken', CSRF);
-        const resp = await fetch(GEN_URL, { method: 'POST', body: fd });
-        const ct = resp.headers.get('content-type') || '';
-        if (!ct.includes('application/json')) {
-            const txt = await resp.text();
-            throw new Error('Server returned non-JSON: ' + txt.substring(0, 120));
-        }
-        const data = await resp.json();
-        if (data.success) {
-            const msg = `Done — generated: ${data.generated}, skipped: ${data.skipped}`
-                + (data.errors.length ? `, errors: ${data.errors.length}` : '');
-            alert(msg);
-            location.reload();
-        } else {
-            alert('Error: ' + (data.error || JSON.stringify(data)));
-        }
-    } catch(e) {
-        alert('Request failed: ' + e.message);
-    }
-    _setBusy(btn, false);
-}
-
-function genMissing(btn) { _bulkGenerate(false, btn); }
-function regenAll(btn)   { _bulkGenerate(true,  btn); }
-
-async function deleteTag(itemId, btn) {
-    if (!confirm('Delete this item tag PNG from disk?')) return;
-    _setBusy(btn, true);
-    const url = DELETE_BASE + encodeURIComponent(itemId) + '/';
-    try {
-        const resp = await fetch(url, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': CSRF }
-        });
-        const ct = resp.headers.get('content-type') || '';
-        if (!ct.includes('application/json')) {
-            const txt = await resp.text();
-            throw new Error('Server returned non-JSON: ' + txt.substring(0, 120));
-        }
-        const data = await resp.json();
-        if (data.success) {
-            const wrap = document.getElementById('wrap-' + itemId);
-            // Replace image with empty placeholder
-            const img = wrap.querySelector('img');
-            if (img) {
-                const placeholder = document.createElement('div');
-                placeholder.className = 'tag-no-thumb';
-                img.replaceWith(placeholder);
-            }
-            // Remove Print button and this Delete button
-            const printBtn = wrap.querySelector('a.btn-primary');
-            if (printBtn) printBtn.remove();
-            btn.remove();
-            // Remove OK badge
-            const badge = wrap.querySelector('.badge-ok');
-            if (badge) badge.remove();
-        } else {
-            alert('Error: ' + (data.error || 'Unknown error'));
-            _setBusy(btn, false);
-        }
-    } catch(e) {
-        alert('Request failed: ' + e.message);
-        _setBusy(btn, false);
-    }
-}
-</script>
-{% endblock %}

@@ -152,7 +152,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.querySelectorAll('select').forEach(el => el.classList.add('form-control'));
-</script>
+<script src="{% static 'js/reprint_tr.js' %}"></script>
 {% endblock %}

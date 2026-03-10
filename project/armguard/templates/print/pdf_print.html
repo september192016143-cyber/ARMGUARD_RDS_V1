@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -82,78 +83,6 @@
     
     <iframe id="pdfFrame" src="{{ pdf_url }}" type="application/pdf"></iframe>
     
-    <script>
-        let printAttempted = false;
-        let pdfLoadTimeout = null;
-        
-        // Trigger print when ready
-        function attemptPrint() {
-            if (printAttempted) return;
-            printAttempted = true;
-            
-            // Clear any pending timeouts
-            if (pdfLoadTimeout) {
-                clearTimeout(pdfLoadTimeout);
-            }
-            
-            console.log('PDF ready - triggering print dialog...');
-            
-            try {
-                // Try to print the iframe content directly
-                var iframe = document.getElementById('pdfFrame');
-                if (iframe.contentWindow) {
-                    iframe.contentWindow.print();
-                } else {
-                    // Fallback to window.print()
-                    window.print();
-                }
-                console.log('Print dialog triggered successfully');
-                
-                // Hide instructions after print dialog appears
-                setTimeout(function() {
-                    var instructions = document.getElementById('print-instructions');
-                    if (instructions) {
-                        instructions.style.display = 'none';
-                    }
-                }, 1000);
-            } catch (e) {
-                console.error('Failed to trigger print:', e);
-                // Try fallback
-                try {
-                    window.print();
-                } catch (e2) {
-                    alert('Print failed. Please use Ctrl+P to print manually.');
-                }
-            }
-        }
-        
-        // Listen for iframe load event
-        var pdfFrame = document.getElementById('pdfFrame');
-        
-        // Method 1: Listen for load event on iframe
-        pdfFrame.addEventListener('load', function() {
-            console.log('PDF iframe loaded - ready to print');
-            attemptPrint();
-        });
-        
-        // Method 2: Fallback timeout in case load event doesn't fire
-        pdfLoadTimeout = setTimeout(function() {
-            console.log('Fallback timeout reached - triggering print anyway');
-            attemptPrint();
-        }, 2000);
-        
-        // Close window after printing (optional)
-        window.onafterprint = function() {
-            console.log('Print completed or cancelled');
-            setTimeout(function() {
-                window.close();
-            }, 1000);
-        };
-        
-        // Log when print dialog is opened
-        window.onbeforeprint = function() {
-            console.log('Print dialog opened');
-        };
-    </script>
+    <script src="{% static 'js/pdf_print.js' %}"></script>
 </body>
 </html>

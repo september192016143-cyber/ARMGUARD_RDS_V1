@@ -6,7 +6,7 @@
 <div class="container">
     <div class="page-header no-print">
         <h1 class="page-title">Transaction Form</h1>
-        <button onclick="window.print()" class="btn btn-primary">🖨️ Print</button>
+        <button data-action="print" class="btn btn-primary">🖨️ Print</button>
         {% if transaction and transaction.issuance_type %}
             {% if transaction.issuance_type|slice:":2" == "TR" %}
             <a href="{% url 'print_handler:print_transaction_pdf' transaction.transaction_id %}" class="btn btn-secondary no-print">
@@ -203,4 +203,7 @@
         @page { margin: 1cm; }
     }
 </style>
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/print_page.js' %}"></script>
 {% endblock %}
