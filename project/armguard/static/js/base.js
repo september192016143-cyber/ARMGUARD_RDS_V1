@@ -291,9 +291,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
       setTimeout(function () { poll(); setInterval(poll, POLL_MS); }, 5000);
     })();
-
-    setTimeout(function () { poll(); setInterval(poll, POLL_MS); }, 5000);
-  })();
   }
 
   // ── SSL certificate renewal check (on load + every 6 hours) ─────────────
