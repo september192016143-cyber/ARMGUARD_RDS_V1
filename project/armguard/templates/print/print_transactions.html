@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Print Reports - ArmGuard{% endblock %}
+{% block page_title %}Print Reports{% endblock %}
+{% block page_sub %}Transaction History & Daily Inventory Report{% endblock %}
+
+{% block topbar_actions %}
+<div style="position:relative" id="cal-wrap">
+  <button id="calendar-toggle" title="Date Filter" style="position:relative;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:.5rem;background:rgba(245,158,11,.15);border:1.5px solid var(--primary);cursor:pointer;color:var(--primary);transition:all .2s;box-shadow:0 0 8px rgba(245,158,11,.2)">
+    <i class="fa-solid fa-calendar-days" style="font-size:1rem"></i>
+  </button>
+
+  <!-- Calendar Dropdown -->
+  <div id="calendar-dropdown" style="display:none;position:absolute;top:calc(100% + 10px);right:0;z-index:400;background:#1e293b;border:1px solid #334155;border-radius:.5rem;box-shadow:0 12px 40px rgba(0,0,0,.6);width:300px;overflow:hidden;font-family:inherit">
+
+    <!-- Selected range display -->
+    <div id="cal-range-bar" style="padding:.6rem 1rem;border-bottom:1px solid #334155;font-size:.72rem;color:#f59e0b;min-height:2rem;display:flex;align-items:center;gap:.4rem">
+      <i class="fa-solid fa-calendar-days" style="opacity:.6"></i>
+      <span id="cal-range-txt">Select start date</span>
+    </div>
+
+    <!-- Month navigation -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem;border-bottom:1px solid #334155">
+      <button id="cal-prev" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:.9rem;padding:.2rem .5rem;border-radius:.25rem;transition:color .15s">&#8249;</button>
+      <span id="cal-month-label" style="font-size:.82rem;font-weight:600;color:#e2e8f0"></span>
+      <button id="cal-next" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:.9rem;padding:.2rem .5rem;border-radius:.25rem;transition:color .15s">&#8250;</button>
+    </div>
+
+    <!-- Day-of-week headers -->
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);padding:.4rem .75rem 0;gap:2px">
+      <div style="text-align:center;font-size:.62rem;font-weight:600;color:#64748b;padding:.2rem 0">Su</div>
+      <div style="text-align:center;font-size:.62rem;font-weight:600;color:#64748b;padding:.2rem 0">Mo</div>
+      <div style="text-align:center;font-size:.62rem;font-weight:600;color:#64748b;padding:.2rem 0">Tu</div>
+      <div style="text-align:center;font-size:.62rem;font-weight:600;color:#64748b;padding:.2rem 0">We</div>
+      <div style="text-align:center;font-size:.62rem;font-weight:600;color:#64748b;padding:.2rem 0">Th</div>
+      <div style="text-align:center;font-size:.62rem;font-weight:600;color:#64748b;padding:.2rem 0">Fr</div>
+      <div style="text-align:center;font-size:.62rem;font-weight:600;color:#64748b;padding:.2rem 0">Sa</div>
+    </div>
+
+    <!-- Day grid -->
+    <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);padding:.25rem .75rem .5rem;gap:2px"></div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:.5rem;padding:.6rem 1rem;border-top:1px solid #334155">
+      <button id="cal-apply" class="btn btn-primary btn-sm" style="flex:1">Apply</button>
+      <button id="cal-clear" class="btn btn-secondary btn-sm" style="flex:1">Clear</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.cal-day{text-align:center;font-size:.75rem;padding:.3rem 0;border-radius:.3rem;cursor:pointer;color:#94a3b8;transition:all .12s;user-select:none}
+.cal-day:hover:not(.cal-empty){background:rgba(245,158,11,.2);color:#f59e0b}
+.cal-day.cal-today{color:#f59e0b;font-weight:700}
+.cal-day.cal-start,.cal-day.cal-end{background:#f59e0b!important;color:#000!important;font-weight:700;border-radius:.3rem}
+.cal-day.cal-in-range{background:rgba(245,158,11,.15);color:#fcd34d;border-radius:0}
+.cal-day.cal-start{border-radius:.3rem 0 0 .3rem}
+.cal-day.cal-end{border-radius:0 .3rem .3rem 0}
+.cal-day.cal-start.cal-end{border-radius:.3rem}
+.cal-day.cal-other-month{opacity:.3}
+.cal-empty{cursor:default}
+#cal-prev:hover,#cal-next:hover{color:#f59e0b!important}
+</style>
+{% comment %}
+(function(){
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  let viewYear,viewMonth,selStart=null,selEnd=null,picking=0;
+
+  function toYMD(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function fromYMD(s){const p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+  function sameDay(a,b){return a&&b&&toYMD(a)===toYMD(b);}
+
+  function renderCal(){
+    document.getElementById('cal-month-label').textContent=MONTHS[viewMonth]+' '+viewYear;
+    const grid=document.getElementById('cal-grid');
+    grid.innerHTML='';
+    const today=new Date(); today.setHours(0,0,0,0);
+    const firstDay=new Date(viewYear,viewMonth,1).getDay();
+    const daysInMonth=new Date(viewYear,viewMonth+1,0).getDate();
+    const daysInPrev=new Date(viewYear,viewMonth,0).getDate();
+
+    for(let i=0;i<firstDay;i++){
+      const d=document.createElement('div');
+      d.className='cal-day cal-empty cal-other-month';
+      d.textContent=daysInPrev-firstDay+1+i;
+      grid.appendChild(d);
+    }
+    for(let day=1;day<=daysInMonth;day++){
+      const date=new Date(viewYear,viewMonth,day);
+      const d=document.createElement('div');
+      d.className='cal-day';
+      d.textContent=day;
+      if(sameDay(date,today)) d.classList.add('cal-today');
+      if(selStart&&sameDay(date,selStart)) d.classList.add('cal-start');
+      if(selEnd&&sameDay(date,selEnd)) d.classList.add('cal-end');
+      if(selStart&&selEnd){
+        const t=date.getTime();
+        if(t>selStart.getTime()&&t<selEnd.getTime()) d.classList.add('cal-in-range');
+      }
+      d.addEventListener('click',function(e){e.stopPropagation();dayClick(date);});
+      grid.appendChild(d);
+    }
+    const remaining=(7-(firstDay+daysInMonth)%7)%7;
+    for(let i=1;i<=remaining;i++){
+      const d=document.createElement('div');
+      d.className='cal-day cal-empty cal-other-month';
+      d.textContent=i;
+      grid.appendChild(d);
+    }
+  }
+
+  function dayClick(date){
+    if(picking===0||picking===2){
+      selStart=date; selEnd=null; picking=1;
+      document.getElementById('cal-range-txt').textContent=toYMD(selStart)+' → pick end date';
+    } else {
+      if(date<selStart){selEnd=selStart;selStart=date;}
+      else selEnd=date;
+      picking=2;
+      document.getElementById('cal-range-txt').textContent=toYMD(selStart)+' → '+toYMD(selEnd);
+    }
+    renderCal();
+  }
+
+  window.calNav=function(dir){
+    viewMonth+=dir;
+    if(viewMonth>11){viewMonth=0;viewYear++;}
+    if(viewMonth<0){viewMonth=11;viewYear--;}
+    renderCal();
+  };
+
+  window.applyCalendar=function(){
+    if(!selStart) return;
+    const from=toYMD(selStart);
+    const to=selEnd?toYMD(selEnd):from;
+    const url=new URL(window.location.href);
+    url.searchParams.set('date_from',from);
+    url.searchParams.set('date_to',to);
+    document.getElementById('calendar-toggle').style.boxShadow='0 0 16px rgba(245,158,11,.6)';
+    document.getElementById('calendar-dropdown').style.display='none';
+    window.location.href=url.toString();
+  };
+
+  window.clearCalendar=function(){
+    selStart=null;selEnd=null;picking=0;
+    document.getElementById('cal-range-txt').textContent='Select start date';
+    document.getElementById('calendar-toggle').style.boxShadow='0 0 8px rgba(245,158,11,.2)';
+    const url=new URL(window.location.href);
+    url.searchParams.delete('date_from');
+    url.searchParams.delete('date_to');
+    document.getElementById('calendar-dropdown').style.display='none';
+    window.location.href=url.toString();
+  };
+
+  // Init
+  const p=new URLSearchParams(window.location.search);
+  const today=new Date();
+  if(p.get('date_from')){selStart=fromYMD(p.get('date_from'));picking=1;}
+  if(p.get('date_to')){selEnd=fromYMD(p.get('date_to'));picking=2;}
+  if(selStart&&selEnd) document.getElementById('cal-range-txt').textContent=toYMD(selStart)+' → '+toYMD(selEnd);
+  else if(selStart) document.getElementById('cal-range-txt').textContent=toYMD(selStart)+' → pick end date';
+  if(selStart){
+    viewYear=selStart.getFullYear();viewMonth=selStart.getMonth();
+    document.getElementById('calendar-toggle').style.boxShadow='0 0 16px rgba(245,158,11,.6)';
+  } else {viewYear=today.getFullYear();viewMonth=today.getMonth();}
+  renderCal();
+
+  document.getElementById('calendar-dropdown').addEventListener('click',function(e){
+    e.stopPropagation();
+  });
+  document.getElementById('calendar-toggle').addEventListener('click',function(e){
+    e.stopPropagation();
+    const d=document.getElementById('calendar-dropdown');
+    d.style.display=d.style.display==='none'?'block':'none';
+  });
+  document.addEventListener('click',function(e){
+    const wrap=document.getElementById('cal-wrap');
+    if(wrap&&!wrap.contains(e.target)) document.getElementById('calendar-dropdown').style.display='none';
+  });
+})();
+{% endcomment %}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <!-- ── Daily Firearms Inventory Report ────────────────────────── -->
+  <div class="eval-wrapper">
+
+    <div class="eval-header">
+      <h2 class="eval-title">DAILY FIREARMS INVENTORY REPORT</h2>
+      <p class="eval-date">Date: {% now "d F Y" %}</p>
+    </div>
+
+    <table class="eval-table">
+      <thead>
+        <tr>
+          <th class="col-nomenclature">NOMENCLATURE</th>
+          <th class="col-num">STOCK</th>
+          <th class="col-num">PAR</th>
+          <th class="col-num">TR</th>
+          <th class="col-num">UNSERVICEABLE</th>
+          <th class="col-total">TOTAL POSSESSED</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in firearms_eval_rows %}
+        <tr>
+          <td class="col-nomenclature">{{ row.label }}</td>
+          <td class="col-num">{{ row.stock }}</td>
+          <td class="col-num">{{ row.par }}</td>
+          <td class="col-num">{{ row.tr }}</td>
+          <td class="col-num">{{ row.unserviceable }}</td>
+          <td class="col-total">{{ row.total }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="totals-row">
+          <td class="col-nomenclature"><strong>TOTAL</strong></td>
+          <td class="col-num"><strong>{{ firearms_eval_totals.stock }}</strong></td>
+          <td class="col-num"><strong>{{ firearms_eval_totals.par }}</strong></td>
+          <td class="col-num"><strong>{{ firearms_eval_totals.tr }}</strong></td>
+          <td class="col-num"><strong>{{ firearms_eval_totals.unserviceable }}</strong></td>
+          <td class="col-total"><strong>{{ firearms_eval_totals.total }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Signature Block -->
+    <div class="sig-block">
+      <div class="sig-left">
+        <div class="sig-line-space"></div>
+        <div class="sig-line"></div>
+        {% if armorer_rank %}<p class="sig-name">{{ armorer_rank }} {{ armorer_name }}</p>{% else %}<p class="sig-name">{{ armorer_name }}</p>{% endif %}
+        <p class="sig-designation">Armorer</p>
+      </div>
+      <div class="sig-right">
+        {% if commander_name %}
+        <div class="sig-line-space"></div>
+        <p class="sig-name sig-name-top">{{ commander_name }}</p>
+        {% if commander_rank or commander_branch %}<p class="sig-info">{{ commander_rank }}{% if commander_rank and commander_branch %} {% endif %}{{ commander_branch }}</p>{% endif %}
+        {% else %}
+        <div class="sig-line-space"></div>
+        <div class="sig-line"></div>
+        {% endif %}
+        <p class="sig-designation">{{ commander_designation }}</p>
+      </div>
+    </div>
+
+  </div><!-- /.eval-wrapper -->
+</div>
+
+<style>
+/* ── Layout ─────────────────────────────────────── */
+.container { max-width: 900px; margin: 0 auto; padding: 24px 20px; }
+
+.eval-wrapper {
+  background: #fff !important;
+  color: #000 !important;
+  padding: 28px 32px 24px;
+  border: 2px solid #000;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ── Header ─────────────────────────────────────── */
+.eval-header { text-align: center; margin-bottom: 18px; }
+
+.eval-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+  color: #000;
+}
+
+.eval-date {
+  font-size: 13px;
+  margin: 0;
+  color: #333;
+}
+
+/* ── Table ──────────────────────────────────────── */
+.eval-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 28px;
+}
+
+.eval-table th,
+.eval-table td {
+  border: 1.5px solid #000;
+  padding: 7px 10px;
+  text-align: center;
+  color: #000 !important;
+  background-color: #fff !important;
+}
+
+.eval-table thead tr {
+  background: #d0d0d0 !important;
+}
+
+.eval-table th {
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #000 !important;
+  background: #d0d0d0 !important;
+}
+
+.eval-table td.col-nomenclature { text-align: left; font-weight: 600; color: #000 !important; }
+.eval-table th.col-nomenclature { text-align: left; }
+
+.col-total { font-weight: 700; }
+
+.totals-row td {
+  background: #ececec !important;
+  font-weight: 700;
+  color: #000 !important;
+}
+
+/* ── Signature Block ─────────────────────────────── */
+.sig-block {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  gap: 40px;
+}
+
+.sig-left,
+.sig-right { flex: 1; }
+
+.sig-line-space { height: 48px; }
+
+.sig-line {
+  border-bottom: 1.5px solid #000;
+  margin-bottom: 4px;
+}
+
+.sig-name {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 2px 0;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.sig-name-top { margin-top: 2px; }
+
+.sig-info {
+  font-size: 12px;
+  margin: 1px 0;
+  text-align: center;
+}
+
+.sig-designation {
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  margin: 3px 0 0;
+  border-top: 1.5px solid #000;
+  padding-top: 4px;
+}
+
+/* ── Print overrides ────────────────────────────── */
+@media print {
+  .container { padding: 0; max-width: 100%; }
+  .eval-wrapper { border: none; padding: 0; }
+  .eval-table th, .eval-table td { border-color: #000; }
+  @page { margin: 1.2cm; size: portrait; }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/calendar_widget.js' %}" defer></script>
+{% endblock %}

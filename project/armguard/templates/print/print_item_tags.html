@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Item Tag Manager – ArmGuard{% endblock %}
+{% block page_title %}Item Tag Manager{% endblock %}
+{% block page_sub %}Preview, print, and regenerate item tag PNGs{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'print_handler:print_id_cards' %}" class="btn btn-secondary btn-sm">
+  <i class="fas fa-id-card"></i> ID Card Manager
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tag-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+    .tag-wrapper { position: relative; }
+    .tag-card {
+        background: var(--card);
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .tag-card:hover { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+    .tag-thumb-wrap {
+        width: 100%;
+        aspect-ratio: 2 / 1;
+        background: var(--bg);
+        overflow: hidden;
+        cursor: pointer;
+    }
+    .tag-thumb-wrap img { width:100%; height:100%; object-fit:contain; }
+    .tag-no-thumb {
+        width:100%; height:100%;
+        display:flex; align-items:center; justify-content:center;
+        flex-direction:column; gap:.4rem;
+        color: var(--muted); font-size:.75rem;
+    }
+    .tag-info {
+        padding:.6rem .75rem; flex:1;
+        display:flex; flex-direction:column; gap:.2rem;
+        border-top: 1px solid var(--border);
+    }
+    .tag-name {
+        font-size:.75rem; font-weight:700; color:var(--text);
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .tag-sub { font-size:.65rem; color:var(--muted); font-family:monospace; }
+    .tag-actions {
+        padding:.5rem .75rem; display:flex; gap:.4rem;
+        border-top:1px solid var(--border);
+    }
+    .tag-actions .btn { flex:1; font-size:.7rem; padding:.3rem .4rem; }
+    .select-checkbox {
+        position:absolute; top:.5rem; left:.5rem;
+        width:1.1rem; height:1.1rem;
+        accent-color:var(--primary); cursor:pointer; z-index:2;
+    }
+    .badge-ok      { background:rgba(34,197,94,.15);  color:#4ade80; font-size:.65rem; padding:.15rem .45rem; border-radius:999px; font-weight:600; letter-spacing:.04em; }
+    .badge-missing { background:rgba(239,68,68,.15);  color:#f87171; font-size:.65rem; padding:.15rem .45rem; border-radius:999px; font-weight:600; letter-spacing:.04em; }
+    .regen-spinner { display:none; }
+    .regen-icon    { display:inline; }
+    .toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; }
+    .toolbar-right { margin-left:auto; display:flex; gap:.5rem; flex-wrap:wrap; }
+    .btn-amber { background:rgba(245,158,11,.15); border:1px solid var(--primary); color:var(--primary); }
+    .btn-amber:hover { background:rgba(245,158,11,.25); }
+    .btn-red-soft { background:rgba(239,68,68,.15); border:1px solid var(--red); color:var(--red); }
+    .btn-red-soft:hover { background:rgba(239,68,68,.25); }
+    .mb-1 { margin-bottom:.25rem; }
+    .mb-2 { margin-bottom:.75rem; }
+    .mb-3 { margin-bottom:1rem; }
+    .mb-4 { margin-bottom:1.25rem; }
+    .text-muted { color:var(--muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Stats ──────────────────────────────────────────────────────────────── -->
+<div class="stat-grid mb-2">
+  <div class="stat-card accent-blue">
+    <div class="stat-label">Total Items</div>
+    <div class="stat-value">{{ total }}</div>
+    <div class="stat-sub">Pistols &amp; Rifles</div>
+  </div>
+  <div class="stat-card accent-green">
+    <div class="stat-label">Tags Generated</div>
+    <div class="stat-value">{{ with_tag }}</div>
+    <div class="stat-sub">PNG tags on disk</div>
+  </div>
+  <div class="stat-card accent-red">
+    <div class="stat-label">Tags Missing</div>
+    <div class="stat-value">{{ without_tag }}</div>
+    <div class="stat-sub">Need generation</div>
+  </div>
+</div>
+
+<!-- ── Search + Toolbar ───────────────────────────────────────────────────── -->
+<div class="card mb-2">
+  <div style="display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; margin-bottom:.75rem;">
+    <form method="get" style="display:flex; gap:.5rem; max-width:400px; flex:1;">
+      <input type="text" name="q" value="{{ search_q }}"
+             placeholder="Search by serial, type, or ID…" class="form-control">
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i></button>
+      {% if search_q %}
+      <a href="{% url 'print_handler:print_item_tags' %}" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn btn-primary btn-sm" data-action="print-selected">
+      <i class="fas fa-print"></i> Print Selected
+    </button>
+    <button class="btn btn-secondary btn-sm" data-action="print-all">
+      <i class="fas fa-print"></i> Print All
+    </button>
+    <select id="stackCount" class="btn btn-secondary btn-sm"
+            style="cursor:pointer; font-weight:600; padding:.35rem .6rem; color:var(--text); background:var(--card);" title="Copies per item">
+      <option value="1" style="background:#1e293b; color:#e2e8f0;">Stacks 1×</option>
+      <option value="2" style="background:#1e293b; color:#e2e8f0;">Stacks 2×</option>
+      <option value="3" style="background:#1e293b; color:#e2e8f0;">Stacks 3×</option>
+    </select>
+    <div class="toolbar-right">
+      <button class="btn btn-sm btn-amber" data-action="gen-missing">
+        <i class="fas fa-magic regen-icon"></i>
+        <i class="fas fa-spinner fa-spin regen-spinner"></i> Generate Missing
+      </button>
+      <button class="btn btn-sm btn-red-soft" data-action="regen-all">
+        <i class="fas fa-sync-alt regen-icon"></i>
+        <i class="fas fa-spinner fa-spin regen-spinner"></i> Regenerate All
+      </button>
+    </div>
+  </div>
+
+  <div style="font-size:.75rem; color:var(--muted); margin-top:.6rem;">
+    <a href="#" data-action="select-all" style="color:var(--primary);">Select All</a>
+    &nbsp;·&nbsp;
+    <a href="#" data-action="clear-all" style="color:var(--muted);">Clear All</a>
+    &nbsp;·&nbsp;<span id="selCount">0</span> selected
+  </div>
+</div>
+
+<!-- ── Tag Grid ──────────────────────────────────────────────────────────── -->
+<div class="tag-grid" id="tagGrid">
+  {% for entry in item_tags %}
+  <div class="tag-wrapper" id="wrap-{{ entry.item.id }}">
+    <input type="checkbox" class="select-checkbox tag-checkbox"
+           value="{{ entry.item.id }}">
+    <div class="tag-card">
+      <div class="tag-thumb-wrap"
+           data-item-action="toggle-check" data-item-id="{{ entry.item.id }}"
+           title="{{ entry.item.get_item_type_display }} — {{ entry.item.model }} {{ entry.item.serial }}">
+        {% if entry.has_tag %}
+        <img id="thumb-{{ entry.item.id }}" src="{{ entry.thumb_url }}"
+             alt="Tag {{ entry.item.id }}">
+        {% else %}
+        <div class="tag-no-thumb" id="thumb-{{ entry.item.id }}"></div>
+        {% endif %}
+      </div>
+      <div class="tag-info">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:.4rem;">
+          <span class="tag-name">{{ entry.item.get_item_type_display }}</span>
+          {% if entry.has_tag %}
+          <span class="badge-ok">OK</span>
+          {% endif %}
+        </div>
+        <span class="tag-sub" style="font-weight:600; color:var(--text);">{{ entry.item.model }}</span>
+        <span class="tag-sub">{{ entry.item.serial }}</span>
+        <span class="tag-sub">{{ entry.item.item_status }}</span>
+      </div>
+      <div class="tag-actions">
+        <button class="btn btn-secondary btn-sm" data-item-action="regen" data-item-id="{{ entry.item.id }}" title="Regenerate">
+          <i class="fas fa-sync-alt regen-icon"></i>
+          <i class="fas fa-spinner fa-spin regen-spinner"></i> Regen
+        </button>
+        {% if entry.has_tag %}
+        <a href="#" class="btn btn-primary btn-sm" target="_blank"
+           data-item-action="print-single" data-item-id="{{ entry.item.id }}">
+          <i class="fas fa-print"></i> Print
+        </a>
+        {% if is_admin %}
+        <button class="btn btn-sm btn-red-soft" data-item-action="delete" data-item-id="{{ entry.item.id }}" title="Delete tag PNG">
+          <i class="fas fa-trash regen-icon"></i>
+          <i class="fas fa-spinner fa-spin regen-spinner"></i>
+        </button>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card" style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--muted);">
+    <i class="fas fa-box-open" style="font-size:2rem; margin-bottom:.5rem;"></i>
+    <p>{% if search_q %}No items match "{{ search_q }}"{% else %}No items found{% endif %}</p>
+  </div>
+  {% endfor %}
+</div>
+
+<script type="application/json" id="item-tags-config">{"genUrl": "{% url 'print_handler:generate_item_tags' %}", "regenBase": "{% url 'print_handler:regenerate_item_tag' item_id='PLACEHOLDER' %}", "deleteBase": "{% url 'print_handler:delete_item_tag' item_id='PLACEHOLDER' %}", "printUrl": "{% url 'print_handler:print_item_tags_view' %}", "csrf": "{{ csrf_token }}"}</script>
+<script src="{% static 'js/print_item_tags.js' %}"></script>
+{% endblock %}
+
+function updateCount() {

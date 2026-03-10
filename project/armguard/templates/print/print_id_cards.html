@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ID Card Manager – ArmGuard{% endblock %}
+{% block page_title %}Personnel ID Card Manager{% endblock %}
+{% block page_sub %}Preview, print, and regenerate personnel ID card PNGs{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'print_handler:print_item_tags' %}" class="btn btn-secondary btn-sm">
+  <i class="fas fa-tags"></i> Item Tag Printer
+</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .id-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 1.25rem;
+    }
+    .card-wrapper { position: relative; }
+    .id-card-item {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: border-color .15s, box-shadow .15s;
+    }
+    .id-card-item:hover  { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+    .id-card-item.selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(245,158,11,.3); }
+    .id-card-thumb {
+        width:100%; aspect-ratio:638/1013;
+        object-fit:cover; background:var(--bg);
+        display:block; cursor:pointer;
+    }
+    .id-card-no-image {
+        width:100%; aspect-ratio:638/1013;
+        background: linear-gradient(135deg, var(--sidebar), var(--bg));
+        display:flex; flex-direction:column;
+        align-items:center; justify-content:center;
+        color:var(--muted); font-size:2rem; gap:.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .id-card-no-image span { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; }
+    .id-card-info {
+        padding:.6rem .75rem; flex:1;
+        display:flex; flex-direction:column; gap:.25rem;
+        border-top: 1px solid var(--border);
+    }
+    .id-card-name {
+        font-size:.75rem; font-weight:700; color:var(--text);
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .id-card-pid { font-size:.65rem; color:var(--muted); font-family:'Courier New',monospace; }
+    .id-card-actions {
+        padding:.5rem .75rem; display:flex; gap:.4rem;
+        border-top:1px solid var(--border);
+    }
+    .id-card-actions .btn { flex:1; font-size:.7rem; padding:.3rem .4rem; }
+    .select-checkbox {
+        position:absolute; top:.5rem; left:.5rem;
+        width:1.1rem; height:1.1rem;
+        accent-color:var(--primary); cursor:pointer; z-index:2;
+    }
+    .badge-ok      { background:rgba(34,197,94,.15);  color:#4ade80; font-size:.65rem; padding:.15rem .45rem; border-radius:999px; font-weight:600; letter-spacing:.04em; }
+    .badge-missing { background:rgba(239,68,68,.15);  color:#f87171; font-size:.65rem; padding:.15rem .45rem; border-radius:999px; font-weight:600; letter-spacing:.04em; }
+    .regen-spinner { display:none; }
+    .regen-icon    { display:inline; }
+    .toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; }
+    .toolbar-right { margin-left:auto; display:flex; gap:.5rem; flex-wrap:wrap; }
+    .btn-amber    { background:rgba(245,158,11,.15); border:1px solid var(--primary); color:var(--primary); }
+    .btn-amber:hover { background:rgba(245,158,11,.25); }
+    .btn-red-soft { background:rgba(239,68,68,.15); border:1px solid var(--red); color:var(--red); }
+    .btn-red-soft:hover { background:rgba(239,68,68,.25); }
+    .mb-2 { margin-bottom:.75rem; }
+
+    /* ── Flip card ─────────────────────────────────────────────────── */
+    .flip-scene {
+        width:100%; aspect-ratio:638/1013;
+        perspective: 900px;
+        cursor: pointer;
+    }
+    .flip-inner {
+        width:100%; height:100%;
+        position:relative;
+        transform-style: preserve-3d;
+        transition: transform .45s cubic-bezier(.4,0,.2,1);
+    }
+    .flip-inner.flipped { transform: rotateY(180deg); }
+    .flip-face {
+        position:absolute; inset:0;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        border-bottom: 1px solid var(--border);
+    }
+    .flip-face img {
+        width:100%; height:100%;
+        object-fit:cover; display:block;
+        background:var(--bg);
+    }
+    .flip-face.back { transform: rotateY(180deg); }
+    .flip-face-placeholder {
+        width:100%; height:100%;
+        background: linear-gradient(135deg, var(--sidebar), var(--bg));
+        display:flex; flex-direction:column;
+        align-items:center; justify-content:center;
+        color:var(--muted); font-size:2rem; gap:.5rem;
+    }
+    .flip-face-placeholder span { font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; }
+    .flip-hint {
+        position:absolute; bottom:.4rem; right:.45rem;
+        font-size:.6rem; color:rgba(255,255,255,.55);
+        background:rgba(0,0,0,.45); border-radius:4px;
+        padding:.1rem .35rem; pointer-events:none; z-index:3;
+        letter-spacing:.04em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Stats ──────────────────────────────────────────────────────────────── -->
+<div class="stat-grid mb-2">
+  <div class="stat-card accent-blue">
+    <div class="stat-label">Total Personnel</div>
+    <div class="stat-value">{{ total }}</div>
+    <div class="stat-sub">
+      <span class="text-green">{{ officers_count }} officers</span>
+      &nbsp;·&nbsp;
+      <span class="text-red">{{ enlisted_count }} enlisted</span>
+    </div>
+  </div>
+  <div class="stat-card accent-green">
+    <div class="stat-label">Cards Generated</div>
+    <div class="stat-value">{{ with_card }}</div>
+    <div class="stat-sub">PNG cards on disk</div>
+  </div>
+  <div class="stat-card accent-red">
+    <div class="stat-label">Missing Cards</div>
+    <div class="stat-value">{{ without_card }}</div>
+    <div class="stat-sub">Need generation</div>
+  </div>
+</div>
+
+<!-- ── Search + Toolbar ───────────────────────────────────────────────────── -->
+<div class="card mb-2">
+  <div class="toolbar" style="margin-bottom:.75rem;">
+    <form method="get" style="display:flex; gap:.5rem; flex:1; min-width:220px; max-width:380px;">
+      <input type="text" name="q" value="{{ search_q }}"
+             placeholder="Search name, ID, rank…" class="form-control">
+      <button type="submit" class="btn btn-secondary btn-sm"><i class="fas fa-search"></i></button>
+      {% if search_q %}
+      <a href="{% url 'print_handler:print_id_cards' %}" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
+      {% endif %}
+    </form>
+
+    <label style="display:flex; align-items:center; gap:.4rem; font-size:.82rem; cursor:pointer; color:var(--text);">
+      <input type="checkbox" id="select-all" name="select_all" style="width:1rem; height:1rem; accent-color:var(--primary);">  Select All
+    </label>
+
+    <div class="toolbar-right">
+      <button id="btn-print-selected" class="btn btn-primary btn-sm" disabled>
+        <i class="fas fa-print"></i> Print Selected
+      </button>
+      <a href="{% url 'print_handler:print_id_cards_view' %}?all=1" class="btn btn-success btn-sm" target="_blank">
+        <i class="fas fa-print"></i> Print All
+      </a>
+      <button id="btn-regen-missing" class="btn btn-sm btn-amber">
+        <i class="fas fa-sync-alt"></i> Generate Missing
+      </button>
+      <button id="btn-regen-all" class="btn btn-sm btn-red-soft"
+              title="Regenerate every card — use when photos changed">
+        <i class="fas fa-redo"></i> Regenerate All
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Card Grid ──────────────────────────────────────────────────────────── -->
+<div class="card">
+  {% if personnel_cards %}
+  <div class="id-card-grid" id="card-grid">
+    {% for entry in personnel_cards %}
+    <div class="card-wrapper" data-pid="{{ entry.personnel.Personnel_ID }}" data-has-card="{{ entry.has_card|yesno:'1,0' }}">
+      <input type="checkbox" class="select-checkbox card-checkbox"
+             id="cb-{{ entry.personnel.Personnel_ID|slugify }}"
+             name="selected_card"
+             value="{{ entry.personnel.Personnel_ID }}">
+      <div class="id-card-item" id="card-item-{{ entry.personnel.Personnel_ID|slugify }}">
+        {% if entry.thumb_url %}
+        <div class="flip-scene" data-action="flip" title="Click to flip">
+          <div class="flip-inner" id="flip-{{ entry.personnel.Personnel_ID|slugify }}">
+            <!-- Front -->
+            <div class="flip-face front">
+              <img src="{% url 'print_handler:serve_id_card_image' entry.personnel.Personnel_ID 'front' %}"
+                   alt="Front — {{ entry.personnel.last_name }}"
+                   id="thumb-{{ entry.personnel.Personnel_ID|slugify }}">
+              <span class="flip-hint">FRONT ↩</span>
+            </div>
+            <!-- Back -->
+            <div class="flip-face back">
+              <img src="{% url 'print_handler:serve_id_card_image' entry.personnel.Personnel_ID 'back' %}"
+                   alt="Back — {{ entry.personnel.last_name }}">
+              <span class="flip-hint">BACK ↩</span>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="flip-face-placeholder" id="thumb-{{ entry.personnel.Personnel_ID|slugify }}">
+          <i class="fas fa-id-card"></i>
+          <span>No Card</span>
+        </div>
+        {% endif %}
+
+        <div class="id-card-info">
+          <div class="id-card-name" title="{{ entry.personnel.rank }} {{ entry.personnel.first_name }} {{ entry.personnel.last_name }}">
+            {{ entry.personnel.rank }} {{ entry.personnel.last_name }}, {{ entry.personnel.first_name|slice:":1" }}.
+          </div>
+          <div class="id-card-pid">{{ entry.personnel.Personnel_ID }}</div>
+          <div>
+            {% if entry.has_card %}
+            <span class="badge-ok"><i class="fas fa-check-circle"></i> Generated</span>
+            {% else %}
+            <span class="badge-missing" id="status-{{ entry.personnel.Personnel_ID|slugify }}">
+              <i class="fas fa-times-circle"></i> Missing
+            </span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="id-card-actions">
+          <button class="btn btn-secondary"
+                  title="Regenerate Card"
+                  data-action="regen"
+                  data-pid="{{ entry.personnel.Personnel_ID }}"
+                  data-slug="{{ entry.personnel.Personnel_ID|slugify }}"
+                  id="regen-btn-{{ entry.personnel.Personnel_ID|slugify }}">
+            <span class="regen-icon-{{ entry.personnel.Personnel_ID|slugify }}"><i class="fas fa-sync-alt"></i></span>
+            <span class="regen-spinner-{{ entry.personnel.Personnel_ID|slugify }}" style="display:none;">
+              <i class="fas fa-spinner fa-spin"></i>
+            </span>
+          </button>
+          {% if entry.thumb_url %}
+          <a href="{% url 'print_handler:print_id_cards_view' %}?ids={{ entry.personnel.Personnel_ID }}"
+             target="_blank" class="btn btn-primary" title="Print this card">
+            <i class="fas fa-print"></i>
+          </a>
+          {% else %}
+          <button class="btn btn-primary" disabled title="Generate card first">
+            <i class="fas fa-print"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="text-align:center; padding:2rem; color:var(--muted);">
+    <i class="fas fa-id-card" style="font-size:3rem; opacity:.3;"></i>
+    <p style="margin-top:.75rem;">No personnel found{% if search_q %} matching "{{ search_q }}"{% endif %}.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="id-cards-config">{"regenUrlTemplate": "{% url 'print_handler:regenerate_id_card' personnel_id='__PID__' %}", "printViewUrl": "{% url 'print_handler:print_id_cards_view' %}", "genMissingUrl": "{% url 'print_handler:generate_missing_cards' %}", "csrfToken": "{{ csrf_token }}"}</script>
+<script src="{% static 'js/print_id_cards.js' %}"></script>
+{% endblock %}

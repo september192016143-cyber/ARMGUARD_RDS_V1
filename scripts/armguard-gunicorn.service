@@ -1,0 +1,96 @@
+# =============================================================================
+# ArmGuard RDS V1 — Gunicorn Systemd Service Unit
+# =============================================================================
+# Installation:
+#   1. Edit the paths below if your deployment directory differs from
+#      /var/www/ARMGUARD_RDS_V1 (deploy.sh does this automatically via sed).
+#   2. Copy to /etc/systemd/system/armguard-gunicorn.service
+#   3. Run:
+#        sudo systemctl daemon-reload
+#        sudo systemctl enable armguard-gunicorn
+#        sudo systemctl start armguard-gunicorn
+#
+# deploy.sh substitutes __DEPLOY_DIR__, __PROJECT_DIR__, __VENV_DIR__,
+# and __DEPLOY_USER__ automatically.
+# =============================================================================
+
+[Unit]
+Description=ArmGuard RDS V1 — Gunicorn Application Server
+Documentation=https://docs.gunicorn.org
+After=network.target
+Wants=network.target
+
+[Service]
+# ---------------------------------------------------------------------------
+# Identity
+# ---------------------------------------------------------------------------
+Type=notify
+User=__DEPLOY_USER__
+Group=__DEPLOY_USER__
+
+# ---------------------------------------------------------------------------
+# Working directory and environment
+# ---------------------------------------------------------------------------
+WorkingDirectory=__PROJECT_DIR__
+EnvironmentFile=__DEPLOY_DIR__/.env
+Environment=DJANGO_SETTINGS_MODULE=armguard.settings.production
+
+# ---------------------------------------------------------------------------
+# Gunicorn command
+# Workers: for an HP ProDesk Mini (2–4 cores, 8–16 GB RAM), 2 workers is a
+# safe starting point. Formula: 2 × CPU_cores + 1, but SQLite can be a
+# bottleneck at high concurrency, so keep it small.
+# max-requests: recycle workers every 1000 requests to prevent memory leaks.
+# ---------------------------------------------------------------------------
+ExecStart=__VENV_DIR__/bin/gunicorn armguard.wsgi:application \
+    --bind 127.0.0.1:8000 \
+    --workers 2 \
+    --worker-class sync \
+    --timeout 60 \
+    --graceful-timeout 30 \
+    --keep-alive 5 \
+    --max-requests 1000 \
+    --max-requests-jitter 100 \
+    --log-level info \
+    --log-file /var/log/armguard/gunicorn.log \
+    --access-logfile /var/log/armguard/gunicorn-access.log \
+    --capture-output \
+    --name armguard-v1
+
+# Graceful reload: send HUP to cycle workers without dropping connections.
+# Usage: sudo systemctl reload armguard-gunicorn
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# ---------------------------------------------------------------------------
+# Restart policy
+# ---------------------------------------------------------------------------
+Restart=on-failure
+RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+# ---------------------------------------------------------------------------
+# Hardening
+# ---------------------------------------------------------------------------
+# Prevent the service from acquiring new privileges
+NoNewPrivileges=true
+# Use a private /tmp namespace
+PrivateTmp=true
+# Protect the kernel from modification
+ProtectKernelTunables=true
+ProtectKernelModules=true
+# Protect /home directories
+ProtectHome=true
+# Make /usr, /boot, /etc read-only
+ProtectSystem=strict
+# Allow write access to log and deploy directories
+ReadWritePaths=/var/log/armguard __DEPLOY_DIR__
+
+# ---------------------------------------------------------------------------
+# Stop
+# ---------------------------------------------------------------------------
+KillMode=mixed
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

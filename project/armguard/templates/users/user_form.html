@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ action }} User — ArmGuard RDS{% endblock %}
+{% block page_title %}{{ action }} User{% endblock %}
+{% block page_sub %}{% if action == 'Edit' %}{{ edit_user.username }}{% else %}New system account{% endif %}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'user-list' %}" class="btn btn-secondary btn-sm">
+  <i class="fa-solid fa-arrow-left"></i> Back
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="post" id="userForm">
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+  <div class="alert alert-error" style="margin-bottom:1rem">
+    <i class="fa-solid fa-circle-exclamation"></i> {{ form.non_field_errors }}
+  </div>
+  {% endif %}
+
+  <div style="max-width:640px">
+
+    <!-- Account -->
+    <div class="card mb-2">
+      <div class="card-header"><span class="card-title"><i class="fa-solid fa-user"></i> Account</span></div>
+
+      {% if action == 'Add' %}
+      <div class="form-group">
+        <label class="form-label" for="{{ form.username.id_for_label }}">Username <span class="req">*</span></label>
+        {{ form.username }}
+        {% if form.username.errors %}<div class="form-error">{{ form.username.errors|join:", " }}</div>{% endif %}
+      </div>
+      {% else %}
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <div class="form-control" style="background:var(--surface2);color:var(--muted);cursor:default">{{ edit_user.username }}</div>
+        <div class="form-hint">Username cannot be changed.</div>
+      </div>
+      {% endif %}
+
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.first_name.id_for_label }}">First Name</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}<div class="form-error">{{ form.first_name.errors|join:", " }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.last_name.id_for_label }}">Last Name</label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}<div class="form-error">{{ form.last_name.errors|join:", " }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.email.id_for_label }}">Email</label>
+        {{ form.email }}
+        {% if form.email.errors %}<div class="form-error">{{ form.email.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+
+    <!-- Role & Permissions -->
+    <div class="card mb-2">
+      <div class="card-header"><span class="card-title"><i class="fa-solid fa-shield-halved"></i> Role & Permissions</span></div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.role.id_for_label }}">System Role <span class="req">*</span></label>
+        {{ form.role }}
+        {% if form.role.errors %}<div class="form-error">{{ form.role.errors|join:", " }}</div>{% endif %}
+        <div class="form-hint">
+          <strong>System Administrator</strong> — full admin access. &nbsp;
+          <strong>Administrator</strong> — full access. &nbsp;
+          <strong>Armorer</strong> — transactions and inventory only.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+          {{ form.is_staff }}
+          <span>{{ form.is_staff.label }}</span>
+        </label>
+        {% if form.is_staff.errors %}<div class="form-error">{{ form.is_staff.errors|join:", " }}</div>{% endif %}
+        <div class="form-hint">Grants access to the Django admin panel (/admin/).</div>
+      </div>
+      {% if action == 'Edit' %}
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+          {{ form.is_active }}
+          <span>{{ form.is_active.label }}</span>
+        </label>
+        {% if form.is_active.errors %}<div class="form-error">{{ form.is_active.errors|join:", " }}</div>{% endif %}
+        <div class="form-hint">Uncheck to deactivate — user will be unable to log in.</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Linked Personnel -->
+    <div class="card mb-2">
+      <div class="card-header"><span class="card-title"><i class="fa-solid fa-id-card"></i> Linked Personnel</span></div>
+
+      <div class="form-group">
+        <label class="form-label" for="{{ form.linked_personnel.id_for_label }}">Personnel Record</label>
+        {{ form.linked_personnel }}
+        {% if form.linked_personnel.errors %}<div class="form-error">{{ form.linked_personnel.errors|join:", " }}</div>{% endif %}
+        <div class="form-hint">{{ form.linked_personnel.help_text }}</div>
+      </div>
+
+      <!-- Scan / search by Personnel ID -->
+      <div class="form-group" style="margin-top:.25rem">
+        <label class="form-label" for="personnelIdScan" style="display:flex;align-items:center;gap:.4rem">
+          <i class="fa-solid fa-qrcode" style="color:var(--accent)"></i>
+          Scan or type Personnel ID
+        </label>
+        <div style="position:relative">
+          <input type="text" id="personnelIdScan" name="personnel_id_scan" autocomplete="off"
+            placeholder="Scan QR / type ID e.g. PEP-994360-…"
+            style="width:100%;padding-right:2.5rem">
+          <span id="personnelIdScanStatus"
+            style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);font-size:1rem;display:none"></span>
+        </div>
+        <div class="form-hint">Scan the QR code on an ID card, or type the Personnel ID — the record will be selected automatically.</div>
+      </div>
+
+      {% if action == 'Edit' and edit_user.personnel %}
+      <div class="form-group" style="margin-top:0">
+        <div style="display:flex;align-items:center;gap:.75rem;padding:.5rem .75rem;background:var(--surface2);border-radius:var(--radius);font-size:.85rem">
+          <i class="fa-solid fa-link" style="color:var(--blue)"></i>
+          <span>
+            Currently linked to&nbsp;<strong>{{ edit_user.personnel.get_rank_display }} {{ edit_user.personnel.first_name }} {{ edit_user.personnel.last_name }}</strong>
+            &mdash; {{ edit_user.personnel.Personnel_ID }}
+          </span>
+          <a href="{% url 'personnel-detail' edit_user.personnel.Personnel_ID %}" target="_blank"
+             style="margin-left:auto;font-size:.8rem;color:var(--accent)">
+            View <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:.7rem"></i>
+          </a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Password -->
+    <div class="card mb-2">
+      <div class="card-header">
+        <span class="card-title"><i class="fa-solid fa-key"></i>
+          {% if action == 'Add' %}Password{% else %}Change Password{% endif %}
+        </span>
+      </div>
+
+      {% if action == 'Add' %}
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.password1.id_for_label }}">Password <span class="req">*</span></label>
+          {{ form.password1 }}
+          {% if form.password1.errors %}<div class="form-error">{{ form.password1.errors|join:", " }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.password2.id_for_label }}">Confirm Password <span class="req">*</span></label>
+          {{ form.password2 }}
+          {% if form.password2.errors %}<div class="form-error">{{ form.password2.errors|join:", " }}</div>{% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="form-row cols-2">
+        <div class="form-group">
+          <label class="form-label" for="{{ form.new_password1.id_for_label }}">New Password</label>
+          {{ form.new_password1 }}
+          {% if form.new_password1.errors %}<div class="form-error">{{ form.new_password1.errors|join:", " }}</div>{% endif %}
+          {% if form.new_password1.help_text %}<div class="form-hint">{{ form.new_password1.help_text }}</div>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="{{ form.new_password2.id_for_label }}">Confirm New Password</label>
+          {{ form.new_password2 }}
+          {% if form.new_password2.errors %}<div class="form-error">{{ form.new_password2.errors|join:", " }}</div>{% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="flex gap-2">
+      <button type="submit" class="btn btn-primary">
+        <i class="fa-solid fa-floppy-disk"></i> {% if action == 'Add' %}Create User{% else %}Save Changes{% endif %}
+      </button>
+      <a href="{% url 'user-list' %}" class="btn btn-secondary">Cancel</a>
+    </div>
+
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+{% if personnel_json %}
+<script type="application/json" id="personnel-map-data">{{ personnel_json|safe }}</script>
+<script type="application/json" id="personnel-pid-map-data">{% if personnel_pid_json %}{{ personnel_pid_json|safe }}{% else %}{}{% endif %}</script>
+{% endif %}
+<script src="{% static 'js/user_form.js' %}"></script>
+{% endblock %}

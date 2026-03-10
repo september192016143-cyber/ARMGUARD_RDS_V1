@@ -1,0 +1,213 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print ID Cards – ArmGuard</title>
+    <style>
+        /* ------------------------------------------------------------------ */
+        /*  Screen preview                                                      */
+        /* ------------------------------------------------------------------ */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #e5e7eb;
+            font-family: Arial, sans-serif;
+        }
+
+        .no-print {
+            background: #1e40af;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .no-print h2 { font-size: 1rem; font-weight: 700; flex: 1; }
+
+        .no-print .info {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .no-print button {
+            background: #fff;
+            color: #1e40af;
+            border: none;
+            padding: 0.4rem 1.2rem;
+            border-radius: 0.4rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .no-print a.back-link {
+            color: rgba(255,255,255,0.75);
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+
+        .print-page {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            padding: 24px;
+            justify-content: flex-start;
+        }
+
+        /* CR80 card at 96 DPI screen preview: 85.6mm × 54mm  → 322×204 px
+           Front card: ~53.98mm wide, 85.6mm tall (portrait)
+           We'll show front+back side by side in a small block */
+
+        .card-set {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            background: #fff;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+
+        .card-set .label {
+            font-size: 0.65rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+        }
+
+        .card-set .sides {
+            display: flex;
+            gap: 8px;
+        }
+
+        .card-set img {
+            /* Portrait CR80 preview */
+            height: 200px;
+            width: auto;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            display: block;
+        }
+
+        .card-set .no-back {
+            height: 200px;
+            width: calc(200px * 638 / 1013);
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 0.7rem;
+            border-radius: 6px;
+            border: 1px dashed #d1d5db;
+        }
+
+        .no-cards {
+            padding: 4rem;
+            text-align: center;
+            color: #6b7280;
+            width: 100%;
+        }
+
+        .count-info {
+            padding: 0.5rem 1.5rem;
+            background: #f0fdf4;
+            border-bottom: 1px solid #d1fae5;
+            font-size: 0.8rem;
+            color: #166534;
+        }
+
+        /* ------------------------------------------------------------------ */
+        /*  Print styles                                                        */
+        /* ------------------------------------------------------------------ */
+        @media print {
+            body { background: white; }
+
+            .no-print { display: none !important; }
+            .count-info { display: none !important; }
+
+            .print-page {
+                padding: 0;
+                gap: 6mm;
+                display: flex;
+                flex-wrap: wrap;
+            }
+
+            /* Each card-set: front + back side by side, credit-card size */
+            .card-set {
+                box-shadow: none;
+                border-radius: 0;
+                padding: 0;
+                background: transparent;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .card-set .label { display: none; }
+
+            .card-set .sides { gap: 3mm; }
+
+            .card-set img {
+                height: 85.6mm;
+                width: auto;
+                border-radius: 3.48mm; /* standard CR80 corner */
+                border: none;
+            }
+
+            .card-set .no-back { display: none; }
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <h2>🖨️ ID Card Print – {{ cards|length }} card{{ cards|length|pluralize }}</h2>
+    <span class="info">Recommended: A4 Landscape · Actual Size · No scaling</span>
+    <button data-action="print">🖨️ Print Now</button>
+    <a href="{% url 'print_handler:print_id_cards' %}" class="back-link">← Back to Manager</a>
+</div>
+
+{% if cards %}
+<div class="count-info">
+    Printing {{ cards|length }} personnel ID card{{ cards|length|pluralize }} — front and back sides
+</div>
+
+<div class="print-page">
+    {% for card in cards %}
+    <div class="card-set">
+        <div class="label">{{ card.personnel.rank }} {{ card.personnel.get_full_name }}</div>
+        <div class="sides">
+            <img src="{{ card.front_url }}" alt="Front – {{ card.personnel.get_full_name }}">
+            {% if card.back_url %}
+            <img src="{{ card.back_url }}" alt="Back – {{ card.personnel.get_full_name }}">
+            {% else %}
+            <div class="no-back">Back N/A</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<div class="print-page">
+    <div class="no-cards">
+        <p style="font-size:1rem; font-weight:600;">No ID card images found for the selected personnel.</p>
+        <p style="margin-top:0.5rem;">Use the <strong>Regenerate</strong> button in the ID Card Manager to generate cards first.</p>
+    </div>
+</div>
+{% endif %}
+
+<script src="{% static 'js/print_page.js' %}"></script>
+</body>
+</html>

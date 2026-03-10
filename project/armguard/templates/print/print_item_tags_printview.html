@@ -1,0 +1,156 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print Item Tags – ArmGuard</title>
+    <style>
+        /* ── Screen preview ─────────────────────────────────────────────── */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #e5e7eb;
+            font-family: Arial, sans-serif;
+        }
+
+        .no-print {
+            background: #1e40af;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .no-print h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            flex: 1;
+        }
+
+        .no-print .info {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .no-print button {
+            background: #fff;
+            color: #1e40af;
+            border: none;
+            padding: 0.4rem 1.2rem;
+            border-radius: 0.4rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .no-print a.back-link {
+            color: rgba(255,255,255,0.75);
+            text-decoration: none;
+            font-size: 0.8rem;
+        }
+
+        .no-print a.back-link:hover { color: #fff; }
+
+        /* Paper sheet preview */
+        .sheet {
+            background: #fff;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 1.5rem auto;
+            padding: 15mm;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+        }
+
+        /* Tag grid on paper */
+        .tag-print-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6mm;
+        }
+
+        /* Each tag image — 2 columns */
+        .tag-print-item {
+            width: calc(50% - 3mm);
+            height: auto;
+            overflow: hidden;
+            page-break-inside: avoid;
+            border: 1px solid #e5e7eb;
+            border-radius: 3mm;
+        }
+
+        .tag-print-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+
+        .no-tag-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #d1d5db;
+            font-size: 0.8rem;
+            background: #f9fafb;
+        }
+
+        /* ── Print media ─────────────────────────────────────────────────── */
+        @media print {
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+            body { background: white; }
+
+            .no-print { display: none !important; }
+
+            .sheet {
+                margin: 0;
+                padding: 10mm;
+                box-shadow: none;
+                width: 100%;
+                min-height: unset;
+            }
+
+            @page {
+                size: A4 portrait;
+                margin: 10mm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Print toolbar (hidden on print) -->
+<div class="no-print">
+    <h2><i class="fas fa-tags"></i> Item Tags Print View — {{ tags|length }} tag{{ tags|length|pluralize }}</h2>
+    <span class="info">A4 · {{ tags|length }} tag{{ tags|length|pluralize }}{% if stack and stack > 1 %} ({{ stack }}× per item){% endif %} · 2 columns · 87 × 31 mm each</span>
+    <button data-action="print">🖨️ Print</button>
+    <a href="{% url 'print_handler:print_item_tags' %}" class="back-link">← Back to Manager</a>
+</div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/fontawesome/all.min.css' %}">
+
+<!-- A4 sheet preview -->
+<div class="sheet">
+    <div class="tag-print-grid">
+        {% for t in tags %}
+        <div class="tag-print-item">
+            <img src="{{ t.tag_url }}" alt="{{ t.item.get_item_type_display }} {{ t.item.serial }}">
+        </div>
+        {% empty %}
+        <p style="color:#9ca3af; font-size:0.9rem;">
+            No tags available to print. Generate them first from the Item Tag Manager.
+        </p>
+        {% endfor %}
+    </div>
+</div>
+
+<script src="{% static 'js/print_page.js' %}"></script>
+</body>
+</html>
