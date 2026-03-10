@@ -103,6 +103,7 @@
       if (tagSerialIn) tagSerialIn.addEventListener('input',  scheduleTagPreview);
       // Fire on load (populates for edit mode or after redirect from add)
       scheduleTagPreview();
+      window.__tagPreviewBound = true;
     }
   }
 
