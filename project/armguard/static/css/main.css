@@ -30,7 +30,7 @@
   --card:     #6E7B8B;       /* Steel Gray — panels / cards            */
   --border:   rgba(255,255,255,.18);
   --muted:    rgba(255,255,255,.72);
-  --text:     #ffffff;       /* white text                             */
+  --text:     #000000;       /* black page text                        */
   --light:    #ffffff;
   --primary:  #4FA3FF;       /* Sky Blue — buttons / links             */
   --primary-d:#2a7fd9;
