@@ -185,12 +185,20 @@ document.querySelectorAll('input[type=text],input[type=email],input[type=passwor
   const fnEl = document.getElementById('id_first_name');
   const lnEl = document.getElementById('id_last_name');
   if (!sel) return;
+  function applyPersonnel(val) {
+    const p = MAP[val];
+    if (!p) return;
+    if (fnEl && !fnEl.value) fnEl.value = p.first;
+    if (lnEl && !lnEl.value) lnEl.value = p.last;
+  }
   sel.addEventListener('change', function(){
     const p = MAP[this.value];
     if (!p) return;
     if (fnEl) fnEl.value = p.first;
     if (lnEl) lnEl.value = p.last;
   });
+  // Auto-fill on page load if a personnel record is already selected
+  applyPersonnel(sel.value);
 })();
 {% endif %}
 </script>

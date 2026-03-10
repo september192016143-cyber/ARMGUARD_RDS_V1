@@ -25,10 +25,10 @@ User = get_user_model()
 
 
 def _personnel_map_json(qs):
-    """Return a JSON string mapping Personnel_ID -> {first, last} for auto-fill."""
+    """Return a JSON string mapping pk -> {first, last} for auto-fill."""
     return json.dumps({
-        str(p['Personnel_ID']): {'first': p['first_name'], 'last': p['last_name']}
-        for p in qs.values('Personnel_ID', 'first_name', 'last_name')
+        str(p['pk']): {'first': p['first_name'], 'last': p['last_name']}
+        for p in qs.values('pk', 'first_name', 'last_name')
     })
 
 
