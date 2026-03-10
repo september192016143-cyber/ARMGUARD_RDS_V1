@@ -10,6 +10,8 @@
 #   --production     Enable full production hardening
 #   --domain DOMAIN  Set the server domain/hostname
 #   --lan-ip IP      Set the LAN IP address for Nginx binding
+#   --static-ip IP   Configure a static LAN IP via netplan before deploying
+#   --gateway IP     Gateway IP used with --static-ip (default: first 3 octets + .1)
 #   --help           Show this help message
 #
 # What this script does:
@@ -27,6 +29,12 @@
 #  12. Sets up log rotation
 #  13. Installs database backup cron job (daily at 02:00)
 #  14. Installs SSL certificate renewal cron job (monthly)
+#
+# Optional pre-step:
+#   0. Configure static LAN IP via netplan (pass --static-ip)
+#
+# Optional pre-deployment step:
+#   0. Configure static LAN IP via netplan (--static-ip / --gateway flags)
 # =============================================================================
 
 set -Eeo pipefail
@@ -72,6 +80,8 @@ QUICK=false
 PRODUCTION=false
 DOMAIN=""
 LAN_IP=""
+STATIC_IP_SET=""
+GATEWAY_SET=""
 
 usage() {
     grep '^#' "$0" | grep -E '^\# ' | sed 's/^# //'
@@ -84,6 +94,8 @@ while [[ $# -gt 0 ]]; do
         --production)  PRODUCTION=true; shift ;;
         --domain)      DOMAIN="$2"; shift 2 ;;
         --lan-ip)      LAN_IP="$2"; shift 2 ;;
+        --static-ip)   STATIC_IP_SET="$2"; shift 2 ;;
+        --gateway)     GATEWAY_SET="$2"; shift 2 ;;
         --help|-h)     usage ;;
         *) die "Unknown argument: $1" ;;
     esac
@@ -142,6 +154,28 @@ else
     # --quick mode: derive defaults
     [[ -z "$DOMAIN" ]] && DOMAIN=$(hostname -I | awk '{print $1}') && info "Domain defaulting to $DOMAIN"
     [[ -z "$LAN_IP" ]] && LAN_IP="$DOMAIN"
+fi
+
+# ---------------------------------------------------------------------------
+# 0. Static IP configuration (optional — triggered by --static-ip)
+# ---------------------------------------------------------------------------
+if [[ -n "${STATIC_IP_SET:-}" ]]; then
+    step "Configuring static LAN IP: $STATIC_IP_SET"
+    STATIC_IP_SCRIPT="$SCRIPT_DIR/set-static-ip.sh"
+    if [[ ! -f "$STATIC_IP_SCRIPT" ]]; then
+        die "set-static-ip.sh not found at $STATIC_IP_SCRIPT"
+    fi
+    STATIC_IP_ARGS=("--ip" "$STATIC_IP_SET")
+    if [[ -n "${GATEWAY_SET:-}" ]]; then
+        STATIC_IP_ARGS+=("--gateway" "$GATEWAY_SET")
+    else
+        # Derive gateway: replace last octet with 1 (e.g. 192.168.0.11 → 192.168.0.1)
+        AUTO_GW=$(echo "$STATIC_IP_SET" | awk -F. '{printf "%s.%s.%s.1", $1,$2,$3}')
+        info "Gateway not specified — defaulting to $AUTO_GW"
+        STATIC_IP_ARGS+=("--gateway" "$AUTO_GW")
+    fi
+    bash "$STATIC_IP_SCRIPT" "${STATIC_IP_ARGS[@]}"
+    success "Static IP configured. Continuing deployment…"
 fi
 
 # ---------------------------------------------------------------------------

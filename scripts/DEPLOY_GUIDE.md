@@ -15,6 +15,34 @@
 
 ---
 
+## STEP 0 — Set a static IP on the server (LAN deployments)
+
+> Skip this step if the server already has a static IP or is assigned a fixed lease by your router.
+
+After cloning the repo (Step 2), run the static IP script:
+
+```bash
+sudo bash /var/www/ARMGUARD_RDS_V1/scripts/set-static-ip.sh
+```
+
+You will be prompted for the IP, gateway, and DNS — or pass them directly:
+
+```bash
+sudo bash /var/www/ARMGUARD_RDS_V1/scripts/set-static-ip.sh \
+  --ip 192.168.0.11 \
+  --gateway 192.168.0.1
+```
+
+To preview without applying:
+
+```bash
+sudo bash /var/www/ARMGUARD_RDS_V1/scripts/set-static-ip.sh --dry-run
+```
+
+> The script backs up existing netplan files before writing, then runs `netplan apply`. Verify with `ip a` after it completes.
+
+---
+
 ## STEP 1 — SSH into the Ubuntu server
 
 ```bash
