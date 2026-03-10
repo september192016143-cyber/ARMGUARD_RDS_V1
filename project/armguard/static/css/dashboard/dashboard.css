@@ -6,30 +6,30 @@
 	margin-bottom: 2rem;
 }
 .stat-card {
-	background: #ffffff;
+	background: var(--card);
 	border-radius: var(--radius);
 	box-shadow: 0 2px 8px rgba(0,0,0,0.07);
 	padding: 1.25rem 1.1rem;
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
-	border: 1px solid #d1d5db;
+	border: 1px solid var(--border);
 }
 .stat-label {
 	font-size: .92rem;
 	font-weight: 600;
-	color: #374151;
+	color: var(--muted);
 	margin-bottom: .35rem;
 }
 .stat-value {
 	font-size: 2.1rem;
 	font-weight: 700;
-	color: #111827;
+	color: var(--light);
 	margin-bottom: .25rem;
 }
 .stat-sub {
 	font-size: .85rem;
-	color: #374151;
+	color: var(--muted);
 }
 .accent-blue { border-left: 4px solid var(--blue); }
 .accent-amber { border-left: 4px solid var(--primary); }
