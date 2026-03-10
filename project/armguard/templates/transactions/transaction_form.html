@@ -9,7 +9,7 @@
 {% block topbar_actions %}
 <div style="display:flex;align-items:center;gap:.75rem;">
   <div style="display:flex;flex-direction:column;gap:.25rem">
-    <label style="font-size:.68rem;font-weight:700;color:#cbd5e1;letter-spacing:.07em;text-transform:uppercase">Type <span style="color:#ef4444">*</span></label>
+    <label for="tb_transaction_type" style="font-size:.68rem;font-weight:700;color:#cbd5e1;letter-spacing:.07em;text-transform:uppercase">Type <span style="color:#ef4444">*</span></label>
     <select id="tb_transaction_type" name="tb_transaction_type" style="background:#1e293b;border:1.5px solid #475569;color:#f1f5f9;border-radius:.4rem;font-size:.82rem;padding:.35rem .7rem;cursor:pointer;min-width:145px;outline:none;transition:border-color .15s">
       <option value="Withdrawal"{% if form.transaction_type.value != 'Return' %} selected{% endif %}>Withdrawal</option>
       <option value="Return"{% if form.transaction_type.value == 'Return' %} selected{% endif %}>Return</option>
@@ -17,7 +17,7 @@
     {% if form.transaction_type.errors %}<span style="font-size:.62rem;color:#ef4444">{{ form.transaction_type.errors|join:", " }}</span>{% endif %}
   </div>
   <div id="issuance-wrapper" style="display:flex;flex-direction:column;gap:.25rem">
-    <label style="font-size:.68rem;font-weight:700;color:#cbd5e1;letter-spacing:.07em;text-transform:uppercase">Issuance <span style="color:#ef4444">*</span></label>
+    <label for="tb_issuance_type" style="font-size:.68rem;font-weight:700;color:#cbd5e1;letter-spacing:.07em;text-transform:uppercase">Issuance <span style="color:#ef4444">*</span></label>
     <select id="tb_issuance_type" name="tb_issuance_type" style="background:#1e293b;border:1.5px solid #475569;color:#f1f5f9;border-radius:.4rem;font-size:.82rem;padding:.35rem .7rem;cursor:pointer;min-width:165px;outline:none;transition:border-color .15s">
       <option value="TR (Temporary Receipt)"{% if form.issuance_type.value != 'PAR (Property Acknowledgement Receipt)' %} selected{% endif %}>TR (Temporary Receipt)</option>
       <option value="PAR (Property Acknowledgement Receipt)"{% if form.issuance_type.value == 'PAR (Property Acknowledgement Receipt)' %} selected{% endif %}>PAR (Property Acknowledgement Receipt)</option>
@@ -25,7 +25,7 @@
     {% if form.issuance_type.errors %}<span style="font-size:.62rem;color:#ef4444">{{ form.issuance_type.errors|join:", " }}</span>{% endif %}
   </div>
   <div id="purpose-wrapper" style="display:flex;flex-direction:column;gap:.25rem">
-    <label style="font-size:.68rem;font-weight:700;color:#cbd5e1;letter-spacing:.07em;text-transform:uppercase">Purpose <span style="color:#ef4444">*</span></label>
+    <label for="tb_purpose" style="font-size:.68rem;font-weight:700;color:#cbd5e1;letter-spacing:.07em;text-transform:uppercase">Purpose <span style="color:#ef4444">*</span></label>
     <div style="display:flex;align-items:center;gap:.5rem;">
       <select id="tb_purpose" name="purpose" style="background:#1e293b;border:1.5px solid #475569;color:#f1f5f9;border-radius:.4rem;font-size:.82rem;padding:.35rem .7rem;min-width:135px;outline:none;transition:border-color .15s">
         <option value="Duty Sentinel"{% if form.purpose.value == 'Duty Sentinel' %} selected{% endif %}>Duty Sentinel</option>
@@ -100,7 +100,7 @@
     <!-- Personnel -->
     <div style="padding-bottom:.75rem;margin-bottom:.75rem;border-bottom:1px solid #1e293b;">
       <div class="form-group" style="max-width:400px;margin-bottom:0">
-        <label class="form-label">Personnel <span class="req">*</span></label>
+        <label for="id_personnel" class="form-label">Personnel <span class="req">*</span></label>
         {{ form.personnel }}
         {% if form.personnel.errors %}<div class="form-error">{{ form.personnel.errors|join:", " }}</div>{% endif %}
         <div id="personnel-status-banner" style="display:none;margin-top:.45rem;"></div>
@@ -116,18 +116,18 @@
         <!-- Left: Pistol + Pistol Magazine Qty + Pistol Ammo -->
         <div style="display:flex;flex-direction:column;gap:.5rem;">
           <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">Pistol</label>
+            <label for="id_pistol" class="form-label">Pistol</label>
             {{ form.pistol }}
             {% if form.pistol.errors %}<div class="form-error">{{ form.pistol.errors|join:", " }}</div>{% endif %}
             <div id="pistol-status-banner" style="display:none;margin-top:.35rem;"></div>
           </div>
           <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">Pistol Magazine Qty</label>
+            <label for="id_pistol_magazine_quantity" class="form-label">Pistol Magazine Qty</label>
             {{ form.pistol_magazine_quantity }}
             {% if form.pistol_magazine_quantity.errors %}<div class="form-error">{{ form.pistol_magazine_quantity.errors|join:", " }}</div>{% endif %}
           </div>
           <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">Pistol Ammunition Rounds</label>
+            <label for="id_pistol_ammunition_quantity" class="form-label">Pistol Ammunition Rounds</label>
             <div style="display:flex;align-items:center;gap:.6rem;">
               <div style="width:50%;">
                 {{ form.pistol_ammunition_quantity }}
@@ -140,25 +140,25 @@
         <!-- Right: Rifle + Rifle Magazine + Qty + Rifle Ammo -->
         <div style="display:flex;flex-direction:column;gap:.5rem;">
           <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">Rifle</label>
+            <label for="id_rifle" class="form-label">Rifle</label>
             {{ form.rifle }}
             {% if form.rifle.errors %}<div class="form-error">{{ form.rifle.errors|join:", " }}</div>{% endif %}
             <div id="rifle-status-banner" style="display:none;margin-top:.35rem;"></div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;">
             <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label">Rifle Magazine</label>
+              <label for="id_rifle_magazine" class="form-label">Rifle Magazine</label>
               {{ form.rifle_magazine }}
               {% if form.rifle_magazine.errors %}<div class="form-error">{{ form.rifle_magazine.errors|join:", " }}</div>{% endif %}
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label class="form-label">Qty</label>
+              <label for="id_rifle_magazine_quantity" class="form-label">Qty</label>
               {{ form.rifle_magazine_quantity }}
               {% if form.rifle_magazine_quantity.errors %}<div class="form-error">{{ form.rifle_magazine_quantity.errors|join:", " }}</div>{% endif %}
             </div>
           </div>
           <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label">Rifle Ammunition Rounds</label>
+            <label for="id_rifle_ammunition_quantity" class="form-label">Rifle Ammunition Rounds</label>
             <div style="display:flex;align-items:center;gap:.6rem;">
               <div style="width:50%;">
                 {{ form.rifle_ammunition_quantity }}
@@ -196,7 +196,7 @@
     <!-- PAR Document (shown when PAR issuance) -->
     <div id="par-doc-section" style="display:none;padding-bottom:.75rem;margin-bottom:.75rem;border-bottom:1px solid #1e293b;">
       <div class="form-group" style="margin-bottom:0">
-        <label class="form-label">Upload PAR PDF <span class="req">*</span></label>
+        <label for="id_par_document" class="form-label">Upload PAR PDF <span class="req">*</span></label>
         {{ form.par_document }}
         <div class="form-hint">Required when Issuance Type is PAR. PDF files only.</div>
         {% if form.par_document.errors %}<div class="form-error">{{ form.par_document.errors|join:", " }}</div>{% endif %}
