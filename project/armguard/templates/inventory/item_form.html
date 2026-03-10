@@ -92,7 +92,7 @@
 </div>
 {% endif %}
 
-<div style="display:flex;gap:1.25rem;align-items:flex-start;max-width:{% if object and item_type in 'pistol rifle' %}1060px{% else %}720px{% endif %}">
+<div style="display:flex;gap:1.25rem;align-items:flex-start;max-width:{% if item_type == 'pistol' or item_type == 'rifle' %}1060px{% else %}720px{% endif %}">
 
 <div class="card" style="flex:1;min-width:0">
   <form method="post"
@@ -307,26 +307,27 @@
   </form>
 </div>
 
-{% if object and item_type == 'pistol' or object and item_type == 'rifle' %}
+{% if item_type == 'pistol' or item_type == 'rifle' %}
 <div class="card" style="width:260px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1rem;padding:1.25rem">
   <div style="font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted,#6b7897);align-self:flex-start">Item Tag</div>
-  {% if object.item_tag %}
-    <img src="{{ object.item_tag.url }}"
-         alt="Item Tag {{ object.item_id }}"
-         style="width:100%;border-radius:.5rem;border:1px solid var(--border,#2d3550)">
-  {% else %}
-    <div style="width:100%;aspect-ratio:1;border:2px dashed var(--border,#2d3550);border-radius:.5rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;color:var(--muted,#6b7897);font-size:.8rem;text-align:center;padding:.75rem">
-      <i class="fa-solid fa-tag" style="font-size:1.5rem;opacity:.4"></i>
-      Generated after saving
-    </div>
-  {% endif %}
-  {% if object.qr_code_image %}
+  <!-- Live preview image — populated by JS; hidden until first preview loads -->
+  <img id="item-tag-preview-img"
+       alt="Item Tag Preview"
+       style="width:100%;border-radius:.5rem;border:1px solid var(--border,#2d3550);display:none">
+  <!-- Placeholder shown while no preview is loaded yet -->
+  <div id="item-tag-preview-placeholder" style="width:100%;aspect-ratio:2;border:2px dashed var(--border,#2d3550);border-radius:.5rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;color:var(--muted,#6b7897);font-size:.8rem;text-align:center;padding:.75rem">
+    <i class="fa-solid fa-tag" style="font-size:1.5rem;opacity:.4"></i>
+    <span id="item-tag-preview-msg">{% if object %}Loading…{% else %}Fill model &amp; serial to preview{% endif %}</span>
+  </div>
+  {% if object and object.qr_code_image %}
   <div style="font-size:.7rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted,#6b7897);align-self:flex-start;margin-top:.25rem">QR Code</div>
   <img src="{{ object.qr_code_image.url }}"
        alt="QR Code {{ object.item_id }}"
        style="width:140px;border-radius:.375rem;border:1px solid var(--border,#2d3550)">
   {% endif %}
+  {% if object %}
   <div style="font-size:.7rem;color:var(--muted,#6b7897);text-align:center;word-break:break-all;line-height:1.4">{{ object.item_id }}</div>
+  {% endif %}
 </div>
 {% endif %}
 
@@ -391,7 +392,7 @@
 
 {% block extra_js %}
 {% if item_type == 'pistol' or item_type == 'rifle' %}
-<script type="application/json" id="item-form-config">{"itemType": "{{ item_type }}", "modelFieldId": "{{ form.model.id_for_label }}", "factoryQrFieldId": "{% if item_type == 'rifle' %}{{ form.factory_qr.id_for_label }}{% endif %}", "serialFieldId": "{{ form.serial_number.id_for_label }}", "descFieldId": "{{ form.description.id_for_label }}", "serialImageFieldId": "{{ form.serial_image.id_for_label }}"}</script>
+<script type="application/json" id="item-form-config">{"itemType": "{{ item_type }}", "modelFieldId": "{{ form.model.id_for_label }}", "factoryQrFieldId": "{% if item_type == 'rifle' %}{{ form.factory_qr.id_for_label }}{% endif %}", "serialFieldId": "{{ form.serial_number.id_for_label }}", "descFieldId": "{{ form.description.id_for_label }}", "serialImageFieldId": "{{ form.serial_image.id_for_label }}", "tagPreviewUrl": "{% if item_type == 'pistol' or item_type == 'rifle' %}{% url 'item-tag-preview' %}{% endif %}"}</script>
 <script src="{% static 'js/item_form.js' %}"></script>
 {% endif %}
 {% endblock %}

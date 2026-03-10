@@ -1,9 +1,9 @@
-from django.views.generic import ListView
+from django.views.generic import ListView, View
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Sum, OuterRef, Subquery, IntegerField, Value, Case, When, Count
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
@@ -32,12 +32,17 @@ class _InventoryPermMixin(LoginRequiredMixin, UserPassesTestMixin):
 
 class _InventorySaveMixin(_InventoryPermMixin):
     """Adds user-aware save() for Create/Update views."""
+    edit_url_name = None  # Set on CreateView subclasses to redirect to edit after create
+
     def form_valid(self, form):
         obj = form.save(commit=False)
+        is_new = not self.object
         action = 'updated' if self.object else 'added'
         obj.save(user=self.request.user)
         self.object = obj
         messages.success(self.request, f'{self.item_label} {action} successfully.')
+        if is_new and self.edit_url_name:
+            return redirect(reverse(self.edit_url_name, args=[obj.pk]))
         return redirect(self.get_success_url())
 
 
@@ -79,6 +84,7 @@ class PistolCreateView(_InventorySaveMixin, CreateView):
     form_class = PistolForm
     template_name = 'inventory/item_form.html'
     success_url = reverse_lazy('pistol-list')
+    edit_url_name = 'pistol-edit'
     item_label = 'Pistol'
     item_type = 'pistol'
 
@@ -142,6 +148,7 @@ class RifleCreateView(_InventorySaveMixin, CreateView):
     form_class = RifleForm
     template_name = 'inventory/item_form.html'
     success_url = reverse_lazy('rifle-list')
+    edit_url_name = 'rifle-edit'
     item_label = 'Rifle'
     item_type = 'rifle'
 
@@ -381,4 +388,26 @@ class AccessoryDeleteView(_InventoryPermMixin, DeleteView):
         messages.success(self.request, 'Accessory pool deleted.')
         return super().form_valid(form)
 
+
+class ItemTagPreviewView(LoginRequiredMixin, View):
+    """POST {item_type, model, serial_number} → returns a live preview PNG of the item tag."""
+    def post(self, request, *args, **kwargs):
+        import io
+        from types import SimpleNamespace
+        from django.http import HttpResponse
+        from utils.item_tag_generator import _build_tag
+
+        item = SimpleNamespace()
+        item.item_type = request.POST.get('item_type', 'pistol')
+        item.model = request.POST.get('model', '')
+        item.serial = request.POST.get('serial_number', '') or '\u2014'
+        item.item_number = None
+        item.qr_code_image = None
+        item.get_item_type_display = lambda: {'pistol': 'Pistol', 'rifle': 'Rifle'}.get(item.item_type, 'Item')
+
+        img = _build_tag(item)
+        buf = io.BytesIO()
+        img.save(buf, 'PNG')
+        buf.seek(0)
+        return HttpResponse(buf.read(), content_type='image/png')
 

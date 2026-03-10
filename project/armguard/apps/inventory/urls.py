@@ -32,4 +32,7 @@ urlpatterns = [
     path('accessories/add/', views.AccessoryCreateView.as_view(), name='accessory-add'),
     path('accessories/<int:pk>/edit/', views.AccessoryUpdateView.as_view(), name='accessory-edit'),
     path('accessories/<int:pk>/delete/', views.AccessoryDeleteView.as_view(), name='accessory-delete'),
+
+    # ── Item Tag Preview (AJAX) ───────────────────────────────────────────────
+    path('item-tag-preview/', views.ItemTagPreviewView.as_view(), name='item-tag-preview'),
 ]

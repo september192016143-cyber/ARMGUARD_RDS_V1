@@ -47,6 +47,65 @@
     }
   }
 
+  /* ── Pistol + Rifle: Live item tag preview ───────────────────── */
+  if ((itemType === 'pistol' || itemType === 'rifle') && cfg.tagPreviewUrl) {
+    var tagPreviewUrl   = cfg.tagPreviewUrl;
+    var tagPreviewImg   = document.getElementById('item-tag-preview-img');
+    var tagPreviewHolder = document.getElementById('item-tag-preview-placeholder');
+    var tagPreviewMsg   = document.getElementById('item-tag-preview-msg');
+    var tagModelSel     = document.getElementById(cfg.modelFieldId);
+    var tagSerialIn     = document.getElementById(cfg.serialFieldId);
+
+    if (tagPreviewImg) {
+      var _tagTimer  = null;
+      var _tagAbort  = null;
+
+      function _getCsrf() {
+        var m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? m[1] : '';
+      }
+
+      function scheduleTagPreview() {
+        clearTimeout(_tagTimer);
+        _tagTimer = setTimeout(sendTagPreview, 450);
+      }
+
+      function sendTagPreview() {
+        var modelVal  = tagModelSel  ? tagModelSel.value.trim()  : '';
+        var serialVal = tagSerialIn  ? tagSerialIn.value.trim() : '';
+        if (!modelVal && !serialVal) return;
+
+        if (_tagAbort) _tagAbort.abort();
+        _tagAbort = new AbortController();
+
+        var fd = new FormData();
+        fd.append('item_type',           itemType);
+        fd.append('model',               modelVal);
+        fd.append('serial_number',       serialVal);
+        fd.append('csrfmiddlewaretoken', _getCsrf());
+
+        fetch(tagPreviewUrl, { method: 'POST', body: fd, signal: _tagAbort.signal })
+          .then(function (r) { if (!r.ok) throw new Error('preview ' + r.status); return r.blob(); })
+          .then(function (blob) {
+            var url = URL.createObjectURL(blob);
+            if (tagPreviewImg._blobUrl) URL.revokeObjectURL(tagPreviewImg._blobUrl);
+            tagPreviewImg._blobUrl       = url;
+            tagPreviewImg.src            = url;
+            tagPreviewImg.style.display  = '';
+            if (tagPreviewHolder) tagPreviewHolder.style.display = 'none';
+          })
+          .catch(function (err) {
+            if (err.name !== 'AbortError') console.warn('Tag preview error:', err);
+          });
+      }
+
+      if (tagModelSel) tagModelSel.addEventListener('change', scheduleTagPreview);
+      if (tagSerialIn) tagSerialIn.addEventListener('input',  scheduleTagPreview);
+      // Fire on load (populates for edit mode or after redirect from add)
+      scheduleTagPreview();
+    }
+  }
+
   /* ── Pistol + Rifle: Serial image crop modal ─────────────────── */
   if (itemType === 'pistol' || itemType === 'rifle') {
     var fileInput   = document.getElementById(cfg.serialImageFieldId);
