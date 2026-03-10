@@ -254,8 +254,16 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
+    var installedBtn = document.getElementById('ssl-modal-installed');
     closeBtn.addEventListener('click', closeModal);
     cancelBtn.addEventListener('click', closeModal);
+    if (installedBtn) {
+      installedBtn.addEventListener('click', function () {
+        if (typeof window.ackSslCert === 'function') window.ackSslCert();
+        else window.removeNotifById('ssl-cert');
+        setTimeout(closeModal, 300);
+      });
+    }
     // Close when clicking the dark backdrop (outside the modal box)
     overlay.addEventListener('click', function (e) {
       if (e.target === overlay) closeModal();
@@ -326,8 +334,12 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     dismissBtn.addEventListener('click', function () {
       if (_cur) {
-        if (_cur.id) window.removeNotifById(_cur.id);
-        else {
+        // For the SSL cert notification, ack the mtime so the poll won't re-add it
+        if (_cur.id === 'ssl-cert' && typeof window.ackSslCert === 'function') {
+          window.ackSslCert();
+        } else if (_cur.id) {
+          window.removeNotifById(_cur.id);
+        } else {
           var t = _cur.time;
           saveNotifs(getNotifs().filter(function (x) { return x.time !== t; }));
           renderNotifs();
