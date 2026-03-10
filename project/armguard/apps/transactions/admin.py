@@ -47,7 +47,8 @@ class TransactionAdmin(admin.ModelAdmin):
             'fields': (
                 'transaction_type',
                 'issuance_type',
-                'duty_type',
+                'purpose',
+                'purpose_other',
                 'qr_item_id',
                 'pistol',
                 'rifle',
@@ -70,9 +71,6 @@ class TransactionAdmin(admin.ModelAdmin):
             )
         }),
     )
-
-    class Media:
-        js = ['admin/js/transaction_qr_autofill.js']
 
 admin.site.register(Transaction, TransactionAdmin)
 
