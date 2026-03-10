@@ -173,7 +173,7 @@
       if (level <= 0) return srcCanvas;
       var w = srcCanvas.width, h = srcCanvas.height;
       var tmp = document.createElement('canvas'); tmp.width = w; tmp.height = h;
-      var tc = tmp.getContext('2d');
+      var tc = tmp.getContext('2d', {willReadFrequently: true});
       var amount = level * 0.4;
       tc.filter = 'none'; tc.drawImage(srcCanvas, 0, 0);
       var bd = tc.getImageData(0, 0, w, h).data;
