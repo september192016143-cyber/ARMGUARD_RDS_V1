@@ -96,7 +96,7 @@ info "Branch    : $BRANCH"
 # ---------------------------------------------------------------------------
 # 1. Pre-update backup
 # ---------------------------------------------------------------------------
-step "1/6 Pre-update database backup"
+step "1/7 Pre-update database backup"
 
 BACKUP_DIR="$DEPLOY_DIR/backups"
 mkdir -p "$BACKUP_DIR"
@@ -122,15 +122,19 @@ fi
 # ---------------------------------------------------------------------------
 # 2. Git pull
 # ---------------------------------------------------------------------------
-step "2/6 Pulling latest code (branch: $BRANCH)"
+step "2/7 Pulling latest code (branch: $BRANCH)"
 
+# Fix ownership so the armguard user can write to .git/objects
+# (Happens when root previously cloned the repo or ran git operations)
 if [[ -d "$PROJECT_DIR/.git" ]]; then
+    chown -R "$DEPLOY_USER:$DEPLOY_USER" "$PROJECT_DIR/.git"
     sudo -u "$DEPLOY_USER" git -C "$PROJECT_DIR" fetch --all
     sudo -u "$DEPLOY_USER" git -C "$PROJECT_DIR" checkout "$BRANCH"
     sudo -u "$DEPLOY_USER" git -C "$PROJECT_DIR" pull origin "$BRANCH"
     COMMIT=$(git -C "$PROJECT_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")
     success "Code updated to commit: $COMMIT"
 elif [[ -d "$DEPLOY_DIR/.git" ]]; then
+    chown -R "$DEPLOY_USER:$DEPLOY_USER" "$DEPLOY_DIR/.git"
     sudo -u "$DEPLOY_USER" git -C "$DEPLOY_DIR" fetch --all
     sudo -u "$DEPLOY_USER" git -C "$DEPLOY_DIR" checkout "$BRANCH"
     sudo -u "$DEPLOY_USER" git -C "$DEPLOY_DIR" pull origin "$BRANCH"
@@ -144,7 +148,7 @@ fi
 # ---------------------------------------------------------------------------
 # 3. Update Python dependencies
 # ---------------------------------------------------------------------------
-step "3/6 Updating Python dependencies"
+step "3/7 Updating Python dependencies"
 
 REQUIREMENTS="$DEPLOY_DIR/requirements.txt"
 [[ -f "$REQUIREMENTS" ]] || REQUIREMENTS="$PROJECT_DIR/requirements.txt"
