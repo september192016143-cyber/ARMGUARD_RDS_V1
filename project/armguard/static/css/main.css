@@ -17,34 +17,54 @@
   --sidebar-w:240px;
 }
 
-/* ── Light / Day theme — 9533rd RDS military palette ─────────────── */
-/*    Navy shield  #0b1d35 · Teal shield  #0e8fa6                     */
-/*    Gold gear    #c9a227 · Steel-blue uniform  #dce8f4              */
+/* ── Light / Day theme ───────────────────────────────────────────── */
 [data-theme="light"] {
-  --bg:       #dce8f4;   /* steel-blue, like the dress uniform fabric  */
-  --sidebar:  #0b1d35;   /* deep navy — shield / seal body colour      */
+  --bg:       #f0f4f8;   /* soft off-white page background             */
+  --sidebar:  #007bff;   /* PAF blue — navbar / sidebar                */
   --card:     #ffffff;   /* white cards                                */
-  --border:   #a0bdd4;   /* medium steel-blue border                   */
-  --muted:    #7090aa;   /* muted steel-blue (readable on dark sidebar)*/
-  --text:     #0b1d35;   /* deep navy body text                        */
-  --light:    #f2f7fc;
-  --primary:  #c9a227;   /* gold — RDS squadron gear / seal            */
-  --primary-d:#a47820;   /* darker gold                                */
-  --green:    #22c55e;
-  --green-d:  #16a34a;
+  --border:   #c8d8ea;   /* light blue-grey border                     */
+  --muted:    #4a5568;   /* dark grey muted (readable on white)        */
+  --text:     #000000;   /* black body text                            */
+  --light:    #ffffff;
+  --primary:  #007bff;   /* primary action blue                        */
+  --primary-d:#0062cc;   /* darker blue on hover                       */
+  --green:    #16a34a;
+  --green-d:  #15803d;
   --red:      #dc2626;
-  --blue:     #0e8fa6;   /* teal — shield gradient highlight           */
-  --indigo:   #1e3a8a;   /* deep navy-indigo                           */
+  --blue:     #007bff;
+  --indigo:   #0047b3;
 }
 
-/* Sidebar stays dark-navy in day mode — override hover/active text
-   that inherits var(--text) so it stays light on the dark background */
-[data-theme="light"] .sidebar { border-right-color: rgba(255,255,255,.08); }
+/* Sidebar is blue — keep all text white on top of it */
+[data-theme="light"] .sidebar { border-right-color: rgba(255,255,255,.15); }
+[data-theme="light"] .sidebar .brand-name { color: #ffffff; }
+[data-theme="light"] .sidebar .brand-sub  { color: rgba(255,255,255,.75); }
+[data-theme="light"] .sidebar .nav-section { color: rgba(255,255,255,.6); }
+[data-theme="light"] .sidebar .nav-item { color: rgba(255,255,255,.82); }
 [data-theme="light"] .sidebar .nav-item:hover,
-[data-theme="light"] .sidebar .nav-group-header:hover { color: #e2e8f0; }
+[data-theme="light"] .sidebar .nav-group-header:hover { background: rgba(255,255,255,.15); color: #ffffff; border-left-color: rgba(255,255,255,.6); }
 [data-theme="light"] .sidebar .nav-item:hover i.nav-icon,
-[data-theme="light"] .sidebar .nav-group-header:hover i.nav-icon { color: #e2e8f0; }
-[data-theme="light"] .sidebar .nav-group.open .nav-group-header { color: #e2e8f0; }
+[data-theme="light"] .sidebar .nav-group-header:hover i.nav-icon { color: #ffffff; }
+[data-theme="light"] .sidebar .nav-item.active { background: rgba(255,255,255,.22); color: #ffffff; border-left-color: #ffffff; box-shadow: inset 0 0 14px rgba(255,255,255,.1); }
+[data-theme="light"] .sidebar .nav-item.active i.nav-icon { color: #ffffff; }
+[data-theme="light"] .sidebar .nav-item-row:hover { background: rgba(255,255,255,.12); }
+[data-theme="light"] .sidebar .nav-item-row.active { background: rgba(255,255,255,.2); border-left-color: #ffffff; }
+[data-theme="light"] .sidebar .nav-item-row i.nav-icon { color: rgba(255,255,255,.7); }
+[data-theme="light"] .sidebar .nav-item-main,
+[data-theme="light"] .sidebar .nav-item-add { color: rgba(255,255,255,.85); }
+[data-theme="light"] .sidebar .nav-group-header { color: rgba(255,255,255,.82); }
+[data-theme="light"] .sidebar .nav-group.open .nav-group-header { color: #ffffff; border-left-color: #ffffff; }
+[data-theme="light"] .sidebar .nav-flyout { background: #0062cc; border-color: rgba(255,255,255,.2); }
+[data-theme="light"] .sidebar .nav-flyout a { color: rgba(255,255,255,.88); }
+[data-theme="light"] .sidebar .nav-flyout a:hover { background: rgba(255,255,255,.15); color: #ffffff; }
+[data-theme="light"] .sidebar .user-name { color: #ffffff; }
+[data-theme="light"] .sidebar .user-role { color: rgba(255,255,255,.72); }
+[data-theme="light"] .sidebar .user-block { border-bottom: 1px solid rgba(255,255,255,.15); }
+[data-theme="light"] .sidebar .logout-btn { color: rgba(255,255,255,.82); }
+[data-theme="light"] .sidebar .logout-btn:hover { background: rgba(255,255,255,.15); color: #ffffff; }
+[data-theme="light"] .sidebar .theme-sidebar-btn { color: rgba(255,255,255,.82) !important; }
+[data-theme="light"] .sidebar .theme-sidebar-btn:hover { color: #ffffff !important; }
+
 
 /* Theme toggle in sidebar footer */
 .theme-sidebar-btn .icon-sun  { display: none; }
