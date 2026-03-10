@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ action }} User — ArmGuard RDS{% endblock %}
 {% block page_title %}{{ action }} User{% endblock %}
@@ -189,92 +190,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.querySelectorAll('input[type=text],input[type=email],input[type=password],select').forEach(el=>{
-  el.classList.add('form-control');
-});
-
 {% if personnel_json %}
-(function(){
-  const MAP     = {{ personnel_json|safe }};
-  const PID_MAP = {% if personnel_pid_json %}{{ personnel_pid_json|safe }}{% else %}{}{% endif %};
-
-  const sel     = document.getElementById('id_linked_personnel');
-  const fnEl    = document.getElementById('id_first_name');
-  const lnEl    = document.getElementById('id_last_name');
-  const scanEl  = document.getElementById('personnelIdScan');
-  const statusEl= document.getElementById('personnelIdScanStatus');
-  if (!sel) return;
-
-  function applyByPk(pk) {
-    const p = MAP[String(pk)];
-    if (!p) return false;
-    sel.value = pk;
-    if (fnEl) fnEl.value = p.first;
-    if (lnEl) lnEl.value = p.last;
-    return true;
-  }
-
-  // Dropdown changed manually
-  sel.addEventListener('change', function() {
-    applyByPk(this.value);
-  });
-
-  // Auto-fill on page load from pre-selected dropdown value
-  if (sel.value) applyByPk(sel.value);
-
-  // Scan / type Personnel ID
-  if (scanEl) {
-    scanEl.classList.add('form-control');
-    var _scanTimer = null;
-    scanEl.addEventListener('input', function() {
-      clearTimeout(_scanTimer);
-      var val = this.value.trim();
-      if (!val) { statusEl.style.display = 'none'; return; }
-      // Try immediate match (QR scanner pastes full ID at once)
-      var pk = PID_MAP[val];
-      if (pk) {
-        applyByPk(pk);
-        statusEl.textContent = '✓';
-        statusEl.style.color = 'var(--success, #22c55e)';
-        statusEl.style.display = '';
-        scanEl.value = '';
-        return;
-      }
-      // Debounce for typed partial input
-      _scanTimer = setTimeout(function() {
-        var pk2 = PID_MAP[val];
-        if (pk2) {
-          applyByPk(pk2);
-          statusEl.textContent = '✓';
-          statusEl.style.color = 'var(--success, #22c55e)';
-          scanEl.value = '';
-        } else {
-          statusEl.textContent = '✗';
-          statusEl.style.color = 'var(--red, #ef4444)';
-        }
-        statusEl.style.display = '';
-      }, 600);
-    });
-    // Enter key triggers immediate lookup
-    scanEl.addEventListener('keydown', function(e) {
-      if (e.key !== 'Enter') return;
-      e.preventDefault();
-      clearTimeout(_scanTimer);
-      var pk = PID_MAP[this.value.trim()];
-      if (pk) {
-        applyByPk(pk);
-        statusEl.textContent = '✓';
-        statusEl.style.color = 'var(--success, #22c55e)';
-        scanEl.value = '';
-      } else {
-        statusEl.textContent = '✗';
-        statusEl.style.color = 'var(--red, #ef4444)';
-      }
-      statusEl.style.display = '';
-    });
-  }
-})();
+<script type="application/json" id="personnel-map-data">{{ personnel_json|safe }}</script>
+<script type="application/json" id="personnel-pid-map-data">{% if personnel_pid_json %}{{ personnel_pid_json|safe }}{% else %}{}{% endif %}</script>
 {% endif %}
-</script>
+<script src="{% static 'js/user_form.js' %}"></script>
 {% endblock %}
