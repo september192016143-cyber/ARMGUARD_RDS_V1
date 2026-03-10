@@ -392,22 +392,27 @@ class AccessoryDeleteView(_InventoryPermMixin, DeleteView):
 class ItemTagPreviewView(LoginRequiredMixin, View):
     """POST {item_type, model, serial_number} → returns a live preview PNG of the item tag."""
     def post(self, request, *args, **kwargs):
-        import io
+        import io, logging
         from types import SimpleNamespace
         from django.http import HttpResponse
-        from utils.item_tag_generator import _build_tag
+        _log = logging.getLogger(__name__)
+        try:
+            from utils.item_tag_generator import _build_tag
 
-        item = SimpleNamespace()
-        item.item_type = request.POST.get('item_type', 'pistol')
-        item.model = request.POST.get('model', '')
-        item.serial = request.POST.get('serial_number', '') or '\u2014'
-        item.item_number = None
-        item.qr_code_image = None
-        item.get_item_type_display = lambda: {'pistol': 'Pistol', 'rifle': 'Rifle'}.get(item.item_type, 'Item')
+            item = SimpleNamespace()
+            item.item_type = request.POST.get('item_type', 'pistol')
+            item.model = request.POST.get('model', '')
+            item.serial = request.POST.get('serial_number', '') or '\u2014'
+            item.item_number = None
+            item.qr_code_image = None
+            item.get_item_type_display = lambda: {'pistol': 'Pistol', 'rifle': 'Rifle'}.get(item.item_type, 'Item')
 
-        img = _build_tag(item)
-        buf = io.BytesIO()
-        img.save(buf, 'PNG')
-        buf.seek(0)
-        return HttpResponse(buf.read(), content_type='image/png')
+            img = _build_tag(item)
+            buf = io.BytesIO()
+            img.save(buf, 'PNG')
+            buf.seek(0)
+            return HttpResponse(buf.read(), content_type='image/png')
+        except Exception as exc:
+            _log.exception('ItemTagPreviewView failed: %s', exc)
+            return HttpResponse(f'Preview error: {exc}', content_type='text/plain', status=500)
 
