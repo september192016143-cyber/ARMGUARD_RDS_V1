@@ -283,14 +283,11 @@ class PersonnelCardPreviewView(LoginRequiredMixin, View):
 					fh.write(chunk)
 			p.personnel_image = tmp_rel
 
-		# Show QR only when all key identity fields are filled and a real ID is simulated
-		fields_complete = all([
-			p.rank, p.first_name, p.last_name, p.AFSN,
-			p.Personnel_ID != 'PREVIEW',
-		])
+		# Show QR as soon as we have a real simulated ID (rank + AFSN are enough)
+		skip_qr = (not p.Personnel_ID or p.Personnel_ID == 'PREVIEW')
 		try:
 			from utils.personnel_id_card_generator import _build_front, _build_back
-			img = _build_front(p) if face == 'front' else _build_back(p, skip_qr=not fields_complete)
+			img = _build_front(p) if face == 'front' else _build_back(p, skip_qr=skip_qr)
 			buf = io.BytesIO()
 			img.save(buf, 'PNG')
 			buf.seek(0)
