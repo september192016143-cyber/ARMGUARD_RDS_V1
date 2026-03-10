@@ -19,58 +19,68 @@
 
 /* ── Light / Day theme — Military Command Center palette ─────────── */
 /*    Air Force Blue #00308F  Header / navbar                         */
-/*    Dark Navy      #0A1F44  Background                              */
 /*    Steel Gray     #6E7B8B  Panels / cards                          */
-/*    White          #FFFFFF  Text / clean areas                      */
+/*    White          #FFFFFF  Background / text / clean areas         */
 /*    Sky Blue       #4FA3FF  Buttons / links                         */
 /*    Radar Green    #00FF9C  Status indicators                       */
 /*    Warning Red    #D72638  Alerts                                  */
 [data-theme="light"] {
-  --bg:       #ffffff;
-  --sidebar:  #1e293b;
-  --card:     #ffffff;
-  --border:   #d1d5db;
-  --muted:    #374151;
-  --text:     #111827;
-  --light:    #111827;
-  --primary:  #f59e0b;
-  --primary-d:#d97706;
-  --green:    #16a34a;
-  --green-d:  #15803d;
-  --red:      #dc2626;
-  --blue:     #2563eb;
-  --indigo:   #4f46e5;
+  --bg:       #ffffff;       /* white page background                  */
+  --sidebar:  #00308F;       /* Air Force Blue — navbar / sidebar      */
+  --card:     #6E7B8B;       /* Steel Gray — panels / cards            */
+  --border:   rgba(255,255,255,.18);
+  --muted:    rgba(255,255,255,.72);
+  --text:     #ffffff;       /* white text                             */
+  --light:    #ffffff;
+  --primary:  #4FA3FF;       /* Sky Blue — buttons / links             */
+  --primary-d:#2a7fd9;
+  --green:    #00FF9C;       /* Radar Green — status indicators        */
+  --green-d:  #00cc7d;
+  --red:      #D72638;       /* Warning Red — alerts                   */
+  --blue:     #4FA3FF;
+  --indigo:   #00308F;
 }
 
-/* ── Day-mode sidebar overrides (dark sidebar, amber accents) ──── */
-[data-theme="light"] .sidebar { border-right-color: rgba(255,255,255,.12); }
+/* ── Day-mode sidebar overrides (Air Force Blue, white text) ──────── */
+[data-theme="light"] .sidebar { background: #00308F; border-right-color: rgba(255,255,255,.15); }
 [data-theme="light"] .sidebar .brand-name { color: #ffffff; }
 [data-theme="light"] .sidebar .brand-sub  { color: rgba(255,255,255,.72); }
 [data-theme="light"] .sidebar .nav-section { color: rgba(255,255,255,.55); }
 [data-theme="light"] .sidebar .nav-item { color: rgba(255,255,255,.82); }
 [data-theme="light"] .sidebar .nav-item:hover,
-[data-theme="light"] .sidebar .nav-group-header:hover { background: rgba(255,255,255,.07); color: #ffffff; border-left-color: rgba(255,255,255,.2); }
+[data-theme="light"] .sidebar .nav-group-header:hover { background: rgba(255,255,255,.12); color: #ffffff; border-left-color: #4FA3FF; }
 [data-theme="light"] .sidebar .nav-item:hover i.nav-icon,
-[data-theme="light"] .sidebar .nav-group-header:hover i.nav-icon { color: var(--primary); }
-[data-theme="light"] .sidebar .nav-item.active { background: rgba(245,158,11,.1); color: var(--primary); border-left-color: var(--primary); box-shadow: inset 0 0 14px rgba(245,158,11,.06); }
-[data-theme="light"] .sidebar .nav-item.active i.nav-icon { color: var(--primary); }
-[data-theme="light"] .sidebar .nav-item-row:hover { background: rgba(255,255,255,.06); }
-[data-theme="light"] .sidebar .nav-item-row.active { background: rgba(245,158,11,.08); border-left-color: var(--primary); }
+[data-theme="light"] .sidebar .nav-group-header:hover i.nav-icon { color: #4FA3FF; }
+[data-theme="light"] .sidebar .nav-item.active { background: rgba(79,163,255,.2); color: #4FA3FF; border-left-color: #4FA3FF; box-shadow: inset 0 0 14px rgba(79,163,255,.12); }
+[data-theme="light"] .sidebar .nav-item.active i.nav-icon { color: #4FA3FF; }
+[data-theme="light"] .sidebar .nav-item-row:hover { background: rgba(255,255,255,.1); }
+[data-theme="light"] .sidebar .nav-item-row.active { background: rgba(79,163,255,.18); border-left-color: #4FA3FF; }
 [data-theme="light"] .sidebar .nav-item-row i.nav-icon { color: rgba(255,255,255,.65); }
 [data-theme="light"] .sidebar .nav-item-main,
 [data-theme="light"] .sidebar .nav-item-add { color: rgba(255,255,255,.85); }
 [data-theme="light"] .sidebar .nav-group-header { color: rgba(255,255,255,.82); }
-[data-theme="light"] .sidebar .nav-group.open .nav-group-header { color: #ffffff; border-left-color: var(--primary); }
-[data-theme="light"] .sidebar .nav-flyout { background: var(--sidebar); border-color: var(--border); }
+[data-theme="light"] .sidebar .nav-group.open .nav-group-header { color: #ffffff; border-left-color: #4FA3FF; }
+[data-theme="light"] .sidebar .nav-flyout { background: #001f6b; border-color: rgba(79,163,255,.3); }
 [data-theme="light"] .sidebar .nav-flyout a { color: rgba(255,255,255,.88); }
-[data-theme="light"] .sidebar .nav-flyout a:hover { background: rgba(255,255,255,.06); color: #ffffff; }
+[data-theme="light"] .sidebar .nav-flyout a:hover { background: rgba(79,163,255,.2); color: #ffffff; }
 [data-theme="light"] .sidebar .user-name { color: #ffffff; }
 [data-theme="light"] .sidebar .user-role { color: rgba(255,255,255,.68); }
 [data-theme="light"] .sidebar .user-block { border-bottom: 1px solid rgba(255,255,255,.12); }
 [data-theme="light"] .sidebar .logout-btn { color: rgba(255,255,255,.78); }
-[data-theme="light"] .sidebar .logout-btn:hover { background: rgba(239,68,68,.1); color: #f87171; }
+[data-theme="light"] .sidebar .logout-btn:hover { background: rgba(215,38,56,.15); color: #ff6b7a; }
 [data-theme="light"] .sidebar .theme-sidebar-btn { color: rgba(255,255,255,.78) !important; }
-[data-theme="light"] .sidebar .theme-sidebar-btn:hover { color: var(--primary) !important; }
+[data-theme="light"] .sidebar .theme-sidebar-btn:hover { color: #4FA3FF !important; }
+
+/* ── Day-mode topbar (Air Force Blue) ─────────────────────────────── */
+[data-theme="light"] .topbar { background: #00308F; border-bottom-color: rgba(255,255,255,.15); }
+[data-theme="light"] .topbar-title { color: #ffffff; }
+[data-theme="light"] .topbar-sub { color: rgba(255,255,255,.72); }
+
+/* ── Day-mode main content (white bg, dark text for readability) ───── */
+[data-theme="light"] .page-body { background: #ffffff; color: #1e293b; }
+[data-theme="light"] tbody td { color: #1e293b; }
+[data-theme="light"] thead th { color: #374151; }
+[data-theme="light"] .card-title { color: #1e293b; }
 
 
 /* Theme toggle in sidebar footer */
@@ -176,7 +186,7 @@ tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s
 tbody tr:hover{background:rgba(255,255,255,.03)}
 tbody td{padding:.65rem .85rem;color:var(--text);vertical-align:middle}
 .analytics-table th{color:#fff !important}
-[data-theme="light"] .analytics-table th{color:#111827 !important}
+[data-theme="light"] .analytics-table th{color:#ffffff !important}
 
 /* Badges */
 .badge{display:inline-block;padding:.2rem .55rem;border-radius:9999px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
@@ -192,10 +202,10 @@ tbody td{padding:.65rem .85rem;color:var(--text);vertical-align:middle}
 .form-label{display:block;font-size:.8rem;font-weight:500;color:var(--text);margin-bottom:.35rem}
 .form-label .req{color:var(--red);margin-left:.2rem}
 .form-control{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:.375rem;padding:.5rem .75rem;color:var(--text);font-size:.85rem;transition:border-color .15s}
-[data-theme="light"] .form-control{background:#f9fafb}
+[data-theme="light"] .form-control{background:rgba(255,255,255,.12);color:#ffffff;border-color:rgba(255,255,255,.3)}
 .form-control:focus{outline:none;border-color:var(--primary);background:rgba(245,158,11,.05)}
 .form-control option{background:#1e293b;color:var(--text)}
-[data-theme="light"] .form-control option{background:#ffffff}
+[data-theme="light"] .form-control option{background:#00308F;color:#ffffff}
 textarea.form-control{resize:vertical;min-height:90px}
 .form-hint{font-size:.72rem;color:var(--muted);margin-top:.25rem}
 .form-error{font-size:.75rem;color:var(--red);margin-top:.25rem}
