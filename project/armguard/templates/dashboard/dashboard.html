@@ -129,7 +129,7 @@
           <td style="padding:5px 4px;text-align:center">{{ row.possessed|intcomma }}</td>
           <td style="padding:5px 4px;text-align:center">{{ row.on_stock|intcomma }}</td>
           <td style="padding:5px 4px;text-align:center">{{ row.issued|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center;color:#059669;font-weight:600">{{ row.serviceable|intcomma }}</td>
+          <td style="padding:5px 4px;text-align:center;color:#00b377 !important;font-weight:700">{{ row.serviceable|intcomma }}</td>
           <td style="padding:5px 4px;text-align:center{% if row.unserviceable %};color:#d97706;font-weight:700{% endif %}">{{ row.unserviceable|intcomma }}</td>
           <td style="padding:5px 4px;text-align:center{% if row.lost %};color:#dc2626;font-weight:700{% endif %}">{{ row.lost|intcomma }}</td>
           <td style="padding:5px 4px;text-align:center{% if row.tampered %};color:#dc2626;font-weight:700{% endif %}">{{ row.tampered|intcomma }}</td>
@@ -205,7 +205,7 @@
           <td style="padding:5px 4px;text-align:center">{{ row.issued|intcomma }}</td>
           <td style="padding:5px 4px;text-align:center{% if row.unserviceable %};color:#d97706;font-weight:700{% endif %}">{{ row.unserviceable|intcomma }}</td>
           <td style="padding:5px 4px;text-align:center">{{ row.expenditures|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center;font-weight:700;color:#0ca678">{{ row.on_hand|intcomma }}</td>
+          <td style="padding:5px 4px;text-align:center;font-weight:700;color:#00b377 !important">{{ row.on_hand|intcomma }}</td>
           <td style="padding:5px 4px;text-align:center{% if row.lost %};color:#dc2626;font-weight:700{% endif %}">{{ row.lost|intcomma }}</td>
           <td style="padding:3px 4px;text-align:center">
             <a href="{{ row.list_url }}" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.68rem">View</a>
