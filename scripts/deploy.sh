@@ -545,6 +545,27 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 13. SSL certificate renewal cron job (monthly, runs as root)
+# ---------------------------------------------------------------------------
+step "Installing SSL certificate renewal cron job"
+
+RENEW_SCRIPT="$DEPLOY_DIR/scripts/renew-ssl-cert.sh"
+if [[ -f "$SCRIPT_DIR/renew-ssl-cert.sh" ]]; then
+    mkdir -p "$DEPLOY_DIR/scripts"
+    [[ "$(realpath "$SCRIPT_DIR/renew-ssl-cert.sh")" != "$(realpath "$RENEW_SCRIPT")" ]] && \
+        cp "$SCRIPT_DIR/renew-ssl-cert.sh" "$RENEW_SCRIPT"
+    chmod +x "$RENEW_SCRIPT"
+    # Cron runs as root (cert/nginx ops require root privileges).
+    # Checks on the 1st of every month at 03:00 AM; renews only if expiry < 45 days away.
+    (crontab -l 2>/dev/null || true; \
+     echo "0 3 1 * * $RENEW_SCRIPT >> $LOG_DIR/ssl-renewal.log 2>&1") \
+        | crontab -
+    success "Monthly SSL renewal cron installed (3:00 AM on 1st of each month)."
+else
+    warn "renew-ssl-cert.sh not found in scripts/; SSL renewal cron not installed."
+fi
+
+# ---------------------------------------------------------------------------
 # Post-deployment check
 # ---------------------------------------------------------------------------
 step "Post-deployment verification"

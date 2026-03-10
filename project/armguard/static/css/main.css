@@ -241,3 +241,27 @@ body.sidebar-collapsed .logout-label{display:none}
 .notif-empty{padding:2rem 1rem;text-align:center;color:var(--muted);font-size:.8rem}
 .notif-footer{padding:.6rem 1rem;border-top:1px solid var(--border);text-align:center}
 .notif-footer a{font-size:.75rem;color:var(--primary)}
+.notif-action-btn{display:inline-block;margin-top:.45rem;padding:.25rem .65rem;background:rgba(245,158,11,.18);border:1px solid var(--primary);border-radius:.35rem;color:var(--primary);font-size:.7rem;font-weight:600;text-decoration:none;cursor:pointer;transition:background .15s}
+.notif-action-btn:hover{background:rgba(245,158,11,.35)}
+
+/* ── SSL Certificate Install Modal ────────────────────────────────────────── */
+.ssl-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}
+.ssl-modal{background:var(--sidebar);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.6);display:flex;flex-direction:column;max-height:90vh}
+.ssl-modal-header{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.2rem;border-bottom:1px solid var(--border);font-size:.9rem;font-weight:600;color:var(--light);flex-shrink:0}
+.ssl-modal-close{background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;line-height:1;padding:.1rem .3rem;border-radius:.3rem;transition:color .15s}
+.ssl-modal-close:hover{color:var(--light)}
+.ssl-modal-body{padding:1.2rem;overflow-y:auto;flex:1}
+.ssl-modal-intro{font-size:.83rem;color:var(--muted);margin-bottom:1rem;line-height:1.55}
+.ssl-modal-intro strong{color:var(--text)}
+.ssl-steps{list-style:none;display:flex;flex-direction:column;gap:.75rem}
+.ssl-steps li{display:flex;align-items:flex-start;gap:.75rem}
+.ssl-step-num{min-width:24px;height:24px;border-radius:50%;background:var(--primary);color:#000;font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.05rem}
+.ssl-step-text{font-size:.81rem;color:var(--text);line-height:1.55}
+.ssl-step-text strong{color:var(--light)}
+.ssl-step-text code{background:rgba(255,255,255,.07);padding:.1rem .35rem;border-radius:.25rem;font-size:.78rem;color:var(--primary)}
+.ssl-modal-note{margin-top:1rem;padding:.65rem .9rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:.4rem;font-size:.78rem;color:var(--muted);line-height:1.5}
+.ssl-modal-footer{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;padding:.9rem 1.2rem;border-top:1px solid var(--border);flex-shrink:0}
+.ssl-modal-cancel{background:none;border:1px solid var(--border);color:var(--muted);padding:.45rem 1rem;border-radius:.4rem;cursor:pointer;font-size:.82rem;transition:all .15s}
+.ssl-modal-cancel:hover{border-color:var(--text);color:var(--text)}
+.ssl-modal-download-btn{display:inline-flex;align-items:center;background:var(--primary);color:#000;font-weight:700;font-size:.83rem;padding:.45rem 1.1rem;border-radius:.4rem;text-decoration:none;transition:background .15s}
+.ssl-modal-download-btn:hover{background:var(--primary-d)}

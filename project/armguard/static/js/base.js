@@ -149,6 +149,20 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="notif-body-msg">' + n.msg + '</div>' +
           '<div class="notif-body-time">' + n.time + '</div>' +
         '</div>';
+      // Action button: open the install guide modal or navigate to actionUrl
+      if (n.actionUrl && n.id) {
+        (function (notifId, actionUrl) {
+          var btn = document.createElement('a');
+          btn.href = actionUrl === '#ssl-install' ? '#' : actionUrl;
+          btn.className = 'notif-action-btn';
+          btn.textContent = 'View Install Guide';
+          btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (typeof window.openSslModal === 'function') window.openSslModal();
+          });
+          el.querySelector('.notif-body').appendChild(btn);
+        })(n.id, n.actionUrl);
+      }
       list.insertBefore(el, empty);
     });
   };
@@ -158,15 +172,25 @@ document.addEventListener('DOMContentLoaded', function () {
     renderNotifs();
   };
 
-  window.addNotif = function (title, msg, type, icon) {
+  window.addNotif = function (title, msg, type, icon, id, actionUrl) {
     type = type || 'info';
     icon = icon || 'fa-info';
     var notifs = getNotifs();
+    // Prevent duplicate for named (id-keyed) notifications.
+    if (id && notifs.some(function (n) { return n.id === id; })) return false;
     notifs.push({
+      id: id || null,
+      actionUrl: actionUrl || null,
       title: title, msg: msg, type: type, icon: icon, unread: true,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     });
     saveNotifs(notifs);
+    renderNotifs();
+    return true; // new notif was added
+  };
+
+  window.removeNotifById = function (id) {
+    saveNotifs(getNotifs().filter(function (n) { return n.id !== id; }));
     renderNotifs();
   };
 
@@ -190,6 +214,46 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   renderNotifs();
+
+  // ── SSL Certificate Install Guide Modal ───────────────────────────────────
+  (function () {
+    var overlay   = document.getElementById('ssl-modal-overlay');
+    var closeBtn  = document.getElementById('ssl-modal-close');
+    var cancelBtn = document.getElementById('ssl-modal-cancel');
+    var dlBtn     = document.getElementById('ssl-modal-download');
+    var sidebarBtn = document.getElementById('ssl-cert-sidebar-btn');
+    if (!overlay) return;
+
+    function openModal() { overlay.style.display = 'flex'; }
+    function closeModal() { overlay.style.display = 'none'; }
+
+    // Sidebar link opens modal instead of directly downloading
+    if (sidebarBtn) {
+      sidebarBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        openModal();
+      });
+    }
+
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    // Close when clicking the dark backdrop (outside the modal box)
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeModal();
+    });
+    // Close on Escape key
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && overlay.style.display !== 'none') closeModal();
+    });
+    // Download button: remove the ssl-cert notif and close modal after download starts
+    dlBtn.addEventListener('click', function () {
+      window.removeNotifById('ssl-cert');
+      setTimeout(closeModal, 400);
+    });
+
+    // Expose so the notification "Download & Install" button can also open the modal
+    window.openSslModal = openModal;
+  })();
 
   // ── 4. G13: Inventory-change polling (only for authenticated users) ────────
   // Activated when <body data-poll="1"> is present.
@@ -225,6 +289,42 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       setTimeout(function () { poll(); setInterval(poll, POLL_MS); }, 5000);
+    })();
+
+    // ── SSL certificate renewal check (on load + every 6 hours) ────────────
+    // Polls the server to see if the cert has been renewed since this device
+    // last downloaded it. If so, shows a notification with a download link.
+    // Clicking "Download & Install" fetches the new cert, acks the session,
+    // and auto-dismisses the notification.
+    (function () {
+      var SSL_STATUS_URL = '/download/ssl-cert-status/';
+      var SSL_CERT_URL   = '/download/ssl-cert/';
+      var SSL_POLL_MS    = 6 * 60 * 60 * 1000; // re-check every 6 hours
+
+      function checkSslCert() {
+        fetch(SSL_STATUS_URL, {
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data || !data.needs_reinstall) return;
+          var added = window.addNotif(
+            'SSL Certificate Renewed',
+            'A new security certificate was issued for this server. ' +
+            'Reinstall it on this device to keep the secure padlock.',
+            'warning', 'fa-certificate', 'ssl-cert', '#ssl-install'
+          );
+          // Auto-open the notification panel so the user sees it right away.
+          if (added) {
+            document.getElementById('notif-panel').classList.add('open');
+          }
+        })
+        .catch(function () { /* network error — silently skip */ });
+      }
+
+      setTimeout(checkSslCert, 2000); // slight delay so page fully loads first
+      setInterval(checkSslCert, SSL_POLL_MS);
     })();
   }
 

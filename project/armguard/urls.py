@@ -21,7 +21,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView, TemplateView
 from django.utils.decorators import method_decorator
-from armguard.apps.dashboard.views import dashboard_view
+from armguard.apps.dashboard.views import dashboard_view, download_ssl_cert, ssl_cert_status
 from armguard.apps.users.views import logout_view, OTPSetupView, OTPVerifyView
 from utils.throttle import ratelimit as _ratelimit
 
@@ -54,6 +54,8 @@ urlpatterns = [
     path('accounts/otp/verify/', OTPVerifyView.as_view(), name='otp-verify'),
     path('accounts/', include('django.contrib.auth.urls')),
     # G7 FIX: robots.txt and security.txt.
+    path('download/ssl-cert/', download_ssl_cert, name='download-ssl-cert'),
+    path('download/ssl-cert-status/', ssl_cert_status, name='ssl-cert-status'),
     path('robots.txt', TemplateView.as_view(template_name='robots.txt', content_type='text/plain'), name='robots_txt'),
     path('.well-known/security.txt', TemplateView.as_view(template_name='security.txt', content_type='text/plain'), name='security_txt'),
     # G12 FIX: Read-only REST API v1 (DRF). All endpoints require authentication.

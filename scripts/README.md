@@ -11,9 +11,12 @@ Scripts for deploying and maintaining **ARMGUARD RDS V1** on Ubuntu Server 24.04
 | `deploy.sh` | Full first-time deployment orchestrator |
 | `update-server.sh` | Pull latest code and hot-reload service |
 | `armguard-gunicorn.service` | systemd unit file for Gunicorn |
-| `nginx-armguard.conf` | Nginx reverse proxy configuration |
+| `nginx-armguard.conf` | Nginx HTTP-only reverse proxy config |
+| `nginx-armguard-ssl-lan.conf` | Nginx HTTPS config for LAN self-signed SSL |
 | `setup-firewall.sh` | UFW firewall rules |
 | `db-backup-cron.sh` | Cron wrapper for daily SQLite backup |
+| `renew-ssl-cert.sh` | Auto-renew self-signed SSL cert; installed as monthly root cron by deploy.sh |
+| `SSL_SELFSIGNED.md` | Step-by-step self-signed SSL setup guide |
 
 ---
 
@@ -166,7 +169,7 @@ EOF
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-**Adding SSL (Let's Encrypt):**
+**Adding SSL (Let's Encrypt / public domain):**
 
 ```bash
 sudo apt install certbot python3-certbot-nginx
@@ -178,6 +181,19 @@ sudo nano /var/www/armguard-v1/.env
 
 # Reload service
 sudo systemctl reload armguard-gunicorn
+```
+
+**Adding SSL (LAN-only, no domain — self-signed):**
+
+Use `nginx-armguard-ssl-lan.conf` and follow `SSL_SELFSIGNED.md`.
+
+```bash
+# Generate cert, apply SSL nginx config, update .env
+# See scripts/SSL_SELFSIGNED.md for full steps.
+
+# Users can then download the cert directly from the app:
+# Log in → click "Install SSL Cert" in the sidebar footer
+# Double-click the downloaded .crt → Install Certificate → Trusted Root CAs
 ```
 
 ---
@@ -328,6 +344,7 @@ Key variables in `/var/www/ARMGUARD_RDS_V1/.env`:
 | `SECURE_HSTS_SECONDS` | ✅ Yes | `31536000` (1 year) |
 | `SESSION_COOKIE_SECURE` | ✅ After SSL | Set `True` once HTTPS is working |
 | `CSRF_COOKIE_SECURE` | ✅ After SSL | Set `True` once HTTPS is working |
+| `SSL_CERT_PATH` | ⚠️ LAN SSL | Path to self-signed cert served as in-app download (default: `/etc/ssl/certs/armguard-selfsigned.crt`) |
 
 ---
 

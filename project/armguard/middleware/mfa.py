@@ -25,6 +25,8 @@ _OTP_BYPASS_PREFIXES = (
     '/accounts/otp',
     '/robots.txt',
     '/.well-known',
+    '/download/ssl-cert/',
+    '/download/ssl-cert-status/',
     # NOTE: '/api/' is intentionally NOT in this list — see _is_bypass() below.
     settings.STATIC_URL,
     settings.MEDIA_URL,

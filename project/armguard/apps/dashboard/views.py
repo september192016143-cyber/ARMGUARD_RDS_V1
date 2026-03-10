@@ -1,8 +1,11 @@
+import os
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
+from django.http import FileResponse, Http404
+from django.conf import settings
 
 
 # ── Nomenclature & ordering constants (mirrors RDS core/views.py) ──────────
@@ -218,3 +221,44 @@ def dashboard_view(request):
     context['ammo_rows'], context['ammo_totals'] = _build_ammo_table()
 
     return render(request, 'dashboard/dashboard.html', context)
+
+
+@login_required
+def download_ssl_cert(request):
+    """Serve the self-signed SSL certificate as a download.
+
+    Windows users can open the downloaded .crt file and click
+    "Install Certificate → Local Machine → Trusted Root Certification Authorities"
+    to eliminate the browser "Not secure" warning on the LAN.
+
+    Also records the cert's mtime in the session so ssl_cert_status knows
+    this device has installed the current certificate version.
+    """
+    cert_path = settings.SSL_CERT_PATH
+    if not os.path.isfile(cert_path):
+        raise Http404("SSL certificate file not found on this server.")
+    # ACK: record the current cert version so the notification won't reappear
+    # after the user downloads it.
+    request.session['ssl_cert_acked_mtime'] = os.path.getmtime(cert_path)
+    response = FileResponse(
+        open(cert_path, 'rb'),
+        content_type='application/x-x509-ca-cert',
+    )
+    response['Content-Disposition'] = 'attachment; filename="armguard-selfsigned.crt"'
+    return response
+
+
+@login_required
+def ssl_cert_status(request):
+    """Return whether the SSL cert has been renewed since this device last downloaded it.
+
+    The frontend polls this endpoint and shows a notification when True.
+    Response: {"needs_reinstall": bool}
+    """
+    from django.http import JsonResponse
+    cert_path = settings.SSL_CERT_PATH
+    if not os.path.isfile(cert_path):
+        return JsonResponse({'needs_reinstall': False})
+    cert_mtime = os.path.getmtime(cert_path)
+    acked_mtime = request.session.get('ssl_cert_acked_mtime', 0)
+    return JsonResponse({'needs_reinstall': cert_mtime > acked_mtime})
