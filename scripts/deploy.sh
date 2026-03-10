@@ -284,7 +284,9 @@ SESSION_COOKIE_SECURE=False
 CSRF_COOKIE_SECURE=False
 SECURE_HSTS_SECONDS=31536000
 CSRF_TRUSTED_ORIGINS=https://$DOMAIN,http://$LAN_IP
-
+# SSL certificate path (used by the in-app cert download + notification feature)
+# Default is correct for standard deploy; override only if cert lives elsewhere.
+SSL_CERT_PATH=/etc/ssl/certs/armguard-selfsigned.crt
 # Gunicorn (if tuning via env vars)
 # GUNICORN_WORKERS=2
 # GUNICORN_TIMEOUT=60

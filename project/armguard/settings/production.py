@@ -60,3 +60,11 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
     ],
 }
+
+# ── SSL certificate download ──────────────────────────────────────────────────
+# Path to the self-signed cert served as an in-app download so LAN users can
+# install it on their devices.  Override via SSL_CERT_PATH env var if needed.
+SSL_CERT_PATH = os.environ.get(
+    'SSL_CERT_PATH',
+    '/etc/ssl/certs/armguard-selfsigned.crt',
+)
