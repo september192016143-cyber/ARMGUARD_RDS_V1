@@ -311,6 +311,9 @@
   <div id="serial-crop-modal">
     <h3><i class="fa-solid fa-crop-simple"></i> Crop &amp; Enhance Serial Image</h3>
     <p class="serial-crop-hint">Drag to draw selection &nbsp;&middot;&nbsp; Drag inside to move &nbsp;&middot;&nbsp; Drag corners/edges to resize &nbsp;&middot;&nbsp; Scroll to zoom</p>
+    <div id="crop-preview-banner" style="display:none;background:rgba(201,149,43,.12);border:1px solid rgba(201,149,43,.4);border-radius:.5rem;padding:.45rem .75rem;font-size:.8rem;color:#c9952b;">
+      <i class="fa-solid fa-magnifying-glass-plus"></i>&nbsp; Enlarged preview &mdash; confirm to save or re-crop to adjust.
+    </div>
     <div id="serial-crop-wrap">
       <div id="canvas-inner">
         <canvas id="serial-crop-canvas"></canvas>
@@ -343,8 +346,14 @@
     </div>
     <div class="serial-crop-actions">
       <button type="button" class="btn btn-secondary btn-sm" id="serial-crop-cancel">Cancel</button>
+      <button type="button" class="btn btn-secondary btn-sm" id="serial-crop-recrop" style="display:none">
+        <i class="fa-solid fa-crop-simple"></i> Re-crop
+      </button>
       <button type="button" class="btn btn-primary btn-sm" id="serial-crop-apply">
         <i class="fa-solid fa-check"></i> Crop &amp; Apply
+      </button>
+      <button type="button" class="btn btn-primary btn-sm" id="serial-crop-confirm" style="display:none">
+        <i class="fa-solid fa-floppy-disk"></i> Confirm &amp; Save
       </button>
     </div>
   </div>

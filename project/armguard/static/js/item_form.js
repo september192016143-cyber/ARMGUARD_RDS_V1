@@ -56,9 +56,13 @@
     var ctx         = canvas.getContext('2d');
     var applyBtn    = document.getElementById('serial-crop-apply');
     var cancelBtn   = document.getElementById('serial-crop-cancel');
+    var confirmBtn  = document.getElementById('serial-crop-confirm');
+    var recropModal = document.getElementById('serial-crop-recrop');
     var previewRow  = document.getElementById('serial-crop-preview-row');
     var previewImg  = document.getElementById('serial-crop-thumb');
     var recropBtn   = document.getElementById('serial-recrop-btn');
+    var enhPanel    = document.getElementById('enhance-panel');
+    var prevBanner  = document.getElementById('crop-preview-banner');
     var zoomInBtn   = document.getElementById('zoom-in-btn');
     var zoomOutBtn  = document.getElementById('zoom-out-btn');
     var zoomRstBtn  = document.getElementById('zoom-reset-btn');
@@ -75,8 +79,10 @@
     var viewPan  = {x: 0, y: 0};
     var sel  = null;
     var drag = null;
-    var originalFile = null;
-    var hasCropped   = false;
+    var originalFile  = null;
+    var hasCropped    = false;
+    var previewMode   = false;
+    var croppedCanvas = null;
 
     function visW() { return img.naturalWidth  / viewZoom; }
     function visH() { return img.naturalHeight / viewZoom; }
@@ -244,6 +250,7 @@
     }
 
     canvas.addEventListener('pointerdown', function (e) {
+      if (previewMode) return;
       e.preventDefault(); canvas.setPointerCapture(e.pointerId);
       var cp = getPos(e), ip = c2i(cp.x, cp.y);
       var handle = hitHandle(cp.x, cp.y);
@@ -260,6 +267,7 @@
     });
 
     canvas.addEventListener('pointermove', function (e) {
+      if (previewMode) return;
       e.preventDefault();
       var cp = getPos(e), ip = c2i(cp.x, cp.y);
       if (!drag) {
@@ -290,6 +298,7 @@
     });
 
     canvas.addEventListener('pointerup', function (e) {
+      if (previewMode) return;
       e.preventDefault(); drag = null;
       if (sel) { sel = normSel(sel); if (sel.w < 2 || sel.h < 2) sel = null; }
       draw(); setCursor('draw');
@@ -298,6 +307,7 @@
     function openCropModal(file) {
       overlay.style.display = 'flex';
       sel = null; drag = null; viewZoom = 1; viewPan = {x:0, y:0};
+      exitPreviewMode();
       enhBrightness.value = 100; enhContrast.value = 100;
       enhSaturation.value = 100; enhSharpness.value = 0;
       updateEnhLabels(); updateZoomUI();
@@ -335,7 +345,21 @@
       var out = document.createElement('canvas');
       out.width = Math.round(s.w); out.height = Math.round(s.h);
       out.getContext('2d').drawImage(sharpened, s.x, s.y, s.w, s.h, 0, 0, s.w, s.h);
-      out.toBlob(function (blob) {
+      // Show the enlarged cropped result for review before saving
+      croppedCanvas = out;
+      previewMode = true;
+      drawPreview(out);
+      applyBtn.style.display    = 'none';
+      confirmBtn.style.display  = '';
+      recropModal.style.display = '';
+      enhPanel.style.display    = 'none';
+      prevBanner.style.display  = '';
+      canvas.style.cursor       = 'default';
+    });
+
+    confirmBtn.addEventListener('click', function () {
+      if (!croppedCanvas) return;
+      croppedCanvas.toBlob(function (blob) {
         var fname = (originalFile ? originalFile.name.replace(/\.[^.]+$/, '') : 'serial') + '_cropped.jpg';
         var f = new File([blob], fname, {type: 'image/jpeg'});
         var dt = new DataTransfer(); dt.items.add(f); fileInput.files = dt.files;
@@ -343,15 +367,50 @@
         previewImg.onload = function () { URL.revokeObjectURL(pu); };
         previewImg.src = pu;
         previewRow.style.display = 'flex';
-        hasCropped = true; closeModal();
+        hasCropped = true;
+        exitPreviewMode();
+        closeModal();
       }, 'image/jpeg', 0.93);
     });
 
+    recropModal.addEventListener('click', function () {
+      exitPreviewMode();
+      draw();
+    });
+
     cancelBtn.addEventListener('click', function () {
+      exitPreviewMode();
       closeModal();
       if (!hasCropped) { fileInput.value = ''; previewRow.style.display = 'none'; originalFile = null; }
     });
     overlay.addEventListener('click', function (e) { if (e.target === overlay) cancelBtn.click(); });
     function closeModal() { overlay.style.display = 'none'; }
+
+    function exitPreviewMode() {
+      previewMode   = false;
+      croppedCanvas = null;
+      applyBtn.style.display    = '';
+      confirmBtn.style.display  = 'none';
+      recropModal.style.display = 'none';
+      enhPanel.style.display    = '';
+      prevBanner.style.display  = 'none';
+      canvas.style.cursor       = 'crosshair';
+    }
+
+    function drawPreview(cropped) {
+      var cw = canvas.width, ch = canvas.height;
+      ctx.clearRect(0, 0, cw, ch);
+      ctx.fillStyle = '#0d0f17';
+      ctx.fillRect(0, 0, cw, ch);
+      var scale = Math.min(cw / cropped.width, ch / cropped.height) * 0.94;
+      var dw = Math.round(cropped.width  * scale);
+      var dh = Math.round(cropped.height * scale);
+      var dx = Math.round((cw - dw) / 2);
+      var dy = Math.round((ch - dh) / 2);
+      ctx.drawImage(cropped, dx, dy, dw, dh);
+      ctx.strokeStyle = 'rgba(201,149,43,0.75)';
+      ctx.lineWidth   = 2;
+      ctx.strokeRect(dx, dy, dw, dh);
+    }
   }
 })();
