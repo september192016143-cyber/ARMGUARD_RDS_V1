@@ -16,9 +16,10 @@
 #   1. Pulls latest code from git
 #   2. Updates pip dependencies
 #   3. Runs database migrations
-#   4. Collects static files
-#   5. Gracefully reloads Gunicorn (zero-downtime)
-#   6. Verifies the service is healthy
+#   4. Downloads Font Awesome 6.5.0 locally (no CDN tracking warnings)
+#   5. Collects static files
+#   6. Gracefully reloads Gunicorn (zero-downtime)
+#   7. Verifies the service is healthy
 # =============================================================================
 
 set -Eeo pipefail
@@ -159,7 +160,7 @@ success "Dependencies updated."
 # 4. Database migrations
 # ---------------------------------------------------------------------------
 if [[ "$SKIP_MIGRATE" == "false" ]]; then
-    step "4/6 Running database migrations"
+    step "4/7 Running database migrations"
     sudo -u "$DEPLOY_USER" bash -c "
         export DJANGO_SETTINGS_MODULE=armguard.settings.production
         [[ -f '$ENV_FILE' ]] && set -a && source <(grep -v '^\s*#' '$ENV_FILE' | grep '=') && set +a
@@ -172,10 +173,56 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 4b. Download Font Awesome locally (eliminates CDN tracking-prevention warning)
+# ---------------------------------------------------------------------------
+step "4b/7 Downloading Font Awesome 6.5.0 to local static files"
+
+FA_VERSION="6.5.0"
+FA_BASE_URL="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/${FA_VERSION}"
+FA_CSS_DIR="$PROJECT_DIR/armguard/static/css/fontawesome"
+FA_WEBFONTS_DIR="$FA_CSS_DIR/webfonts"
+
+FA_WEBFONTS=(
+    "fa-brands-400.woff2"
+    "fa-brands-400.ttf"
+    "fa-regular-400.woff2"
+    "fa-regular-400.ttf"
+    "fa-solid-900.woff2"
+    "fa-solid-900.ttf"
+    "fa-v4compatibility.woff2"
+    "fa-v4compatibility.ttf"
+)
+
+mkdir -p "$FA_CSS_DIR" "$FA_WEBFONTS_DIR"
+
+if wget -q --timeout=30 -O "$FA_CSS_DIR/all.min.css" "${FA_BASE_URL}/css/all.min.css"; then
+    sed -i 's|\.\./webfonts/|webfonts/|g' "$FA_CSS_DIR/all.min.css"
+    success "Font Awesome CSS downloaded."
+else
+    warn "Failed to download Font Awesome CSS. Icons may fall back to CDN."
+fi
+
+FA_FONT_FAILURES=0
+for font in "${FA_WEBFONTS[@]}"; do
+    if ! wget -q --timeout=30 -O "$FA_WEBFONTS_DIR/$font" "${FA_BASE_URL}/webfonts/${font}"; then
+        warn "Failed to download webfont: $font"
+        FA_FONT_FAILURES=$((FA_FONT_FAILURES + 1))
+    fi
+done
+
+sudo -u "$DEPLOY_USER" true 2>/dev/null && chown -R "$DEPLOY_USER:$DEPLOY_USER" "$FA_CSS_DIR" || true
+
+if [[ "$FA_FONT_FAILURES" -eq 0 ]]; then
+    success "All Font Awesome webfonts downloaded."
+else
+    warn "$FA_FONT_FAILURES webfont(s) failed to download."
+fi
+
+# ---------------------------------------------------------------------------
 # 5. Collect static files
 # ---------------------------------------------------------------------------
 if [[ "$SKIP_STATIC" == "false" ]]; then
-    step "5/6 Collecting static files"
+    step "5/7 Collecting static files"
     sudo -u "$DEPLOY_USER" bash -c "
         export DJANGO_SETTINGS_MODULE=armguard.settings.production
         [[ -f '$ENV_FILE' ]] && set -a && source <(grep -v '^\s*#' '$ENV_FILE' | grep '=') && set +a
@@ -191,7 +238,7 @@ fi
 # 6. Reload Gunicorn (graceful — zero downtime)
 # ---------------------------------------------------------------------------
 if [[ "$NO_RESTART" == "false" ]]; then
-    step "6/6 Reloading Gunicorn service"
+    step "6/7 Reloading Gunicorn service"
     if systemctl is-active --quiet "$SERVICE_NAME"; then
         # HUP = graceful reload; workers finish current requests before cycling
         systemctl reload "$SERVICE_NAME" 2>/dev/null || systemctl restart "$SERVICE_NAME"

@@ -19,10 +19,11 @@
 #   4. Clones/copies project files to /var/www/ARMGUARD_RDS_V1/
 #   5. Creates Python virtual environment and installs requirements
 #   6. Generates a production .env file
-#   7. Runs Django migrations and collectstatic
-#   8. Creates and enables systemd service for Gunicorn
-#   9. Installs Nginx configuration
-#  10. Configures UFW firewall
+#   7. Downloads Font Awesome 6.5.0 locally (no CDN tracking warnings)
+#   8. Runs Django migrations and collectstatic
+#   9. Creates and enables systemd service for Gunicorn
+#  10. Installs Nginx configuration
+#  11. Configures UFW firewall
 # =============================================================================
 
 set -Eeo pipefail
@@ -299,7 +300,55 @@ EOF
 fi
 
 # ---------------------------------------------------------------------------
-# 7. Django migrations and static files
+# 7. Download Font Awesome locally (eliminates CDN tracking-prevention warning)
+# ---------------------------------------------------------------------------
+step "Downloading Font Awesome 6.5.0 to local static files"
+
+FA_VERSION="6.5.0"
+FA_BASE_URL="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/${FA_VERSION}"
+FA_CSS_DIR="$PROJECT_DIR/armguard/static/css/fontawesome"
+FA_WEBFONTS_DIR="$FA_CSS_DIR/webfonts"
+
+FA_WEBFONTS=(
+    "fa-brands-400.woff2"
+    "fa-brands-400.ttf"
+    "fa-regular-400.woff2"
+    "fa-regular-400.ttf"
+    "fa-solid-900.woff2"
+    "fa-solid-900.ttf"
+    "fa-v4compatibility.woff2"
+    "fa-v4compatibility.ttf"
+)
+
+mkdir -p "$FA_CSS_DIR" "$FA_WEBFONTS_DIR"
+
+# Download CSS and rewrite ../webfonts/ -> webfonts/ so it resolves correctly
+if wget -q --timeout=30 -O "$FA_CSS_DIR/all.min.css" "${FA_BASE_URL}/css/all.min.css"; then
+    sed -i 's|\.\./webfonts/|webfonts/|g' "$FA_CSS_DIR/all.min.css"
+    success "Font Awesome CSS downloaded."
+else
+    warn "Failed to download Font Awesome CSS. Icons may fall back to CDN."
+fi
+
+# Download webfonts
+FA_FONT_FAILURES=0
+for font in "${FA_WEBFONTS[@]}"; do
+    if ! wget -q --timeout=30 -O "$FA_WEBFONTS_DIR/$font" "${FA_BASE_URL}/webfonts/${font}"; then
+        warn "Failed to download webfont: $font"
+        FA_FONT_FAILURES=$((FA_FONT_FAILURES + 1))
+    fi
+done
+
+chown -R "$DEPLOY_USER:$DEPLOY_USER" "$FA_CSS_DIR"
+
+if [[ "$FA_FONT_FAILURES" -eq 0 ]]; then
+    success "All Font Awesome webfonts downloaded."
+else
+    warn "$FA_FONT_FAILURES webfont(s) failed. Run the update script later to retry."
+fi
+
+# ---------------------------------------------------------------------------
+# 8. Django migrations and static files
 # ---------------------------------------------------------------------------
 step "Running Django setup (migrate + collectstatic)"
 
