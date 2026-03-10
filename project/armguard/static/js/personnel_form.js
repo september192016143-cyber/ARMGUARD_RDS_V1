@@ -45,7 +45,10 @@
   let _pendingBack   = null;
 
   function fetchPreview(face) {
-    const imgEl = face === 'front' ? previewFront : previewBack;
+    const imgEl  = face === 'front' ? previewFront  : previewBack;
+    const phEl   = face === 'front'
+      ? document.getElementById('previewFrontPlaceholder')
+      : document.getElementById('previewBackPlaceholder');
     if (!imgEl) return;
 
     if (face === 'front' && _pendingFront) { _pendingFront.abort(); _pendingFront = null; }
@@ -65,12 +68,27 @@
     })
       .then(r => r.ok ? r.blob() : null)
       .then(blob => {
-        if (!blob) return;
+        if (!blob) {
+          // Server error — keep placeholder visible
+          imgEl.style.display = 'none';
+          if (phEl) phEl.style.display = '';
+          return;
+        }
         const old = imgEl.src;
-        imgEl.src = URL.createObjectURL(blob);
+        const newSrc = URL.createObjectURL(blob);
+        imgEl.onload = function () {
+          imgEl.style.display = 'block';
+          if (phEl) phEl.style.display = 'none';
+        };
+        imgEl.onerror = function () {
+          imgEl.style.display = 'none';
+          if (phEl) phEl.style.display = '';
+          URL.revokeObjectURL(newSrc);
+        };
+        imgEl.src = newSrc;
         if (old && old.startsWith('blob:')) URL.revokeObjectURL(old);
       })
-      .catch(() => {/* aborted or network error — silently ignore */});
+      .catch(() => {/* aborted — silently ignore */});
   }
 
   function schedulePreview() {
@@ -117,6 +135,23 @@
       // Photo uploaded → show front (real image); text/select → show back (live mock)
       if (el.type === 'file') showFront(); else showBack();
     });
+  });
+
+  // Existing card URLs (edit form) — show them immediately if already loaded
+  [['previewFront','previewFrontPlaceholder'],
+   ['previewBack', 'previewBackPlaceholder']].forEach(([imgId, phId]) => {
+    const img = document.getElementById(imgId);
+    const ph  = document.getElementById(phId);
+    if (!img || !ph) return;
+    if (img.src && img.src !== window.location.href) {
+      // src already set (edit form with existing card PNG)
+      if (img.complete && img.naturalWidth > 0) {
+        img.style.display = 'block'; ph.style.display = 'none';
+      } else {
+        img.onload  = () => { img.style.display = 'block'; ph.style.display = 'none'; };
+        img.onerror = () => { img.style.display = 'none';  ph.style.display = ''; };
+      }
+    }
   });
 
   // ── Initial render ───────────────────────────────────────────────────────────

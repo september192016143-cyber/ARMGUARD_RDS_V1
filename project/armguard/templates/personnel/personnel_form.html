@@ -189,16 +189,24 @@
 
           <!-- Front -->
           <div class="flip-card-front">
+            <div class="flip-placeholder" id="previewFrontPlaceholder">
+              <i class="fa-solid fa-id-card"></i>
+              <span>Upload a photo<br>to preview the front</span>
+            </div>
             <img id="previewFront"
-              src="{% if id_card_front_url %}{{ id_card_front_url }}{% else %}data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs={% endif %}"
-              alt="ID Card Front" style="width:100%;height:100%;object-fit:cover;display:block">
+              src="{% if id_card_front_url %}{{ id_card_front_url }}{% endif %}"
+              style="width:100%;height:100%;object-fit:cover;display:none;position:absolute;inset:0">
           </div>
 
           <!-- Back -->
           <div class="flip-card-back">
+            <div class="flip-placeholder" id="previewBackPlaceholder">
+              <i class="fa-solid fa-address-card"></i>
+              <span>Fill in details<br>to preview the back</span>
+            </div>
             <img id="previewBack"
-              src="{% if id_card_back_url %}{{ id_card_back_url }}{% else %}data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs={% endif %}"
-              alt="ID Card Back" style="width:100%;height:100%;object-fit:cover;display:block">
+              src="{% if id_card_back_url %}{{ id_card_back_url }}{% endif %}"
+              style="width:100%;height:100%;object-fit:cover;display:none;position:absolute;inset:0">
           </div>
 
         </div>
