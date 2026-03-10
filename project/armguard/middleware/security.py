@@ -37,6 +37,7 @@ class SecurityHeadersMiddleware:
             "https://fonts.gstatic.com "        # Google Fonts files
             "https://cdnjs.cloudflare.com; "    # Font Awesome font files
         "img-src 'self' data: blob:; "          # QR codes: data: URIs; card preview: blob: URLs
+        "frame-src 'self' blob:; "             # TR PDF preview iframe uses blob: URL
         "connect-src 'self'; "
         "frame-ancestors 'none';"               # Belt+suspenders with X-Frame-Options DENY
     )
