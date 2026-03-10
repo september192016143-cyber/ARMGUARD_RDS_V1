@@ -6,7 +6,7 @@
 {% block page_sub %}Personnel record{% endblock %}
 
 {% block topbar_actions %}
-{% if request.user.profile.role != 'Armorer' %}
+{% if request.user.is_superuser or request.user.profile.role != 'Armorer' %}
 <a href="{% url 'personnel-update' personnel.Personnel_ID %}" class="btn btn-primary btn-sm">
   <i class="fa-solid fa-pen"></i> Edit
 </a>
