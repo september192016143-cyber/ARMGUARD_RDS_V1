@@ -203,7 +203,7 @@ REST_FRAMEWORK = {
 
 # L7 FIX: Security headers safe to set in all environments.
 SECURE_BROWSER_XSS_FILTER = True
-X_FRAME_OPTIONS = 'DENY'
+X_FRAME_OPTIONS = 'SAMEORIGIN'  # Allow self-framing for TR/PDF iframes; external clickjacking still blocked
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = 'same-origin'
 

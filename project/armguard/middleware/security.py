@@ -39,7 +39,7 @@ class SecurityHeadersMiddleware:
         "img-src 'self' data: blob:; "          # QR codes: data: URIs; card preview: blob: URLs
         "frame-src 'self' blob:; "             # TR PDF preview iframe uses blob: URL
         "connect-src 'self'; "
-        "frame-ancestors 'none';"               # Belt+suspenders with X-Frame-Options DENY
+        "frame-ancestors 'self';"               # Allow self-framing (TR/PDF iframes); external framing still blocked
     )
 
     # Disable browser features not required by the application.
