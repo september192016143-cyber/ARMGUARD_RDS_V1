@@ -132,10 +132,15 @@ _git_pull_repo() {
     chown -R "$DEPLOY_USER:$DEPLOY_USER" "$repo_dir/.git"
 
     # Stash any local changes so git pull never aborts
-    local stash_out
-    stash_out=$(sudo -u "$DEPLOY_USER" git -C "$repo_dir" stash 2>&1)
-    local stashed=false
-    echo "$stash_out" | grep -q "Saved working directory" && stashed=true
+    local stash_out stashed=false
+    local dirty
+    dirty=$(sudo -u "$DEPLOY_USER" git -C "$repo_dir" status --porcelain 2>/dev/null || true)
+    if [[ -n "$dirty" ]]; then
+        stash_out=$(sudo -u "$DEPLOY_USER" git -C "$repo_dir" \
+            -c user.email="armguard@localhost" -c user.name="armguard" \
+            stash 2>&1) || true
+        echo "$stash_out" | grep -q "Saved working directory" && stashed=true
+    fi
 
     sudo -u "$DEPLOY_USER" git -C "$repo_dir" fetch --all
     sudo -u "$DEPLOY_USER" git -C "$repo_dir" checkout "$BRANCH"
@@ -143,7 +148,9 @@ _git_pull_repo() {
 
     # Restore local changes (e.g. production settings overrides)
     if [[ "$stashed" == "true" ]]; then
-        sudo -u "$DEPLOY_USER" git -C "$repo_dir" stash pop || \
+        sudo -u "$DEPLOY_USER" git -C "$repo_dir" \
+            -c user.email="armguard@localhost" -c user.name="armguard" \
+            stash pop || \
             warn "Stash pop had conflicts — review manually: git -C $repo_dir stash show"
     fi
 
