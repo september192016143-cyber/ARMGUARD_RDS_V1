@@ -181,14 +181,19 @@ document.addEventListener('DOMContentLoaded', function () {
       if (n.actionUrl && n.id) {
         (function (notifId, actionUrl) {
           var btn = document.createElement('a');
-          btn.href = actionUrl === '#ssl-install' ? '#' : actionUrl;
+          var isSsl = actionUrl === '#ssl-install';
+          btn.href = isSsl ? '#' : actionUrl;
           btn.className = 'notif-action-btn';
-          btn.textContent = 'View Install Guide';
+          btn.textContent = isSsl ? 'View Install Guide' : 'View';
           btn.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation(); // prevent item click from double-firing
             markNotifRead(notifId, null);
-            if (typeof window.openSslModal === 'function') window.openSslModal();
+            if (isSsl && typeof window.openSslModal === 'function') {
+              window.openSslModal();
+            } else if (!isSsl) {
+              window.location.href = actionUrl;
+            }
           });
           el.querySelector('.notif-body').appendChild(btn);
         })(n.id, n.actionUrl);
@@ -472,5 +477,65 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(checkSslCert, 2000);
     setInterval(checkSslCert, SSL_POLL_MS);
   })();
+
+  // ── TR Overdue Notifications ──────────────────────────────────────────────
+  // Polls every 5 minutes for TR withdrawals not returned within 24 hours.
+  // Notifications stay red (unread) while items remain outstanding.
+  // Auto-removed as soon as items are returned (log status → Closed).
+  if (document.body.dataset.poll === '1') {
+    (function () {
+      var TR_OVERDUE_URL    = '/transactions/api/overdue-tr/';
+      var TR_POLL_MS        = 5 * 60 * 1000; // 5 minutes
+      var TR_PREFIX         = 'tr-overdue-';
+
+      function pollOverdueTR() {
+        fetch(TR_OVERDUE_URL, {
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data) return;
+
+          var currentIds = data.overdue.map(function (o) { return TR_PREFIX + o.id; });
+
+          // Remove notifications for logs that are now resolved (returned)
+          getNotifs().filter(function (n) {
+            return n.id && n.id.indexOf(TR_PREFIX) === 0 && currentIds.indexOf(n.id) === -1;
+          }).forEach(function (n) { window.removeNotifById(n.id); });
+
+          // Add or refresh each overdue log
+          data.overdue.forEach(function (log) {
+            var nid = TR_PREFIX + log.id;
+            var msg = log.personnel + ' \u2014 ' + log.items.join(', ') +
+                      ' \u00b7 ' + log.hours_overdue + 'h overdue (\u00b7' + log.status + ')';
+
+            var stored = getNotifs().filter(function (n) { return n.id === nid; });
+            if (stored.length) {
+              // Item still not returned — keep/refresh the notification as unread (red)
+              saveNotifs(getNotifs().map(function (n) {
+                return n.id === nid
+                  ? Object.assign({}, n, { unread: true, msg: msg })
+                  : n;
+              }));
+              window.renderNotifs();
+            } else {
+              window.addNotif(
+                'TR Overdue \u2014 Return Required',
+                msg,
+                'danger', 'fa-circle-exclamation',
+                nid,
+                '/transactions/?search=' + encodeURIComponent(log.personnel)
+              );
+            }
+          });
+        })
+        .catch(function () { /* network error — silently skip */ });
+      }
+
+      // First check after 10 s, then every 5 min
+      setTimeout(function () { pollOverdueTR(); setInterval(pollOverdueTR, TR_POLL_MS); }, 10000);
+    })();
+  }
 
 }); // end DOMContentLoaded

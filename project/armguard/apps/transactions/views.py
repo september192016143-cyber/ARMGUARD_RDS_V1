@@ -347,3 +347,83 @@ def item_status_check(request):
         'serial_image_url': request.build_absolute_uri(item.serial_image.url) if item.serial_image else None,
     }
     return JsonResponse(data)
+
+
+@login_required
+@require_GET
+def overdue_tr_check(request):
+    """
+    Returns all open/partially-returned TR logs where the withdrawal
+    happened more than 24 hours ago.
+    Polled by base.js every 5 minutes to drive overdue notifications.
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+
+    CUTOFF = timezone.now() - timedelta(hours=24)
+
+    WITHDRAW_TS_FIELDS = [
+        'withdraw_pistol_timestamp',
+        'withdraw_rifle_timestamp',
+        'withdraw_pistol_magazine_timestamp',
+        'withdraw_rifle_magazine_timestamp',
+        'withdraw_pistol_ammunition_timestamp',
+        'withdraw_rifle_ammunition_timestamp',
+        'withdraw_pistol_holster_timestamp',
+        'withdraw_magazine_pouch_timestamp',
+        'withdraw_rifle_sling_timestamp',
+        'withdraw_bandoleer_timestamp',
+    ]
+
+    logs = (
+        TransactionLogs.objects
+        .filter(
+            issuance_type='TR (Temporary Receipt)',
+            log_status__in=['Open', 'Partially Returned'],
+        )
+        .select_related('personnel_id')
+    )
+
+    overdue = []
+    now = timezone.now()
+    for log in logs:
+        timestamps = [
+            getattr(log, f) for f in WITHDRAW_TS_FIELDS
+            if getattr(log, f) is not None
+        ]
+        if not timestamps:
+            continue
+        earliest = min(timestamps)
+        if earliest > CUTOFF:
+            continue  # not yet 24 h
+
+        hours_overdue = round((now - earliest).total_seconds() / 3600 - 24, 1)
+
+        p = log.personnel_id
+        if p:
+            personnel_name = ' '.join(filter(None, [p.rank, p.first_name, p.last_name]))
+        else:
+            personnel_name = 'Unknown'
+
+        items = []
+        if log.withdraw_pistol_id:              items.append('Pistol')
+        if log.withdraw_rifle_id:               items.append('Rifle')
+        if log.withdraw_pistol_magazine_id:     items.append('Pistol Mag')
+        if log.withdraw_rifle_magazine_id:      items.append('Rifle Mag')
+        if log.withdraw_pistol_ammunition_id:   items.append('Pistol Ammo')
+        if log.withdraw_rifle_ammunition_id:    items.append('Rifle Ammo')
+        if log.withdraw_pistol_holster_quantity:  items.append('Pistol Holster')
+        if log.withdraw_magazine_pouch_quantity:  items.append('Mag Pouch')
+        if log.withdraw_rifle_sling_quantity:     items.append('Rifle Sling')
+        if log.withdraw_bandoleer_quantity:       items.append('Bandoleer')
+
+        overdue.append({
+            'id':            log.record_id,
+            'personnel':     personnel_name,
+            'items':         items,
+            'status':        log.log_status,
+            'withdrawn_at':  earliest.isoformat(),
+            'hours_overdue': hours_overdue,
+        })
+
+    return JsonResponse({'overdue': overdue})
