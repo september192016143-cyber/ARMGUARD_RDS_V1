@@ -21,9 +21,8 @@
   <div class="stat-card accent-blue">
     <div class="stat-label">Personnel</div>
     <div class="stat-value">{{ total_personnel|intcomma }}</div>
-    <div class="stat-sub">
+    <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:center">
       <span class="text-green">{{ officers_count|intcomma }} Officers</span>
-      &nbsp;·&nbsp;
       <span class="text-red">{{ enlisted_count|intcomma }} Enlisted</span>
     </div>
   </div>
@@ -53,9 +52,8 @@
   <div class="stat-card accent-indigo">
     <div class="stat-label">Magazine Qty</div>
     <div class="stat-value">{{ total_magazine_qty|intcomma }}</div>
-    <div class="stat-sub">
+    <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:center">
       <span class="text-green">{{ short_magazine_available|intcomma }} Short</span>
-      &nbsp;·&nbsp;
       <span class="text-green">{{ long_magazine_available|intcomma }} Long</span>
     </div>
   </div>
@@ -71,9 +69,8 @@
   <div class="stat-card accent-blue">
     <div class="stat-label">Issued</div>
     <div class="stat-value">{{ total_issued|intcomma }}</div>
-    <div class="stat-sub">
+    <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:center">
       <span class="text-orange">{{ issued_TR|intcomma }} TR</span>
-      &nbsp;·&nbsp;
       <span class="text-blue">{{ issued_PAR|intcomma }} PAR</span>
     </div>
   </div>
