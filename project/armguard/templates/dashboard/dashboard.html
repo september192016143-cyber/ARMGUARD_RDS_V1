@@ -64,7 +64,7 @@
     <div class="stat-sub">Total rounds</div>
   </div>
 
-  {# -- Issued card (temporarily disabled) --
+  {% comment %}-- Issued card (temporarily disabled) --
   <div class="stat-card accent-blue">
     <div class="stat-label">Issued</div>
     <div class="stat-value">{{ total_issued|intcomma }}</div>
@@ -74,7 +74,7 @@
       <span class="text-blue">{{ issued_PAR|intcomma }} PAR</span>
     </div>
   </div>
-  #}
+  {% endcomment %}
 
   <div class="stat-card accent-green">
     <div class="stat-label">Transactions Today</div>
@@ -237,7 +237,7 @@
   </div>
 </div>
 
-{# -- Real-time issued stats poller (temporarily disabled) --
+{% comment %}-- Real-time issued stats poller (temporarily disabled) --
 <script>
 (function () {
   'use strict';
@@ -267,7 +267,7 @@
   setInterval(poll, INTERVAL);
 })();
 </script>
-#}
+{% endcomment %}
 
 {% endblock %}
 
