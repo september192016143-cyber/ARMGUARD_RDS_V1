@@ -235,7 +235,11 @@
       </div>
       <div class="sig-right">
         {% if commander_name %}<p class="sig-name">{{ commander_name }}</p>{% endif %}
-        {% if commander_rank or commander_branch %}<p class="sig-info">{{ commander_rank }}{% if commander_rank and commander_branch %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}{{ commander_branch }}</p>{% endif %}
+        {% if commander_rank or commander_branch %}
+        <p class="sig-info" style="display:flex;justify-content:space-between;">
+          <span>{{ commander_rank }}</span><span>{{ commander_branch }}</span>
+        </p>
+        {% endif %}
         <p class="sig-designation">{{ commander_designation }}</p>
       </div>
     </div>
