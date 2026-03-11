@@ -239,6 +239,84 @@
   </div>
 </div>
 
+<!-- ── Magazine Analytics ─────────────────────────────────────────────── -->
+<div class="card" style="display:inline-block;width:fit-content;max-width:100%;margin-top:1.25rem;margin-left:1.25rem;border-left:4px solid #2563eb;box-shadow:0 4px 18px rgba(0,31,107,.13)">
+  <div class="card-header">
+    <span class="card-title">Magazine Analytics</span>
+  </div>
+  <div class="table-wrap" style="overflow-x:auto;margin-top:0.75rem">
+    {% if magazine_rows %}
+    <table class="analytics-table" style="width:auto;border-collapse:collapse;font-size:0.76rem;table-layout:fixed">
+      <colgroup>
+        <col style="width:120px">
+        <col style="width:240px">
+        <col style="width:80px">
+        <col style="width:80px">
+      </colgroup>
+      <thead>
+        <tr style="background:linear-gradient(135deg,#2563eb 0%,#1e40af 100%);color:#fff;text-align:center">
+          <th style="padding:7px 8px">Label</th>
+          <th style="padding:7px 8px">Nomenclature</th>
+          <th style="padding:7px 8px">On Hand</th>
+          <th style="padding:7px 8px">Issued</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in magazine_rows %}
+        <tr>
+          <td style="padding:5px 8px">{{ row.label }}</td>
+          <td style="padding:5px 8px">{{ row.nomenclature }}</td>
+          <td style="padding:5px 8px;text-align:center">{{ row.on_hand|intcomma }}</td>
+          <td style="padding:5px 8px;text-align:center">{{ row.issued|intcomma }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><p>No magazine records found.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Accessories Analytics ─────────────────────────────────────────────── -->
+<div class="card" style="display:inline-block;width:fit-content;max-width:100%;margin-top:1.25rem;margin-left:1.25rem;border-left:4px solid #a21caf;box-shadow:0 4px 18px rgba(0,31,107,.13)">
+  <div class="card-header">
+    <span class="card-title">Accessories Analytics</span>
+  </div>
+  <div class="table-wrap" style="overflow-x:auto;margin-top:0.75rem">
+    {% if accessory_rows %}
+    <table class="analytics-table" style="width:auto;border-collapse:collapse;font-size:0.76rem;table-layout:fixed">
+      <colgroup>
+        <col style="width:120px">
+        <col style="width:240px">
+        <col style="width:80px">
+        <col style="width:80px">
+      </colgroup>
+      <thead>
+        <tr style="background:linear-gradient(135deg,#a21caf 0%,#701a3f 100%);color:#fff;text-align:center">
+          <th style="padding:7px 8px">Label</th>
+          <th style="padding:7px 8px">Nomenclature</th>
+          <th style="padding:7px 8px">On Hand</th>
+          <th style="padding:7px 8px">Issued</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in accessory_rows %}
+        <tr>
+          <td style="padding:5px 8px">{{ row.label }}</td>
+          <td style="padding:5px 8px">{{ row.nomenclature }}</td>
+          <td style="padding:5px 8px;text-align:center">{{ row.on_hand|intcomma }}</td>
+          <td style="padding:5px 8px;text-align:center">{{ row.issued|intcomma }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state"><p>No accessory records found.</p></div>
+    {% endif %}
+  </div>
+</div>
+
 {% comment %}-- Real-time issued stats poller (temporarily disabled) --
 <script>
 (function () {
