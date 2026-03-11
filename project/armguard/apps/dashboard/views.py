@@ -188,12 +188,12 @@ def _build_magazine_table():
     }
     pistol_agg = TransactionLogs.objects.filter(
         log_status__in=open_statuses,
-        pistol_magazine_quantity__isnull=False,
-    ).aggregate(w=Sum('pistol_magazine_quantity'), r=Sum('return_pistol_magazine_quantity'))
+        withdraw_pistol_magazine_quantity__isnull=False,
+    ).aggregate(w=Sum('withdraw_pistol_magazine_quantity'), r=Sum('return_pistol_magazine_quantity'))
     rifle_agg = TransactionLogs.objects.filter(
         log_status__in=open_statuses,
-        rifle_magazine_quantity__isnull=False,
-    ).aggregate(w=Sum('rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
+        withdraw_rifle_magazine_quantity__isnull=False,
+    ).aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
     pistol_issued = max((pistol_agg['w'] or 0) - (pistol_agg['r'] or 0), 0)
     rifle_issued  = max((rifle_agg['w']  or 0) - (rifle_agg['r']  or 0), 0)
 
