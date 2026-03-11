@@ -131,15 +131,28 @@ _git_pull_repo() {
     local repo_dir="$1"
     chown -R "$DEPLOY_USER:$DEPLOY_USER" "$repo_dir/.git"
 
-    # Stash any local changes so git pull never aborts
-    local stash_out stashed=false
+    # Clear any unmerged/conflicted index entries left by previous failed merges.
+    # These block both 'git stash' and 'git pull'. Generated files (e.g. fontawesome
+    # downloaded by this script) should never be tracked anyway.
+    local unmerged
+    unmerged=$(sudo -u "$DEPLOY_USER" git -C "$repo_dir" ls-files --unmerged 2>/dev/null \
+               | awk '{print $4}' | sort -u)
+    if [[ -n "$unmerged" ]]; then
+        while IFS= read -r uf; do
+            rm -f "$repo_dir/$uf"
+            sudo -u "$DEPLOY_USER" git -C "$repo_dir" rm --cached -f "$uf" 2>/dev/null || true
+            warn "Cleared conflicted index entry: $uf"
+        done <<< "$unmerged"
+    fi
+
+    # Stash any local changes (e.g. production settings overrides) so pull never aborts
+    local stashed=false
     local dirty
     dirty=$(sudo -u "$DEPLOY_USER" git -C "$repo_dir" status --porcelain 2>/dev/null || true)
     if [[ -n "$dirty" ]]; then
-        stash_out=$(sudo -u "$DEPLOY_USER" git -C "$repo_dir" \
+        sudo -u "$DEPLOY_USER" git -C "$repo_dir" \
             -c user.email="armguard@localhost" -c user.name="armguard" \
-            stash 2>&1) || true
-        echo "$stash_out" | grep -q "Saved working directory" && stashed=true
+            stash 2>&1 && stashed=true || true
     fi
 
     sudo -u "$DEPLOY_USER" git -C "$repo_dir" fetch --all
