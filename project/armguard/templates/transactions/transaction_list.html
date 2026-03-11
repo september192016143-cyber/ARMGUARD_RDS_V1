@@ -256,7 +256,21 @@
           <td>
             {% if t.pistol %}<span class="badge badge-gray" style="margin-right:.2rem"><i class="fa-solid fa-circle-dot"></i> {{ t.pistol.model|default:"Pistol" }}</span>{% endif %}
             {% if t.rifle  %}<span class="badge badge-gray"><i class="fa-solid fa-staff-snake"></i> {{ t.rifle.model|default:"Rifle" }}</span>{% endif %}
-            {% if not t.pistol and not t.rifle %}<span class="text-muted">Accessories</span>{% endif %}
+            {% if not t.pistol and not t.rifle %}
+              <span class="text-muted">Accessories</span>
+              <div style="margin-top:2px">
+                <span style="color:#2563eb;font-weight:500">Withdrawn Accessories:</span><br>
+                {% if t.pistol_holster_quantity %}
+                  <span style="color:#ef4444">Pistol Holster x{{ t.pistol_holster_quantity }}</span><br>
+                {% endif %}
+                {% if t.magazine_pouch_quantity %}
+                  <span style="color:#ef4444">Magazine Pouch x{{ t.magazine_pouch_quantity }}</span><br>
+                {% endif %}
+                {% if not t.pistol_holster_quantity and not t.magazine_pouch_quantity %}
+                  <span style="color:#ef4444">None</span>
+                {% endif %}
+              </div>
+            {% endif %}
           </td>
           <td class="text-muted" style="font-size:.78rem">{{ t.transaction_personnel|default:"—" }}</td>
           <td class="text-muted" style="font-size:.75rem;white-space:nowrap">{{ t.timestamp|date:"M d, Y" }}<br>{{ t.timestamp|date:"H:i" }}</td>
