@@ -164,6 +164,11 @@ class Transaction(models.Model):
         help_text="Required for PAR issuance: upload signed PAR document (PDF). "
                   "File will be renamed to PAR_rank_lastname_transactionID.pdf automatically."
     )
+    return_by = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Deadline for returning the issued firearm(s). Applicable to TR (Temporary Receipt) withdrawals."
+    )
     # REC-09: Track when the record was last modified (creation is covered by timestamp).
     updated_at = models.DateTimeField(
         auto_now=True,

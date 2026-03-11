@@ -411,6 +411,14 @@ class WithdrawalReturnTransactionForm(TransactionAdminForm):
         widget=forms.TextInput(attrs={'placeholder': 'Enter purpose'}),
     )
 
+    return_by = forms.DateTimeField(
+        required=False,
+        label="Return By",
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'),
+        input_formats=['%Y-%m-%dT%H:%M'],
+        help_text="Deadline for returning the issued firearm(s). Required for TR withdrawals.",
+    )
+
     class Meta(TransactionAdminForm.Meta):
         fields = [
             'transaction_type',
@@ -436,6 +444,7 @@ class WithdrawalReturnTransactionForm(TransactionAdminForm):
             'include_magazine_pouch',
             'include_rifle_sling',
             'include_bandoleer',
+            'return_by',
             'par_document',
             'notes',
         ]
@@ -452,4 +461,10 @@ class WithdrawalReturnTransactionForm(TransactionAdminForm):
                 self.add_error('purpose_other', 'Please specify the purpose.')
             else:
                 cleaned_data['purpose'] = purpose_other
+        # Require return_by for TR withdrawals
+        txn_type = cleaned_data.get('transaction_type')
+        issuance = cleaned_data.get('issuance_type', '')
+        return_by = cleaned_data.get('return_by')
+        if txn_type == 'Withdrawal' and 'TR' in (issuance or '') and not return_by:
+            self.add_error('return_by', 'Return deadline is required for TR withdrawals.')
         return cleaned_data

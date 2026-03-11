@@ -47,6 +47,8 @@ UPPER_FORM = {
     # Signatures
     'received_by': {'x': 88, 'y': 323, 'size': 8},
     'issued_by': {'x': 340, 'y': 323, 'size': 8},
+    # Return deadline
+    'return_by': {'x': 122, 'y': 241, 'size': 8},
 }
 
 # LOWER FORM OFFSET

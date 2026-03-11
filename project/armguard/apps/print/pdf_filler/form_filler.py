@@ -262,6 +262,7 @@ class TransactionFormFiller:
             'notes': transaction.notes or '',
             'accessories_lines': accessories_lines,
             'issued_by': issued_by,
+            'return_by': local_ts.strftime('%d/%m/%Y') if not transaction.return_by else tz.localtime(transaction.return_by).strftime('%d/%m/%Y %H:%M'),
         }
     
     def _add_text_overlays(self, page, data):

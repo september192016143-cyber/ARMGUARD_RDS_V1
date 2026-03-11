@@ -193,6 +193,16 @@
       </div>
     </div>
 
+    <!-- Return By (shown only for TR withdrawals) -->
+    <div id="return-by-section" style="display:none;padding-bottom:.75rem;margin-bottom:.75rem;border-bottom:1px solid #1e293b;">
+      <div class="form-group" style="margin-bottom:0">
+        <label for="id_return_by" class="form-label">Return Deadline <span class="req" id="return-by-req">*</span></label>
+        {{ form.return_by }}
+        <div class="form-hint">Date and time when the firearm(s) must be returned. Required for TR withdrawals.</div>
+        {% if form.return_by.errors %}<div class="form-error">{{ form.return_by.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+
     <!-- PAR Document (shown when PAR issuance) -->
     <div id="par-doc-section" style="display:none;padding-bottom:.75rem;margin-bottom:.75rem;border-bottom:1px solid #1e293b;">
       <div class="form-group" style="margin-bottom:0">

@@ -221,6 +221,7 @@
           <th>Weapon(s)</th>
           <th>Processed By</th>
           <th>Timestamp</th>
+          <th>Return By</th>
           <th style="width:70px"></th>
         </tr>
       </thead>
@@ -259,6 +260,18 @@
           </td>
           <td class="text-muted" style="font-size:.78rem">{{ t.transaction_personnel|default:"—" }}</td>
           <td class="text-muted" style="font-size:.75rem;white-space:nowrap">{{ t.timestamp|date:"M d, Y" }}<br>{{ t.timestamp|date:"H:i" }}</td>
+          <td style="font-size:.75rem;white-space:nowrap">
+            {% if t.return_by %}
+              {% if t.return_by < now %}
+                <span style="color:#ef4444;font-weight:700">{{ t.return_by|date:"M d, Y" }}<br>{{ t.return_by|date:"H:i" }}</span>
+                <span class="badge badge-red" style="font-size:.6rem;display:block;margin-top:.15rem">OVERDUE</span>
+              {% else %}
+                <span style="color:#facc15">{{ t.return_by|date:"M d, Y" }}<br>{{ t.return_by|date:"H:i" }}</span>
+              {% endif %}
+            {% else %}
+              <span class="text-muted">\u2014</span>
+            {% endif %}
+          </td>
           <td>
             <a href="{% url 'transaction-detail' t.transaction_id %}" class="btn btn-secondary btn-sm btn-icon" title="View details">
               <i class="fa-solid fa-eye"></i>

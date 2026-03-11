@@ -7,6 +7,7 @@ from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.db.models import Q, Subquery, OuterRef
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 from .models import Transaction, TransactionLogs
 from .forms import WithdrawalReturnTransactionForm
 from utils.throttle import ratelimit
@@ -74,6 +75,7 @@ class TransactionListView(LoginRequiredMixin, ListView):
         ctx['selected_issuance'] = self.request.GET.get('issuance', '')
         ctx['date_from'] = self.request.GET.get('date_from', '')
         ctx['date_to']   = self.request.GET.get('date_to',   '')
+        ctx['now'] = timezone.now()
         return ctx
 
 
@@ -149,6 +151,7 @@ class TransactionDetailView(LoginRequiredMixin, DetailView):
                                 original_issuance_type = w_txn.issuance_type
                                 break
         ctx['original_issuance_type'] = original_issuance_type
+        ctx['now'] = timezone.now()
         return ctx
 
 

@@ -673,6 +673,22 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
   }
 })();
 
+// ── Return-By deadline section toggle (TR Withdrawal only) ───────────────────
+(function() {
+  var tbType      = document.getElementById('tb_transaction_type');
+  var tbIssuance  = document.getElementById('tb_issuance_type');
+  var returnBySection = document.getElementById('return-by-section');
+  function toggleReturnBy() {
+    if (!returnBySection) return;
+    var isWithdrawal = tbType && tbType.value === 'Withdrawal';
+    var isTR = tbIssuance && (tbIssuance.value || '').toUpperCase().startsWith('TR');
+    returnBySection.style.display = (isWithdrawal && isTR) ? '' : 'none';
+  }
+  if (tbType)     tbType.addEventListener('change', toggleReturnBy);
+  if (tbIssuance) tbIssuance.addEventListener('change', toggleReturnBy);
+  toggleReturnBy();
+})();
+
 // ── Sidebar: personnel ID card + item images ──────────────────────────────────
 (function() {
   var _form = document.getElementById('txn-form');
