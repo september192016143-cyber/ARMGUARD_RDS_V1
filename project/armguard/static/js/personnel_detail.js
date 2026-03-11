@@ -4,6 +4,15 @@
  */
 (function () {
   'use strict';
-  const card = document.getElementById('idFlipCard');
-  if (card) card.addEventListener('click', () => card.classList.toggle('flipped'));
+  function init() {
+    const card = document.getElementById('idFlipCard');
+    if (card) card.addEventListener('click', function () {
+      card.classList.toggle('flipped');
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 }());
