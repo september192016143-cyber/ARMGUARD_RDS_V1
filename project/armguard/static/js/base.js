@@ -12,10 +12,11 @@
  */
 
 // ── 1. Anti-FOUC: restore sidebar collapsed state BEFORE paint ────────────────
-// Guard: document.body is null when this script executes from <head> on the
-// very first parse; only add the class when body is already available.
-if (document.body && localStorage.getItem('sidebarCollapsed') === 'true') {
-  document.body.classList.add('sidebar-collapsed');
+// document.body is null when this script runs from <head>, so we apply the
+// class to <html> (documentElement) which IS available. The DOMContentLoaded
+// handler below syncs it to <body> and removes it from <html>.
+if (localStorage.getItem('sidebarCollapsed') === 'true') {
+  document.documentElement.classList.add('sidebar-collapsed');
 }
 
 // ── 1b. Anti-FOUC: restore light/dark theme BEFORE paint ─────────────────────
@@ -53,6 +54,20 @@ document.addEventListener('DOMContentLoaded', function () {
       applyTheme(current === 'light' ? 'dark' : 'light');
     });
   })();
+
+  // ── Sync sidebar: move anti-FOUC class from <html> to <body> ────────────────
+  // The head script applied sidebar-collapsed to <html>; move it to <body> now.
+  if (document.documentElement.classList.contains('sidebar-collapsed')) {
+    document.body.classList.add('sidebar-collapsed');
+    document.documentElement.classList.remove('sidebar-collapsed');
+  }
+  // transaction-create: auto-collapse if the user currently has it expanded.
+  // We do NOT save this to localStorage so the user's own preference is preserved
+  // when they navigate away from this page.
+  if (document.body.dataset.collapseSidebar === '1' &&
+      !document.body.classList.contains('sidebar-collapsed')) {
+    document.body.classList.add('sidebar-collapsed');
+  }
 
   // Sidebar toggle button (replaces CSP-blocked onclick="toggleSidebar()")
   window.toggleSidebar = function () {

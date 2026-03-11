@@ -275,6 +275,9 @@ a:hover{text-decoration:underline}
 @media(max-width:768px){.sidebar{transform:translateX(-100%)}.main{margin-left:0}.form-row,.form-row.cols-3{grid-template-columns:1fr}}
 
 /* Sidebar collapse */
+/* html.sidebar-collapsed covers the FOUC window (head script → DOMContentLoaded) */
+html.sidebar-collapsed .sidebar{width:56px;overflow:hidden}
+html.sidebar-collapsed .main{margin-left:56px}
 body.sidebar-collapsed .sidebar{width:56px;overflow:hidden}
 body.sidebar-collapsed .main{margin-left:56px}
 body.sidebar-collapsed .sidebar-brand{padding:.75rem;justify-content:center}
