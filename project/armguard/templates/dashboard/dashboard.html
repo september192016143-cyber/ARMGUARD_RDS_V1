@@ -21,7 +21,7 @@
   <div class="stat-card accent-blue">
     <div class="stat-label">Personnel</div>
     <div class="stat-value">{{ total_personnel|intcomma }}</div>
-    <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:center">
+    <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:flex-start">
       <span class="text-green">{{ officers_count|intcomma }} Officers</span>
       <span class="text-red">{{ enlisted_count|intcomma }} Enlisted</span>
     </div>
@@ -52,7 +52,7 @@
   <div class="stat-card accent-indigo">
     <div class="stat-label">Magazine Qty</div>
     <div class="stat-value">{{ total_magazine_qty|intcomma }}</div>
-    <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:center">
+    <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:flex-start">
       <span class="text-green">{{ short_magazine_available|intcomma }} Short</span>
       <span class="text-green">{{ long_magazine_available|intcomma }} Long</span>
     </div>
@@ -69,7 +69,7 @@
   <div class="stat-card accent-blue">
     <div class="stat-label">Issued</div>
     <div class="stat-value">{{ total_issued|intcomma }}</div>
-    <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:center">
+    <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:flex-start">
       <span class="text-orange">{{ issued_TR|intcomma }} TR</span>
       <span class="text-blue">{{ issued_PAR|intcomma }} PAR</span>
     </div>
@@ -78,7 +78,7 @@
   <div class="stat-card accent-green">
     <div class="stat-label">Transactions Today</div>
     <div class="stat-value">{{ total_transactions_today|intcomma }}</div>
-    <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:center">
+    <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:flex-start">
       <span class="text-amber">{{ withdrawals_today|intcomma }} withdrawals</span>
       <span class="text-green">{{ returns_today|intcomma }} returns</span>
     </div>
