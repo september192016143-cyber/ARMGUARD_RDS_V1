@@ -294,6 +294,8 @@ def dashboard_view(request):
             'rifles_available':       Rifle.objects.filter(item_status='Available').count(),
             'rifles_issued':          Rifle.objects.filter(item_status='Issued').count(),
             'total_magazine_qty':     Magazine.objects.aggregate(t=Sum('quantity'))['t'] or 0,
+            'short_magazine_available': Magazine.objects.filter(type='Short').aggregate(t=Sum('quantity'))['t'] or 0,
+            'long_magazine_available':  Magazine.objects.filter(type='Long').aggregate(t=Sum('quantity'))['t'] or 0,
             'total_ammo_qty':         Ammunition.objects.aggregate(t=Sum('quantity'))['t'] or 0,
             'total_transactions':     Transaction.objects.count(),
             'total_transactions_today': withdrawals_today + returns_today,
