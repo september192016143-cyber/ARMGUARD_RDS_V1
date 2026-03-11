@@ -175,6 +175,83 @@ def _build_ammo_table():
     return rows, totals
 
 
+def _build_magazine_table():
+    from armguard.apps.inventory.models import Magazine
+    from armguard.apps.transactions.models import TransactionLogs
+    from django.db.models import Sum
+    from django.urls import reverse
+
+    open_statuses = ('Open', 'Partially Returned')
+    on_stock_map = {
+        row['type']: row['total']
+        for row in Magazine.objects.values('type').annotate(total=Sum('quantity'))
+    }
+    pistol_agg = TransactionLogs.objects.filter(
+        log_status__in=open_statuses,
+        pistol_magazine_quantity__isnull=False,
+    ).aggregate(w=Sum('pistol_magazine_quantity'), r=Sum('return_pistol_magazine_quantity'))
+    rifle_agg = TransactionLogs.objects.filter(
+        log_status__in=open_statuses,
+        rifle_magazine_quantity__isnull=False,
+    ).aggregate(w=Sum('rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
+    pistol_issued = max((pistol_agg['w'] or 0) - (pistol_agg['r'] or 0), 0)
+    rifle_issued  = max((rifle_agg['w']  or 0) - (rifle_agg['r']  or 0), 0)
+
+    MAG_DEFS = [
+        ('Pistol Standard', 'Pistol', 'Pistol Magazine',          pistol_issued),
+        ('Short',           'Rifle',  'Rifle Magazine (Short/20-rnd)', rifle_issued),
+        ('Long',            'Rifle',  'Rifle Magazine (Long/30-rnd)',  rifle_issued),
+    ]
+    list_url = reverse('magazine-list')
+    rows, totals = [], {'on_stock': 0, 'issued': 0}
+    for type_key, label, nomenclature, issued in MAG_DEFS:
+        on_stock = on_stock_map.get(type_key, 0)
+        rows.append(dict(label=label, nomenclature=nomenclature, type=type_key,
+                         on_stock=on_stock, issued=issued, list_url=list_url))
+        totals['on_stock'] += on_stock
+        totals['issued']   += issued
+    return rows, totals
+
+
+def _build_accessory_table():
+    from armguard.apps.inventory.models import Accessory
+    from armguard.apps.transactions.models import TransactionLogs
+    from django.db.models import Sum
+    from django.urls import reverse
+
+    open_statuses = ('Open', 'Partially Returned')
+    on_stock_map = {
+        row['type']: row['total']
+        for row in Accessory.objects.values('type').annotate(total=Sum('quantity'))
+    }
+    agg = TransactionLogs.objects.filter(log_status__in=open_statuses).aggregate(
+        holster_w=Sum('withdraw_pistol_holster_quantity'),
+        holster_r=Sum('return_pistol_holster_quantity'),
+        pouch_w=Sum('withdraw_magazine_pouch_quantity'),
+        pouch_r=Sum('return_magazine_pouch_quantity'),
+        sling_w=Sum('withdraw_rifle_sling_quantity'),
+        sling_r=Sum('return_rifle_sling_quantity'),
+        band_w=Sum('withdraw_bandoleer_quantity'),
+        band_r=Sum('return_bandoleer_quantity'),
+    )
+    ACC_DEFS = [
+        ('Pistol Holster',        'Pistol', 'Pistol Holster',        'holster_w', 'holster_r'),
+        ('Pistol Magazine Pouch', 'Pistol', 'Pistol Magazine Pouch', 'pouch_w',   'pouch_r'),
+        ('Rifle Sling',           'Rifle',  'Rifle Sling',           'sling_w',   'sling_r'),
+        ('Bandoleer',             'Rifle',  'Bandoleer',             'band_w',    'band_r'),
+    ]
+    list_url = reverse('accessory-list')
+    rows, totals = [], {'on_stock': 0, 'issued': 0}
+    for type_key, label, nomenclature, w_key, r_key in ACC_DEFS:
+        on_stock = on_stock_map.get(type_key, 0)
+        issued   = max((agg[w_key] or 0) - (agg[r_key] or 0), 0)
+        rows.append(dict(label=label, nomenclature=nomenclature, type=type_key,
+                         on_stock=on_stock, issued=issued, list_url=list_url))
+        totals['on_stock'] += on_stock
+        totals['issued']   += issued
+    return rows, totals
+
+
 @login_required
 def dashboard_view(request):
     from armguard.apps.personnel.models import Personnel
@@ -231,6 +308,8 @@ def dashboard_view(request):
     context = dict(stats)
     context['inventory_rows'], context['inventory_totals'] = _build_inventory_table()
     context['ammo_rows'], context['ammo_totals'] = _build_ammo_table()
+    context['magazine_rows'], context['magazine_totals'] = _build_magazine_table()
+    context['accessory_rows'], context['accessory_totals'] = _build_accessory_table()
 
     return render(request, 'dashboard/dashboard.html', context)
 
