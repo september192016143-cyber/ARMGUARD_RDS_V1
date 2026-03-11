@@ -92,7 +92,8 @@
 
 <!-- ── Analytics Card (all four tables in one card) ──────────────────────── -->
 <div class="card" style="border-left:4px solid #1867d4;box-shadow:0 4px 18px rgba(0,31,107,.13)">
-  <div style="display:grid;grid-template-columns:auto auto;gap:1.25rem;padding:0.75rem 0">
+  <div style="display:flex;flex-direction:column;gap:1.25rem;padding:0.75rem 0">
+  <div style="display:flex;flex-wrap:nowrap;gap:1.25rem;align-items:flex-start">
 
     <!-- ── Firearm Analytics ─────────────────────────────────── -->
     <div>
@@ -193,6 +194,9 @@
       </div>
     </div>
 
+  </div>{# end row 1 #}
+  <div style="display:flex;flex-wrap:nowrap;gap:1.25rem;align-items:flex-start">
+
     <!-- ── Ammunition Analytics ──────────────────────────────── -->
     <div>
       <div style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #0ca678;margin-bottom:6px">AMMUNITION ANALYTICS</div>
@@ -291,10 +295,12 @@
       </div>
     </div>
 
-  </div>
+  </div>{# end row 2 #}
+
+  </div>{# end flex column #}
 </div>
 
-{% comment %}-- Real-time issued stats poller (temporarily disabled) --
+{% comment %}-- Real-time issued stats poller
 <script>
 (function () {
   'use strict';
