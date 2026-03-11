@@ -436,6 +436,19 @@ def print_transactions(request):
     # ── Daily Firearms Evaluation ──────────────────────────────────────────────
     eval_rows, eval_totals = _firearms_evaluation()
 
+    # ── Armorer: use linked Personnel record; fall back to settings ──────────
+    from armguard.apps.personnel.models import Personnel as _Personnel
+    _armorer_name   = getattr(settings, 'ARMGUARD_ARMORER_NAME', '')
+    _armorer_rank   = getattr(settings, 'ARMGUARD_ARMORER_RANK', '')
+    _armorer_branch = getattr(settings, 'ARMGUARD_ARMORER_BRANCH', 'PAF')
+    try:
+        _p = _Personnel.objects.get(user=request.user)
+        _mi = f' {_p.middle_initial}.' if _p.middle_initial else ''
+        _armorer_name   = f'{_p.first_name}{_mi} {_p.last_name}'.upper()
+        _armorer_rank   = _p.rank
+    except _Personnel.DoesNotExist:
+        pass
+
     context = {
         'transactions': transactions,
         'personnel_id': personnel_id,
@@ -446,9 +459,9 @@ def print_transactions(request):
         # Daily Firearms Evaluation
         'firearms_eval_rows':        eval_rows,
         'firearms_eval_totals':      eval_totals,
-        'armorer_name':              getattr(settings, 'ARMGUARD_ARMORER_NAME', ''),
-        'armorer_rank':              getattr(settings, 'ARMGUARD_ARMORER_RANK', ''),
-        'armorer_branch':            getattr(settings, 'ARMGUARD_ARMORER_BRANCH', 'PAF'),
+        'armorer_name':              _armorer_name,
+        'armorer_rank':              _armorer_rank,
+        'armorer_branch':            _armorer_branch,
         'commander_name':            getattr(settings, 'ARMGUARD_COMMANDER_NAME', ''),
         'commander_rank':            getattr(settings, 'ARMGUARD_COMMANDER_RANK', ''),
         'commander_branch':          getattr(settings, 'ARMGUARD_COMMANDER_BRANCH', ''),
