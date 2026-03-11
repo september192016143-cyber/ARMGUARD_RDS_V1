@@ -353,7 +353,9 @@ document.addEventListener('DOMContentLoaded', function () {
       msgEl.textContent = notif.msg;
       timeEl.textContent = notif.time;
       if (notif.actionUrl) {
-        actionBtn.textContent = notif.actionUrl === '#ssl-install' ? 'View Install Guide' : 'Open';
+        var isTR = notif.id && (notif.id.indexOf('tr-overdue-') === 0 || notif.id.indexOf('tr-warning-') === 0);
+        actionBtn.textContent = notif.actionUrl === '#ssl-install' ? 'View Install Guide'
+                              : isTR ? 'View Transaction' : 'Open';
         actionBtn.style.display = 'inline-block';
       } else {
         actionBtn.style.display = 'none';
@@ -378,11 +380,21 @@ document.addEventListener('DOMContentLoaded', function () {
       closeDetail();
       if (_cur && _cur.actionUrl === '#ssl-install') {
         if (typeof window.openSslModal === 'function') window.openSslModal();
+      } else if (_cur && _cur.actionUrl && _cur.actionUrl !== '#') {
+        window.location.href = _cur.actionUrl;
       }
     });
     dismissBtn.addEventListener('click', function () {
       if (_cur) {
-        // For the SSL cert notification, ack the mtime so the poll won't re-add it
+        var isTRNotif = _cur.id && (
+          _cur.id.indexOf('tr-overdue-') === 0 || _cur.id.indexOf('tr-warning-') === 0
+        );
+        if (isTRNotif) {
+          // TR overdue/warning notifs can only be cleared when the firearm is returned.
+          // Just close the modal — the poll will remove it automatically when resolved.
+          closeDetail();
+          return;
+        }
         if (_cur.id === 'ssl-cert' && typeof window.ackSslCert === 'function') {
           window.ackSslCert();
         } else if (_cur.id) {
