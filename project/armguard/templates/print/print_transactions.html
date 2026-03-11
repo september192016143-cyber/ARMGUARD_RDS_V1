@@ -229,20 +229,13 @@
     <!-- Signature Block -->
     <div class="sig-block">
       <div class="sig-left">
-        <div class="sig-line-space"></div>
-        <div class="sig-line"></div>
-        {% if armorer_rank %}<p class="sig-name">{{ armorer_rank }} {{ armorer_name }}</p>{% else %}<p class="sig-name">{{ armorer_name }}</p>{% endif %}
+        <p class="sig-name">{{ armorer_name }}</p>
+        {% if armorer_rank or armorer_branch %}<p class="sig-info">{{ armorer_rank }}{% if armorer_rank and armorer_branch %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}{{ armorer_branch }}</p>{% endif %}
         <p class="sig-designation">Armorer</p>
       </div>
       <div class="sig-right">
-        {% if commander_name %}
-        <div class="sig-line-space"></div>
-        <p class="sig-name sig-name-top">{{ commander_name }}</p>
-        {% if commander_rank or commander_branch %}<p class="sig-info">{{ commander_rank }}{% if commander_rank and commander_branch %} {% endif %}{{ commander_branch }}</p>{% endif %}
-        {% else %}
-        <div class="sig-line-space"></div>
-        <div class="sig-line"></div>
-        {% endif %}
+        {% if commander_name %}<p class="sig-name">{{ commander_name }}</p>{% endif %}
+        {% if commander_rank or commander_branch %}<p class="sig-info">{{ commander_rank }}{% if commander_rank and commander_branch %}&nbsp;&nbsp;&nbsp;&nbsp;{% endif %}{{ commander_branch }}</p>{% endif %}
         <p class="sig-designation">{{ commander_designation }}</p>
       </div>
     </div>
@@ -329,39 +322,25 @@
   gap: 40px;
 }
 
-.sig-left,
-.sig-right { flex: 1; }
-
-.sig-line-space { height: 48px; }
-
-.sig-line {
-  border-bottom: 1.5px solid #000;
-  margin-bottom: 4px;
-}
+.sig-left { flex: 1; text-align: left; }
+.sig-right { flex: 1; text-align: right; }
 
 .sig-name {
   font-size: 13px;
   font-weight: 700;
-  margin: 2px 0;
-  text-align: center;
+  margin: 0 0 1px;
   text-transform: uppercase;
 }
 
-.sig-name-top { margin-top: 2px; }
-
 .sig-info {
   font-size: 12px;
-  margin: 1px 0;
-  text-align: center;
+  margin: 0 0 1px;
 }
 
 .sig-designation {
   font-size: 12px;
   font-weight: 600;
-  text-align: center;
-  margin: 3px 0 0;
-  border-top: 1.5px solid #000;
-  padding-top: 4px;
+  margin: 0;
 }
 
 /* ── Print overrides ────────────────────────────── */

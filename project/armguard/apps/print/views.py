@@ -448,6 +448,7 @@ def print_transactions(request):
         'firearms_eval_totals':      eval_totals,
         'armorer_name':              getattr(settings, 'ARMGUARD_ARMORER_NAME', ''),
         'armorer_rank':              getattr(settings, 'ARMGUARD_ARMORER_RANK', ''),
+        'armorer_branch':            getattr(settings, 'ARMGUARD_ARMORER_BRANCH', 'PAF'),
         'commander_name':            getattr(settings, 'ARMGUARD_COMMANDER_NAME', ''),
         'commander_rank':            getattr(settings, 'ARMGUARD_COMMANDER_RANK', ''),
         'commander_branch':          getattr(settings, 'ARMGUARD_COMMANDER_BRANCH', ''),
