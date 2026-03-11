@@ -53,8 +53,8 @@
     <div class="stat-label">Magazine Qty</div>
     <div class="stat-value">{{ total_magazine_qty|intcomma }}</div>
     <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:flex-start">
-      <span style="color:#a855f7">Short</span>
-      <span style="color:#eab308">Long</span>
+      <span style="color:#a855f7">{{ short_magazine_available|intcomma }} Short</span>
+      <span style="color:#eab308">{{ long_magazine_available|intcomma }} Long</span>
     </div>
   </div>
 
