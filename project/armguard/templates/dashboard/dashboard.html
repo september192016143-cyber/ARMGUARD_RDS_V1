@@ -81,9 +81,8 @@
   <div class="stat-card accent-green">
     <div class="stat-label">Transactions Today</div>
     <div class="stat-value">{{ total_transactions_today|intcomma }}</div>
-    <div class="stat-sub">
+    <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:center">
       <span class="text-amber">{{ withdrawals_today|intcomma }} withdrawals</span>
-      &nbsp;·&nbsp;
       <span class="text-green">{{ returns_today|intcomma }} returns</span>
     </div>
   </div>
