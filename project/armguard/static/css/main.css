@@ -292,6 +292,7 @@ body.sidebar-collapsed .user-name,body.sidebar-collapsed .user-role{display:none
 body.sidebar-collapsed .user-block{justify-content:center}
 body.sidebar-collapsed .logout-btn{justify-content:center;padding:.4rem .5rem}
 body.sidebar-collapsed .logout-label{display:none}
+body.sidebar-collapsed .theme-label-day,body.sidebar-collapsed .theme-label-night{display:none!important}
 #sidebar-toggle{flex-shrink:0}
 
 /* Tooltip */
