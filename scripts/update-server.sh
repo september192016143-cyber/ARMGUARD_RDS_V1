@@ -125,6 +125,16 @@ fi
 # ---------------------------------------------------------------------------
 step "2/8 Pulling latest code (branch: $BRANCH)"
 
+# Pre-emptively remove generated/downloaded files that are never meant to be
+# tracked by git. If a previous update failed mid-way, these can end up as
+# unmerged (conflicted) index entries that block both 'git stash' and 'git pull'.
+_REPO_DIR="$DEPLOY_DIR"
+[[ -d "$PROJECT_DIR/.git" ]] && _REPO_DIR="$PROJECT_DIR"
+rm -f "$_REPO_DIR/project/armguard/static/css/fontawesome/all.min.css"
+sudo -u "$DEPLOY_USER" git -C "$_REPO_DIR" rm --cached -f \
+    project/armguard/static/css/fontawesome/all.min.css 2>/dev/null || true
+unset _REPO_DIR
+
 # Fix ownership so the armguard user can write to .git/objects
 # (Happens when root previously cloned the repo or ran git operations)
 _git_pull_repo() {
