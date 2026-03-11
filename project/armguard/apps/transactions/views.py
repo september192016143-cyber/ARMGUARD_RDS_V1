@@ -356,15 +356,27 @@ def item_status_check(request):
 @require_GET
 def overdue_tr_check(request):
     """
-    Returns all open/partially-returned TR logs where the withdrawal
-    happened more than 24 hours ago.
-    Polled by base.js every 5 minutes to drive overdue notifications.
+    Returns open/partially-returned TR logs grouped into two tiers:
+      - overdue:  return_by has already passed
+      - warning:  return_by is within the next 2 hours
+    Falls back to withdraw_timestamp + 24 h for legacy records that have no return_by.
+    Polled by base.js every 5 minutes to drive overdue/warning notifications.
     """
     from django.utils import timezone
     from datetime import timedelta
 
-    CUTOFF = timezone.now() - timedelta(hours=24)
-
+    WITHDRAWAL_TXN_FK_FIELDS = [
+        'withdrawal_pistol_transaction_id',
+        'withdrawal_rifle_transaction_id',
+        'withdrawal_pistol_magazine_transaction_id',
+        'withdrawal_rifle_magazine_transaction_id',
+        'withdrawal_pistol_ammunition_transaction_id',
+        'withdrawal_rifle_ammunition_transaction_id',
+        'withdrawal_pistol_holster_transaction_id',
+        'withdrawal_magazine_pouch_transaction_id',
+        'withdrawal_rifle_sling_transaction_id',
+        'withdrawal_bandoleer_transaction_id',
+    ]
     WITHDRAW_TS_FIELDS = [
         'withdraw_pistol_timestamp',
         'withdraw_rifle_timestamp',
@@ -384,29 +396,38 @@ def overdue_tr_check(request):
             issuance_type='TR (Temporary Receipt)',
             log_status__in=['Open', 'Partially Returned'],
         )
-        .select_related('personnel_id')
+        .select_related('personnel_id', *WITHDRAWAL_TXN_FK_FIELDS)
     )
 
-    overdue = []
     now = timezone.now()
-    for log in logs:
-        timestamps = [
-            getattr(log, f) for f in WITHDRAW_TS_FIELDS
-            if getattr(log, f) is not None
-        ]
-        if not timestamps:
-            continue
-        earliest = min(timestamps)
-        if earliest > CUTOFF:
-            continue  # not yet 24 h
+    WARNING_WINDOW = timedelta(hours=2)
 
-        hours_overdue = round((now - earliest).total_seconds() / 3600 - 24, 1)
+    overdue_list = []
+    warning_list = []
+
+    for log in logs:
+        # Gather return_by from all withdrawal Transaction FKs on this log
+        return_by_values = [
+            txn.return_by
+            for field in WITHDRAWAL_TXN_FK_FIELDS
+            for txn in [getattr(log, field)]
+            if txn is not None and getattr(txn, 'return_by', None)
+        ]
+
+        if return_by_values:
+            deadline = min(return_by_values)
+        else:
+            # Legacy fallback: use earliest withdrawal timestamp + 24 h
+            timestamps = [
+                getattr(log, f) for f in WITHDRAW_TS_FIELDS
+                if getattr(log, f) is not None
+            ]
+            if not timestamps:
+                continue
+            deadline = min(timestamps) + timedelta(hours=24)
 
         p = log.personnel_id
-        if p:
-            personnel_name = ' '.join(filter(None, [p.rank, p.first_name, p.last_name]))
-        else:
-            personnel_name = 'Unknown'
+        personnel_name = ' '.join(filter(None, [p.rank, p.first_name, p.last_name])) if p else 'Unknown'
 
         items = []
         if log.withdraw_pistol_id:              items.append('Pistol')
@@ -420,13 +441,28 @@ def overdue_tr_check(request):
         if log.withdraw_rifle_sling_quantity:     items.append('Rifle Sling')
         if log.withdraw_bandoleer_quantity:       items.append('Bandoleer')
 
-        overdue.append({
-            'id':            log.record_id,
-            'personnel':     personnel_name,
-            'items':         items,
-            'status':        log.log_status,
-            'withdrawn_at':  earliest.isoformat(),
-            'hours_overdue': hours_overdue,
-        })
+        # First non-null withdrawal transaction FK → use its ID for a direct detail link
+        txn_id = None
+        for field in WITHDRAWAL_TXN_FK_FIELDS:
+            txn = getattr(log, field)
+            if txn is not None:
+                txn_id = str(txn.transaction_id)
+                break
 
-    return JsonResponse({'overdue': overdue})
+        entry = {
+            'id':             log.record_id,
+            'transaction_id': txn_id,
+            'personnel':      personnel_name,
+            'items':          items,
+            'status':         log.log_status,
+            'return_by':      deadline.isoformat(),
+        }
+
+        if deadline <= now:
+            entry['hours_overdue'] = round((now - deadline).total_seconds() / 3600, 1)
+            overdue_list.append(entry)
+        elif (deadline - now) <= WARNING_WINDOW:
+            entry['minutes_left'] = round((deadline - now).total_seconds() / 60)
+            warning_list.append(entry)
+
+    return JsonResponse({'overdue': overdue_list, 'warning': warning_list})

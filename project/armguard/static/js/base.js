@@ -493,15 +493,32 @@ document.addEventListener('DOMContentLoaded', function () {
     setInterval(checkSslCert, SSL_POLL_MS);
   })();
 
-  // ── TR Overdue Notifications ──────────────────────────────────────────────
-  // Polls every 5 minutes for TR withdrawals not returned within 24 hours.
-  // Notifications stay red (unread) while items remain outstanding.
-  // Auto-removed as soon as items are returned (log status → Closed).
+  // ── TR Overdue / Warning Notifications ───────────────────────────────────
+  // Polls every 5 minutes.
+  // overdue  → return_by has passed       → red  danger notification
+  // warning  → return_by within 2 hours   → amber warning notification
+  // Auto-removed when the log is resolved (status → Closed).
   if (document.body.dataset.poll === '1') {
     (function () {
-      var TR_OVERDUE_URL    = '/transactions/api/overdue-tr/';
-      var TR_POLL_MS        = 5 * 60 * 1000; // 5 minutes
-      var TR_PREFIX         = 'tr-overdue-';
+      var TR_OVERDUE_URL  = '/transactions/api/overdue-tr/';
+      var TR_POLL_MS      = 5 * 60 * 1000; // 5 minutes
+      var OVERDUE_PREFIX  = 'tr-overdue-';
+      var WARNING_PREFIX  = 'tr-warning-';
+
+      function fmtDeadline(iso) {
+        if (!iso) return '';
+        var d = new Date(iso);
+        var mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+        return mo + ' ' + d.getDate() + ', ' + d.getFullYear() + ' ' +
+               String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      }
+
+      function updateNotif(nid, msg) {
+        saveNotifs(getNotifs().map(function (n) {
+          return n.id === nid ? Object.assign({}, n, { unread: true, msg: msg }) : n;
+        }));
+        window.renderNotifs();
+      }
 
       function pollOverdueTR() {
         fetch(TR_OVERDUE_URL, {
@@ -512,35 +529,51 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(function (data) {
           if (!data) return;
 
-          var currentIds = data.overdue.map(function (o) { return TR_PREFIX + o.id; });
+          var overdueIds = (data.overdue || []).map(function (o) { return OVERDUE_PREFIX + o.id; });
+          var warningIds = (data.warning || []).map(function (o) { return WARNING_PREFIX + o.id; });
+          var allActive  = overdueIds.concat(warningIds);
 
-          // Remove notifications for logs that are now resolved (returned)
+          // Remove notifications for logs that are now resolved or no longer active
           getNotifs().filter(function (n) {
-            return n.id && n.id.indexOf(TR_PREFIX) === 0 && currentIds.indexOf(n.id) === -1;
+            return n.id &&
+                   (n.id.indexOf(OVERDUE_PREFIX) === 0 || n.id.indexOf(WARNING_PREFIX) === 0) &&
+                   allActive.indexOf(n.id) === -1;
           }).forEach(function (n) { window.removeNotifById(n.id); });
 
-          // Add or refresh each overdue log
-          data.overdue.forEach(function (log) {
-            var nid = TR_PREFIX + log.id;
+          // ── Overdue (red) ────────────────────────────────────────────────
+          (data.overdue || []).forEach(function (log) {
+            var nid = OVERDUE_PREFIX + log.id;
             var msg = log.personnel + ' \u2014 ' + log.items.join(', ') +
-                      ' \u00b7 ' + log.hours_overdue + 'h overdue (\u00b7' + log.status + ')';
-
-            var stored = getNotifs().filter(function (n) { return n.id === nid; });
-            if (stored.length) {
-              // Item still not returned — keep/refresh the notification as unread (red)
-              saveNotifs(getNotifs().map(function (n) {
-                return n.id === nid
-                  ? Object.assign({}, n, { unread: true, msg: msg })
-                  : n;
-              }));
-              window.renderNotifs();
+                      ' \u00b7 ' + log.hours_overdue + 'h overdue' +
+                      ' \u00b7 Was due: ' + fmtDeadline(log.return_by) +
+                      ' (' + log.status + ')';
+            // If there was a warning notif for this log, replace it
+            window.removeNotifById(WARNING_PREFIX + log.id);
+            if (getNotifs().some(function (n) { return n.id === nid; })) {
+              updateNotif(nid, msg);
             } else {
               window.addNotif(
-                'TR Overdue \u2014 Return Required',
-                msg,
-                'danger', 'fa-circle-exclamation',
-                nid,
-                '/transactions/?search=' + encodeURIComponent(log.personnel)
+                'TR Overdue \u2014 Return Required', msg,
+                'danger', 'fa-circle-exclamation', nid,
+                log.transaction_id ? ('/transactions/' + log.transaction_id + '/') : ('/transactions/?search=' + encodeURIComponent(log.personnel))
+              );
+            }
+          });
+
+          // ── Warning / approaching deadline (amber) ───────────────────────
+          (data.warning || []).forEach(function (log) {
+            var nid = WARNING_PREFIX + log.id;
+            var msg = log.personnel + ' \u2014 ' + log.items.join(', ') +
+                      ' \u00b7 Due in ' + log.minutes_left + ' min' +
+                      ' \u00b7 Return by: ' + fmtDeadline(log.return_by) +
+                      ' (' + log.status + ')';
+            if (getNotifs().some(function (n) { return n.id === nid; })) {
+              updateNotif(nid, msg);
+            } else {
+              window.addNotif(
+                'TR Return Deadline Approaching', msg,
+                'warning', 'fa-clock', nid,
+                log.transaction_id ? ('/transactions/' + log.transaction_id + '/') : ('/transactions/?search=' + encodeURIComponent(log.personnel))
               );
             }
           });
