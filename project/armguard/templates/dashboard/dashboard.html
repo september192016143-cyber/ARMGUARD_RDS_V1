@@ -90,244 +90,234 @@
 
 </div>
 
-<!-- ── Row 1: Firearm Analytics + Magazine Analytics (side-by-side) ─────── -->
-<div style="display:flex;flex-wrap:nowrap;gap:1.25rem;align-items:stretch;overflow-x:auto">
-<!-- ── Inventory Analytics ──────────────────────────────────────────────── -->
-<div class="card" style="flex:0 0 auto;border-left:4px solid #1867d4;box-shadow:0 4px 18px rgba(0,31,107,.13)">
+<!-- ── Analytics Card (all four tables in one card) ──────────────────────── -->
+<div class="card" style="border-left:4px solid #1867d4;box-shadow:0 4px 18px rgba(0,31,107,.13)">
   <div class="card-header">
-    <span class="card-title">Firearm Analytics</span>
+    <span class="card-title">Analytics</span>
   </div>
-  <div class="table-wrap" style="overflow-x:auto;margin-top:0.75rem">
-    {% if inventory_rows %}
-    <table class="analytics-table" style="width:auto;border-collapse:collapse;font-size:0.76rem;table-layout:fixed">
-      <colgroup>
-        <col style="width:240px">
-        <col style="width:80px">
-        <col style="width:80px">
-        <col style="width:80px">
-        <col style="width:80px">
-        <col style="width:80px">
-        <col style="width:80px">
-        <col style="width:80px">
-        <col style="width:50px">
-      </colgroup>
-      <thead>
-        <tr style="background:linear-gradient(135deg,#0d2d5e 0%,#1a3f70 100%);color:#fff;text-align:center">
-          <th rowspan="2" style="text-align:center;padding:7px 8px;border:2px solid rgba(255,255,255,.2);vertical-align:middle;font-size:0.68rem;letter-spacing:.08em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700">NOMENCLATURE</th>
-          <th colspan="3" style="padding:5px 2px;border:2px solid rgba(255,255,255,.2);font-size:0.65rem;font-weight:700;letter-spacing:.06em;color:#ffffff">QUANTITY</th>
-          <th colspan="4" style="padding:5px 2px;border:2px solid rgba(255,255,255,.2);font-size:0.67rem;font-weight:800;letter-spacing:.06em;text-align:center;color:#ffffff">STATUS</th>
-          <th rowspan="2" style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em;color:#ffffff">Action</th>
-        </tr>
-        <tr style="background:linear-gradient(135deg,#1a3f70 0%,#1e4976 100%);color:#fff;text-align:center;font-size:0.63rem;line-height:1.2">
-          <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2)">Possessed</th>
-          <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2)">On Stock</th>
-          <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2)">Issued/<br>Safekeep</th>
-          <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#065f46,#047857)">Serviceable</th>
-          <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309)">Unserviceable</th>
-          <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#7f1d1d,#b91c1c)">Lost</th>
-          <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#1f2937,#374151)">Tampered</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in inventory_rows %}
-        <tr style="border-bottom:1px solid rgba(24,103,212,.1);background:{% if forloop.even %}rgba(24,103,212,.04){% else %}transparent{% endif %};transition:background .15s">
-          <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
-          <td style="padding:5px 4px;text-align:center">{{ row.possessed|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center">{{ row.on_stock|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center">{{ row.issued|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center">{{ row.serviceable|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center{% if row.unserviceable %};color:#d97706;font-weight:700{% endif %}">{{ row.unserviceable|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center{% if row.lost %};color:#dc2626;font-weight:700{% endif %}">{{ row.lost|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center{% if row.tampered %};color:#dc2626;font-weight:700{% endif %}">{{ row.tampered|intcomma }}</td>
-          <td style="padding:3px 4px;text-align:center">
-            <a href="{{ row.list_url }}" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.68rem">View</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-      <tfoot>
-        <tr style="background:linear-gradient(90deg,#1867d4 0%,#1a3f70 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #1867d4;font-size:0.76rem">
-          <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
-          <td style="padding:6px 2px">{{ inventory_totals.possessed|intcomma }}</td>
-          <td style="padding:6px 2px">{{ inventory_totals.on_stock|intcomma }}</td>
-          <td style="padding:6px 2px">{{ inventory_totals.issued|intcomma }}</td>
-          <td style="padding:6px 2px">{{ inventory_totals.serviceable|intcomma }}</td>
-          <td style="padding:6px 2px{% if inventory_totals.unserviceable %};color:#fcd34d{% endif %}">{{ inventory_totals.unserviceable|intcomma }}</td>
-          <td style="padding:6px 2px{% if inventory_totals.lost %};color:#fca5a5{% endif %}">{{ inventory_totals.lost|intcomma }}</td>
-          <td style="padding:6px 2px{% if inventory_totals.tampered %};color:#fca5a5{% endif %}">{{ inventory_totals.tampered|intcomma }}</td>
-          <td></td>
-        </tr>
-      </tfoot>
-    </table>
-    {% else %}
-    <div class="empty-state"><p>No inventory records found.</p></div>
-    {% endif %}
-  </div>
-</div>
+  <div style="display:grid;grid-template-columns:auto 1fr;gap:1.25rem;padding:0.75rem 0">
 
-<!-- ── Magazine Analytics ───────────────────────────────────────────────── -->
-<div class="card" style="flex:1 1 0;min-width:350px;border-left:4px solid #1d4ed8;box-shadow:0 4px 18px rgba(0,31,107,.13);display:flex;flex-direction:column">
-  <div class="card-header">
-    <span class="card-title">Magazine Analytics</span>
-  </div>
-  <div class="table-wrap" style="overflow-x:auto;margin-top:0.75rem;flex:1">
-    <table class="analytics-table" style="width:100%;min-width:400px;border-collapse:collapse;font-size:0.76rem;table-layout:fixed">
-      <colgroup>
-        <col>
-        <col style="width:85px">
-        <col style="width:75px">
-        <col style="width:60px">
-      </colgroup>
-      <thead>
-        <tr style="background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 100%);color:#fff;text-align:center">
-          <th style="padding:7px 8px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em">NOMENCLATURE</th>
-          <th style="padding:7px 4px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;background:linear-gradient(135deg,#065f46,#047857)">ON STOCK</th>
-          <th style="padding:7px 4px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309)">ISSUED</th>
-          <th style="padding:7px 4px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em">ACTION</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in magazine_rows %}
-        <tr style="border-bottom:1px solid rgba(29,78,216,.1);background:{% if forloop.even %}rgba(29,78,216,.04){% else %}transparent{% endif %};transition:background .15s">
-          <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
-          <td style="padding:5px 4px;text-align:center">{{ row.on_stock|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center{% if row.issued %};color:#d97706;font-weight:700{% endif %}">{{ row.issued|intcomma }}</td>
-          <td style="padding:3px 4px;text-align:center"><a href="{{ row.list_url }}" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.68rem">View</a></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-      <tfoot>
-        <tr style="background:linear-gradient(90deg,#1d4ed8 0%,#1e3a8a 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #1d4ed8;font-size:0.76rem">
-          <td colspan="1" style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
-          <td style="padding:6px 2px">{{ magazine_totals.on_stock|intcomma }}</td>
-          <td style="padding:6px 2px{% if magazine_totals.issued %};color:#fcd34d{% endif %}">{{ magazine_totals.issued|intcomma }}</td>
-          <td></td>
-        </tr>
-      </tfoot>
-    </table>
-  </div>
-</div>
-</div>{# end row-1 flex #}
-
-<!-- ── Row 2: Ammunition Analytics + Accessories Analytics (side-by-side) ── -->
-<div style="display:flex;flex-wrap:nowrap;gap:1.25rem;align-items:stretch;overflow-x:auto;margin-top:1.25rem">
-<!-- ── Ammunition Analytics ─────────────────────────────────────────────── -->
-<div class="card" style="flex:0 0 auto;border-left:4px solid #0ca678;box-shadow:0 4px 18px rgba(0,31,107,.13)">
-  <div class="card-header">
-    <span class="card-title">Ammunition Analytics</span>
-  </div>
-  <div class="table-wrap" style="overflow-x:auto;margin-top:0.75rem">
-    {% if ammo_rows %}
-    <table class="analytics-table" style="width:auto;border-collapse:collapse;font-size:0.76rem;table-layout:fixed">
-      <colgroup>
-        <col style="width:240px">
-        <col style="width:80px">
-        <col style="width:80px">
-        <col style="width:80px">
-        <col style="width:80px">
-        <col style="width:80px">
-        <col style="width:80px">
-        <col style="width:80px">
-        <col style="width:50px">
-      </colgroup>
-      <thead>
-        <tr style="background:linear-gradient(135deg,#064e3b 0%,#065f46 100%);color:#fff;text-align:center">
-          <th rowspan="2" style="text-align:center;padding:7px 8px;border:2px solid rgba(255,255,255,.2);vertical-align:middle;font-size:0.68rem;letter-spacing:.08em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700">NOMENCLATURE</th>
-          <th colspan="3" style="padding:5px 2px;border:2px solid rgba(255,255,255,.2);font-size:0.67rem;font-weight:800;letter-spacing:.06em;text-align:center;color:#ffffff">INVENTORY</th>
-          <th rowspan="2" style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em">Unserviceable</th>
-          <th rowspan="2" style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#065f46,#047857);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em">Expenditures</th>
-          <th rowspan="2" style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#0c4a6e,#0369a1);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em">On-hand</th>
-          <th rowspan="2" style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#7f1d1d,#b91c1c);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em">Lost</th>
-          <th rowspan="2" style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em;color:#ffffff">Action</th>
-        </tr>
-        <tr style="background:linear-gradient(135deg,#065f46 0%,#047857 100%);color:#fff;text-align:center;font-size:0.63rem;line-height:1.2">
-          <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2)">Basic Load</th>
-          <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2)">Training</th>
-          <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2)">Issued</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in ammo_rows %}
-        <tr style="border-bottom:1px solid rgba(12,166,120,.1);background:{% if forloop.even %}rgba(12,166,120,.04){% else %}transparent{% endif %};transition:background .15s">
-          <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
-          <td style="padding:5px 4px;text-align:center">{{ row.basic_load|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center">{{ row.training|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center">{{ row.issued|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center{% if row.unserviceable %};color:#d97706;font-weight:700{% endif %}">{{ row.unserviceable|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center">{{ row.expenditures|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center">{{ row.on_hand|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center{% if row.lost %};color:#dc2626;font-weight:700{% endif %}">{{ row.lost|intcomma }}</td>
-          <td style="padding:3px 4px;text-align:center">
-            <a href="{{ row.list_url }}" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.68rem">View</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-      <tfoot>
-        <tr style="background:linear-gradient(90deg,#0ca678 0%,#047857 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #0ca678;font-size:0.76rem">
-          <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
-          <td style="padding:6px 2px">{{ ammo_totals.basic_load|intcomma }}</td>
-          <td style="padding:6px 2px">{{ ammo_totals.training|intcomma }}</td>
-          <td style="padding:6px 2px">{{ ammo_totals.issued|intcomma }}</td>
-          <td style="padding:6px 2px{% if ammo_totals.unserviceable %};color:#fcd34d{% endif %}">{{ ammo_totals.unserviceable|intcomma }}</td>
-          <td style="padding:6px 2px">{{ ammo_totals.expenditures|intcomma }}</td>
-          <td style="padding:6px 2px;font-weight:800">{{ ammo_totals.on_hand|intcomma }}</td>
-          <td style="padding:6px 2px{% if ammo_totals.lost %};color:#fca5a5{% endif %}">{{ ammo_totals.lost|intcomma }}</td>
-          <td></td>
-        </tr>
-      </tfoot>
-    </table>
-    {% else %}
-    <div class="empty-state">
-      <p>No ammunition records found.</p>
+    <!-- ── Firearm Analytics ─────────────────────────────────── -->
+    <div>
+      <div style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #1867d4;margin-bottom:6px">FIREARM ANALYTICS</div>
+      <div style="overflow-x:auto">
+        {% if inventory_rows %}
+        <table class="analytics-table" style="width:auto;border-collapse:collapse;font-size:0.76rem;table-layout:fixed">
+          <colgroup>
+            <col style="width:240px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:50px">
+          </colgroup>
+          <thead>
+            <tr style="background:linear-gradient(135deg,#0d2d5e 0%,#1a3f70 100%);color:#fff;text-align:center">
+              <th rowspan="2" style="text-align:center;padding:7px 8px;border:2px solid rgba(255,255,255,.2);vertical-align:middle;font-size:0.68rem;letter-spacing:.08em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700">NOMENCLATURE</th>
+              <th colspan="3" style="padding:5px 2px;border:2px solid rgba(255,255,255,.2);font-size:0.65rem;font-weight:700;letter-spacing:.06em;color:#ffffff">QUANTITY</th>
+              <th colspan="4" style="padding:5px 2px;border:2px solid rgba(255,255,255,.2);font-size:0.67rem;font-weight:800;letter-spacing:.06em;text-align:center;color:#ffffff">STATUS</th>
+              <th rowspan="2" style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em;color:#ffffff">Action</th>
+            </tr>
+            <tr style="background:linear-gradient(135deg,#1a3f70 0%,#1e4976 100%);color:#fff;text-align:center;font-size:0.63rem;line-height:1.2">
+              <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2)">Possessed</th>
+              <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2)">On Stock</th>
+              <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2)">Issued/<br>Safekeep</th>
+              <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#065f46,#047857)">Serviceable</th>
+              <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309)">Unserviceable</th>
+              <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#7f1d1d,#b91c1c)">Lost</th>
+              <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#1f2937,#374151)">Tampered</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in inventory_rows %}
+            <tr style="border-bottom:1px solid rgba(24,103,212,.1);background:{% if forloop.even %}rgba(24,103,212,.04){% else %}transparent{% endif %};transition:background .15s">
+              <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.possessed|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.on_stock|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.issued|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.serviceable|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center{% if row.unserviceable %};color:#d97706;font-weight:700{% endif %}">{{ row.unserviceable|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center{% if row.lost %};color:#dc2626;font-weight:700{% endif %}">{{ row.lost|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center{% if row.tampered %};color:#dc2626;font-weight:700{% endif %}">{{ row.tampered|intcomma }}</td>
+              <td style="padding:3px 4px;text-align:center"><a href="{{ row.list_url }}" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.68rem">View</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr style="background:linear-gradient(90deg,#1867d4 0%,#1a3f70 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #1867d4;font-size:0.76rem">
+              <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
+              <td style="padding:6px 2px">{{ inventory_totals.possessed|intcomma }}</td>
+              <td style="padding:6px 2px">{{ inventory_totals.on_stock|intcomma }}</td>
+              <td style="padding:6px 2px">{{ inventory_totals.issued|intcomma }}</td>
+              <td style="padding:6px 2px">{{ inventory_totals.serviceable|intcomma }}</td>
+              <td style="padding:6px 2px{% if inventory_totals.unserviceable %};color:#fcd34d{% endif %}">{{ inventory_totals.unserviceable|intcomma }}</td>
+              <td style="padding:6px 2px{% if inventory_totals.lost %};color:#fca5a5{% endif %}">{{ inventory_totals.lost|intcomma }}</td>
+              <td style="padding:6px 2px{% if inventory_totals.tampered %};color:#fca5a5{% endif %}">{{ inventory_totals.tampered|intcomma }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+        {% else %}
+        <div class="empty-state"><p>No inventory records found.</p></div>
+        {% endif %}
+      </div>
     </div>
-    {% endif %}
-  </div>
-</div>
 
-<!-- ── Accessories Analytics ─────────────────────────────────────────────── -->
-<div class="card" style="flex:1 1 0;min-width:350px;border-left:4px solid #7c3aed;box-shadow:0 4px 18px rgba(0,31,107,.13);display:flex;flex-direction:column">
-  <div class="card-header">
-    <span class="card-title">Accessories Analytics</span>
-  </div>
-  <div class="table-wrap" style="overflow-x:auto;margin-top:0.75rem;flex:1">
-    <table class="analytics-table" style="width:100%;min-width:400px;border-collapse:collapse;font-size:0.76rem;table-layout:fixed">
-      <colgroup>
-        <col>
-        <col style="width:85px">
-        <col style="width:75px">
-        <col style="width:60px">
-      </colgroup>
-      <thead>
-        <tr style="background:linear-gradient(135deg,#4c1d95 0%,#7c3aed 100%);color:#fff;text-align:center">
-          <th style="padding:7px 8px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em">NOMENCLATURE</th>
-          <th style="padding:7px 4px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;background:linear-gradient(135deg,#065f46,#047857)">ON STOCK</th>
-          <th style="padding:7px 4px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309)">ISSUED</th>
-          <th style="padding:7px 4px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em">ACTION</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in accessory_rows %}
-        <tr style="border-bottom:1px solid rgba(124,58,237,.1);background:{% if forloop.even %}rgba(124,58,237,.04){% else %}transparent{% endif %};transition:background .15s">
-          <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
-          <td style="padding:5px 4px;text-align:center">{{ row.on_stock|intcomma }}</td>
-          <td style="padding:5px 4px;text-align:center{% if row.issued %};color:#d97706;font-weight:700{% endif %}">{{ row.issued|intcomma }}</td>
-          <td style="padding:3px 4px;text-align:center"><a href="{{ row.list_url }}" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.68rem">View</a></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-      <tfoot>
-        <tr style="background:linear-gradient(90deg,#7c3aed 0%,#4c1d95 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #7c3aed;font-size:0.76rem">
-          <td colspan="1" style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
-          <td style="padding:6px 2px">{{ accessory_totals.on_stock|intcomma }}</td>
-          <td style="padding:6px 2px{% if accessory_totals.issued %};color:#fcd34d{% endif %}">{{ accessory_totals.issued|intcomma }}</td>
-          <td></td>
-        </tr>
-      </tfoot>
-    </table>
+    <!-- ── Magazine Analytics ────────────────────────────────── -->
+    <div>
+      <div style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #1d4ed8;margin-bottom:6px">MAGAZINE ANALYTICS</div>
+      <div style="overflow-x:auto">
+        <table class="analytics-table" style="width:100%;border-collapse:collapse;font-size:0.76rem;table-layout:fixed">
+          <colgroup>
+            <col>
+            <col style="width:85px">
+            <col style="width:75px">
+            <col style="width:60px">
+          </colgroup>
+          <thead>
+            <tr style="background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 100%);color:#fff;text-align:center">
+              <th style="padding:7px 8px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em">NOMENCLATURE</th>
+              <th style="padding:7px 4px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;background:linear-gradient(135deg,#065f46,#047857)">ON STOCK</th>
+              <th style="padding:7px 4px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309)">ISSUED</th>
+              <th style="padding:7px 4px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em">ACTION</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in magazine_rows %}
+            <tr style="border-bottom:1px solid rgba(29,78,216,.1);background:{% if forloop.even %}rgba(29,78,216,.04){% else %}transparent{% endif %};transition:background .15s">
+              <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.on_stock|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center{% if row.issued %};color:#d97706;font-weight:700{% endif %}">{{ row.issued|intcomma }}</td>
+              <td style="padding:3px 4px;text-align:center"><a href="{{ row.list_url }}" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.68rem">View</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr style="background:linear-gradient(90deg,#1d4ed8 0%,#1e3a8a 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #1d4ed8;font-size:0.76rem">
+              <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
+              <td style="padding:6px 2px">{{ magazine_totals.on_stock|intcomma }}</td>
+              <td style="padding:6px 2px{% if magazine_totals.issued %};color:#fcd34d{% endif %}">{{ magazine_totals.issued|intcomma }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Ammunition Analytics ──────────────────────────────── -->
+    <div>
+      <div style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #0ca678;margin-bottom:6px">AMMUNITION ANALYTICS</div>
+      <div style="overflow-x:auto">
+        {% if ammo_rows %}
+        <table class="analytics-table" style="width:auto;border-collapse:collapse;font-size:0.76rem;table-layout:fixed">
+          <colgroup>
+            <col style="width:240px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:80px">
+            <col style="width:50px">
+          </colgroup>
+          <thead>
+            <tr style="background:linear-gradient(135deg,#064e3b 0%,#065f46 100%);color:#fff;text-align:center">
+              <th rowspan="2" style="text-align:center;padding:7px 8px;border:2px solid rgba(255,255,255,.2);vertical-align:middle;font-size:0.68rem;letter-spacing:.08em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700">NOMENCLATURE</th>
+              <th colspan="3" style="padding:5px 2px;border:2px solid rgba(255,255,255,.2);font-size:0.67rem;font-weight:800;letter-spacing:.06em;text-align:center;color:#ffffff">INVENTORY</th>
+              <th rowspan="2" style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em">Unserviceable</th>
+              <th rowspan="2" style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#065f46,#047857);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em">Expenditures</th>
+              <th rowspan="2" style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#0c4a6e,#0369a1);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em">On-hand</th>
+              <th rowspan="2" style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#7f1d1d,#b91c1c);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em">Lost</th>
+              <th rowspan="2" style="padding:5px 4px;border:2px solid rgba(255,255,255,.2);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em;color:#ffffff">Action</th>
+            </tr>
+            <tr style="background:linear-gradient(135deg,#065f46 0%,#047857 100%);color:#fff;text-align:center;font-size:0.63rem;line-height:1.2">
+              <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2)">Basic Load</th>
+              <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2)">Training</th>
+              <th style="padding:5px 4px;border:2px solid rgba(255,255,255,.2)">Issued</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in ammo_rows %}
+            <tr style="border-bottom:1px solid rgba(12,166,120,.1);background:{% if forloop.even %}rgba(12,166,120,.04){% else %}transparent{% endif %};transition:background .15s">
+              <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.basic_load|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.training|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.issued|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center{% if row.unserviceable %};color:#d97706;font-weight:700{% endif %}">{{ row.unserviceable|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.expenditures|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.on_hand|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center{% if row.lost %};color:#dc2626;font-weight:700{% endif %}">{{ row.lost|intcomma }}</td>
+              <td style="padding:3px 4px;text-align:center"><a href="{{ row.list_url }}" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.68rem">View</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr style="background:linear-gradient(90deg,#0ca678 0%,#047857 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #0ca678;font-size:0.76rem">
+              <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
+              <td style="padding:6px 2px">{{ ammo_totals.basic_load|intcomma }}</td>
+              <td style="padding:6px 2px">{{ ammo_totals.training|intcomma }}</td>
+              <td style="padding:6px 2px">{{ ammo_totals.issued|intcomma }}</td>
+              <td style="padding:6px 2px{% if ammo_totals.unserviceable %};color:#fcd34d{% endif %}">{{ ammo_totals.unserviceable|intcomma }}</td>
+              <td style="padding:6px 2px">{{ ammo_totals.expenditures|intcomma }}</td>
+              <td style="padding:6px 2px;font-weight:800">{{ ammo_totals.on_hand|intcomma }}</td>
+              <td style="padding:6px 2px{% if ammo_totals.lost %};color:#fca5a5{% endif %}">{{ ammo_totals.lost|intcomma }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+        {% else %}
+        <div class="empty-state"><p>No ammunition records found.</p></div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ── Accessories Analytics ─────────────────────────────── -->
+    <div>
+      <div style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #7c3aed;margin-bottom:6px">ACCESSORIES ANALYTICS</div>
+      <div style="overflow-x:auto">
+        <table class="analytics-table" style="width:100%;border-collapse:collapse;font-size:0.76rem;table-layout:fixed">
+          <colgroup>
+            <col>
+            <col style="width:85px">
+            <col style="width:75px">
+            <col style="width:60px">
+          </colgroup>
+          <thead>
+            <tr style="background:linear-gradient(135deg,#4c1d95 0%,#7c3aed 100%);color:#fff;text-align:center">
+              <th style="padding:7px 8px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em">NOMENCLATURE</th>
+              <th style="padding:7px 4px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;background:linear-gradient(135deg,#065f46,#047857)">ON STOCK</th>
+              <th style="padding:7px 4px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309)">ISSUED</th>
+              <th style="padding:7px 4px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em">ACTION</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in accessory_rows %}
+            <tr style="border-bottom:1px solid rgba(124,58,237,.1);background:{% if forloop.even %}rgba(124,58,237,.04){% else %}transparent{% endif %};transition:background .15s">
+              <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.on_stock|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center{% if row.issued %};color:#d97706;font-weight:700{% endif %}">{{ row.issued|intcomma }}</td>
+              <td style="padding:3px 4px;text-align:center"><a href="{{ row.list_url }}" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.68rem">View</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr style="background:linear-gradient(90deg,#7c3aed 0%,#4c1d95 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #7c3aed;font-size:0.76rem">
+              <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
+              <td style="padding:6px 2px">{{ accessory_totals.on_stock|intcomma }}</td>
+              <td style="padding:6px 2px{% if accessory_totals.issued %};color:#fcd34d{% endif %}">{{ accessory_totals.issued|intcomma }}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
   </div>
 </div>
-</div>{# end row-2 flex #}
 
 {% comment %}-- Real-time issued stats poller (temporarily disabled) --
 <script>
