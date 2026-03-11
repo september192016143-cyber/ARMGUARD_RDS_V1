@@ -28,6 +28,7 @@
     </div>
   </div>
 
+  {% comment %}-- Pistols card (temporarily disabled) --
   <div class="stat-card accent-amber">
     <div class="stat-label">Pistols</div>
     <div class="stat-value">{{ total_pistols|intcomma }}</div>
@@ -47,6 +48,7 @@
       <span class="text-red">{{ rifles_issued|intcomma }} Issued</span>
     </div>
   </div>
+  {% endcomment %}
 
   <div class="stat-card accent-indigo">
     <div class="stat-label">Magazine Qty</div>
@@ -58,13 +60,14 @@
     </div>
   </div>
 
+  {% comment %}-- Ammo Qty card (temporarily disabled) --
   <div class="stat-card accent-red">
     <div class="stat-label">Ammo Qty</div>
     <div class="stat-value">{{ total_ammo_qty|intcomma }}</div>
     <div class="stat-sub">Total rounds</div>
   </div>
+  {% endcomment %}
 
-  {% comment %}-- Issued card (temporarily disabled) --
   <div class="stat-card accent-blue">
     <div class="stat-label">Issued</div>
     <div class="stat-value">{{ total_issued|intcomma }}</div>
@@ -74,7 +77,6 @@
       <span class="text-blue">{{ issued_PAR|intcomma }} PAR</span>
     </div>
   </div>
-  {% endcomment %}
 
   <div class="stat-card accent-green">
     <div class="stat-label">Transactions Today</div>
