@@ -196,6 +196,15 @@ def dashboard_view(request):
         _officer_ranks = {'2LT', '1LT', 'CPT', 'MAJ', 'LTCOL', 'COL',
                           'BGEN', 'MGEN', 'LTGEN', 'GEN'}
 
+        issued_tr  = Transaction.objects.filter(
+            transaction_type='Withdrawal',
+            issuance_type='TR (Temporary Receipt)',
+        ).count()
+        issued_par = Transaction.objects.filter(
+            transaction_type='Withdrawal',
+            issuance_type='PAR (Property Acknowledgement Receipt)',
+        ).count()
+
         stats = {
             'total_personnel':        Personnel.objects.filter(status='Active').count(),
             'inactive_personnel':     Personnel.objects.filter(status='Inactive').count(),
@@ -213,6 +222,9 @@ def dashboard_view(request):
             'total_transactions_today': withdrawals_today + returns_today,
             'withdrawals_today':      withdrawals_today,
             'returns_today':          returns_today,
+            'issued_TR':              issued_tr,
+            'issued_PAR':             issued_par,
+            'total_issued':           issued_tr + issued_par,
         }
         cache.set(cache_key, stats, 60)
 
@@ -257,3 +269,23 @@ def ssl_cert_status(request):
     if not os.path.isfile(cert_path):
         return JsonResponse({'cert_mtime': 0.0})
     return JsonResponse({'cert_mtime': os.path.getmtime(cert_path)})
+
+
+@login_required
+def issued_stats_json(request):
+    """Return live issued TR/PAR counts — no cache — for real-time polling."""
+    from django.http import JsonResponse
+    from armguard.apps.transactions.models import Transaction
+    issued_tr  = Transaction.objects.filter(
+        transaction_type='Withdrawal',
+        issuance_type='TR (Temporary Receipt)',
+    ).count()
+    issued_par = Transaction.objects.filter(
+        transaction_type='Withdrawal',
+        issuance_type='PAR (Property Acknowledgement Receipt)',
+    ).count()
+    return JsonResponse({
+        'issued_TR':    issued_tr,
+        'issued_PAR':   issued_par,
+        'total_issued': issued_tr + issued_par,
+    })

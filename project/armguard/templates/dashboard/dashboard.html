@@ -235,5 +235,35 @@
   </div>
 </div>
 
+<script>
+(function () {
+  'use strict';
+  var POLL_URL = '{% url "issued-stats-json" %}';
+  var INTERVAL = 15000;
+
+  function fmt(n) {
+    return Number(n).toLocaleString();
+  }
+
+  function updateIssuedCard(data) {
+    var valEl  = document.querySelector('.stat-card.accent-blue .stat-value');
+    var trEl   = document.querySelector('.stat-card.accent-blue .text-orange');
+    var parEl  = document.querySelector('.stat-card.accent-blue .text-blue');
+    if (valEl)  valEl.textContent  = fmt(data.total_issued);
+    if (trEl)   trEl.textContent   = fmt(data.issued_TR)  + ' TR';
+    if (parEl)  parEl.textContent  = fmt(data.issued_PAR) + ' PAR';
+  }
+
+  function poll() {
+    fetch(POLL_URL, { credentials: 'same-origin' })
+      .then(function (r) { if (r.ok) return r.json(); })
+      .then(function (data) { if (data) updateIssuedCard(data); })
+      .catch(function () {});
+  }
+
+  setInterval(poll, INTERVAL);
+})();
+</script>
+
 {% endblock %}
 
