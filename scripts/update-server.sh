@@ -127,20 +127,34 @@ step "2/8 Pulling latest code (branch: $BRANCH)"
 
 # Fix ownership so the armguard user can write to .git/objects
 # (Happens when root previously cloned the repo or ran git operations)
+_git_pull_repo() {
+    local repo_dir="$1"
+    chown -R "$DEPLOY_USER:$DEPLOY_USER" "$repo_dir/.git"
+
+    # Stash any local changes so git pull never aborts
+    local stash_out
+    stash_out=$(sudo -u "$DEPLOY_USER" git -C "$repo_dir" stash 2>&1)
+    local stashed=false
+    echo "$stash_out" | grep -q "Saved working directory" && stashed=true
+
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" fetch --all
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" checkout "$BRANCH"
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" pull origin "$BRANCH"
+
+    # Restore local changes (e.g. production settings overrides)
+    if [[ "$stashed" == "true" ]]; then
+        sudo -u "$DEPLOY_USER" git -C "$repo_dir" stash pop || \
+            warn "Stash pop had conflicts — review manually: git -C $repo_dir stash show"
+    fi
+
+    COMMIT=$(git -C "$repo_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    success "Code updated to commit: $COMMIT"
+}
+
 if [[ -d "$PROJECT_DIR/.git" ]]; then
-    chown -R "$DEPLOY_USER:$DEPLOY_USER" "$PROJECT_DIR/.git"
-    sudo -u "$DEPLOY_USER" git -C "$PROJECT_DIR" fetch --all
-    sudo -u "$DEPLOY_USER" git -C "$PROJECT_DIR" checkout "$BRANCH"
-    sudo -u "$DEPLOY_USER" git -C "$PROJECT_DIR" pull origin "$BRANCH"
-    COMMIT=$(git -C "$PROJECT_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")
-    success "Code updated to commit: $COMMIT"
+    _git_pull_repo "$PROJECT_DIR"
 elif [[ -d "$DEPLOY_DIR/.git" ]]; then
-    chown -R "$DEPLOY_USER:$DEPLOY_USER" "$DEPLOY_DIR/.git"
-    sudo -u "$DEPLOY_USER" git -C "$DEPLOY_DIR" fetch --all
-    sudo -u "$DEPLOY_USER" git -C "$DEPLOY_DIR" checkout "$BRANCH"
-    sudo -u "$DEPLOY_USER" git -C "$DEPLOY_DIR" pull origin "$BRANCH"
-    COMMIT=$(git -C "$DEPLOY_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")
-    success "Code updated to commit: $COMMIT"
+    _git_pull_repo "$DEPLOY_DIR"
 else
     warn "No git repository found. Skipping git pull."
     warn "Copy updated files to $PROJECT_DIR manually."
