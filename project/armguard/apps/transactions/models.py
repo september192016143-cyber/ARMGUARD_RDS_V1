@@ -511,6 +511,14 @@ class Transaction(models.Model):
         # M6: Inherit issuance_type from the matching Withdrawal when not set
         propagate_issuance_type(self)
 
+        # Auto-set return_by to 24 hours after creation for TR withdrawals
+        if (self.transaction_type == 'Withdrawal' and
+                self.issuance_type and 'TR' in self.issuance_type and
+                not self.return_by):
+            from datetime import timedelta
+            from django.utils import timezone as _tz
+            self.return_by = (self.timestamp or _tz.now()) + timedelta(hours=24)
+
         TransactionLogs = apps.get_model('transactions', 'TransactionLogs')
 
         with db_transaction.atomic():

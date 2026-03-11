@@ -683,6 +683,16 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
     var isWithdrawal = tbType && tbType.value === 'Withdrawal';
     var isTR = tbIssuance && (tbIssuance.value || '').toUpperCase().startsWith('TR');
     returnBySection.style.display = (isWithdrawal && isTR) ? '' : 'none';
+    // Pre-fill with now+24h when TR is selected and field is still empty
+    if (isWithdrawal && isTR) {
+      var inp = document.getElementById('id_return_by');
+      if (inp && !inp.value) {
+        var d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        var pad = function(n) { return String(n).padStart(2, '0'); };
+        inp.value = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+                    'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+      }
+    }
   }
   if (tbType)     tbType.addEventListener('change', toggleReturnBy);
   if (tbIssuance) tbIssuance.addEventListener('change', toggleReturnBy);
