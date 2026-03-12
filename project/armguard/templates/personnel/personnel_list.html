@@ -84,7 +84,9 @@
           {% if request.user.is_superuser or request.user.profile.role != 'Armorer' %}
           <td>
             <div class="flex gap-2">
+              {% if can_edit %}
               <a href="{% url 'personnel-update' p.Personnel_ID %}" class="btn btn-secondary btn-sm btn-icon" title="Edit"><i class="fa-solid fa-pen"></i></a>
+            {% endif %}
               {% if request.user.is_superuser or request.user.profile.role == 'System Administrator' %}
               <a href="{% url 'personnel-delete' p.Personnel_ID %}" class="btn btn-secondary btn-sm btn-icon" title="Delete" style="color:var(--red)"><i class="fa-solid fa-trash"></i></a>
               {% endif %}

@@ -101,9 +101,11 @@
     <a href="{% url 'user-list' %}" class="nav-item {% if request.resolver_match.url_name == 'user-list' %}active{% endif %}" title="User Management">
       <i class="fa-solid fa-users-gear nav-icon"></i><span class="nav-label">User Management</span>
     </a>
+    {% if user.is_superuser or user.profile.role == 'System Administrator' or user.profile.role == 'Administrator' and user.profile.perm_can_add %}
     <a href="{% url 'user-add' %}" class="nav-item {% if request.resolver_match.url_name == 'user-add' %}active{% endif %}" title="Add User">
       <i class="fa-solid fa-user-plus nav-icon"></i><span class="nav-label">Add User</span>
     </a>
+    {% endif %}
     {% if user.is_superuser %}
     <a href="{% url 'admin:index' %}" class="nav-item" target="_blank" title="Django Admin">
       <i class="fa-solid fa-screwdriver-wrench nav-icon"></i><span class="nav-label">Django Admin</span>

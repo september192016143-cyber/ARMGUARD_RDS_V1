@@ -168,6 +168,12 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     def test_func(self):
         return _is_admin(self.request.user)
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['can_add'] = _can_add_user(self.request.user)
+        ctx['can_edit'] = _can_edit_user(self.request.user)
+        return ctx
+
 
 class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     template_name = 'users/user_form.html'

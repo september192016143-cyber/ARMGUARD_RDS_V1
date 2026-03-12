@@ -6,9 +6,11 @@
 {% block page_sub %}System accounts and roles{% endblock %}
 
 {% block topbar_actions %}
+{% if can_add %}
 <a href="{% url 'user-add' %}" class="btn btn-primary btn-sm">
   <i class="fa-solid fa-user-plus"></i> Add User
 </a>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -58,7 +60,9 @@
         <td>
           <div class="flex gap-1">
             {% if not u.is_superuser or request.user.is_superuser %}
+            {% if can_edit %}
             <a href="{% url 'user-edit' u.pk %}" class="btn btn-secondary btn-sm btn-icon" title="Edit"><i class="fa-solid fa-pen"></i></a>
+            {% endif %}
             {% if u != request.user %}
             {% if request.user.is_superuser or request.user.profile.role == 'System Administrator' %}
             <button type="button" class="btn btn-secondary btn-sm btn-icon" style="color:var(--red)"
