@@ -12,6 +12,10 @@
 {% endblock %}
 
 {% block content %}
+{# Hidden input — acts as keyboard focus "home base" so scanner chars never land on an open select dropdown #}
+<input type="text" id="aw-scan-capture" autofocus autocomplete="off" tabindex="0"
+  style="position:fixed;left:-9999px;top:-9999px;width:0;height:0;opacity:0;pointer-events:none;"
+  aria-hidden="true">
 <form method="post" style="max-width:600px">
   {% csrf_token %}
   <div class="card" style="margin-bottom:1.25rem">
@@ -70,15 +74,32 @@
 </form>
 
 <script>
-// ── Background keyboard-wedge scanner listener ────────────────────────────────
-// Exact same pattern as transaction_form.js: capture phase, 50 ms threshold.
-// Matches against data-qr (qr_code field), option value (item_id), and option text.
+// ── Assign Weapon QR scanner ──────────────────────────────────────────────────
+// Root cause of select-only pages: if a <select> dropdown is OPEN, the browser
+// intercepts keyboard events at OS level — they never reach JS capture listeners.
+// Fix: keep focus on a hidden off-screen input (autofocus), and blur any focused
+// select the moment we detect a fast-burst (scan) sequence.
 (function () {
+  var captureInput = document.getElementById('aw-scan-capture');
   var buf = '';
   var lastKey = 0;
   var scanning = false;
   var SCANNER_SPEED = 50;
   var MIN_LEN = 3;
+
+  // After user interacts with a select (mouseup = option chosen), return focus
+  // to the hidden capture input so the next scan lands safely.
+  ['pistol-select', 'rifle-select'].forEach(function (id) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    sel.addEventListener('change', function () {
+      if (captureInput) setTimeout(function () { captureInput.focus(); }, 0);
+    });
+    sel.addEventListener('blur', function () {
+      // After select loses focus (option chosen or Esc), re-home to capture input
+      if (captureInput) setTimeout(function () { captureInput.focus(); }, 0);
+    });
+  });
 
   function showQrToast(msg, ok) {
     var t = document.getElementById('aw-qr-toast');
@@ -153,7 +174,16 @@
       scanning = false;
     } else if (gap <= SCANNER_SPEED) {
       buf += e.key;
-      scanning = true;
+      if (!scanning) {
+        // Scan burst detected — immediately close any open select dropdown
+        // by blurring it and moving focus to our safe capture input.
+        var ae = document.activeElement;
+        if (ae && ae.tagName === 'SELECT') {
+          ae.blur();
+          if (captureInput) captureInput.focus();
+        }
+        scanning = true;
+      }
       e.preventDefault();
       e.stopPropagation();
     } else {
