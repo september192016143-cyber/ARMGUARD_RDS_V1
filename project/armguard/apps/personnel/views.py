@@ -346,25 +346,53 @@ class AssignWeaponView(LoginRequiredMixin, UserPassesTestMixin, View):
 		username = request.user.username
 		now = timezone.now()
 
-		# Clear then re-assign pistol
+		# ── Pistol ────────────────────────────────────────────────────────────
+		# Clear existing pistol FK assignments for this person
 		for p in personnel.pistols_assigned.all():
 			p.set_assigned(None, None, None)
+		# Clear Personnel CharField mirror
+		personnel.set_assigned('pistol', None, None, None)
+
 		pistol_id = request.POST.get('pistol')
 		if pistol_id:
 			try:
-				pistol = Pistol.objects.get(pk=pistol_id)
+				pistol = Pistol.objects.select_related('item_assigned_to').get(pk=pistol_id)
+				# If this pistol was assigned to a DIFFERENT person, clear their CharField mirror
+				if pistol.item_assigned_to_id and pistol.item_assigned_to_id != personnel.pk:
+					try:
+						old_owner = Personnel.objects.get(pk=pistol.item_assigned_to_id)
+						old_owner.set_assigned('pistol', None, None, None)
+					except Personnel.DoesNotExist:
+						pass
+				# FK side (inventory)
 				pistol.set_assigned(personnel.pk, now, username)
+				# Personnel CharField mirror
+				personnel.set_assigned('pistol', pistol.item_id, now, username)
 			except Pistol.DoesNotExist:
 				pass
 
-		# Clear then re-assign rifle
+		# ── Rifle ─────────────────────────────────────────────────────────────
+		# Clear existing rifle FK assignments for this person
 		for r in personnel.rifles_assigned.all():
 			r.set_assigned(None, None, None)
+		# Clear Personnel CharField mirror
+		personnel.set_assigned('rifle', None, None, None)
+
 		rifle_id = request.POST.get('rifle')
 		if rifle_id:
 			try:
-				rifle = Rifle.objects.get(pk=rifle_id)
+				rifle = Rifle.objects.select_related('item_assigned_to').get(pk=rifle_id)
+				# If this rifle was assigned to a DIFFERENT person, clear their CharField mirror
+				if rifle.item_assigned_to_id and rifle.item_assigned_to_id != personnel.pk:
+					try:
+						old_owner = Personnel.objects.get(pk=rifle.item_assigned_to_id)
+						old_owner.set_assigned('rifle', None, None, None)
+					except Personnel.DoesNotExist:
+						pass
+				# FK side (inventory)
 				rifle.set_assigned(personnel.pk, now, username)
+				# Personnel CharField mirror
+				personnel.set_assigned('rifle', rifle.item_id, now, username)
 			except Rifle.DoesNotExist:
 				pass
 
