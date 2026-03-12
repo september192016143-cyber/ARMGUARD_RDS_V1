@@ -104,6 +104,11 @@ class PersonnelListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 			qs = qs.filter(group=group)
 		return qs
 
+	def render_to_response(self, context, **response_kwargs):
+		if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+			return render(self.request, 'personnel/personnel_rows.html', context)
+		return super().render_to_response(context, **response_kwargs)
+
 	def get_context_data(self, **kwargs):
 		ctx = super().get_context_data(**kwargs)
 		ctx['groups'] = Personnel.objects.values_list('group', flat=True).distinct().exclude(group__isnull=True).exclude(group='')
