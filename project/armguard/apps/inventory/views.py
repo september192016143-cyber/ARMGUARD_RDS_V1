@@ -163,6 +163,12 @@ class RifleListView(LoginRequiredMixin, ListView):
         ctx['can_delete'] = can_delete(self.request.user)
         return ctx
 
+    def render_to_response(self, context, **response_kwargs):
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            from django.shortcuts import render as _render
+            return _render(self.request, 'inventory/rifle_rows.html', context)
+        return super().render_to_response(context, **response_kwargs)
+
 
 class RifleCreateView(_InventorySaveMixin, CreateView):
     model = Rifle
