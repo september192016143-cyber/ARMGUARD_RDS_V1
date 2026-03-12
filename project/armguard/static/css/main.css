@@ -284,9 +284,11 @@ a:hover{text-decoration:underline}
 /* ── Responsive — Tablet (769-1024px) ───────────────────────────────────── */
 @media(max-width:1024px){
   :root{--sidebar-w:200px}
-  .stat-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .stat-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
   .page-body{padding:1.25rem}
   .topbar{padding:.65rem 1.25rem}
+  /* Analytics pairs: allow stacking when sidebar is open and screen is ~900-1024px */
+  .analytics-table{font-size:0.72rem !important}
 }
 
 /* ── Responsive — Mobile (≤768px) ───────────────────────────────────────── */
