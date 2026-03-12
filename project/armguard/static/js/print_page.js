@@ -10,9 +10,12 @@ document.addEventListener('click', function (e) {
   }
 });
 
-// Auto-print when body carries data-autoprint (used by bare print pages)
+// Auto-print when body carries data-autoprint (used by bare print pages).
+// Close the popup window automatically after the print dialog is dismissed
+// (whether the user clicked Print or Cancel).
 if (document.body && document.body.hasAttribute('data-autoprint')) {
   window.addEventListener('load', function () {
+    window.onafterprint = function () { window.close(); };
     window.print();
   });
 }
