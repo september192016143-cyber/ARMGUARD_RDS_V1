@@ -238,6 +238,7 @@ if [[ -d "$PROJECT_ROOT/project" ]]; then
               --exclude='.git' --exclude='venv' \
               --exclude='*.db' --exclude='backups' \
               --exclude='logs' --exclude='staticfiles' \
+              --exclude='media' \
               "$PROJECT_ROOT/project/" "$PROJECT_DIR/"
     rsync -a --exclude='.git' \
               "$PROJECT_ROOT/requirements.txt" "$DEPLOY_DIR/"
@@ -498,7 +499,10 @@ NGINX_ENABLED="/etc/nginx/sites-enabled/$NGINX_CONF_NAME"
 STATIC_ROOT="$PROJECT_DIR/staticfiles"
 MEDIA_ROOT="$PROJECT_DIR/media"
 
-if [[ -f "$SCRIPT_DIR/nginx-armguard.conf" ]]; then
+if [[ -f "$NGINX_AVAILABLE" ]]; then
+    info "Nginx config already exists at $NGINX_AVAILABLE — skipping (preserves SSL config)."
+    info "To reset it: sudo rm $NGINX_AVAILABLE && sudo bash scripts/deploy.sh ..."
+elif [[ -f "$SCRIPT_DIR/nginx-armguard.conf" ]]; then
     sed "s|__DOMAIN__|$DOMAIN|g; s|__LAN_IP__|$LAN_IP|g; \
          s|__STATIC_ROOT__|$STATIC_ROOT|g; \
          s|__MEDIA_ROOT__|$MEDIA_ROOT|g" \
