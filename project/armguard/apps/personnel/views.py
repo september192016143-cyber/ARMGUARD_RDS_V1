@@ -136,11 +136,11 @@ class PersonnelDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 		front_file = os.path.join(card_dir, f"{pid}_front.png")
 		back_file  = os.path.join(card_dir, f"{pid}_back.png")
 		context['id_card_front_url'] = (
-			f"{settings.MEDIA_URL}personnel_id_cards/{pid}_front.png"
+			f"{settings.MEDIA_URL}personnel_id_cards/{pid}_front.png?v={int(os.path.getmtime(front_file))}"
 			if os.path.exists(front_file) else None
 		)
 		context['id_card_back_url'] = (
-			f"{settings.MEDIA_URL}personnel_id_cards/{pid}_back.png"
+			f"{settings.MEDIA_URL}personnel_id_cards/{pid}_back.png?v={int(os.path.getmtime(back_file))}"
 			if os.path.exists(back_file) else None
 		)
 		# Assigned & issued weapons
@@ -205,11 +205,11 @@ class PersonnelUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 		front_file = os.path.join(card_dir, f"{pid}_front.png")
 		back_file  = os.path.join(card_dir, f"{pid}_back.png")
 		context['id_card_front_url'] = (
-			f"{settings.MEDIA_URL}personnel_id_cards/{pid}_front.png"
+			f"{settings.MEDIA_URL}personnel_id_cards/{pid}_front.png?v={int(os.path.getmtime(front_file))}"
 			if os.path.exists(front_file) else None
 		)
 		context['id_card_back_url'] = (
-			f"{settings.MEDIA_URL}personnel_id_cards/{pid}_back.png"
+			f"{settings.MEDIA_URL}personnel_id_cards/{pid}_back.png?v={int(os.path.getmtime(back_file))}"
 			if os.path.exists(back_file) else None
 		)
 		return context
