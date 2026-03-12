@@ -467,7 +467,7 @@ def print_transactions(request):
         'commander_branch':          getattr(settings, 'ARMGUARD_COMMANDER_BRANCH', ''),
         'commander_designation':     getattr(settings, 'ARMGUARD_COMMANDER_DESIGNATION', 'Squadron Commander'),
     }
-    return render(request, 'print/print_transactions.html', context)
+    return render(request, 'print/print_transactions_bare.html' if request.GET.get('bare') else 'print/print_transactions.html', context)
 
 
 @login_required

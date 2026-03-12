@@ -1,0 +1,169 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+{# Empty title so the browser's print header shows nothing #}
+<title></title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+@page { size: A4 portrait; margin: 0; }
+
+html, body {
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ── Wrapper with page padding (replaces @page margin) ── */
+.report {
+  padding: 1.5cm 1.5cm 1.5cm 1.5cm;
+  width: 100%;
+}
+
+/* ── Header ── */
+.eval-header { text-align: center; margin-bottom: 18px; }
+.eval-title {
+  font-size: 16pt;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #000;
+}
+.eval-date { font-size: 11pt; color: #333; margin-top: 3px; }
+
+/* ── Table ── */
+.eval-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+  margin-bottom: 28px;
+}
+.eval-table th,
+.eval-table td {
+  border: 1.5px solid #000;
+  padding: 5pt 7pt;
+  text-align: center;
+  color: #000;
+}
+.eval-table thead tr { background: #d0d0d0; }
+.eval-table th {
+  font-weight: 700;
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #d0d0d0;
+}
+.eval-table td.col-nomenclature { text-align: left; font-weight: 600; }
+.eval-table th.col-nomenclature { text-align: left; }
+.col-total { font-weight: 700; }
+.totals-row td { background: #ececec; font-weight: 700; }
+
+/* ── Signature Block ── */
+.sig-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  margin-top: 20px;
+}
+.sig-block {
+  border-collapse: collapse;
+  border: none;
+  width: auto;
+  table-layout: auto;
+}
+.sig-block td { border: none; padding: 0; }
+.sig-block-name {
+  font-size: 11pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-align: left;
+  padding-bottom: 1px;
+}
+.sig-block-rank  { font-size: 10pt; text-align: left;  white-space: nowrap; padding-right: 1em; }
+.sig-block-branch{ font-size: 10pt; text-align: right; white-space: nowrap; }
+.sig-block-desig { font-size: 10pt; font-weight: 600; text-align: center; padding-top: 1px; }
+</style>
+</head>
+<body data-autoprint>
+
+<div class="report">
+
+  <div class="eval-header">
+    <div class="eval-title">DAILY FIREARMS INVENTORY REPORT</div>
+    <div class="eval-date">Date: {% now "d F Y" %}</div>
+  </div>
+
+  <table class="eval-table">
+    <thead>
+      <tr>
+        <th class="col-nomenclature">NOMENCLATURE</th>
+        <th class="col-num">STOCK</th>
+        <th class="col-num">PAR</th>
+        <th class="col-num">TR</th>
+        <th class="col-num">UNSERVICEABLE</th>
+        <th class="col-total">TOTAL POSSESSED</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in firearms_eval_rows %}
+      <tr>
+        <td class="col-nomenclature">{{ row.label }}</td>
+        <td class="col-num">{{ row.stock }}</td>
+        <td class="col-num">{{ row.par }}</td>
+        <td class="col-num">{{ row.tr }}</td>
+        <td class="col-num">{{ row.unserviceable }}</td>
+        <td class="col-total">{{ row.total }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="totals-row">
+        <td class="col-nomenclature"><strong>TOTAL</strong></td>
+        <td class="col-num"><strong>{{ firearms_eval_totals.stock }}</strong></td>
+        <td class="col-num"><strong>{{ firearms_eval_totals.par }}</strong></td>
+        <td class="col-num"><strong>{{ firearms_eval_totals.tr }}</strong></td>
+        <td class="col-num"><strong>{{ firearms_eval_totals.unserviceable }}</strong></td>
+        <td class="col-total"><strong>{{ firearms_eval_totals.total }}</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Signature Block -->
+  <div class="sig-wrapper">
+    <!-- Armorer (left) -->
+    <div>
+      <table class="sig-block">
+        <tr><td colspan="2" class="sig-block-name">{{ armorer_name }}</td></tr>
+        {% if armorer_rank or armorer_branch %}
+        <tr>
+          <td class="sig-block-rank">{{ armorer_rank }}</td>
+          <td class="sig-block-branch">{{ armorer_branch }}</td>
+        </tr>
+        {% endif %}
+        <tr><td colspan="2" class="sig-block-desig">Armorer</td></tr>
+      </table>
+    </div>
+    <!-- Commander (right) -->
+    <div>
+      <table class="sig-block">
+        <tr><td colspan="2" class="sig-block-name">{{ commander_name }}</td></tr>
+        {% if commander_rank or commander_branch %}
+        <tr>
+          <td class="sig-block-rank">{{ commander_rank }}</td>
+          <td class="sig-block-branch">{{ commander_branch }}</td>
+        </tr>
+        {% endif %}
+        <tr><td colspan="2" class="sig-block-desig">{{ commander_designation }}</td></tr>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /.report -->
+
+<script src="{% static 'js/print_page.js' %}"></script>
+</body>
+</html>
