@@ -89,15 +89,17 @@ class PersonnelListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 		from django.db.models import Q
 		qs = Personnel.objects.order_by('rank', 'last_name')
 		q = self.request.GET.get('q', '').strip()
-		status = self.request.GET.get('status', '').strip()
+		category = self.request.GET.get('category', '').strip()
 		group = self.request.GET.get('group', '').strip()
 		if q:
 			qs = qs.filter(
 				Q(first_name__icontains=q) | Q(last_name__icontains=q) |
 				Q(Personnel_ID__icontains=q) | Q(AFSN__icontains=q)
 			)
-		if status:
-			qs = qs.filter(status=status)
+		if category == 'Officer':
+			qs = qs.filter(rank__in=_RANKS_OFFICER)
+		elif category == 'Enlisted':
+			qs = qs.filter(rank__in=_RANKS_ENLISTED)
 		if group:
 			qs = qs.filter(group=group)
 		return qs
