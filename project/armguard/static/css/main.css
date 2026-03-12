@@ -271,8 +271,85 @@ a:hover{text-decoration:underline}
 .ml-auto{margin-left:auto}
 .divider{border:none;border-top:1px solid var(--border);margin:1rem 0}
 
-/* Responsive */
-@media(max-width:768px){.sidebar{transform:translateX(-100%)}.main{margin-left:0}.form-row,.form-row.cols-3{grid-template-columns:1fr}}
+/* ── Mobile hamburger — hidden on desktop ────────────────────────────────── */
+.mobile-menu-btn{display:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:.375rem;background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--text);cursor:pointer;flex-shrink:0;transition:background .15s}
+.mobile-menu-btn:hover{background:rgba(255,255,255,.16)}
+[data-theme="light"] .mobile-menu-btn{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.22)}
+[data-theme="light"] .mobile-menu-btn:hover{background:rgba(255,255,255,.22)}
+
+/* ── Sidebar overlay backdrop ────────────────────────────────────────────── */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99;cursor:pointer}
+.sidebar-overlay.active{display:block}
+
+/* ── Responsive — Tablet (769-1024px) ───────────────────────────────────── */
+@media(max-width:1024px){
+  :root{--sidebar-w:200px}
+  .stat-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .page-body{padding:1.25rem}
+  .topbar{padding:.65rem 1.25rem}
+}
+
+/* ── Responsive — Mobile (≤768px) ───────────────────────────────────────── */
+@media(max-width:768px){
+  /* Sidebar: off-screen drawer */
+  .sidebar{transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);width:240px!important;overflow-y:auto!important}
+  .sidebar.mobile-open{transform:translateX(0)}
+
+  /* Main: always full width on mobile */
+  .main{margin-left:0!important}
+
+  /* Show hamburger */
+  .mobile-menu-btn{display:flex}
+
+  /* Topbar: tighter, allow wrap */
+  .topbar{padding:.6rem 1rem;gap:.5rem;flex-wrap:wrap}
+  .topbar-title{font-size:.9rem}
+  .topbar-sub{font-size:.72rem;margin-left:.2rem}
+  .topbar-actions{width:100%}
+
+  /* Page body */
+  .page-body{padding:1rem}
+
+  /* Forms: single column */
+  .form-row,.form-row.cols-3{grid-template-columns:1fr}
+
+  /* Stats: 2 cols */
+  .stat-grid{grid-template-columns:repeat(2,1fr);gap:.65rem}
+  .stat-value{font-size:1.4rem}
+  .stat-card{padding:.85rem 1rem}
+
+  /* Tables: horizontal scroll */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:520px}
+
+  /* Cards */
+  .card{padding:1rem}
+
+  /* Notification panel: full-ish width */
+  .notif-panel{width:min(320px,90vw);right:0}
+
+  /* Filter + search */
+  .filter-bar{gap:.35rem}
+  .search-bar{flex-wrap:wrap}
+  .search-bar .form-control{max-width:100%;width:100%}
+
+  /* Buttons: stay readable */
+  .btn{font-size:.8rem;padding:.4rem .75rem}
+
+  /* Prevent background scroll when drawer open */
+  body.sidebar-open{overflow:hidden}
+}
+
+/* ── Responsive — Very small (≤480px) ───────────────────────────────────── */
+@media(max-width:480px){
+  html{font-size:14px}
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .page-body{padding:.75rem}
+  .card{padding:.75rem}
+  .topbar-title{font-size:.82rem}
+  .notif-panel{width:94vw;right:-.25rem}
+  .topbar-sub{display:none}
+}
 
 /* Sidebar collapse */
 /* html.sidebar-collapsed covers the FOUC window (head script → DOMContentLoaded) */

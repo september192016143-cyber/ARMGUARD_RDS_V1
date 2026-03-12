@@ -15,6 +15,7 @@
 {# C2 FIX: data-poll activates G13 inventory polling for authenticated users only (replaces inline auth-block script). #}
 {# F6 FIX: data-last-modified-url passes the API endpoint URL so base.js doesn't need to hardcode it. #}
 <body data-poll="{% if user.is_authenticated %}1{% endif %}" data-last-modified-url="{% url 'api:api-last-modified' %}"{% if request.resolver_match.url_name == 'transaction-create' %} data-collapse-sidebar="1"{% endif %}>
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
 <aside class="sidebar">
   <div class="sidebar-brand">
     <img src="{% static 'images/logo.png' %}" id="sidebar-toggle" title="Toggle sidebar" style="cursor:pointer;width:40px;height:40px;object-fit:contain;border-radius:.5rem;" alt="ArmGuard RDS">
@@ -137,6 +138,9 @@
 </aside>
 <div class="main">
   <div class="topbar">
+    <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open navigation">
+      <i class="fa-solid fa-bars" style="font-size:.9rem"></i>
+    </button>
     <span class="topbar-title">{% block page_title %}ArmGuard{% endblock %}</span>
     <span class="topbar-sub">{% block page_sub %}{% endblock %}</span>
     <div class="topbar-actions" style="flex:1;position:relative;min-width:0;">
