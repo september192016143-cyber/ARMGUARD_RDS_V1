@@ -396,6 +396,15 @@
 
 /* ── Print overrides ────────────────────────────── */
 @media print {
+  /* Hide all UI chrome */
+  .sidebar,
+  .topbar,
+  .no-print { display: none !important; }
+
+  /* Reset layout so report fills the sheet */
+  body, html { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+  .main { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+  .page-body { margin: 0 !important; padding: 0 !important; }
   .container { padding: 0; max-width: 100%; }
   .eval-wrapper { border: none; padding: 0; }
   .eval-table th, .eval-table td { border-color: #000; }
