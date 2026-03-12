@@ -20,6 +20,7 @@ from django.utils import timezone
 from datetime import timedelta
 # H1 FIX: Import shared permission helper instead of duplicating it here.
 from armguard.utils.permissions import can_manage_inventory as _can_manage_armorer
+from armguard.utils.permissions import is_admin as _is_admin
 
 
 def is_admin_or_armorer(user):
@@ -109,7 +110,7 @@ def print_item_tags(request):
         'total': total,
         'with_tag': with_tag,
         'without_tag': total - with_tag,
-        'is_admin': is_admin_or_armorer(request.user),
+        'is_admin': _is_admin(request.user),
     }
     return render(request, 'print/print_item_tags.html', context)
 
@@ -173,7 +174,7 @@ def regenerate_item_tag(request, item_id):
 @require_POST
 def delete_item_tag(request, item_id):
     """Delete the tag PNG for a single item from disk (admin only, AJAX POST)."""
-    if not is_admin_or_armorer(request.user):
+    if not _is_admin(request.user):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
 
     filepath = os.path.join(settings.MEDIA_ROOT, 'item_id_tags', f"{item_id}.png")
