@@ -11,6 +11,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 import logging
 from django.contrib import messages
+from armguard.utils.permissions import can_delete as _can_delete_personnel
 
 logger = logging.getLogger(__name__)
 
@@ -315,7 +316,7 @@ class PersonnelDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 	success_url = reverse_lazy("personnel-list")
 
 	def test_func(self):
-		return _can_manage_personnel(self.request.user)
+		return _can_delete_personnel(self.request.user)
 
 
 class AssignWeaponView(LoginRequiredMixin, UserPassesTestMixin, View):

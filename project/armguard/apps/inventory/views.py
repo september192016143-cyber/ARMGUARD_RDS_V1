@@ -14,7 +14,7 @@ from .forms import (PistolForm, RifleForm, MagazineForm,
 # H1 FIX: Import shared permission helpers instead of duplicating them here.
 # F11 FIX: Compatibility shims removed — all call sites now use the imported
 # helpers directly (can_manage_inventory / can_edit_delete_inventory).
-from armguard.utils.permissions import can_manage_inventory, can_edit_delete_inventory
+from armguard.utils.permissions import can_manage_inventory, can_edit_delete_inventory, can_delete
 
 
 class _InventoryPermMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -76,6 +76,7 @@ class PistolListView(LoginRequiredMixin, ListView):
         ctx.update(stats)
         ctx['can_manage'] = can_manage_inventory(self.request.user)
         ctx['can_edit_delete'] = can_edit_delete_inventory(self.request.user)
+        ctx['can_delete'] = can_delete(self.request.user)
         return ctx
 
 
@@ -104,6 +105,9 @@ class PistolDeleteView(_InventoryPermMixin, DeleteView):
     success_url = reverse_lazy('pistol-list')
     item_label = 'Pistol'
     item_type = 'pistol'
+
+    def test_func(self):
+        return can_delete(self.request.user)
 
     def form_valid(self, form):
         messages.success(self.request, 'Pistol deleted.')
@@ -140,6 +144,7 @@ class RifleListView(LoginRequiredMixin, ListView):
         ctx.update(stats)
         ctx['can_manage'] = can_manage_inventory(self.request.user)
         ctx['can_edit_delete'] = can_edit_delete_inventory(self.request.user)
+        ctx['can_delete'] = can_delete(self.request.user)
         return ctx
 
 
@@ -169,6 +174,9 @@ class RifleDeleteView(_InventoryPermMixin, DeleteView):
     item_label = 'Rifle'
     item_type = 'rifle'
 
+    def test_func(self):
+        return can_delete(self.request.user)
+
     def form_valid(self, form):
         messages.success(self.request, 'Rifle deleted.')
         return super().form_valid(form)
@@ -196,6 +204,7 @@ class MagazineListView(LoginRequiredMixin, ListView):
         ctx['total_qty'] = Magazine.objects.aggregate(t=Sum('quantity'))['t'] or 0
         ctx['can_manage'] = can_manage_inventory(self.request.user)
         ctx['can_edit_delete'] = can_edit_delete_inventory(self.request.user)
+        ctx['can_delete'] = can_delete(self.request.user)
         return ctx
 
 
@@ -223,6 +232,9 @@ class MagazineDeleteView(_InventoryPermMixin, DeleteView):
     success_url = reverse_lazy('magazine-list')
     item_label = 'Magazine Pool'
     item_type = 'magazine'
+
+    def test_func(self):
+        return can_delete(self.request.user)
 
     def form_valid(self, form):
         messages.success(self.request, 'Magazine pool deleted.')
@@ -277,6 +289,7 @@ class AmmunitionListView(LoginRequiredMixin, ListView):
         ctx['total_qty'] = agg['t'] or 0
         ctx['can_manage'] = can_manage_inventory(self.request.user)
         ctx['can_edit_delete'] = can_edit_delete_inventory(self.request.user)
+        ctx['can_delete'] = can_delete(self.request.user)
         # F12 FIX: Reuse the already-annotated object_list queryset for footer totals
         # instead of calling _ammo_issued_subqueries() a second time per request.
         totals = self.object_list.aggregate(
@@ -332,6 +345,9 @@ class AmmunitionDeleteView(_InventoryPermMixin, DeleteView):
     item_label = 'Ammunition Lot'
     item_type = 'ammunition'
 
+    def test_func(self):
+        return can_delete(self.request.user)
+
     def form_valid(self, form):
         messages.success(self.request, 'Ammunition lot deleted.')
         return super().form_valid(form)
@@ -356,6 +372,7 @@ class AccessoryListView(LoginRequiredMixin, ListView):
         ctx['total'] = Accessory.objects.count()
         ctx['can_manage'] = can_manage_inventory(self.request.user)
         ctx['can_edit_delete'] = can_edit_delete_inventory(self.request.user)
+        ctx['can_delete'] = can_delete(self.request.user)
         return ctx
 
 
@@ -383,6 +400,9 @@ class AccessoryDeleteView(_InventoryPermMixin, DeleteView):
     success_url = reverse_lazy('accessory-list')
     item_label = 'Accessory Pool'
     item_type = 'accessory'
+
+    def test_func(self):
+        return can_delete(self.request.user)
 
     def form_valid(self, form):
         messages.success(self.request, 'Accessory pool deleted.')

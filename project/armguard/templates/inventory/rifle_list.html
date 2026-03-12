@@ -108,7 +108,9 @@
           <td>
             <div class="flex gap-2">
               <a href="{% url 'rifle-edit' r.item_id %}" class="btn btn-secondary btn-sm btn-icon" title="Edit"><i class="fa-solid fa-pen"></i></a>
+              {% if can_delete %}
               <a href="{% url 'rifle-delete' r.item_id %}" class="btn btn-danger btn-sm btn-icon" title="Delete"><i class="fa-solid fa-trash"></i></a>
+              {% endif %}
             </div>
           </td>
           {% endif %}

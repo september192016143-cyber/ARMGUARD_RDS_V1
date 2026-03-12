@@ -43,7 +43,8 @@ def can_manage_inventory(user) -> bool:
 
 
 def can_edit_delete_inventory(user) -> bool:
-    """Only System Administrators and Django superusers may edit or delete inventory."""
+    """System Administrators, Administrators, and superusers may edit inventory.
+    Use can_delete() to check delete permission — Administrators cannot delete."""
     if not user.is_authenticated:
         return False
     if user.is_superuser:
@@ -58,3 +59,13 @@ def can_create_transaction(user) -> bool:
     if user.is_superuser or user.is_staff:
         return True
     return _get_role(user) in ('System Administrator', 'Administrator', 'Armorer')
+
+
+def can_delete(user) -> bool:
+    """Only superusers and System Administrators may delete records.
+    Administrators (role='Administrator') are restricted to add/edit only."""
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    return _get_role(user) == 'System Administrator'

@@ -95,7 +95,9 @@
             {% if can_edit_delete %}
             <div class="flex gap-2" style="justify-content:center">
               <a href="{% url 'ammunition-edit' a.pk %}" class="btn btn-secondary btn-sm btn-icon" title="Edit"><i class="fa-solid fa-pen"></i></a>
+              {% if can_delete %}
               <a href="{% url 'ammunition-delete' a.pk %}" class="btn btn-danger btn-sm btn-icon" title="Delete"><i class="fa-solid fa-trash"></i></a>
+              {% endif %}
             </div>
             {% else %}
             <a href="{% url 'ammunition-edit' a.pk %}" class="btn btn-secondary btn-sm" style="font-size:.78rem"><i class="fa-solid fa-table-list"></i> View</a>

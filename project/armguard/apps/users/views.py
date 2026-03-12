@@ -12,7 +12,7 @@ from django.views.decorators.http import require_POST
 from .models import UserProfile, ROLE_CHOICES, PasswordHistory
 from armguard.apps.personnel.models import Personnel
 # H1 FIX: Import shared permission helper instead of duplicating it here.
-from armguard.utils.permissions import is_admin as _is_admin
+from armguard.utils.permissions import is_admin as _is_admin, can_delete as _can_delete_user
 
 
 @require_POST
@@ -282,7 +282,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
 class UserDeleteView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
-        return _is_admin(self.request.user)
+        return _can_delete_user(self.request.user)
 
     def post(self, request, pk, *args, **kwargs):
         from django.shortcuts import get_object_or_404

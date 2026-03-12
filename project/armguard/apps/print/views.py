@@ -21,7 +21,7 @@ from datetime import timedelta
 # H1 FIX: Import shared permission helper instead of duplicating it here.
 from armguard.utils.permissions import can_manage_inventory as _can_manage_armorer
 from armguard.utils.permissions import is_admin as _is_admin
-from armguard.utils.permissions import can_edit_delete_inventory as _can_delete
+from armguard.utils.permissions import can_delete as _can_delete
 
 
 def is_admin_or_armorer(user):
