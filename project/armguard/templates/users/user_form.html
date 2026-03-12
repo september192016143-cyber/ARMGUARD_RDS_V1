@@ -78,7 +78,7 @@
 
       {% if request.user.is_superuser %}
       <div class="form-group">
-        <label class="form-label" style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+        <label class="form-label" for="{{ form.is_staff.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
           {{ form.is_staff }}
           <span>{{ form.is_staff.label }}</span>
         </label>
@@ -108,7 +108,7 @@
       </div>
       {% if action == 'Edit' %}
       <div class="form-group">
-        <label class="form-label" style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+        <label class="form-label" for="{{ form.is_active.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
           {{ form.is_active }}
           <span>{{ form.is_active.label }}</span>
         </label>
