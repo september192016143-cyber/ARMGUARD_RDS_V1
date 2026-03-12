@@ -12,10 +12,11 @@
 {% endblock %}
 
 {% block content %}
-{# Hidden input — acts as keyboard focus "home base" so scanner chars never land on an open select dropdown #}
-<input type="text" id="aw-scan-capture" autofocus autocomplete="off" tabindex="0"
+{# Hidden input — acts as keyboard focus "home base" so scanner chars never land on an open select dropdown.
+   tabindex="-1": not reachable via Tab (managed programmatically); aria-label: accessible description. #}
+<input type="text" id="aw-scan-capture" autofocus autocomplete="off" tabindex="-1"
   style="position:fixed;left:-9999px;top:-9999px;width:0;height:0;opacity:0;pointer-events:none;"
-  aria-hidden="true">
+  aria-label="Barcode scanner capture">
 <form method="post" style="max-width:600px">
   {% csrf_token %}
   <div class="card" style="margin-bottom:1.25rem">
@@ -73,126 +74,11 @@
   </div>
 </form>
 
-<script>
-// ── Assign Weapon QR scanner ──────────────────────────────────────────────────
-// Root cause of select-only pages: if a <select> dropdown is OPEN, the browser
-// intercepts keyboard events at OS level — they never reach JS capture listeners.
-// Fix: keep focus on a hidden off-screen input (autofocus), and blur any focused
-// select the moment we detect a fast-burst (scan) sequence.
-(function () {
-  var captureInput = document.getElementById('aw-scan-capture');
-  var buf = '';
-  var lastKey = 0;
-  var scanning = false;
-  var SCANNER_SPEED = 50;
-  var MIN_LEN = 3;
-
-  // After user interacts with a select (mouseup = option chosen), return focus
-  // to the hidden capture input so the next scan lands safely.
-  ['pistol-select', 'rifle-select'].forEach(function (id) {
-    var sel = document.getElementById(id);
-    if (!sel) return;
-    sel.addEventListener('change', function () {
-      if (captureInput) setTimeout(function () { captureInput.focus(); }, 0);
-    });
-    sel.addEventListener('blur', function () {
-      // After select loses focus (option chosen or Esc), re-home to capture input
-      if (captureInput) setTimeout(function () { captureInput.focus(); }, 0);
-    });
-  });
-
-  function showQrToast(msg, ok) {
-    var t = document.getElementById('aw-qr-toast');
-    if (!t) {
-      t = document.createElement('div');
-      t.id = 'aw-qr-toast';
-      t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;padding:.6rem 1.1rem;border-radius:.5rem;font-size:.85rem;font-weight:600;z-index:9999;transition:opacity .4s;pointer-events:none';
-      document.body.appendChild(t);
-    }
-    t.style.background = ok ? '#166534' : '#7f1d1d';
-    t.style.color = '#fff';
-    t.textContent = msg;
-    t.style.opacity = '1';
-    clearTimeout(t._hide);
-    t._hide = setTimeout(function () { t.style.opacity = '0'; }, 2500);
-  }
-
-  function tryAutofill(val) {
-    var pistolSel = document.querySelector('[name="pistol"]');
-    var rifleSel  = document.querySelector('[name="rifle"]');
-    var matched = false;
-
-    if (!matched && pistolSel) {
-      var piOpt = Array.from(pistolSel.options).find(function (o) {
-        return o.value && (o.value === val || (o.dataset && o.dataset.qr === val) || o.text.indexOf(val) !== -1);
-      });
-      if (piOpt) {
-        pistolSel.value = piOpt.value;
-        pistolSel.dispatchEvent(new Event('change'));
-        showQrToast('\u2713 Pistol: ' + piOpt.text.trim(), true);
-        matched = true;
-      }
-    }
-
-    if (!matched && rifleSel) {
-      var riOpt = Array.from(rifleSel.options).find(function (o) {
-        return o.value && (o.value === val || (o.dataset && o.dataset.qr === val) || o.text.indexOf(val) !== -1);
-      });
-      if (riOpt) {
-        rifleSel.value = riOpt.value;
-        rifleSel.dispatchEvent(new Event('change'));
-        showQrToast('\u2713 Rifle: ' + riOpt.text.trim(), true);
-        matched = true;
-      }
-    }
-
-    if (!matched) {
-      showQrToast('\u2717 No match: ' + val, false);
-    }
-  }
-
-  document.addEventListener('keydown', function (e) {
-    var now = Date.now();
-    var gap = now - lastKey;
-
-    if (e.key === 'Enter') {
-      if (scanning && buf.length >= MIN_LEN) {
-        e.preventDefault();
-        e.stopPropagation();
-        tryAutofill(buf);
-      }
-      buf = '';
-      scanning = false;
-      lastKey = 0;
-      return;
-    }
-
-    if (e.key.length !== 1) return;
-
-    if (buf.length === 0) {
-      buf = e.key;
-      scanning = false;
-    } else if (gap <= SCANNER_SPEED) {
-      buf += e.key;
-      if (!scanning) {
-        // Scan burst detected — immediately close any open select dropdown
-        // by blurring it and moving focus to our safe capture input.
-        var ae = document.activeElement;
-        if (ae && ae.tagName === 'SELECT') {
-          ae.blur();
-          if (captureInput) captureInput.focus();
-        }
-        scanning = true;
-      }
-      e.preventDefault();
-      e.stopPropagation();
-    } else {
-      buf = e.key;
-      scanning = false;
-    }
-    lastKey = now;
-  }, true); // capture phase — fires before focus target
-}());
-</script>
 {% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/assign_weapon.js' %}"></script>
+{% endblock %}
+
+{# Scanner logic moved to static/js/assign_weapon.js (CSP: no unsafe-inline). #}
 
