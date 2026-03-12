@@ -95,11 +95,11 @@
           </div>
           <div class="form-hint" style="margin-bottom:.75rem">Leave both unchecked for view &amp; print only access.</div>
           <div style="display:flex;flex-direction:column;gap:.5rem">
-            <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.9rem">
+            <label for="{{ form.perm_can_add.id_for_label }}" style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.9rem">
               {{ form.perm_can_add }}
               <span><strong>{{ form.perm_can_add.label }}</strong> — may create new records (inventory, personnel, users)</span>
             </label>
-            <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.9rem">
+            <label for="{{ form.perm_can_edit.id_for_label }}" style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.9rem">
               {{ form.perm_can_edit }}
               <span><strong>{{ form.perm_can_edit.label }}</strong> — may edit existing records</span>
             </label>
