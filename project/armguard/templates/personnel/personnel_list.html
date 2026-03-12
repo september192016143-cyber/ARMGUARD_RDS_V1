@@ -5,13 +5,11 @@
 {% block page_sub %}All registered members{% endblock %}
 
 {% block topbar_actions %}
-{% with role=request.user.profile.role %}
-{% if request.user.is_superuser or role != 'Armorer' %}
+{% if can_add %}
 <a href="{% url 'personnel-create' %}" class="btn btn-primary btn-sm">
   <i class="fa-solid fa-user-plus"></i> Add Personnel
 </a>
 {% endif %}
-{% endwith %}
 {% endblock %}
 
 {% block content %}
@@ -123,7 +121,7 @@
     <div class="empty-state">
       <i class="fa-solid fa-users-slash"></i>
       <p>No personnel found.</p>
-      <a href="{% url 'personnel-create' %}" class="btn btn-primary btn-sm mt-2">Add first member</a>
+      {% if can_add %}<a href="{% url 'personnel-create' %}" class="btn btn-primary btn-sm mt-2">Add first member</a>{% endif %}
     </div>
     {% endif %}
   </div>

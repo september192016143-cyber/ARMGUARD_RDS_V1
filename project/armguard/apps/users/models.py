@@ -64,6 +64,16 @@ class UserProfile(models.Model):
         null=True,
         help_text="Session key from the last successful login. Used for single-session enforcement.",
     )
+    # Granular permissions for the Administrator role only.
+    # Superusers and System Administrators always have full access regardless of these flags.
+    perm_can_add = models.BooleanField(
+        default=True,
+        help_text="Administrator: allowed to create new records. Has no effect on System Administrator or Armorer.",
+    )
+    perm_can_edit = models.BooleanField(
+        default=True,
+        help_text="Administrator: allowed to edit existing records. Has no effect on System Administrator or Armorer.",
+    )
 
     class Meta:
         verbose_name = "User Profile"

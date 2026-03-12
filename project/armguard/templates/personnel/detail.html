@@ -6,15 +6,15 @@
 {% block page_sub %}Personnel record{% endblock %}
 
 {% block topbar_actions %}
-{% if request.user.is_superuser or request.user.profile.role != 'Armorer' %}
+{% if can_edit %}
 <a href="{% url 'personnel-update' personnel.Personnel_ID %}" class="btn btn-primary btn-sm">
   <i class="fa-solid fa-pen"></i> Edit
 </a>
+{% endif %}
 {% if request.user.is_superuser or request.user.profile.role == 'System Administrator' %}
 <a href="{% url 'personnel-delete' personnel.Personnel_ID %}" class="btn btn-secondary btn-sm" style="color:var(--red)">
   <i class="fa-solid fa-trash"></i> Delete
 </a>
-{% endif %}
 {% endif %}
 <a href="{% url 'personnel-list' %}" class="btn btn-secondary btn-sm">
   <i class="fa-solid fa-arrow-left"></i> Back

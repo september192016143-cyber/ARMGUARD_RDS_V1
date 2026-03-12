@@ -6,7 +6,7 @@
 
 {% block topbar_actions %}
 <div class="flex gap-2" style="align-items:center">
-  {% if can_manage %}
+  {% if can_add %}
   <a href="{% url 'magazine-add' %}" class="btn btn-primary btn-sm">
     <i class="fa-solid fa-plus"></i> Add Magazine Pool
   </a>
@@ -46,7 +46,7 @@
           <th>Magazine Type</th>
           <th>Capacity</th>
           <th>Qty in Stock</th>
-          {% if can_edit_delete %}<th style="width:80px"></th>{% endif %}
+          {% if can_edit %}<th style="width:80px"></th>{% endif %}
         </tr>
       </thead>
       <tbody>
@@ -67,7 +67,7 @@
               {{ m.quantity }}
             </span>
           </td>
-          {% if can_edit_delete %}
+          {% if can_edit %}
           <td>
             <div class="flex gap-2">
               <a href="{% url 'magazine-edit' m.pk %}" class="btn btn-secondary btn-sm btn-icon" title="Edit"><i class="fa-solid fa-pen"></i></a>

@@ -12,7 +12,7 @@ from django.views.decorators.http import require_POST
 from .models import UserProfile, ROLE_CHOICES, PasswordHistory
 from armguard.apps.personnel.models import Personnel
 # H1 FIX: Import shared permission helper instead of duplicating it here.
-from armguard.utils.permissions import is_admin as _is_admin, can_delete as _can_delete_user
+from armguard.utils.permissions import is_admin as _is_admin, can_add as _can_add_user, can_edit as _can_edit_user, can_delete as _can_delete_user
 
 
 @require_POST
@@ -55,8 +55,18 @@ class UserCreateForm(forms.Form):
     first_name  = forms.CharField(max_length=150, required=False, widget=forms.TextInput(attrs={'autocomplete': 'given-name'}))
     last_name   = forms.CharField(max_length=150, required=False, widget=forms.TextInput(attrs={'autocomplete': 'family-name'}))
     email       = forms.EmailField(required=False, widget=forms.EmailInput(attrs={'autocomplete': 'email'}))
-    role        = forms.ChoiceField(choices=ROLE_CHOICES)
-    is_staff    = forms.BooleanField(required=False, label='Staff (Django admin access)')
+    role         = forms.ChoiceField(choices=ROLE_CHOICES)
+    is_staff     = forms.BooleanField(required=False, label='Staff (Django admin access)')
+    perm_can_add = forms.BooleanField(
+        required=False, label='Can Add',
+        help_text='Administrator: may create new records.',
+        initial=True,
+    )
+    perm_can_edit = forms.BooleanField(
+        required=False, label='Can Edit',
+        help_text='Administrator: may edit existing records.',
+        initial=True,
+    )
     password1   = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), label='Password')
     password2   = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), label='Confirm password')
     linked_personnel = _PersonnelChoiceField(
@@ -95,6 +105,14 @@ class UserUpdateForm(forms.Form):
     role          = forms.ChoiceField(choices=ROLE_CHOICES)
     is_staff      = forms.BooleanField(required=False, label='Staff (Django admin access)')
     is_active     = forms.BooleanField(required=False, label='Active', initial=True)
+    perm_can_add  = forms.BooleanField(
+        required=False, label='Can Add',
+        help_text='Administrator: may create new records.',
+    )
+    perm_can_edit = forms.BooleanField(
+        required=False, label='Can Edit',
+        help_text='Administrator: may edit existing records.',
+    )
     new_password1 = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), required=False,
                                     label='New password',
                                     help_text='Leave blank to keep current password.')
@@ -156,7 +174,7 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     success_url   = reverse_lazy('user-list')
 
     def test_func(self):
-        return _is_admin(self.request.user)
+        return _can_add_user(self.request.user)
 
     def get(self, request, *args, **kwargs):
         qs = Personnel.objects.filter(user__isnull=True)
@@ -180,6 +198,9 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             )
             profile, _ = UserProfile.objects.get_or_create(user=user)
             profile.role = cd['role']
+            if cd['role'] == 'Administrator':
+                profile.perm_can_add  = cd.get('perm_can_add', True)
+                profile.perm_can_edit = cd.get('perm_can_edit', True)
             profile.save()
             # G16-EXT: Record initial password in history to prevent immediate reuse.
             PasswordHistory.objects.create(user=user, password_hash=user.password)
@@ -200,13 +221,14 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     fields        = []   # handled manually
 
     def test_func(self):
-        return _is_admin(self.request.user)
+        return _can_edit_user(self.request.user)
 
     def _make_form(self, data=None):
         user = self.object
         current_role = getattr(getattr(user, 'profile', None), 'role', 'Armorer')
         current_linked = getattr(user, 'personnel', None)  # reverse OneToOne
         current_linked_pk = current_linked.Personnel_ID if current_linked else None
+        profile = getattr(user, 'profile', None)
         initial = {
             'first_name':        user.first_name,
             'last_name':         user.last_name,
@@ -215,6 +237,8 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             'is_active':         user.is_active,
             'role':              current_role,
             'linked_personnel':  current_linked_pk,
+            'perm_can_add':      getattr(profile, 'perm_can_add', True),
+            'perm_can_edit':     getattr(profile, 'perm_can_edit', True),
         }
         if data:
             return UserUpdateForm(data, initial=initial, current_role=current_role,
@@ -263,6 +287,9 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 )
             profile, _ = UserProfile.objects.get_or_create(user=self.object)
             profile.role = cd['role']
+            if cd['role'] == 'Administrator':
+                profile.perm_can_add  = cd.get('perm_can_add', True)
+                profile.perm_can_edit = cd.get('perm_can_edit', True)
             profile.save()
             # Update personnel link: clear old link, set new one
             old_linked = getattr(self.object, 'personnel', None)

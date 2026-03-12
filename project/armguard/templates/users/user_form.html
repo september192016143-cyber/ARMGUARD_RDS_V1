@@ -71,7 +71,7 @@
         {% if form.role.errors %}<div class="form-error">{{ form.role.errors|join:", " }}</div>{% endif %}
         <div class="form-hint">
           <strong>System Administrator</strong> — full admin access. &nbsp;
-          <strong>Administrator</strong> — full access. &nbsp;
+          <strong>Administrator</strong> — view &amp; print by default; add/edit rights configurable below. &nbsp;
           <strong>Armorer</strong> — transactions and inventory only.
         </div>
       </div>
@@ -86,6 +86,26 @@
         <div class="form-hint">Grants access to the Django admin panel (/admin/).</div>
       </div>
       {% endif %}
+
+      <!-- Administrator permission checklist — shown/hidden by JS based on role selection -->
+      <div id="admin-perm-section" style="display:none">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:.85rem 1rem;margin-bottom:.75rem">
+          <div style="font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.6rem">
+            <i class="fa-solid fa-sliders" style="margin-right:.4rem"></i>Administrator Capabilities
+          </div>
+          <div class="form-hint" style="margin-bottom:.75rem">Leave both unchecked for view &amp; print only access.</div>
+          <div style="display:flex;flex-direction:column;gap:.5rem">
+            <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.9rem">
+              {{ form.perm_can_add }}
+              <span><strong>{{ form.perm_can_add.label }}</strong> — may create new records (inventory, personnel, users)</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.9rem">
+              {{ form.perm_can_edit }}
+              <span><strong>{{ form.perm_can_edit.label }}</strong> — may edit existing records</span>
+            </label>
+          </div>
+        </div>
+      </div>
       {% if action == 'Edit' %}
       <div class="form-group">
         <label class="form-label" style="display:flex;align-items:center;gap:.5rem;cursor:pointer">

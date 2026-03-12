@@ -19,6 +19,17 @@
     el.classList.add('form-control');
   });
 
+  // ── Administrator permission checklist — show/hide based on role ─────────────
+  var roleSelect   = document.getElementById('id_role');
+  var adminPerms   = document.getElementById('admin-perm-section');
+  if (roleSelect && adminPerms) {
+    function toggleAdminPerms() {
+      adminPerms.style.display = roleSelect.value === 'Administrator' ? '' : 'none';
+    }
+    toggleAdminPerms();  // run on page load
+    roleSelect.addEventListener('change', toggleAdminPerms);
+  }
+
   // ── Personnel auto-fill ─────────────────────────────────────────────────────
   var mapEl    = document.getElementById('personnel-map-data');
   var pidMapEl = document.getElementById('personnel-pid-map-data');

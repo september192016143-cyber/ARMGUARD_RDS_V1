@@ -11,7 +11,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 import logging
 from django.contrib import messages
-from armguard.utils.permissions import can_delete as _can_delete_personnel
+from armguard.utils.permissions import can_delete as _can_delete_personnel, can_add as _can_add_personnel, can_edit as _can_edit_personnel
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +105,7 @@ class PersonnelListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 	def get_context_data(self, **kwargs):
 		ctx = super().get_context_data(**kwargs)
 		ctx['groups'] = Personnel.objects.values_list('group', flat=True).distinct().exclude(group__isnull=True).exclude(group='')
+		ctx['can_add'] = _can_add_personnel(self.request.user)
 		return ctx
 
 	def test_func(self):
@@ -149,6 +150,7 @@ class PersonnelDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 		context['assigned_rifles']  = personnel.rifles_assigned.all()
 		context['issued_pistols']   = personnel.pistols_issued.all()
 		context['issued_rifles']    = personnel.rifles_issued.all()
+		context['can_edit'] = _can_edit_personnel(self.request.user)
 		return context
 
 	def test_func(self):
@@ -166,11 +168,9 @@ class PersonnelCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 	template_name = "personnel/personnel_form.html"
 
 	def test_func(self):
-		return _can_manage_personnel(self.request.user)
+		return _can_add_personnel(self.request.user)
 
 	def form_valid(self, form):
-		obj = form.save(commit=False)
-		# Stamp audit fields — mirrors admin save_model()
 		obj.created_by = self.request.user.username
 		obj.updated_by = self.request.user.username
 		# Run model-level clean() so AFSN rules & issued-item validation fire
@@ -195,7 +195,7 @@ class PersonnelUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 	template_name = "personnel/personnel_form.html"
 
 	def test_func(self):
-		return _can_manage_personnel(self.request.user)
+		return _can_edit_personnel(self.request.user)
 
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)

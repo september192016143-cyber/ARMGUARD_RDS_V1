@@ -6,7 +6,7 @@
 
 {% block topbar_actions %}
 <div class="flex gap-2" style="align-items:center">
-  {% if can_manage %}
+  {% if can_add %}
   <a href="{% url 'rifle-add' %}" class="btn btn-primary btn-sm">
     <i class="fa-solid fa-plus"></i> Add Rifle
   </a>
@@ -69,7 +69,7 @@
           <th>Status</th>
           <th>Issued To</th>
           <th>Assigned To</th>
-          {% if can_edit_delete %}<th style="width:80px"></th>{% endif %}
+          {% if can_edit %}<th style="width:80px"></th>{% endif %}
         </tr>
       </thead>
       <tbody>
@@ -104,7 +104,7 @@
               </a>
             {% else %}<span class="text-muted">—</span>{% endif %}
           </td>
-          {% if can_edit_delete %}
+          {% if can_edit %}
           <td>
             <div class="flex gap-2">
               <a href="{% url 'rifle-edit' r.item_id %}" class="btn btn-secondary btn-sm btn-icon" title="Edit"><i class="fa-solid fa-pen"></i></a>

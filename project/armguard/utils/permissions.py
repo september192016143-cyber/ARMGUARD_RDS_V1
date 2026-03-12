@@ -69,3 +69,47 @@ def can_delete(user) -> bool:
     if user.is_superuser:
         return True
     return _get_role(user) == 'System Administrator'
+
+
+def can_add(user) -> bool:
+    """True if the user may create new records.
+
+    - Superuser / System Administrator: always True.
+    - Administrator: True only when UserProfile.perm_can_add is checked.
+    - Armorer and others: False (transactions only, no CRUD on records).
+    """
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    role = _get_role(user)
+    if role == 'System Administrator':
+        return True
+    if role == 'Administrator':
+        try:
+            return bool(user.profile.perm_can_add)
+        except AttributeError:
+            return True
+    return False
+
+
+def can_edit(user) -> bool:
+    """True if the user may edit / update existing records.
+
+    - Superuser / System Administrator: always True.
+    - Administrator: True only when UserProfile.perm_can_edit is checked.
+    - Armorer and others: False.
+    """
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    role = _get_role(user)
+    if role == 'System Administrator':
+        return True
+    if role == 'Administrator':
+        try:
+            return bool(user.profile.perm_can_edit)
+        except AttributeError:
+            return True
+    return False

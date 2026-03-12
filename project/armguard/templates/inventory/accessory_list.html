@@ -6,7 +6,7 @@
 
 {% block topbar_actions %}
 <div class="flex gap-2" style="align-items:center">
-  {% if can_manage %}
+  {% if can_add %}
   <a href="{% url 'accessory-add' %}" class="btn btn-primary btn-sm">
     <i class="fa-solid fa-plus"></i> Add Accessory Pool
   </a>
@@ -40,7 +40,7 @@
           <th>Type</th>
           <th>Quantity</th>
           <th>Status</th>
-          {% if can_edit_delete %}<th style="width:80px"></th>{% endif %}
+          {% if can_edit %}<th style="width:80px"></th>{% endif %}
         </tr>
       </thead>
       <tbody>
@@ -62,7 +62,7 @@
               <span class="badge badge-green">Available</span>
             {% endif %}
           </td>
-          {% if can_edit_delete %}
+          {% if can_edit %}
           <td>
             <div class="flex gap-2">
               <a href="{% url 'accessory-edit' acc.pk %}" class="btn btn-secondary btn-sm btn-icon" title="Edit"><i class="fa-solid fa-pen"></i></a>

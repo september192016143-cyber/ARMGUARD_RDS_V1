@@ -14,7 +14,7 @@ from .forms import (PistolForm, RifleForm, MagazineForm,
 # H1 FIX: Import shared permission helpers instead of duplicating them here.
 # F11 FIX: Compatibility shims removed — all call sites now use the imported
 # helpers directly (can_manage_inventory / can_edit_delete_inventory).
-from armguard.utils.permissions import can_manage_inventory, can_edit_delete_inventory, can_delete
+from armguard.utils.permissions import can_manage_inventory, can_edit_delete_inventory, can_delete, can_add, can_edit
 
 
 class _InventoryPermMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -76,6 +76,8 @@ class PistolListView(LoginRequiredMixin, ListView):
         ctx.update(stats)
         ctx['can_manage'] = can_manage_inventory(self.request.user)
         ctx['can_edit_delete'] = can_edit_delete_inventory(self.request.user)
+        ctx['can_add'] = can_add(self.request.user)
+        ctx['can_edit'] = can_edit(self.request.user)
         ctx['can_delete'] = can_delete(self.request.user)
         return ctx
 
@@ -89,6 +91,9 @@ class PistolCreateView(_InventorySaveMixin, CreateView):
     item_label = 'Pistol'
     item_type = 'pistol'
 
+    def test_func(self):
+        return can_add(self.request.user)
+
 
 class PistolUpdateView(_InventorySaveMixin, UpdateView):
     model = Pistol
@@ -97,6 +102,9 @@ class PistolUpdateView(_InventorySaveMixin, UpdateView):
     success_url = reverse_lazy('pistol-list')
     item_label = 'Pistol'
     item_type = 'pistol'
+
+    def test_func(self):
+        return can_edit(self.request.user)
 
 
 class PistolDeleteView(_InventoryPermMixin, DeleteView):
@@ -144,6 +152,8 @@ class RifleListView(LoginRequiredMixin, ListView):
         ctx.update(stats)
         ctx['can_manage'] = can_manage_inventory(self.request.user)
         ctx['can_edit_delete'] = can_edit_delete_inventory(self.request.user)
+        ctx['can_add'] = can_add(self.request.user)
+        ctx['can_edit'] = can_edit(self.request.user)
         ctx['can_delete'] = can_delete(self.request.user)
         return ctx
 
@@ -157,6 +167,9 @@ class RifleCreateView(_InventorySaveMixin, CreateView):
     item_label = 'Rifle'
     item_type = 'rifle'
 
+    def test_func(self):
+        return can_add(self.request.user)
+
 
 class RifleUpdateView(_InventorySaveMixin, UpdateView):
     model = Rifle
@@ -165,6 +178,9 @@ class RifleUpdateView(_InventorySaveMixin, UpdateView):
     success_url = reverse_lazy('rifle-list')
     item_label = 'Rifle'
     item_type = 'rifle'
+
+    def test_func(self):
+        return can_edit(self.request.user)
 
 
 class RifleDeleteView(_InventoryPermMixin, DeleteView):
@@ -204,6 +220,8 @@ class MagazineListView(LoginRequiredMixin, ListView):
         ctx['total_qty'] = Magazine.objects.aggregate(t=Sum('quantity'))['t'] or 0
         ctx['can_manage'] = can_manage_inventory(self.request.user)
         ctx['can_edit_delete'] = can_edit_delete_inventory(self.request.user)
+        ctx['can_add'] = can_add(self.request.user)
+        ctx['can_edit'] = can_edit(self.request.user)
         ctx['can_delete'] = can_delete(self.request.user)
         return ctx
 
@@ -216,6 +234,9 @@ class MagazineCreateView(_InventorySaveMixin, CreateView):
     item_label = 'Magazine Pool'
     item_type = 'magazine'
 
+    def test_func(self):
+        return can_add(self.request.user)
+
 
 class MagazineUpdateView(_InventorySaveMixin, UpdateView):
     model = Magazine
@@ -224,6 +245,9 @@ class MagazineUpdateView(_InventorySaveMixin, UpdateView):
     success_url = reverse_lazy('magazine-list')
     item_label = 'Magazine Pool'
     item_type = 'magazine'
+
+    def test_func(self):
+        return can_edit(self.request.user)
 
 
 class MagazineDeleteView(_InventoryPermMixin, DeleteView):
@@ -289,6 +313,8 @@ class AmmunitionListView(LoginRequiredMixin, ListView):
         ctx['total_qty'] = agg['t'] or 0
         ctx['can_manage'] = can_manage_inventory(self.request.user)
         ctx['can_edit_delete'] = can_edit_delete_inventory(self.request.user)
+        ctx['can_add'] = can_add(self.request.user)
+        ctx['can_edit'] = can_edit(self.request.user)
         ctx['can_delete'] = can_delete(self.request.user)
         # F12 FIX: Reuse the already-annotated object_list queryset for footer totals
         # instead of calling _ammo_issued_subqueries() a second time per request.
@@ -328,6 +354,9 @@ class AmmunitionCreateView(_InventorySaveMixin, CreateView):
     item_label = 'Ammunition Lot'
     item_type = 'ammunition'
 
+    def test_func(self):
+        return can_add(self.request.user)
+
 
 class AmmunitionUpdateView(_InventorySaveMixin, UpdateView):
     model = Ammunition
@@ -336,6 +365,9 @@ class AmmunitionUpdateView(_InventorySaveMixin, UpdateView):
     success_url = reverse_lazy('ammunition-list')
     item_label = 'Ammunition Lot'
     item_type = 'ammunition'
+
+    def test_func(self):
+        return can_edit(self.request.user)
 
 
 class AmmunitionDeleteView(_InventoryPermMixin, DeleteView):
@@ -372,6 +404,8 @@ class AccessoryListView(LoginRequiredMixin, ListView):
         ctx['total'] = Accessory.objects.count()
         ctx['can_manage'] = can_manage_inventory(self.request.user)
         ctx['can_edit_delete'] = can_edit_delete_inventory(self.request.user)
+        ctx['can_add'] = can_add(self.request.user)
+        ctx['can_edit'] = can_edit(self.request.user)
         ctx['can_delete'] = can_delete(self.request.user)
         return ctx
 
@@ -384,6 +418,9 @@ class AccessoryCreateView(_InventorySaveMixin, CreateView):
     item_label = 'Accessory Pool'
     item_type = 'accessory'
 
+    def test_func(self):
+        return can_add(self.request.user)
+
 
 class AccessoryUpdateView(_InventorySaveMixin, UpdateView):
     model = Accessory
@@ -392,6 +429,9 @@ class AccessoryUpdateView(_InventorySaveMixin, UpdateView):
     success_url = reverse_lazy('accessory-list')
     item_label = 'Accessory Pool'
     item_type = 'accessory'
+
+    def test_func(self):
+        return can_edit(self.request.user)
 
 
 class AccessoryDeleteView(_InventoryPermMixin, DeleteView):
