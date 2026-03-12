@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block topbar_actions %}
-{% if transaction.issuance_type and 'TR' in transaction.issuance_type %}
+{% if transaction.transaction_type == 'Withdrawal' and transaction.issuance_type and 'TR' in transaction.issuance_type %}
   <a href="{% url 'print_handler:download_transaction_pdf' transaction.transaction_id %}" class="btn btn-primary btn-sm" target="_blank">
     <i class="fa-solid fa-file-pdf"></i> Download TR PDF
   </a>
@@ -120,7 +120,7 @@
   </div>
 </div>
 
-{% if transaction.issuance_type and 'TR' in transaction.issuance_type %}
+{% if transaction.transaction_type == 'Withdrawal' and transaction.issuance_type and 'TR' in transaction.issuance_type %}
 <!-- TR PDF viewer -->
 <div class="card" style="margin:0">
   <div class="card-header" style="padding:.55rem .8rem">
