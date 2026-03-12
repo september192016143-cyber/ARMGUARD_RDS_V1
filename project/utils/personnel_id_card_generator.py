@@ -229,11 +229,11 @@ def _build_front(personnel) -> Image.Image:
     #   Line 2  y=682 : "ENLISTED" or "OFFICER"                  (bold)
     #
     #   Format matches template card:
-    #     rank uppercase  |  name Title Case  |  MI single letter  |  AFSN number  |  PAF
+    #     rank uppercase  |  name UPPERCASE  |  MI single letter  |  AFSN number  |  PAF
 
     rank_str = (personnel.rank or "").upper()
-    first    = (personnel.first_name or "").title()
-    last     = (personnel.last_name  or "").title()
+    first    = (personnel.first_name or "").upper()
+    last     = (personnel.last_name  or "").upper()
     mi       = (personnel.middle_initial.strip().upper()
                 if personnel.middle_initial and personnel.middle_initial.strip()
                 else "")
