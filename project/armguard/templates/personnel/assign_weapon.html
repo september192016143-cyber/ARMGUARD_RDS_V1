@@ -204,10 +204,21 @@
       var gap = now - lastKey;
 
       if (e.key === 'Enter') {
+        // Always block Enter from the background scanner — prevents accidental form submit
         if (scanning && buf.length >= MIN_LEN) {
           e.preventDefault();
           e.stopPropagation();
           tryScan(buf);
+        } else if (scanning) {
+          // Fast burst ended with Enter but buffer too short — just block
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        // If NOT scanning, allow Enter only on the explicit submit button
+        // by letting it propagate normally there; block everywhere else.
+        if (scanning || (document.activeElement !== document.querySelector('[type="submit"]'))) {
+          e.preventDefault();
+          e.stopPropagation();
         }
         buf = ''; scanning = false; lastKey = 0;
         return;
