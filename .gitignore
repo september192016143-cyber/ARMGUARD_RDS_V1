@@ -36,8 +36,9 @@ Thumbs.db
 *.user
 
 # Django media uploads (runtime content — not source code)
-project/media/
-
+project/media/**
+!project/media/**/
+!project/media/**/.gitkeep
 # Font Awesome webfonts (downloaded at deploy time by update-server.sh)
 project/armguard/static/css/fontawesome/webfonts/
 
