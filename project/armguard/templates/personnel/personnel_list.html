@@ -25,18 +25,18 @@
 <div class="card">
   <!-- Search / Filter bar -->
   <div class="filter-bar">
-    <form method="get" class="search-bar" style="flex:1">
+    <form id="personnel-filter-form" method="get" class="search-bar" style="flex:1">
       <div class="input-wrap" style="flex:1;max-width:320px">
         <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;pointer-events:none"></i>
-        <input type="text" name="q" value="{{ request.GET.q }}" class="form-control"
-               placeholder="Search name, ID, AFSN…" style="padding-left:2.1rem">
+        <input id="personnel-q" type="text" name="q" value="{{ request.GET.q }}" class="form-control"
+               placeholder="Search name, ID, AFSN…" style="padding-left:2.1rem" autocomplete="off">
       </div>
-      <select name="category" class="form-control" style="max-width:140px">
+      <select id="personnel-category" name="category" class="form-control" style="max-width:140px">
         <option value="">All Personnel</option>
         <option value="Officer" {% if request.GET.category == 'Officer' %}selected{% endif %}>Officer</option>
         <option value="Enlisted" {% if request.GET.category == 'Enlisted' %}selected{% endif %}>Enlisted</option>
       </select>
-      <select name="group" class="form-control" style="max-width:140px">
+      <select id="personnel-group" name="group" class="form-control" style="max-width:140px">
         <option value="">All Groups</option>
         {% for g in groups %}
         <option value="{{ g }}" {% if request.GET.group == g %}selected{% endif %}>{{ g }}</option>
@@ -99,20 +99,20 @@
 
     <!-- Pagination -->
     {% if page_obj.has_other_pages %}
-    {% with q=request.GET.q status=request.GET.status group=request.GET.group %}
+    {% with q=request.GET.q category=request.GET.category group=request.GET.group %}
     <div class="pagination">
       {% if page_obj.has_previous %}
-        <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if group %}group={{ group }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
+        <a href="?{% if q %}q={{ q }}&{% endif %}{% if category %}category={{ category }}&{% endif %}{% if group %}group={{ group }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
       {% endif %}
       {% for num in page_obj.paginator.page_range %}
         {% if page_obj.number == num %}
           <a class="page-link active">{{ num }}</a>
         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-          <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if group %}group={{ group }}&{% endif %}page={{ num }}" class="page-link">{{ num }}</a>
+          <a href="?{% if q %}q={{ q }}&{% endif %}{% if category %}category={{ category }}&{% endif %}{% if group %}group={{ group }}&{% endif %}page={{ num }}" class="page-link">{{ num }}</a>
         {% endif %}
       {% endfor %}
       {% if page_obj.has_next %}
-        <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if group %}group={{ group }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
+        <a href="?{% if q %}q={{ q }}&{% endif %}{% if category %}category={{ category }}&{% endif %}{% if group %}group={{ group }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
       {% endif %}
     </div>
     {% endwith %}
@@ -127,4 +127,24 @@
     {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const form = document.getElementById('personnel-filter-form');
+  const qInput = document.getElementById('personnel-q');
+  const selects = [document.getElementById('personnel-category'), document.getElementById('personnel-group')];
+  let debounceTimer;
+
+  qInput.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function () { form.submit(); }, 350);
+  });
+
+  selects.forEach(function (sel) {
+    sel.addEventListener('change', function () { form.submit(); });
+  });
+})();
+</script>
 {% endblock %}
