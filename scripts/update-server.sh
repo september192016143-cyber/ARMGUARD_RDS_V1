@@ -104,17 +104,11 @@ mkdir -p "$BACKUP_DIR"
 
 if [[ -f "$PROJECT_DIR/db.sqlite3" ]]; then
     BACKUP_FILE="$BACKUP_DIR/pre-update-$TIMESTAMP.sqlite3"
-    sudo -u "$DEPLOY_USER" "$VENV_PYTHON" - <<PYEOF
-import sqlite3, shutil
-src = "$PROJECT_DIR/db.sqlite3"
-dst = "$BACKUP_FILE"
-src_conn = sqlite3.connect(src)
-dst_conn = sqlite3.connect(dst)
-src_conn.backup(dst_conn)
-src_conn.close()
-dst_conn.close()
-print(f"  Backup saved: $BACKUP_FILE")
-PYEOF
+    # Use cp for the backup — avoids the sqlite3 Python heredoc variable expansion
+    # issue when running as a different user via sudo -u.
+    cp "$PROJECT_DIR/db.sqlite3" "$BACKUP_FILE"
+    chown "$DEPLOY_USER:$DEPLOY_USER" "$BACKUP_FILE"
+    info "  Backup saved: $BACKUP_FILE"
     success "Pre-update backup created."
 else
     warn "db.sqlite3 not found; skipping pre-update backup."
@@ -176,6 +170,12 @@ _git_pull_repo() {
             stash pop || \
             warn "Stash pop had conflicts — review manually: git -C $repo_dir stash show"
     fi
+
+    # Eliminate CRLF line-ending noise: files committed from Windows show as
+    # "modified" on Linux because of CR characters. Disable autocrlf and reset
+    # all tracked files to the LF copies stored in the repo.
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" config core.autocrlf false
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" checkout -- . 2>/dev/null || true
 
     COMMIT=$(git -C "$repo_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
     success "Code updated to commit: $COMMIT"
