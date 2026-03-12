@@ -96,7 +96,7 @@
     <a href="{% url 'print_handler:print_transactions' %}" class="nav-item {% if request.resolver_match.url_name == 'print_transactions' %}active{% endif %}" title="Print Reports">
       <i class="fa-solid fa-print nav-icon"></i><span class="nav-label">Print Reports</span>
     </a>
-    {% if user.is_superuser %}
+    {% if user.is_superuser or user.is_staff or user.profile.role == 'System Administrator' or user.profile.role == 'Administrator' %}
     <div class="nav-section">Admin</div>
     <a href="{% url 'user-list' %}" class="nav-item {% if request.resolver_match.url_name == 'user-list' %}active{% endif %}" title="User Management">
       <i class="fa-solid fa-users-gear nav-icon"></i><span class="nav-label">User Management</span>
