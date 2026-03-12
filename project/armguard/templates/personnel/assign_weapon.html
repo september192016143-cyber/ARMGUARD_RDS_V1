@@ -155,7 +155,7 @@
   });
 
   // ── Background keyboard-wedge scanner listener ─────────────────────────────
-  // Intercepts fast keystroke bursts (< 50 ms) from hardware barcode / QR scanners.
+  // Mirrors the logic used in transaction_form.js (the proven working pattern).
   (function () {
     var buf = '', lastKey = 0, scanning = false;
     var SPEED = 50, MIN_LEN = 3;
@@ -176,41 +176,59 @@
       t._h = setTimeout(function () { t.style.opacity = '0'; }, 2500);
     }
 
+    function tryScan(val) {
+      var piSel = document.querySelector('[name="pistol"]');
+      var riSel = document.querySelector('[name="rifle"]');
+
+      var piOpt = piSel && Array.from(piSel.options).find(function (o) { return o.value && (o.value === val || o.text.indexOf(val) !== -1); });
+      if (piOpt) {
+        piSel.value = piOpt.value;
+        showStatus(true, 'Pistol selected: ' + piOpt.text.trim());
+        showToast('\u2713 Pistol: ' + piOpt.text.trim(), true);
+        return;
+      }
+
+      var riOpt = riSel && Array.from(riSel.options).find(function (o) { return o.value && (o.value === val || o.text.indexOf(val) !== -1); });
+      if (riOpt) {
+        riSel.value = riOpt.value;
+        showStatus(true, 'Rifle selected: ' + riOpt.text.trim());
+        showToast('\u2713 Rifle: ' + riOpt.text.trim(), true);
+        return;
+      }
+
+      showToast('\u2717 No item found: ' + val, false);
+    }
+
     document.addEventListener('keydown', function (e) {
       var now = Date.now();
+      var gap = now - lastKey;
+
       if (e.key === 'Enter') {
         if (scanning && buf.length >= MIN_LEN) {
           e.preventDefault();
-          var val = buf;
-          buf = ''; scanning = false;
-          // Route to tryMatch (same logic, but also show toast)
-          var piOpt = Array.from(pistolSel.options).find(function (o) { return o.value === val; });
-          if (piOpt) {
-            pistolSel.value = val;
-            if (searchEl) { searchEl.value = ''; }
-            showStatus(true, 'Pistol selected: ' + piOpt.text.trim());
-            showToast('\u2713 Pistol: ' + piOpt.text.trim(), true);
-            return;
-          }
-          var riOpt = Array.from(rifleSel.options).find(function (o) { return o.value === val; });
-          if (riOpt) {
-            rifleSel.value = val;
-            if (searchEl) { searchEl.value = ''; }
-            showStatus(true, 'Rifle selected: ' + riOpt.text.trim());
-            showToast('\u2713 Rifle: ' + riOpt.text.trim(), true);
-            return;
-          }
-          showToast('\u2717 No item found: ' + val, false);
+          e.stopPropagation();
+          tryScan(buf);
         }
-        buf = ''; scanning = false;
+        buf = ''; scanning = false; lastKey = 0;
         return;
       }
-      if (e.key.length === 1) {
-        if (now - lastKey < SPEED) { scanning = true; }
+
+      if (e.key.length !== 1) return;
+
+      if (buf.length === 0) {
+        buf = e.key;
+        scanning = false;
+      } else if (gap <= SPEED) {
         buf += e.key;
-        lastKey = now;
+        scanning = true;
+        e.preventDefault();
+        e.stopPropagation();
+      } else {
+        buf = e.key;
+        scanning = false;
       }
-    }, true);
+      lastKey = now;
+    }, true); // capture phase
   }());
 }());
 </script>
