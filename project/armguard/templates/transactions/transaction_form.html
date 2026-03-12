@@ -18,7 +18,7 @@
   </div>
   <div id="issuance-wrapper" style="display:flex;flex-direction:column;gap:.25rem">
     <label for="tb_issuance_type" style="font-size:.68rem;font-weight:700;color:#cbd5e1;letter-spacing:.07em;text-transform:uppercase">Issuance <span style="color:#ef4444">*</span></label>
-    <select id="tb_issuance_type" name="tb_issuance_type" style="background:#1e293b;border:1.5px solid #475569;color:#f1f5f9;border-radius:.4rem;font-size:.82rem;padding:.35rem .7rem;cursor:pointer;width:220px;outline:none;transition:border-color .15s">
+    <select id="tb_issuance_type" name="tb_issuance_type" style="background:#1e293b;border:1.5px solid #475569;color:#f1f5f9;border-radius:.4rem;font-size:.82rem;padding:.35rem .7rem;cursor:pointer;width:290px;outline:none;transition:border-color .15s">
       <option value="TR (Temporary Receipt)"{% if form.issuance_type.value != 'PAR (Property Acknowledgement Receipt)' %} selected{% endif %}>TR (Temporary Receipt)</option>
       <option value="PAR (Property Acknowledgement Receipt)"{% if form.issuance_type.value == 'PAR (Property Acknowledgement Receipt)' %} selected{% endif %}>PAR (Property Acknowledgement Receipt)</option>
     </select>
