@@ -9,6 +9,11 @@
 <button data-action="print" title="Print Report" style="display:flex;align-items:center;justify-content:center;gap:.4rem;height:40px;padding:0 1rem;border-radius:.5rem;background:rgba(245,158,11,.15);border:1.5px solid var(--primary);cursor:pointer;color:var(--primary);font-size:.82rem;font-weight:600;font-family:inherit;transition:all .2s;box-shadow:0 0 8px rgba(245,158,11,.2)">
   <i class="fa-solid fa-print" style="font-size:.9rem"></i> Print
 </button>
+<!-- Print tip: visible on screen, hidden when printing -->
+<span class="no-print" style="margin-left:.75rem;font-size:.75rem;color:var(--text-muted,#94a3b8);align-self:center;white-space:nowrap">
+  <i class="fa-solid fa-circle-info" style="margin-right:.25rem"></i>
+  In print dialog &rarr; uncheck <strong>Headers and footers</strong> for a clean output
+</span>
 <div style="position:relative" id="cal-wrap">
   <button id="calendar-toggle" title="Date Filter" style="position:relative;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:.5rem;background:rgba(245,158,11,.15);border:1.5px solid var(--primary);cursor:pointer;color:var(--primary);transition:all .2s;box-shadow:0 0 8px rgba(245,158,11,.2)">
     <i class="fa-solid fa-calendar-days" style="font-size:1rem"></i>
@@ -397,11 +402,12 @@
 /* ── Print overrides ────────────────────────────── */
 
 /*
- * margin:0 removes the browser's auto header/footer (URL, page number, date).
- * Padding is applied to .eval-wrapper instead so content stays off the edge.
- * Works for both A4 and Legal — user selects paper in the print dialog.
+ * Browser (Chrome/Edge) native print headers/footers (date, title, URL, page №)
+ * cannot be removed by CSS — the user must uncheck "Headers and footers" in the
+ * print dialog. The tip banner above the Print button guides them.
+ * We use standard margins so content is not clipped.
  */
-@page { size: A4 portrait; margin: 0; }
+@page { size: A4 portrait; margin: 1.5cm; }
 
 @media print {
   /* Hide all UI chrome */
@@ -431,7 +437,7 @@
   /* Content padding replaces the @page margin */
   .eval-wrapper {
     border: none !important;
-    padding: 1.5cm 1.5cm 1.5cm 1.5cm !important;
+    padding: 0 !important;
     width: 100% !important;
     box-sizing: border-box;
   }
