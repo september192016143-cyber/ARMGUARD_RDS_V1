@@ -243,6 +243,7 @@ def tr_preview(request):
         rifle_sling_quantity=_safe_int(cd.get('rifle_sling_quantity')),
         bandoleer_quantity=_safe_int(cd.get('bandoleer_quantity')),
         notes=cd.get('notes', ''),
+        return_by=cd.get('return_by') or (timezone.now() + __import__('datetime').timedelta(hours=24)),
     )
 
     filler = TransactionFormFiller()
