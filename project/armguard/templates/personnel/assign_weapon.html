@@ -12,8 +12,6 @@
 {% endblock %}
 
 {% block content %}
-{# Hidden input — acts as keyboard focus "home base" so scanner chars never land on an open select dropdown.
-   tabindex="-1": not reachable via Tab (managed programmatically); aria-label: accessible description. #}
 <input type="text" id="aw-scan-capture" autofocus autocomplete="off" tabindex="-1"
   style="position:fixed;left:-9999px;top:-9999px;width:0;height:0;opacity:0;pointer-events:none;"
   aria-label="Barcode scanner capture">
@@ -79,6 +77,4 @@
 {% block extra_js %}
 <script src="{% static 'js/assign_weapon.js' %}"></script>
 {% endblock %}
-
-{# Scanner logic moved to static/js/assign_weapon.js (CSP: no unsafe-inline). #}
 
