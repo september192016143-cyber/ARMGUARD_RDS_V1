@@ -48,8 +48,8 @@ function toggleReturnMode() {
   var isReturn = document.getElementById('tb_transaction_type').value === 'Return';
   var issuanceWrapper = document.getElementById('issuance-wrapper');
   var purposeWrapper = document.getElementById('purpose-wrapper');
-  if (issuanceWrapper) issuanceWrapper.style.display = isReturn ? 'none' : '';
-  if (purposeWrapper) purposeWrapper.style.display = isReturn ? 'none' : '';
+  if (issuanceWrapper) issuanceWrapper.style.display = isReturn ? 'none' : 'flex';
+  if (purposeWrapper) purposeWrapper.style.display = isReturn ? 'none' : 'flex';
   toggleTrPreview();
 }
 
