@@ -57,11 +57,13 @@
         <td style="font-size:.8rem;color:var(--muted)">{{ u.last_login|date:"d M Y H:i"|default:"Never" }}</td>
         <td>
           <div class="flex gap-1">
+            {% if not u.is_superuser or request.user.is_superuser %}
             <a href="{% url 'user-edit' u.pk %}" class="btn btn-secondary btn-sm btn-icon" title="Edit"><i class="fa-solid fa-pen"></i></a>
             {% if u != request.user %}
             <button type="button" class="btn btn-secondary btn-sm btn-icon" style="color:var(--red)"
                     data-username="{{ u.username }}" data-delete-url="{% url 'user-delete' u.pk %}"
                     title="Delete"><i class="fa-solid fa-trash"></i></button>
+            {% endif %}
             {% endif %}
           </div>
         </td>

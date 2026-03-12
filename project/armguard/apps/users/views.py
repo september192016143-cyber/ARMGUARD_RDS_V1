@@ -224,6 +224,9 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
+        if self.object.is_superuser and not request.user.is_superuser:
+            messages.error(request, "You do not have permission to edit a superuser account.")
+            return redirect('user-list')
         current_linked = getattr(self.object, 'personnel', None)
         current_linked_pk = current_linked.Personnel_ID if current_linked else None
         from django.db.models import Q
@@ -238,6 +241,9 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
+        if self.object.is_superuser and not request.user.is_superuser:
+            messages.error(request, "You do not have permission to edit a superuser account.")
+            return redirect('user-list')
         form = self._make_form(request.POST)
         if form.is_valid():
             cd = form.cleaned_data
@@ -281,6 +287,9 @@ class UserDeleteView(LoginRequiredMixin, UserPassesTestMixin, View):
     def post(self, request, pk, *args, **kwargs):
         from django.shortcuts import get_object_or_404
         user = get_object_or_404(User, pk=pk)
+        if user.is_superuser and not request.user.is_superuser:
+            messages.error(request, "You do not have permission to delete a superuser account.")
+            return redirect('user-list')
         if user == request.user:
             messages.error(request, "You cannot delete your own account.")
             return redirect('user-list')
