@@ -346,55 +346,73 @@ class AssignWeaponView(LoginRequiredMixin, UserPassesTestMixin, View):
 		username = request.user.username
 		now = timezone.now()
 
-		# ── Pistol ────────────────────────────────────────────────────────────
-		# Clear existing pistol FK assignments for this person
-		for p in personnel.pistols_assigned.all():
-			p.set_assigned(None, None, None)
-		# Clear Personnel CharField mirror
-		personnel.set_assigned('pistol', None, None, None)
-
 		pistol_id = request.POST.get('pistol')
+		rifle_id  = request.POST.get('rifle')
+
+		# ── Validate: block reassignment from another person ──────────────────
+		# Fetch the selected items once for validation.
+		selected_pistol = None
+		selected_rifle  = None
+		errors = []
+
 		if pistol_id:
 			try:
-				pistol = Pistol.objects.select_related('item_assigned_to').get(pk=pistol_id)
-				# If this pistol was assigned to a DIFFERENT person, clear their CharField mirror
-				if pistol.item_assigned_to_id and pistol.item_assigned_to_id != personnel.pk:
-					try:
-						old_owner = Personnel.objects.get(pk=pistol.item_assigned_to_id)
-						old_owner.set_assigned('pistol', None, None, None)
-					except Personnel.DoesNotExist:
-						pass
-				# FK side (inventory)
-				pistol.set_assigned(personnel.pk, now, username)
-				# Personnel CharField mirror
-				personnel.set_assigned('pistol', pistol.item_id, now, username)
+				selected_pistol = Pistol.objects.select_related('item_assigned_to').get(pk=pistol_id)
+				if (selected_pistol.item_assigned_to_id
+						and selected_pistol.item_assigned_to_id != personnel.pk):
+					other = selected_pistol.item_assigned_to
+					errors.append(
+						f'Pistol "{selected_pistol.model} — SN: {selected_pistol.serial_number}" '
+						f'is already assigned to {other.rank} {other.last_name}. '
+						f'Clear it from that personnel first.'
+					)
 			except Pistol.DoesNotExist:
-				pass
+				pistol_id = None
 
-		# ── Rifle ─────────────────────────────────────────────────────────────
-		# Clear existing rifle FK assignments for this person
-		for r in personnel.rifles_assigned.all():
-			r.set_assigned(None, None, None)
-		# Clear Personnel CharField mirror
-		personnel.set_assigned('rifle', None, None, None)
-
-		rifle_id = request.POST.get('rifle')
 		if rifle_id:
 			try:
-				rifle = Rifle.objects.select_related('item_assigned_to').get(pk=rifle_id)
-				# If this rifle was assigned to a DIFFERENT person, clear their CharField mirror
-				if rifle.item_assigned_to_id and rifle.item_assigned_to_id != personnel.pk:
-					try:
-						old_owner = Personnel.objects.get(pk=rifle.item_assigned_to_id)
-						old_owner.set_assigned('rifle', None, None, None)
-					except Personnel.DoesNotExist:
-						pass
-				# FK side (inventory)
-				rifle.set_assigned(personnel.pk, now, username)
-				# Personnel CharField mirror
-				personnel.set_assigned('rifle', rifle.item_id, now, username)
+				selected_rifle = Rifle.objects.select_related('item_assigned_to').get(pk=rifle_id)
+				if (selected_rifle.item_assigned_to_id
+						and selected_rifle.item_assigned_to_id != personnel.pk):
+					other = selected_rifle.item_assigned_to
+					errors.append(
+						f'Rifle "{selected_rifle.model} — SN: {selected_rifle.serial_number}" '
+						f'is already assigned to {other.rank} {other.last_name}. '
+						f'Clear it from that personnel first.'
+					)
 			except Rifle.DoesNotExist:
-				pass
+				rifle_id = None
+
+		if errors:
+			for msg in errors:
+				messages.error(request, msg)
+			pistols = Pistol.objects.exclude(item_status='Decommissioned').select_related('item_assigned_to').order_by('model')
+			rifles  = Rifle.objects.exclude(item_status='Decommissioned').select_related('item_assigned_to').order_by('model')
+			return render(request, self.template_name, {
+				'personnel': personnel,
+				'pistols': pistols,
+				'rifles': rifles,
+				'current_pistols': list(personnel.pistols_assigned.all()),
+				'current_rifles':  list(personnel.rifles_assigned.all()),
+			})
+
+		# ── Pistol ────────────────────────────────────────────────────────────
+		for p in personnel.pistols_assigned.all():
+			p.set_assigned(None, None, None)
+		personnel.set_assigned('pistol', None, None, None)
+
+		if selected_pistol:
+			selected_pistol.set_assigned(personnel.pk, now, username)
+			personnel.set_assigned('pistol', selected_pistol.item_id, now, username)
+
+		# ── Rifle ─────────────────────────────────────────────────────────────
+		for r in personnel.rifles_assigned.all():
+			r.set_assigned(None, None, None)
+		personnel.set_assigned('rifle', None, None, None)
+
+		if selected_rifle:
+			selected_rifle.set_assigned(personnel.pk, now, username)
+			personnel.set_assigned('rifle', selected_rifle.item_id, now, username)
 
 		messages.success(request, f"Weapon assignments updated for {personnel.rank} {personnel.last_name}.")
 		return redirect('personnel-detail', pk=pk)

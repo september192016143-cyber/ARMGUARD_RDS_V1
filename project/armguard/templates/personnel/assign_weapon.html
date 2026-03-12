@@ -34,9 +34,19 @@
         <select id="pistol-select" name="pistol" style="width:100%;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
           <option value="">— None (clear assignment) —</option>
           {% for p in pistols %}
-          <option value="{{ p.item_id }}" data-qr="{{ p.qr_code }}" {% if p in current_pistols %}selected{% endif %}>
-            {{ p.model }} — SN: {{ p.serial_number }} [{{ p.item_status }}]{% if p.item_assigned_to %} → {{ p.item_assigned_to.rank }} {{ p.item_assigned_to.last_name }}{% endif %}
+          {% if p in current_pistols %}
+          <option value="{{ p.item_id }}" data-qr="{{ p.qr_code }}" selected>
+            {{ p.model }} — SN: {{ p.serial_number }} [{{ p.item_status }}]
           </option>
+          {% elif p.item_assigned_to %}
+          <option value="" disabled style="color:var(--muted);font-style:italic">
+            ✗ {{ p.model }} — SN: {{ p.serial_number }} → {{ p.item_assigned_to.rank }} {{ p.item_assigned_to.last_name }} (assigned)
+          </option>
+          {% else %}
+          <option value="{{ p.item_id }}" data-qr="{{ p.qr_code }}">
+            {{ p.model }} — SN: {{ p.serial_number }} [{{ p.item_status }}]
+          </option>
+          {% endif %}
           {% endfor %}
         </select>
       </div>
@@ -54,9 +64,19 @@
         <select id="rifle-select" name="rifle" style="width:100%;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
           <option value="">— None (clear assignment) —</option>
           {% for r in rifles %}
-          <option value="{{ r.item_id }}" data-qr="{{ r.qr_code }}" {% if r in current_rifles %}selected{% endif %}>
-            {{ r.model }} — SN: {{ r.serial_number }} [{{ r.item_status }}]{% if r.item_assigned_to %} → {{ r.item_assigned_to.rank }} {{ r.item_assigned_to.last_name }}{% endif %}
+          {% if r in current_rifles %}
+          <option value="{{ r.item_id }}" data-qr="{{ r.qr_code }}" selected>
+            {{ r.model }} — SN: {{ r.serial_number }} [{{ r.item_status }}]
           </option>
+          {% elif r.item_assigned_to %}
+          <option value="" disabled style="color:var(--muted);font-style:italic">
+            ✗ {{ r.model }} — SN: {{ r.serial_number }} → {{ r.item_assigned_to.rank }} {{ r.item_assigned_to.last_name }} (assigned)
+          </option>
+          {% else %}
+          <option value="{{ r.item_id }}" data-qr="{{ r.qr_code }}">
+            {{ r.model }} — SN: {{ r.serial_number }} [{{ r.item_status }}]
+          </option>
+          {% endif %}
           {% endfor %}
         </select>
       </div>
