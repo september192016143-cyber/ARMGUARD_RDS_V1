@@ -301,6 +301,8 @@ def reprint_tr(request):
         'selected_range': range_filter,
         'total':          transactions.count(),
     }
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(request, 'print/reprint_tr_rows.html', context)
     return render(request, 'print/reprint_tr.html', context)
 
 

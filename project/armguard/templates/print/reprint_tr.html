@@ -16,138 +16,40 @@
 
   <!-- ── Filter bar ─────────────────────────────────────────────────────── -->
   <div class="filter-bar">
-    <form method="get" class="search-bar" style="flex:1;flex-wrap:wrap">
+    <form id="reprint-tr-form" method="get" class="search-bar" style="flex:1;flex-wrap:wrap" data-url="{% url 'print_handler:reprint_tr' %}">
       <div class="input-wrap" style="flex:1;max-width:320px;position:relative">
         <i class="fa-solid fa-magnifying-glass"
            style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;pointer-events:none"></i>
-        <input type="text" name="q" value="{{ q }}" class="form-control"
+        <input id="reprint-tr-q" type="text" name="q" value="{{ q }}" class="form-control"
                placeholder="Search name, AFSN, transaction ID…"
-               style="padding-left:2.1rem">
+               style="padding-left:2.1rem" autocomplete="off">
       </div>
 
-      <select name="txn_type" class="form-control" style="max-width:150px">
+      <select id="reprint-tr-type" name="txn_type" class="form-control" style="max-width:150px">
         <option value="">All Types</option>
         <option value="Withdrawal" {% if selected_type == 'Withdrawal' %}selected{% endif %}>Withdrawal</option>
         <option value="Return"     {% if selected_type == 'Return'     %}selected{% endif %}>Return</option>
       </select>
 
-      <select name="range" class="form-control" style="max-width:140px">
+      <select id="reprint-tr-range" name="range" class="form-control" style="max-width:140px">
         <option value="">All Time</option>
         <option value="day"   {% if selected_range == 'day'   %}selected{% endif %}>Today</option>
         <option value="week"  {% if selected_range == 'week'  %}selected{% endif %}>This Week</option>
         <option value="month" {% if selected_range == 'month' %}selected{% endif %}>This Month</option>
       </select>
 
-      <button type="submit" class="btn btn-secondary btn-sm">
-        <i class="fa-solid fa-filter"></i> Filter
-      </button>
       {% if q or selected_type or selected_range %}
       <a href="{% url 'print_handler:reprint_tr' %}" class="btn btn-secondary btn-sm">
         <i class="fa-solid fa-xmark"></i> Clear
       </a>
       {% endif %}
     </form>
-    <span class="text-muted" style="font-size:.75rem;white-space:nowrap">{{ total }} record{{ total|pluralize }}</span>
+    <span id="reprint-tr-count" class="text-muted" style="font-size:.75rem;white-space:nowrap">{{ total }} record{{ total|pluralize }}</span>
   </div>
 
   <!-- ── Table ─────────────────────────────────────────────────────────── -->
-  <div class="table-wrap">
-    {% if transactions %}
-    <table>
-      <thead>
-        <tr>
-          <th>TR #</th>
-          <th>Date / Time</th>
-          <th>Personnel</th>
-          <th>Type</th>
-          <th>Duty</th>
-          <th>Items</th>
-          <th style="width:110px"></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for t in transactions %}
-        <tr>
-          <td class="text-muted" style="font-family:'Courier New',monospace;font-size:.78rem">
-            #{{ t.transaction_id }}
-          </td>
-
-          <td class="text-muted" style="font-size:.8rem;white-space:nowrap">
-            {{ t.timestamp|date:"d M Y" }}<br>
-            <span style="font-size:.72rem">{{ t.timestamp|date:"H:i" }}</span>
-          </td>
-
-          <td>
-            {% if t.personnel %}
-            <a href="{% url 'personnel-detail' t.personnel.Personnel_ID %}"
-               style="color:var(--text);font-weight:600;font-size:.83rem">
-              {{ t.personnel.rank }} {{ t.personnel.last_name }}, {{ t.personnel.first_name }}
-            </a>
-            <div class="text-muted" style="font-size:.72rem">{{ t.personnel.AFSN }}</div>
-            {% else %}
-            <span class="text-muted">—</span>
-            {% endif %}
-          </td>
-
-          <td>
-            {% if t.transaction_type == 'Withdrawal' %}
-              <span class="badge" style="background:rgba(245,158,11,.15);color:var(--primary);font-size:.7rem">
-                <i class="fa-solid fa-arrow-up-from-bracket"></i> Withdrawal
-              </span>
-            {% else %}
-              <span class="badge" style="background:rgba(34,197,94,.12);color:#4ade80;font-size:.7rem">
-                <i class="fa-solid fa-arrow-down-to-bracket"></i> Return
-              </span>
-            {% endif %}
-          </td>
-
-          <td class="text-muted" style="font-size:.8rem">
-            {{ t.duty_type|default:"—" }}
-          </td>
-
-          <td style="font-size:.78rem;color:var(--muted)">
-            {% if t.pistol %}
-              <div><i class="fa-solid fa-gun" style="font-size:.65rem"></i> {{ t.pistol.item_name|default:t.pistol }}</div>
-            {% endif %}
-            {% if t.rifle %}
-              <div><i class="fa-solid fa-rifle" style="font-size:.65rem"></i> {{ t.rifle.item_name|default:t.rifle }}</div>
-            {% endif %}
-            {% if not t.pistol and not t.rifle %}—{% endif %}
-          </td>
-
-          <td>
-            <div class="flex gap-2">
-              <a href="{% url 'print_handler:print_transaction_pdf' t.transaction_id %}"
-                 class="btn btn-secondary btn-sm btn-icon" title="Print TR"
-                 style="color:var(--primary)">
-                <i class="fa-solid fa-print"></i>
-              </a>
-              <a href="{% url 'print_handler:download_transaction_pdf' t.transaction_id %}"
-                 class="btn btn-secondary btn-sm btn-icon" title="Download PDF" target="_blank">
-                <i class="fa-solid fa-file-pdf"></i>
-              </a>
-              <a href="{% url 'transaction-detail' t.transaction_id %}"
-                 class="btn btn-secondary btn-sm btn-icon" title="View transaction">
-                <i class="fa-solid fa-eye"></i>
-              </a>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    {% else %}
-    <div class="empty-state">
-      <i class="fa-solid fa-file-circle-xmark"></i>
-      <p>No TR transactions found{% if q or selected_type or selected_range %} matching your filters{% endif %}.</p>
-      {% if q or selected_type or selected_range %}
-      <a href="{% url 'print_handler:reprint_tr' %}" class="btn btn-secondary btn-sm" style="margin-top:.75rem">
-        Clear filters
-      </a>
-      {% endif %}
-    </div>
-    {% endif %}
+  <div id="reprint-tr-results" class="table-wrap">
+    {% include 'print/reprint_tr_rows.html' %}
   </div>
 </div>
 {% endblock %}
