@@ -132,13 +132,73 @@ echo -e "${BOLD}Current UFW status:${NC}"
 ufw status verbose
 
 # ---------------------------------------------------------------------------
-# Remind about Fail2Ban (optional hardening)
+# Fail2Ban — SSH and Nginx brute-force protection
 # ---------------------------------------------------------------------------
-echo
-warn "Optional: Install Fail2Ban for SSH/Nginx brute-force protection:"
-warn "  sudo apt install fail2ban"
-warn "  sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local"
-warn "  sudo systemctl enable --now fail2ban"
+echo -e "\n${BOLD}>>> Installing Fail2Ban${NC}"
+
+if ! command -v fail2ban-server &>/dev/null; then
+    apt-get update -qq
+    apt-get install -y fail2ban
+fi
+
+# Write local jail config — never edit jail.conf directly (gets overwritten on upgrades).
+cat > /etc/fail2ban/jail.local <<'FAIL2BAN'
+[DEFAULT]
+# Ban for 1 hour after 5 failures in a 10-minute window.
+bantime  = 3600
+findtime = 600
+maxretry = 5
+backend  = systemd
+
+# ── SSH ──────────────────────────────────────────────────────────────────────
+[sshd]
+enabled  = true
+port     = ssh
+filter   = sshd
+logpath  = %(sshd_log)s
+maxretry = 3
+bantime  = 86400   # 24 h for SSH — more aggressive
+
+# ── Nginx 4xx / 5xx ──────────────────────────────────────────────────────────
+[nginx-http-auth]
+enabled  = true
+port     = http,https
+filter   = nginx-http-auth
+logpath  = /var/log/nginx/error.log
+
+[nginx-botsearch]
+enabled  = true
+port     = http,https
+filter   = nginx-botsearch
+logpath  = /var/log/nginx/access.log
+maxretry = 2
+FAIL2BAN
+
+systemctl enable fail2ban
+systemctl restart fail2ban
+success "Fail2Ban installed and configured (SSH + Nginx jails active)."
+
+# ---------------------------------------------------------------------------
+# unattended-upgrades — automatic security patches
+# ---------------------------------------------------------------------------
+echo -e "\n${BOLD}>>> Configuring unattended-upgrades${NC}"
+
+apt-get install -y unattended-upgrades apt-listchanges
+
+# Enable automatic security updates.
+cat > /etc/apt/apt.conf.d/20auto-upgrades <<'APT_CONF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT::Periodic::AutocleanInterval "7";
+APT_CONF
+
+# Restrict to security-only repos so production packages stay predictable.
+sed -i 's|//\s*"${distro_id}:${distro_codename}-updates";|        "${distro_id}:${distro_codename}-updates";|' \
+    /etc/apt/apt.conf.d/50unattended-upgrades 2>/dev/null || true
+
+systemctl enable unattended-upgrades
+systemctl restart unattended-upgrades
+success "unattended-upgrades enabled (security patches applied automatically)."
 
 echo
 success "Firewall setup complete."

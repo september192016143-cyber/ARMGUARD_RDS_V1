@@ -436,11 +436,14 @@ User=$DEPLOY_USER
 Group=$DEPLOY_USER
 WorkingDirectory=$PROJECT_DIR
 EnvironmentFile=$ENV_FILE
+EnvironmentFile=-/etc/gunicorn/workers.env
 Environment=DJANGO_SETTINGS_MODULE=armguard.settings.production
 ExecStart=$VENV_DIR/bin/gunicorn armguard.wsgi:application \\
     --bind 127.0.0.1:8000 \\
-    --workers 2 \\
-    --timeout 60 \\
+    --workers \${GUNICORN_WORKERS:-3} \\
+    --worker-class gthread \\
+    --threads \${GUNICORN_THREADS:-2} \\
+    --timeout 120 \\
     --max-requests 1000 \\
     --max-requests-jitter 100 \\
     --log-file $LOG_DIR/gunicorn.log \\
@@ -453,6 +456,11 @@ KillMode=mixed
 TimeoutStopSec=30
 PrivateTmp=true
 NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=$LOG_DIR $DEPLOY_DIR
 
 [Install]
 WantedBy=multi-user.target
@@ -461,6 +469,19 @@ fi
 
 chmod 644 "$SERVICE_FILE"
 systemctl daemon-reload
+
+# Install gunicorn-autoconf.sh so it runs on every future update
+if [[ -f "$SCRIPT_DIR/gunicorn-autoconf.sh" ]]; then
+    install -m 755 "$SCRIPT_DIR/gunicorn-autoconf.sh" /usr/local/bin/gunicorn-autoconf.sh
+    info "Installed gunicorn-autoconf.sh to /usr/local/bin/"
+fi
+
+# Compute workers before first start
+if [[ -x "/usr/local/bin/gunicorn-autoconf.sh" ]]; then
+    bash /usr/local/bin/gunicorn-autoconf.sh
+    success "Initial Gunicorn worker count computed."
+fi
+
 systemctl enable "$SERVICE_NAME"
 systemctl restart "$SERVICE_NAME"
 success "Service '$SERVICE_NAME' installed and started."

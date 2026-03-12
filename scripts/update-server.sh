@@ -284,7 +284,20 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 6. Reload Gunicorn (graceful — zero downtime)
+# 6. Re-run Gunicorn auto-tuner (recomputes workers/threads after any change)
+# ---------------------------------------------------------------------------
+if [[ -f "/usr/local/bin/gunicorn-autoconf.sh" ]]; then
+    step "6a/8 Re-running Gunicorn auto-tuner"
+    bash /usr/local/bin/gunicorn-autoconf.sh
+    ok "Worker count recomputed."
+elif [[ -f "$SCRIPT_DIR/gunicorn-autoconf.sh" ]]; then
+    step "6a/8 Re-running Gunicorn auto-tuner (from scripts/)"
+    bash "$SCRIPT_DIR/gunicorn-autoconf.sh"
+    ok "Worker count recomputed."
+fi
+
+# ---------------------------------------------------------------------------
+# 6b. Reload Gunicorn (graceful — zero downtime)
 # ---------------------------------------------------------------------------
 if [[ "$NO_RESTART" == "false" ]]; then
     step "7/8 Reloading Gunicorn service"
@@ -326,6 +339,18 @@ if systemctl is-active --quiet nginx; then
     success "Nginx is running."
 else
     warn "Nginx is not running. Check: journalctl -u nginx -n 20"
+fi
+
+# HTTP endpoint check — verifies the app actually responds (not just systemd state).
+HEALTH_URL="http://127.0.0.1:8000/health/"
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
+if [[ "$HTTP_STATUS" == "200" ]]; then
+    success "Health endpoint $HEALTH_URL returned HTTP 200."
+elif [[ "$HTTP_STATUS" == "000" ]]; then
+    warn "Could not reach $HEALTH_URL (curl failed). Check if /health/ URL is configured."
+else
+    warn "Health endpoint returned HTTP $HTTP_STATUS (expected 200)."
+    HEALTH_OK=false
 fi
 
 # ---------------------------------------------------------------------------
