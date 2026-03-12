@@ -227,18 +227,30 @@
     </table>
 
     <!-- Signature Block -->
-    <div class="sig-block">
-      <div class="sig-left">
-        <p class="sig-name">{{ armorer_name }}</p>
-        {% if armorer_rank or armorer_branch %}<p class="sig-info"><span>{{ armorer_rank }}</span><span>{{ armorer_branch }}</span></p>{% endif %}
-        <p class="sig-designation">Armorer</p>
-      </div>
-      <div class="sig-right">
-        {% if commander_name %}<p class="sig-name">{{ commander_name }}</p>{% endif %}
-        {% if commander_rank or commander_branch %}<p class="sig-info"><span>{{ commander_rank }}</span><span>{{ commander_branch }}</span></p>{% endif %}
-        <p class="sig-designation">{{ commander_designation }}</p>
-      </div>
-    </div>
+    <table class="sig-table">
+      <tr>
+        <td class="sig-left">
+          <p class="sig-name">{{ armorer_name }}</p>
+          {% if armorer_rank or armorer_branch %}
+          <table class="sig-info-table"><tr>
+            <td class="sig-rank">{{ armorer_rank }}</td>
+            <td class="sig-branch">{{ armorer_branch }}</td>
+          </tr></table>
+          {% endif %}
+          <p class="sig-designation">Armorer</p>
+        </td>
+        <td class="sig-right">
+          {% if commander_name %}<p class="sig-name">{{ commander_name }}</p>{% endif %}
+          {% if commander_rank or commander_branch %}
+          <table class="sig-info-table"><tr>
+            <td class="sig-rank">{{ commander_rank }}</td>
+            <td class="sig-branch">{{ commander_branch }}</td>
+          </tr></table>
+          {% endif %}
+          <p class="sig-designation">{{ commander_designation }}</p>
+        </td>
+      </tr>
+    </table>
 
   </div><!-- /.eval-wrapper -->
 </div>
@@ -319,15 +331,22 @@
 }
 
 /* ── Signature Block ─────────────────────────────── */
-.sig-block {
-  display: flex;
-  justify-content: space-between;
+.sig-table {
+  width: 100%;
+  border-collapse: collapse;
   margin-top: 20px;
-  gap: 40px;
 }
+.sig-table td.sig-left { width: 50%; text-align: left; vertical-align: top; padding: 0; }
+.sig-table td.sig-right { width: 50%; text-align: right; vertical-align: top; padding: 0; }
 
-.sig-left { flex: 1; text-align: left; }
-.sig-right { flex: 1; text-align: right; }
+.sig-info-table {
+  border-collapse: collapse;
+  margin: 0 0 1px;
+}
+.sig-table td.sig-left .sig-info-table { margin-left: 0; }
+.sig-table td.sig-right .sig-info-table { margin-left: auto; }
+.sig-info-table td.sig-rank { padding: 0 1.5em 0 0; font-size: 12px; font-family: Arial, Helvetica, sans-serif !important; white-space: nowrap; }
+.sig-info-table td.sig-branch { padding: 0; font-size: 12px; font-family: Arial, Helvetica, sans-serif !important; white-space: nowrap; }
 
 .sig-name {
   font-size: 13px;
@@ -336,17 +355,6 @@
   text-transform: uppercase;
   font-family: Arial, Helvetica, sans-serif !important;
 }
-
-.sig-info {
-  display: grid;
-  grid-template-columns: max-content max-content;
-  gap: 2em;
-  font-size: 12px;
-  margin: 0 0 1px;
-  font-family: Arial, Helvetica, sans-serif !important;
-}
-.sig-left .sig-info { justify-content: start; }
-.sig-right .sig-info { justify-content: end; }
 
 .sig-designation {
   font-size: 12px;
