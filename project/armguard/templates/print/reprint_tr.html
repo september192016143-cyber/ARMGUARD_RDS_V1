@@ -35,9 +35,8 @@
       </div>
 
       <select id="reprint-tr-type" name="txn_type" class="form-control" style="max-width:150px">
-        <option value="">All Types</option>
-        <option value="Withdrawal" {% if selected_type == 'Withdrawal' %}selected{% endif %}>Withdrawal</option>
-        <option value="Return"     {% if selected_type == 'Return'     %}selected{% endif %}>Return</option>
+        <option value="">All Withdrawals</option>
+        <option value="Withdrawal" selected>Withdrawal</option>
       </select>
 
       <select id="reprint-tr-range" name="range" class="form-control" style="max-width:140px">

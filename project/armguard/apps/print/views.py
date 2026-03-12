@@ -287,8 +287,8 @@ def reprint_tr(request):
             Q(transaction_id__icontains=q)
         )
 
-    if txn_type in ('Withdrawal', 'Return'):
-        transactions = transactions.filter(transaction_type=txn_type)
+    # TRs are only issued for Withdrawals — Returns are always excluded
+    transactions = transactions.filter(transaction_type='Withdrawal')
 
     range_days = {'day': 1, 'week': 7, 'month': 30}
     if range_filter in range_days:
