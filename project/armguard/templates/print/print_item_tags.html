@@ -153,6 +153,7 @@
   {% for entry in item_tags %}
   <div class="tag-wrapper" id="wrap-{{ entry.item.id }}">
     <input type="checkbox" class="select-checkbox tag-checkbox"
+           id="chk-{{ entry.item.id }}" name="selected_items"
            value="{{ entry.item.id }}">
     <div class="tag-card">
       <div class="tag-thumb-wrap"
