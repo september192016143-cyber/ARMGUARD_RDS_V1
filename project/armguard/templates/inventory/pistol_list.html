@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Pistols — ArmGuard RDS{% endblock %}
 {% block page_title %}Pistols{% endblock %}
@@ -39,113 +40,31 @@
 <div class="card">
   <!-- Filter -->
   <div class="filter-bar">
-    <form method="get" class="search-bar" style="flex:1">
+    <form id="pistol-filter-form" method="get" class="search-bar" style="flex:1" data-url="{% url 'pistol-list' %}">
       <div class="input-wrap" style="flex:1;max-width:300px">
         <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;pointer-events:none"></i>
-        <input type="text" name="q" value="{{ request.GET.q }}" class="form-control"
-               placeholder="Serial, model, item ID…" style="padding-left:2.1rem">
+        <input id="pistol-q" type="text" name="q" value="{{ request.GET.q }}" class="form-control"
+               placeholder="Serial, model, item ID…" style="padding-left:2.1rem" autocomplete="off">
       </div>
-      <select name="status" class="form-control" style="max-width:160px">
+      <select id="pistol-status" name="status" class="form-control" style="max-width:160px">
         <option value="">All Status</option>
         <option value="Available" {% if request.GET.status == 'Available' %}selected{% endif %}>Available</option>
         <option value="Issued" {% if request.GET.status == 'Issued' %}selected{% endif %}>Issued</option>
         <option value="Under Maintenance" {% if request.GET.status == 'Under Maintenance' %}selected{% endif %}>Maintenance</option>
       </select>
-      <button type="submit" class="btn btn-secondary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
       {% if request.GET.q or request.GET.status %}
         <a href="{% url 'pistol-list' %}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
       {% endif %}
     </form>
+    <span id="pistol-count" class="text-muted" style="font-size:.8rem;white-space:nowrap">{{ page_obj.paginator.count }} records</span>
   </div>
 
-  <div class="table-wrap">
-    {% if page_obj.object_list %}
-    <table>
-      <thead>
-        <tr>
-          <th>Item ID</th>
-          <th>Model</th>
-          <th>Serial Number</th>
-          <th>Condition</th>
-          <th>Status</th>
-          <th>Issued To</th>
-          <th>Assigned To</th>
-          {% if can_edit %}<th style="width:80px"></th>{% endif %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for p in page_obj %}
-        <tr>
-          <td class="text-muted" style="font-size:.75rem">{{ p.item_id }}</td>
-          <td class="fw-600">{{ p.model|default:"—" }}</td>
-          <td><code style="font-size:.78rem;color:var(--muted)">{{ p.serial_number|default:"—" }}</code></td>
-          <td class="text-muted">{{ p.item_condition|default:"—" }}</td>
-          <td>
-            {% if p.item_status == 'Available' %}
-              <span class="badge badge-green">Available</span>
-            {% elif p.item_status == 'Issued' %}
-              <span class="badge badge-red">Issued</span>
-            {% elif p.item_status == 'Under Maintenance' %}
-              <span class="badge badge-amber">Maintenance</span>
-            {% else %}
-              <span class="badge badge-gray">{{ p.item_status|default:"—" }}</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if p.item_issued_to %}
-              <a href="{% url 'personnel-detail' p.item_issued_to.Personnel_ID %}">
-                {{ p.item_issued_to.rank }} {{ p.item_issued_to.last_name }}
-              </a>
-            {% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
-            {% if p.item_assigned_to %}
-              <a href="{% url 'personnel-detail' p.item_assigned_to.Personnel_ID %}">
-                {{ p.item_assigned_to.rank }} {{ p.item_assigned_to.last_name }}
-              </a>
-            {% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          {% if can_edit %}
-          <td>
-            <div class="flex gap-2">
-              <a href="{% url 'pistol-edit' p.item_id %}" class="btn btn-secondary btn-sm btn-icon" title="Edit"><i class="fa-solid fa-pen"></i></a>
-              {% if can_delete %}
-              <a href="{% url 'pistol-delete' p.item_id %}" class="btn btn-danger btn-sm btn-icon" title="Delete"><i class="fa-solid fa-trash"></i></a>
-              {% endif %}
-            </div>
-          </td>
-          {% endif %}
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    {% if page_obj.has_other_pages %}
-    {% with q=request.GET.q status=request.GET.status %}
-    <div class="pagination">
-      {% if page_obj.has_previous %}
-        <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
-      {% endif %}
-      {% for num in page_obj.paginator.page_range %}
-        {% if page_obj.number == num %}
-          <a class="page-link active">{{ num }}</a>
-        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-          <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}page={{ num }}" class="page-link">{{ num }}</a>
-        {% endif %}
-      {% endfor %}
-      {% if page_obj.has_next %}
-        <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
-      {% endif %}
-    </div>
-    {% endwith %}
-    {% endif %}
-
-    {% else %}
-    <div class="empty-state">
-      <i class="fa-solid fa-circle-dot"></i>
-      <p>No pistols found matching your criteria.</p>
-    </div>
-    {% endif %}
+  <div id="pistol-results" class="table-wrap">
+    {% include 'inventory/pistol_rows.html' %}
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/pistol_list.js' %}"></script>
 {% endblock %}
