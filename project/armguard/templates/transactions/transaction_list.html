@@ -184,146 +184,38 @@
 <div class="card">
   <!-- Filters -->
   <div class="filter-bar">
-    <form method="get" class="search-bar" style="flex:1;flex-wrap:wrap">
+    <form id="txn-filter-form" method="get" class="search-bar" style="flex:1;flex-wrap:wrap" data-url="{% url 'transaction-list' %}">
       <div class="input-wrap" style="flex:1;min-width:200px;max-width:280px">
         <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;pointer-events:none"></i>
-        <input type="text" name="q" value="{{ q }}" class="form-control"
-               placeholder="Name, ID, transaction #…" style="padding-left:2.1rem">
+        <input id="txn-q" type="text" name="q" value="{{ q }}" class="form-control"
+               placeholder="Name, ID, transaction #…" style="padding-left:2.1rem" autocomplete="off">
       </div>
-      <select name="type" class="form-control" style="max-width:140px">
+      <select id="txn-type" name="type" class="form-control" style="max-width:140px">
         <option value="">All Types</option>
         <option value="Withdrawal" {% if selected_type == 'Withdrawal' %}selected{% endif %}>Withdrawal</option>
         <option value="Return"     {% if selected_type == 'Return'     %}selected{% endif %}>Return</option>
       </select>
-      <select name="issuance" class="form-control" style="max-width:120px">
+      <select id="txn-issuance" name="issuance" class="form-control" style="max-width:120px">
         <option value="">All Issuance</option>
         <option value="TR"  {% if selected_issuance == 'TR'  %}selected{% endif %}>TR</option>
         <option value="PAR" {% if selected_issuance == 'PAR' %}selected{% endif %}>PAR</option>
       </select>
-      <button type="submit" class="btn btn-secondary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
       {% if q or selected_type or selected_issuance %}
         <a href="{% url 'transaction-list' %}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
       {% endif %}
     </form>
-    <span class="text-muted" style="font-size:.75rem;white-space:nowrap">{{ page_obj.paginator.count }} records</span>
+    <span id="txn-count" class="text-muted" style="font-size:.75rem;white-space:nowrap">{{ page_obj.paginator.count }} records</span>
   </div>
 
-  <div class="table-wrap">
-    {% if page_obj.object_list %}
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Type</th>
-          <th>Issuance</th>
-            <th>Purpose</th>
-          <th>Personnel</th>
-          <th>Weapon(s)</th>
-          <th>Processed By</th>
-          <th>Timestamp</th>
-          <th>Return By</th>
-          <th style="width:70px"></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for t in page_obj %}
-        <tr>
-          <td class="text-muted" style="font-size:.75rem;white-space:nowrap">{{ t.transaction_id }}</td>
-          <td>
-            {% if t.transaction_type == 'Withdrawal' %}
-              <span class="badge badge-amber">Withdrawal</span>
-            {% else %}
-              <span class="badge badge-green">Return</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if t.effective_issuance %}
-              {% if 'TR' in t.effective_issuance %}
-                <span class="badge badge-blue">TR</span>
-              {% else %}
-                <span class="badge badge-indigo">PAR</span>
-              {% endif %}
-            {% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td class="text-muted" style="font-size:.78rem">{{ t.purpose|default:"—" }}</td>
-          <td>
-              {% if t.personnel %}
-                <a href="{% url 'personnel-detail' t.personnel.Personnel_ID %}" style="color:#fff">
-                  {{ t.personnel.rank }} {{ t.personnel.first_name }}{% if t.personnel.middle_initial %} {{ t.personnel.middle_initial }}{% endif %} {{ t.personnel.last_name }} {{ t.personnel.AFSN }} PAF
-                </a>
-              {% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
-            {% if t.pistol %}<span class="badge badge-gray" style="margin-right:.2rem"><i class="fa-solid fa-circle-dot"></i> {{ t.pistol.model|default:"Pistol" }}</span>{% endif %}
-            {% if t.rifle  %}<span class="badge badge-gray"><i class="fa-solid fa-staff-snake"></i> {{ t.rifle.model|default:"Rifle" }}</span>{% endif %}
-            {% if not t.pistol and not t.rifle %}
-              <span class="text-muted">Accessories</span>
-              <div style="margin-top:2px">
-                <span style="color:#2563eb;font-weight:500">Withdrawn Accessories:</span><br>
-                {% if t.pistol_holster_quantity %}
-                  <span style="color:#ef4444">Pistol Holster x{{ t.pistol_holster_quantity }}</span><br>
-                {% endif %}
-                {% if t.magazine_pouch_quantity %}
-                  <span style="color:#ef4444">Magazine Pouch x{{ t.magazine_pouch_quantity }}</span><br>
-                {% endif %}
-                {% if not t.pistol_holster_quantity and not t.magazine_pouch_quantity %}
-                  <span style="color:#ef4444">None</span>
-                {% endif %}
-              </div>
-            {% endif %}
-          </td>
-          <td class="text-muted" style="font-size:.78rem">{{ t.transaction_personnel|default:"—" }}</td>
-          <td class="text-muted" style="font-size:.75rem;white-space:nowrap">{{ t.timestamp|date:"M d, Y" }}<br>{{ t.timestamp|date:"H:i" }}</td>
-          <td style="font-size:.75rem;white-space:nowrap">
-            {% if t.return_by %}
-              {% if t.return_by < now %}
-                <span style="color:#ef4444;font-weight:700">{{ t.return_by|date:"M d, Y" }}<br>{{ t.return_by|date:"H:i" }}</span>
-                <span class="badge badge-red" style="font-size:.6rem;display:block;margin-top:.15rem">OVERDUE</span>
-              {% else %}
-                <span style="color:#facc15">{{ t.return_by|date:"M d, Y" }}<br>{{ t.return_by|date:"H:i" }}</span>
-              {% endif %}
-            {% else %}
-              <span class="text-muted">—</span>
-            {% endif %}
-          </td>
-          <td>
-            <a href="{% url 'transaction-detail' t.transaction_id %}" class="btn btn-secondary btn-sm btn-icon" title="View details">
-              <i class="fa-solid fa-eye"></i>
-            </a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    {% if page_obj.has_other_pages %}
-    <div class="pagination">
-      {% if page_obj.has_previous %}
-        <a href="?q={{ q }}&type={{ selected_type }}&issuance={{ selected_issuance }}&date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
-      {% endif %}
-      {% for num in page_obj.paginator.page_range %}
-        {% if page_obj.number == num %}
-          <a class="page-link active">{{ num }}</a>
-        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-          <a href="?q={{ q }}&type={{ selected_type }}&issuance={{ selected_issuance }}&date_from={{ date_from }}&date_to={{ date_to }}&page={{ num }}" class="page-link">{{ num }}</a>
-        {% endif %}
-      {% endfor %}
-      {% if page_obj.has_next %}
-        <a href="?q={{ q }}&type={{ selected_type }}&issuance={{ selected_issuance }}&date_from={{ date_from }}&date_to={{ date_to }}&page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    {% else %}
-    <div class="empty-state">
-      <i class="fa-solid fa-right-left"></i>
-      <p>No transactions found{% if q or selected_type or selected_issuance or date_from %} matching your filters{% endif %}.</p>
-    </div>
-    {% endif %}
+  <div id="txn-results" class="table-wrap">
+    {% include 'transactions/transaction_rows.html' %}
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/calendar_widget.js' %}" defer></script>
+<script src="{% static 'js/transaction_list.js' %}" defer></script>
 {% endblock %}
+
+

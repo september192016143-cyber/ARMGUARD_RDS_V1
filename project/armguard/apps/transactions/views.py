@@ -78,6 +78,11 @@ class TransactionListView(LoginRequiredMixin, ListView):
         ctx['now'] = timezone.now()
         return ctx
 
+    def render_to_response(self, context, **response_kwargs):
+        if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return render(self.request, 'transactions/transaction_rows.html', context)
+        return super().render_to_response(context, **response_kwargs)
+
 
 class TransactionDetailView(LoginRequiredMixin, DetailView):
     model = Transaction
