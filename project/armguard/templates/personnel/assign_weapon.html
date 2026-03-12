@@ -18,6 +18,19 @@
     <div class="card-header"><span class="card-title">Weapon Assignment</span></div>
     <div style="display:flex;flex-direction:column;gap:1.25rem;padding:1.25rem">
 
+      <!-- QR / Item ID search -->
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;display:block">
+          <i class="fa-solid fa-qrcode" style="margin-right:.3rem"></i>QR / Item ID Search
+        </label>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <input id="qr-search-input" type="text" placeholder="Scan or type item ID…" autocomplete="off"
+            style="flex:1;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
+          <span id="qr-search-status" style="font-size:1rem;font-weight:700;display:none;min-width:1.2rem;text-align:center"></span>
+        </div>
+        <div id="qr-search-info" style="font-size:.8rem;color:var(--muted);margin-top:.3rem"></div>
+      </div>
+
       <div>
         <label style="font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;display:block">Pistol</label>
         {% if current_pistols %}
@@ -28,11 +41,11 @@
           {% endfor %}
         </div>
         {% endif %}
-        <select name="pistol" style="width:100%;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
+        <select id="pistol-select" name="pistol" style="width:100%;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
           <option value="">— None (clear assignment) —</option>
           {% for p in pistols %}
           <option value="{{ p.item_id }}" {% if p in current_pistols %}selected{% endif %}>
-            {{ p.model }} — SN: {{ p.serial_number }} [{{ p.item_status }}]
+            {{ p.model }} — SN: {{ p.serial_number }} [{{ p.item_status }}]{% if p.item_assigned_to %} → {{ p.item_assigned_to.rank }} {{ p.item_assigned_to.last_name }}{% endif %}
           </option>
           {% endfor %}
         </select>
@@ -48,11 +61,11 @@
           {% endfor %}
         </div>
         {% endif %}
-        <select name="rifle" style="width:100%;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
+        <select id="rifle-select" name="rifle" style="width:100%;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
           <option value="">— None (clear assignment) —</option>
           {% for r in rifles %}
           <option value="{{ r.item_id }}" {% if r in current_rifles %}selected{% endif %}>
-            {{ r.model }} — SN: {{ r.serial_number }} [{{ r.item_status }}]
+            {{ r.model }} — SN: {{ r.serial_number }} [{{ r.item_status }}]{% if r.item_assigned_to %} → {{ r.item_assigned_to.rank }} {{ r.item_assigned_to.last_name }}{% endif %}
           </option>
           {% endfor %}
         </select>
@@ -68,4 +81,138 @@
     <a href="{% url 'personnel-detail' personnel.Personnel_ID %}" class="btn btn-secondary">Cancel</a>
   </div>
 </form>
+
+<script>
+(function () {
+  var searchEl  = document.getElementById('qr-search-input');
+  var statusEl  = document.getElementById('qr-search-status');
+  var infoEl    = document.getElementById('qr-search-info');
+  var pistolSel = document.getElementById('pistol-select');
+  var rifleSel  = document.getElementById('rifle-select');
+  var _timer    = null;
+
+  function showStatus(ok, msg) {
+    statusEl.textContent = ok ? '\u2713' : '\u2717';
+    statusEl.style.color = ok ? 'var(--success, #22c55e)' : 'var(--red, #ef4444)';
+    statusEl.style.display = '';
+    infoEl.textContent = msg;
+    infoEl.style.color = ok ? 'var(--success, #22c55e)' : 'var(--red, #ef4444)';
+  }
+
+  function tryMatch(val) {
+    val = val.trim();
+    if (!val) { statusEl.style.display = 'none'; infoEl.textContent = ''; return; }
+
+    // Match by option value (= item_id = qr_code) — exact
+    var piOpt = Array.from(pistolSel.options).find(function (o) { return o.value === val; });
+    if (piOpt) {
+      pistolSel.value = val;
+      showStatus(true, 'Pistol selected: ' + piOpt.text.trim());
+      searchEl.value = '';
+      return;
+    }
+
+    var riOpt = Array.from(rifleSel.options).find(function (o) { return o.value === val; });
+    if (riOpt) {
+      rifleSel.value = val;
+      showStatus(true, 'Rifle selected: ' + riOpt.text.trim());
+      searchEl.value = '';
+      return;
+    }
+
+    // Fallback: partial text match (model, serial)
+    var piPartial = Array.from(pistolSel.options).find(function (o) { return o.value && o.text.toLowerCase().indexOf(val.toLowerCase()) !== -1; });
+    if (piPartial) {
+      pistolSel.value = piPartial.value;
+      showStatus(true, 'Pistol selected: ' + piPartial.text.trim());
+      searchEl.value = '';
+      return;
+    }
+
+    var riPartial = Array.from(rifleSel.options).find(function (o) { return o.value && o.text.toLowerCase().indexOf(val.toLowerCase()) !== -1; });
+    if (riPartial) {
+      rifleSel.value = riPartial.value;
+      showStatus(true, 'Rifle selected: ' + riPartial.text.trim());
+      searchEl.value = '';
+      return;
+    }
+
+    showStatus(false, 'No item found: "' + val + '"');
+  }
+
+  searchEl.addEventListener('input', function () {
+    clearTimeout(_timer);
+    var val = this.value.trim();
+    if (!val) { statusEl.style.display = 'none'; infoEl.textContent = ''; return; }
+    _timer = setTimeout(function () { tryMatch(val); }, 500);
+  });
+
+  searchEl.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    clearTimeout(_timer);
+    tryMatch(this.value);
+  });
+
+  // ── Background keyboard-wedge scanner listener ─────────────────────────────
+  // Intercepts fast keystroke bursts (< 50 ms) from hardware barcode / QR scanners.
+  (function () {
+    var buf = '', lastKey = 0, scanning = false;
+    var SPEED = 50, MIN_LEN = 3;
+
+    function showToast(msg, ok) {
+      var t = document.getElementById('aw-qr-toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'aw-qr-toast';
+        t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;padding:.6rem 1.1rem;border-radius:.5rem;font-size:.85rem;font-weight:600;z-index:9999;transition:opacity .4s;pointer-events:none';
+        document.body.appendChild(t);
+      }
+      t.style.background = ok ? '#166534' : '#7f1d1d';
+      t.style.color = '#fff';
+      t.textContent = msg;
+      t.style.opacity = '1';
+      clearTimeout(t._h);
+      t._h = setTimeout(function () { t.style.opacity = '0'; }, 2500);
+    }
+
+    document.addEventListener('keydown', function (e) {
+      var now = Date.now();
+      if (e.key === 'Enter') {
+        if (scanning && buf.length >= MIN_LEN) {
+          e.preventDefault();
+          var val = buf;
+          buf = ''; scanning = false;
+          // Route to tryMatch (same logic, but also show toast)
+          var piOpt = Array.from(pistolSel.options).find(function (o) { return o.value === val; });
+          if (piOpt) {
+            pistolSel.value = val;
+            if (searchEl) { searchEl.value = ''; }
+            showStatus(true, 'Pistol selected: ' + piOpt.text.trim());
+            showToast('\u2713 Pistol: ' + piOpt.text.trim(), true);
+            return;
+          }
+          var riOpt = Array.from(rifleSel.options).find(function (o) { return o.value === val; });
+          if (riOpt) {
+            rifleSel.value = val;
+            if (searchEl) { searchEl.value = ''; }
+            showStatus(true, 'Rifle selected: ' + riOpt.text.trim());
+            showToast('\u2713 Rifle: ' + riOpt.text.trim(), true);
+            return;
+          }
+          showToast('\u2717 No item found: ' + val, false);
+        }
+        buf = ''; scanning = false;
+        return;
+      }
+      if (e.key.length === 1) {
+        if (now - lastKey < SPEED) { scanning = true; }
+        buf += e.key;
+        lastKey = now;
+      }
+    }, true);
+  }());
+}());
+</script>
 {% endblock %}
+

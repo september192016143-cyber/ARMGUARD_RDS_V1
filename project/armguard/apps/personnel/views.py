@@ -325,17 +325,12 @@ class AssignWeaponView(LoginRequiredMixin, UserPassesTestMixin, View):
 		return _can_manage_personnel(self.request.user)
 
 	def get(self, request, pk):
-		from django.db.models import Q
 		from armguard.apps.inventory.models import Pistol, Rifle
 		personnel = get_object_or_404(Personnel, pk=pk)
 		current_pistols = list(personnel.pistols_assigned.all())
 		current_rifles = list(personnel.rifles_assigned.all())
-		pistols = Pistol.objects.filter(
-			Q(item_status='Available') | Q(item_assigned_to=personnel)
-		).order_by('model')
-		rifles = Rifle.objects.filter(
-			Q(item_status='Available') | Q(item_assigned_to=personnel)
-		).order_by('model')
+		pistols = Pistol.objects.exclude(item_status='Decommissioned').select_related('item_assigned_to').order_by('model')
+		rifles = Rifle.objects.exclude(item_status='Decommissioned').select_related('item_assigned_to').order_by('model')
 		return render(request, self.template_name, {
 			'personnel': personnel,
 			'pistols': pistols,
