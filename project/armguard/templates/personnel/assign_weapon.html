@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Assign Weapons — {{ personnel.rank }} {{ personnel.last_name }}{% endblock %}
+{% block page_title %}Assign Weapons{% endblock %}
+{% block page_sub %}{{ personnel.rank }} {{ personnel.first_name }} {{ personnel.last_name }}{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'personnel-detail' personnel.Personnel_ID %}" class="btn btn-secondary btn-sm">
+  <i class="fa-solid fa-arrow-left"></i> Back
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="post" style="max-width:600px">
+  {% csrf_token %}
+  <div class="card" style="margin-bottom:1.25rem">
+    <div class="card-header"><span class="card-title">Weapon Assignment</span></div>
+    <div style="display:flex;flex-direction:column;gap:1.25rem;padding:1.25rem">
+
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;display:block">Pistol</label>
+        {% if current_pistols %}
+        <div style="font-size:.82rem;margin-bottom:.5rem;color:var(--text)">
+          Currently assigned:
+          {% for p in current_pistols %}
+            <strong>{{ p.model }}</strong> (SN: {{ p.serial_number }}){% if not forloop.last %}, {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+        <select name="pistol" style="width:100%;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
+          <option value="">— None (clear assignment) —</option>
+          {% for p in pistols %}
+          <option value="{{ p.item_id }}" {% if p in current_pistols %}selected{% endif %}>
+            {{ p.model }} — SN: {{ p.serial_number }} [{{ p.item_status }}]
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label style="font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;display:block">Rifle</label>
+        {% if current_rifles %}
+        <div style="font-size:.82rem;margin-bottom:.5rem;color:var(--text)">
+          Currently assigned:
+          {% for r in current_rifles %}
+            <strong>{{ r.model }}</strong> (SN: {{ r.serial_number }}){% if not forloop.last %}, {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+        <select name="rifle" style="width:100%;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
+          <option value="">— None (clear assignment) —</option>
+          {% for r in rifles %}
+          <option value="{{ r.item_id }}" {% if r in current_rifles %}selected{% endif %}>
+            {{ r.model }} — SN: {{ r.serial_number }} [{{ r.item_status }}]
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display:flex;gap:.75rem">
+    <button type="submit" class="btn btn-primary">
+      <i class="fa-solid fa-check"></i> Save Assignment
+    </button>
+    <a href="{% url 'personnel-detail' personnel.Personnel_ID %}" class="btn btn-secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}

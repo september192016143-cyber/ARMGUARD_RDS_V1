@@ -1,5 +1,5 @@
 from django.urls import reverse_lazy
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.views.generic import (
 	ListView, DetailView, CreateView, UpdateView, DeleteView
@@ -316,3 +316,62 @@ class PersonnelDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
 	def test_func(self):
 		return _can_manage_personnel(self.request.user)
+
+
+class AssignWeaponView(LoginRequiredMixin, UserPassesTestMixin, View):
+	template_name = 'personnel/assign_weapon.html'
+
+	def test_func(self):
+		return _can_manage_personnel(self.request.user)
+
+	def get(self, request, pk):
+		from django.db.models import Q
+		from armguard.apps.inventory.models import Pistol, Rifle
+		personnel = get_object_or_404(Personnel, pk=pk)
+		current_pistols = list(personnel.pistols_assigned.all())
+		current_rifles = list(personnel.rifles_assigned.all())
+		pistols = Pistol.objects.filter(
+			Q(item_status='Available') | Q(item_assigned_to=personnel)
+		).order_by('model')
+		rifles = Rifle.objects.filter(
+			Q(item_status='Available') | Q(item_assigned_to=personnel)
+		).order_by('model')
+		return render(request, self.template_name, {
+			'personnel': personnel,
+			'pistols': pistols,
+			'rifles': rifles,
+			'current_pistols': current_pistols,
+			'current_rifles': current_rifles,
+		})
+
+	def post(self, request, pk):
+		from armguard.apps.inventory.models import Pistol, Rifle
+		from django.utils import timezone
+		personnel = get_object_or_404(Personnel, pk=pk)
+		username = request.user.username
+		now = timezone.now()
+
+		# Clear then re-assign pistol
+		for p in personnel.pistols_assigned.all():
+			p.set_assigned(None, None, None)
+		pistol_id = request.POST.get('pistol')
+		if pistol_id:
+			try:
+				pistol = Pistol.objects.get(pk=pistol_id)
+				pistol.set_assigned(personnel.pk, now, username)
+			except Pistol.DoesNotExist:
+				pass
+
+		# Clear then re-assign rifle
+		for r in personnel.rifles_assigned.all():
+			r.set_assigned(None, None, None)
+		rifle_id = request.POST.get('rifle')
+		if rifle_id:
+			try:
+				rifle = Rifle.objects.get(pk=rifle_id)
+				rifle.set_assigned(personnel.pk, now, username)
+			except Rifle.DoesNotExist:
+				pass
+
+		messages.success(request, f"Weapon assignments updated for {personnel.rank} {personnel.last_name}.")
+		return redirect('personnel-detail', pk=pk)

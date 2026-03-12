@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     PersonnelListView, PersonnelDetailView, PersonnelCreateView, PersonnelUpdateView,
-    PersonnelDeleteView, PersonnelCardPreviewView
+    PersonnelDeleteView, PersonnelCardPreviewView, AssignWeaponView
 )
 
 urlpatterns = [
@@ -11,4 +11,5 @@ urlpatterns = [
     path('<str:pk>/', PersonnelDetailView.as_view(), name='personnel-detail'),
     path('<str:pk>/update/', PersonnelUpdateView.as_view(), name='personnel-update'),
     path('<str:pk>/delete/', PersonnelDeleteView.as_view(), name='personnel-delete'),
+    path('<str:pk>/assign-weapon/', AssignWeaponView.as_view(), name='personnel-assign-weapon'),
 ]
