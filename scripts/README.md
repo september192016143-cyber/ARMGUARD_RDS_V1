@@ -1,6 +1,6 @@
 # ARMGUARD RDS V1 — Deployment Scripts
 
-Scripts for deploying and maintaining **ARMGUARD RDS V1** on Ubuntu Server 24.04 LTS (HP ProDesk Mini).
+Scripts for deploying and maintaining **ARMGUARD RDS V1** on Ubuntu Server 24.04 LTS.
 
 ---
 
@@ -9,12 +9,15 @@ Scripts for deploying and maintaining **ARMGUARD RDS V1** on Ubuntu Server 24.04
 | Script | Purpose |
 |--------|---------|
 | `deploy.sh` | Full first-time deployment orchestrator |
-| `update-server.sh` | Pull latest code and hot-reload service |
+| `update-server.sh` | Pull latest code, auto-tune workers, hot-reload service |
 | `armguard-gunicorn.service` | systemd unit file for Gunicorn |
+| `gunicorn.conf.py` | Gunicorn configuration (worker class, timeouts, logging, security limits) |
+| `gunicorn-autoconf.sh` | Runtime worker auto-tuner — detects CPUs/RAM/disk, writes `/etc/gunicorn/workers.env` |
 | `nginx-armguard.conf` | Nginx HTTP-only reverse proxy config |
 | `nginx-armguard-ssl-lan.conf` | Nginx HTTPS config for LAN self-signed SSL |
-| `setup-firewall.sh` | UFW firewall rules |
-| `db-backup-cron.sh` | Cron wrapper for daily SQLite backup |
+| `setup-firewall.sh` | UFW rules + Fail2Ban + unattended-upgrades |
+| `backup.sh` | Consolidated backup: SQLite + media/ + .env with rotation |
+| `db-backup-cron.sh` | Legacy cron wrapper for Django `db_backup` management command |
 | `renew-ssl-cert.sh` | Auto-renew self-signed SSL cert; installed as monthly root cron by deploy.sh |
 | `SSL_SELFSIGNED.md` | Step-by-step self-signed SSL setup guide |
 
@@ -130,7 +133,16 @@ sudo systemctl status armguard-gunicorn
 sudo journalctl -u armguard-gunicorn -f
 ```
 
-**Worker count:** The service uses 2 workers by default, suited for a 2–4 core HP ProDesk Mini with SQLite. Increase to 3–4 if you migrate to PostgreSQL.
+**Worker count:** Determined at runtime by `gunicorn-autoconf.sh` using the formula `(logical_cpus × 2) + 1`, capped by available RAM. Results are written to `/etc/gunicorn/workers.env` and read by the service automatically. Re-run the auto-tuner after any hardware change:
+```bash
+sudo /usr/local/bin/gunicorn-autoconf.sh
+sudo systemctl reload armguard-gunicorn
+```
+
+Preview without applying:
+```bash
+sudo /usr/local/bin/gunicorn-autoconf.sh --dry-run
+```
 
 ---
 
@@ -226,28 +238,43 @@ sudo bash scripts/setup-firewall.sh --status
 | 8000/tcp | DENY | Block direct Gunicorn access |
 | All else | DENY | Default deny incoming |
 
+**Also installed automatically:**
+- **Fail2Ban** — SSH jail (24 h ban after 3 failures), Nginx HTTP-auth and bot-search jails
+- **unattended-upgrades** — automatic security patches (`APT::Periodic::Unattended-Upgrade "1"`)
+
 ---
 
-### `db-backup-cron.sh`
+### `backup.sh`
 
-Wrapper for `manage.py db_backup`. Creates a safe hot-copy SQLite backup using Python's `sqlite3.Connection.backup()`.
+Consolidated backup script — backs up the **SQLite database**, **`media/`** directory, and **`.env`** file in a single timestamped snapshot.
 
-**Setup:**
+**Setup (cron, daily at 02:00):**
 
 ```bash
-# Install cron job for armguard user (daily at 2 AM)
-sudo crontab -u armguard -e
+sudo crontab -e
 # Add:
-# 0 2 * * * /var/www/ARMGUARD_RDS_V1/scripts/db-backup-cron.sh >> /var/log/armguard/backup.log 2>&1
+# 0 2 * * * /var/www/ARMGUARD_RDS_V1/scripts/backup.sh >> /var/log/armguard/backup.log 2>&1
 ```
 
 **Manual run:**
 
 ```bash
-sudo bash scripts/db-backup-cron.sh
+sudo bash scripts/backup.sh
+
+# Preview without writing:
+sudo bash scripts/backup.sh --dry-run
+
+# Override retention:
+sudo bash scripts/backup.sh --keep 14
 ```
 
-Backups are stored in `/var/www/ARMGUARD_RDS_V1/backups/`. 14 daily backups are retained (configurable via `KEEP_DAYS`).
+Backups are stored in `/var/backups/armguard/<TIMESTAMP>/`. 7 days of snapshots are retained by default (configurable via `--keep`). Optional GPG encryption: set `ARMGUARD_BACKUP_GPG_RECIPIENT` in `.env`.
+
+---
+
+### `db-backup-cron.sh`
+
+Legacy cron wrapper for `manage.py db_backup` (SQLite only). Retained for compatibility. Prefer `backup.sh` for new deployments as it also archives `media/` and `.env`.
 
 ---
 
@@ -317,7 +344,17 @@ sudo -u armguard $MANAGE check --deploy
 /var/log/armguard/
 ├── gunicorn.log
 ├── gunicorn-access.log
+├── gunicorn-autoconf.log   # worker auto-tuner decisions
 └── backup.log
+
+/var/backups/armguard/
+└── YYYYMMDD_HHMMSS/        # timestamped backup snapshots (7-day rotation)
+    ├── db_<ts>.sqlite3
+    ├── media_<ts>.tar.gz
+    └── env_<ts>.env
+
+/etc/gunicorn/
+└── workers.env             # GUNICORN_WORKERS + GUNICORN_THREADS (written by autoconf)
 
 /etc/systemd/system/
 └── armguard-gunicorn.service
@@ -325,6 +362,9 @@ sudo -u armguard $MANAGE check --deploy
 /etc/nginx/
 ├── sites-available/armguard
 └── sites-enabled/armguard  → sites-available/armguard
+
+/usr/local/bin/
+└── gunicorn-autoconf.sh    # runtime worker auto-tuner (installed by deploy.sh)
 ```
 
 ---
@@ -345,6 +385,10 @@ Key variables in `/var/www/ARMGUARD_RDS_V1/.env`:
 | `SESSION_COOKIE_SECURE` | ✅ After SSL | Set `True` once HTTPS is working |
 | `CSRF_COOKIE_SECURE` | ✅ After SSL | Set `True` once HTTPS is working |
 | `SSL_CERT_PATH` | ⚠️ LAN SSL | Path to self-signed cert served as in-app download (default: `/etc/ssl/certs/armguard-selfsigned.crt`) |
+| `CONN_MAX_AGE` | 🟢 Recommended | Persistent DB connections (e.g. `60`). Eliminates per-request connect overhead. |
+| `GUNICORN_WORKERS` | 🟢 Optional | Override auto-tuned worker count. Normally written by `gunicorn-autoconf.sh`. |
+| `GUNICORN_THREADS` | 🟢 Optional | Override auto-tuned thread count (2 = SSD, 4 = HDD). |
+| `ARMGUARD_BACKUP_GPG_RECIPIENT` | 🟢 Optional | GPG key recipient for encrypted backups (e.g. `backup@example.com`). |
 
 ---
 

@@ -88,10 +88,15 @@ If you have a real domain name, use `--domain yourdomain.com`.
 | System user | `armguard` |
 | Deploy path | `/var/www/ARMGUARD_RDS_V1` |
 | Python venv | `/var/www/ARMGUARD_RDS_V1/venv` |
+| Gunicorn config | `scripts/gunicorn.conf.py` (worker class, timeouts, limits) |
+| Worker auto-tuner | `/usr/local/bin/gunicorn-autoconf.sh` — runs at deploy and every update |
+| Worker env file | `/etc/gunicorn/workers.env` (written by auto-tuner) |
 | Gunicorn service | `armguard-gunicorn` (systemd) |
 | Nginx site | `/etc/nginx/sites-available/armguard` |
 | Log directory | `/var/log/armguard/` |
 | Firewall | UFW: ports 22, 80, 443 open; 8000 blocked |
+| Fail2Ban | SSH jail (24 h ban) + Nginx jails — installed by `setup-firewall.sh` |
+| Auto security patches | `unattended-upgrades` enabled — installed by `setup-firewall.sh` |
 
 ---
 
@@ -243,7 +248,15 @@ cd /var/www/ARMGUARD_RDS_V1
 sudo bash scripts/update-server.sh --branch main
 ```
 
-This pulls the latest commit, re-installs any new dependencies, runs new migrations, re-collects static files, and gracefully restarts Gunicorn.
+The script:
+1. Creates a pre-update SQLite backup
+2. Pulls latest commits from git
+3. Updates pip dependencies
+4. Runs new migrations
+5. **Re-runs `gunicorn-autoconf.sh`** to recompute worker count
+6. Collects static files
+7. Gracefully reloads Gunicorn (zero downtime)
+8. **Verifies `http://127.0.0.1:8000/health/`** returns HTTP 200 — catches broken deploys that systemd wouldn't detect
 
 ---
 
@@ -262,7 +275,17 @@ sudo journalctl -u armguard-gunicorn -f
 # Live Nginx error log
 sudo tail -f /var/log/nginx/error.log
 
-# Manual database backup
+# Re-run worker auto-tuner (after hardware changes or manual override removal)
+sudo /usr/local/bin/gunicorn-autoconf.sh
+sudo systemctl reload armguard-gunicorn
+
+# Preview auto-tuner without writing
+sudo /usr/local/bin/gunicorn-autoconf.sh --dry-run
+
+# Manual full backup (DB + media + .env)
+sudo bash /var/www/ARMGUARD_RDS_V1/scripts/backup.sh
+
+# Manual database-only backup (legacy)
 sudo -u armguard /var/www/ARMGUARD_RDS_V1/venv/bin/python \
   /var/www/ARMGUARD_RDS_V1/project/manage.py db_backup --keep 14
 ```
@@ -284,6 +307,10 @@ Location: `/var/www/ARMGUARD_RDS_V1/.env`
 | `SECURE_HSTS_SECONDS` | ✅ Yes | `31536000` (1 year) |
 | `SESSION_COOKIE_SECURE` | ⚠️ After SSL | Set `True` once HTTPS is confirmed working |
 | `CSRF_COOKIE_SECURE` | ⚠️ After SSL | Set `True` once HTTPS is confirmed working |
+| `CONN_MAX_AGE` | 🟢 Recommended | Persistent DB connections (e.g. `60`). Eliminates per-request connect overhead. |
+| `GUNICORN_WORKERS` | 🟢 Optional | Override auto-tuned worker count. Normally written by `gunicorn-autoconf.sh`. |
+| `GUNICORN_THREADS` | 🟢 Optional | Override auto-tuned thread count (2 = SSD, 4 = HDD). |
+| `ARMGUARD_BACKUP_GPG_RECIPIENT` | 🟢 Optional | GPG key recipient for encrypted backups (e.g. `backup@example.com`). |
 
 ---
 
@@ -309,7 +336,17 @@ Location: `/var/www/ARMGUARD_RDS_V1/.env`
 /var/log/armguard/
 ├── gunicorn.log
 ├── gunicorn-access.log
+├── gunicorn-autoconf.log   # worker auto-tuner decisions
 └── backup.log
+
+/var/backups/armguard/
+└── YYYYMMDD_HHMMSS/        # timestamped snapshots (7-day rotation)
+    ├── db_<ts>.sqlite3
+    ├── media_<ts>.tar.gz
+    └── env_<ts>.env
+
+/etc/gunicorn/
+└── workers.env             # GUNICORN_WORKERS + GUNICORN_THREADS (written by autoconf)
 
 /etc/systemd/system/
 └── armguard-gunicorn.service
@@ -317,6 +354,9 @@ Location: `/var/www/ARMGUARD_RDS_V1/.env`
 /etc/nginx/
 ├── sites-available/armguard
 └── sites-enabled/armguard  → sites-available/armguard
+
+/usr/local/bin/
+└── gunicorn-autoconf.sh    # runtime worker auto-tuner (installed by deploy.sh)
 ```
 
 ---
@@ -331,6 +371,8 @@ Location: `/var/www/ARMGUARD_RDS_V1/.env`
 | Permission denied errors | `sudo chown -R armguard:armguard /var/www/ARMGUARD_RDS_V1` |
 | Login CSRF error | Check `CSRF_TRUSTED_ORIGINS` in `.env` |
 | SSL redirect loop | Confirm Nginx has HTTPS, then set `SECURE_SSL_REDIRECT=True` in `.env` |
+| Wrong worker count | `sudo /usr/local/bin/gunicorn-autoconf.sh --dry-run` to inspect, then reload |
+| Health check fails after update | App responded but `curl http://127.0.0.1:8000/health/` returned non-200 — check `journalctl -u armguard-gunicorn -n 50` |
 
 ---
 
@@ -339,9 +381,15 @@ Location: `/var/www/ARMGUARD_RDS_V1/.env`
 | Feature | Detail |
 |---|---|
 | SQLite WAL mode | Activated on every connection via Django signal — survives concurrent Gunicorn workers |
+| Gunicorn `gthread` workers | Each worker handles multiple requests concurrently; prevents a slow DB query from stalling the whole process |
+| Worker auto-tuning | `gunicorn-autoconf.sh` computes `(CPUs×2)+1` workers capped by RAM at deploy and every update |
 | Nginx upstream keepalive | Pool of 8 persistent connections — fewer TCP handshakes |
+| Nginx `sendfile`/`tcp_nopush` | Zero-copy file kernel path enabled — faster static file delivery |
 | Nginx gzip | Enabled for HTML/JSON responses — faster page loads |
+| Nginx security headers | HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, CSP |
+| `/health/` exempt from rate limit | Monitoring/load-balancer probes never trigger 429 |
+| Fail2Ban | SSH (3 attempts → 24 h ban), Nginx HTTP-auth and bot-search jails |
+| Automatic security patches | `unattended-upgrades` applies OS security updates nightly |
 | HTTPS flags off by default | `SECURE_SSL_REDIRECT`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` all default `False` — login works on HTTP-only until SSL is confirmed |
-| CSP enforced | `script-src 'self'` — no inline scripts allowed |
 | Secrets in `.env` | `SECRET_KEY` and all sensitive flags are never committed to git |
 | LF line endings | `.gitattributes` enforces LF for all shell scripts — no `bad interpreter` errors on Ubuntu |
