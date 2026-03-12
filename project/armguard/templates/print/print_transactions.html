@@ -227,30 +227,42 @@
     </table>
 
     <!-- Signature Block -->
-    <table class="sig-table">
-      <tr>
-        <td class="sig-left">
-          <p class="sig-name">{{ armorer_name }}</p>
+    <div class="sig-wrapper">
+      <!-- Armorer (left) -->
+      <div class="sig-block-wrap sig-block-left">
+        <table class="sig-block">
+          <tr>
+            <td colspan="2" class="sig-block-name">{{ armorer_name }}</td>
+          </tr>
           {% if armorer_rank or armorer_branch %}
-          <table class="sig-info-table"><tr>
-            <td class="sig-rank">{{ armorer_rank }}</td>
-            <td class="sig-branch">{{ armorer_branch }}</td>
-          </tr></table>
+          <tr>
+            <td class="sig-block-rank">{{ armorer_rank }}</td>
+            <td class="sig-block-branch">{{ armorer_branch }}</td>
+          </tr>
           {% endif %}
-          <p class="sig-designation">Armorer</p>
-        </td>
-        <td class="sig-right">
-          {% if commander_name %}<p class="sig-name">{{ commander_name }}</p>{% endif %}
+          <tr>
+            <td colspan="2" class="sig-block-desig">Armorer</td>
+          </tr>
+        </table>
+      </div>
+      <!-- Commander (right) -->
+      <div class="sig-block-wrap sig-block-right">
+        <table class="sig-block">
+          <tr>
+            <td colspan="2" class="sig-block-name">{{ commander_name }}</td>
+          </tr>
           {% if commander_rank or commander_branch %}
-          <table class="sig-info-table"><tr>
-            <td class="sig-rank">{{ commander_rank }}</td>
-            <td class="sig-branch">{{ commander_branch }}</td>
-          </tr></table>
+          <tr>
+            <td class="sig-block-rank">{{ commander_rank }}</td>
+            <td class="sig-block-branch">{{ commander_branch }}</td>
+          </tr>
           {% endif %}
-          <p class="sig-designation">{{ commander_designation }}</p>
-        </td>
-      </tr>
-    </table>
+          <tr>
+            <td colspan="2" class="sig-block-desig">{{ commander_designation }}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
 
   </div><!-- /.eval-wrapper -->
 </div>
@@ -331,41 +343,52 @@
 }
 
 /* ── Signature Block ─────────────────────────────── */
-.sig-table {
-  width: 100%;
-  border-collapse: collapse;
+.sig-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-top: 20px;
-  border: none;
 }
-.sig-table td.sig-left { width: 50%; text-align: left; vertical-align: top; padding: 0; border: none; }
-.sig-table td.sig-right { width: 50%; text-align: right; vertical-align: top; padding: 0; border: none; }
+.sig-block-left  { /* anchored left by flex */ }
+.sig-block-right { /* anchored right by flex */ }
 
-.sig-info-table {
+/* Each sig block: auto-width table sized to the name */
+.sig-block {
   border-collapse: collapse;
-  margin: 0 0 1px;
   border: none;
   width: auto;
+  table-layout: auto;
 }
-.sig-table td.sig-left .sig-info-table { margin-left: 0; }
-.sig-table td.sig-right .sig-info-table { margin-left: auto; }
-.sig-info-table td.sig-rank { padding: 0 1.5em 0 0; font-size: 12px; font-family: Arial, Helvetica, sans-serif !important; white-space: nowrap; color: #000 !important; border: none; }
-.sig-info-table td.sig-branch { padding: 0; font-size: 12px; font-family: Arial, Helvetica, sans-serif !important; white-space: nowrap; color: #000 !important; border: none; }
-
-.sig-name {
+.sig-block td {
+  border: none;
+  padding: 0;
+  font-family: Arial, Helvetica, sans-serif !important;
+  color: #000 !important;
+}
+.sig-block-name {
   font-size: 13px;
   font-weight: 700;
-  margin: 0 0 1px;
   text-transform: uppercase;
-  font-family: Arial, Helvetica, sans-serif !important;
-  color: #000 !important;
+  white-space: nowrap;
+  text-align: left;
+  padding-bottom: 1px;
 }
-
-.sig-designation {
+.sig-block-rank {
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+  padding-right: 1em;
+}
+.sig-block-branch {
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+.sig-block-desig {
   font-size: 12px;
   font-weight: 600;
-  margin: 0;
-  font-family: Arial, Helvetica, sans-serif !important;
-  color: #000 !important;
+  text-align: center;
+  padding-top: 1px;
 }
 
 /* ── Print overrides ────────────────────────────── */
