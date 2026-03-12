@@ -106,6 +106,7 @@ class PersonnelListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 		ctx = super().get_context_data(**kwargs)
 		ctx['groups'] = Personnel.objects.values_list('group', flat=True).distinct().exclude(group__isnull=True).exclude(group='')
 		ctx['can_add'] = _can_add_personnel(self.request.user)
+		ctx['can_edit'] = _can_edit_personnel(self.request.user)
 		return ctx
 
 	def test_func(self):
