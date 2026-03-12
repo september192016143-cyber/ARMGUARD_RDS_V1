@@ -98,8 +98,8 @@ class TransactionLogsAdmin(admin.ModelAdmin):
             'withdrawal_bandoleer_transaction_id',
         ):
             txn = getattr(obj, attr, None)
-            if txn and hasattr(txn, 'duty_type') and txn.duty_type:
-                return txn.duty_type
+            if txn and txn.purpose:
+                return txn.purpose
         return None
 
     duty_type.short_description = 'Duty Type'

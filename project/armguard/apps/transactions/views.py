@@ -208,7 +208,7 @@ def tr_preview(request):
     pistol     = cd.get('pistol')
     rifle      = cd.get('rifle')
 
-    purpose = cd.get('purpose') or 'Duty Security'
+    purpose = cd.get('purpose') or ''
 
     # Try to find the armorer's Personnel record via the User OneToOne link
     try:

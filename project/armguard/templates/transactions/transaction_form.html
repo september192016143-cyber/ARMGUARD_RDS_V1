@@ -31,6 +31,7 @@
         <option value="Duty Sentinel"{% if form.purpose.value == 'Duty Sentinel' %} selected{% endif %}>Duty Sentinel</option>
         <option value="Duty Vigil"{% if form.purpose.value == 'Duty Vigil' %} selected{% endif %}>Duty Vigil</option>
         <option value="Duty Security"{% if form.purpose.value == 'Duty Security' %} selected{% endif %}>Duty Security</option>
+        <option value="Honor Guard"{% if form.purpose.value == 'Honor Guard' %} selected{% endif %}>Honor Guard</option>
         <option value="Others"{% if form.purpose.value == 'Others' %} selected{% endif %}>Others</option>
       </select>
       <input type="text" id="tb_purpose_other" name="purpose_other" value="{{ form.purpose_other.value|default:'' }}" style="display:none;background:#1e293b;border:1.5px solid #475569;color:#f1f5f9;border-radius:.4rem;font-size:.82rem;padding:.35rem .7rem;min-width:140px;" placeholder="Enter purpose">
