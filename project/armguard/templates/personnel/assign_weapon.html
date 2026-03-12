@@ -31,7 +31,7 @@
         <select id="pistol-select" name="pistol" style="width:100%;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
           <option value="">— None (clear assignment) —</option>
           {% for p in pistols %}
-          <option value="{{ p.item_id }}" {% if p in current_pistols %}selected{% endif %}>
+          <option value="{{ p.item_id }}" data-qr="{{ p.qr_code }}" {% if p in current_pistols %}selected{% endif %}>
             {{ p.model }} — SN: {{ p.serial_number }} [{{ p.item_status }}]{% if p.item_assigned_to %} → {{ p.item_assigned_to.rank }} {{ p.item_assigned_to.last_name }}{% endif %}
           </option>
           {% endfor %}
@@ -51,7 +51,7 @@
         <select id="rifle-select" name="rifle" style="width:100%;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
           <option value="">— None (clear assignment) —</option>
           {% for r in rifles %}
-          <option value="{{ r.item_id }}" {% if r in current_rifles %}selected{% endif %}>
+          <option value="{{ r.item_id }}" data-qr="{{ r.qr_code }}" {% if r in current_rifles %}selected{% endif %}>
             {{ r.model }} — SN: {{ r.serial_number }} [{{ r.item_status }}]{% if r.item_assigned_to %} → {{ r.item_assigned_to.rank }} {{ r.item_assigned_to.last_name }}{% endif %}
           </option>
           {% endfor %}
@@ -70,95 +70,98 @@
 </form>
 
 <script>
+// ── Background keyboard-wedge scanner listener ────────────────────────────────
+// Exact same pattern as transaction_form.js: capture phase, 50 ms threshold.
+// Matches against data-qr (qr_code field), option value (item_id), and option text.
 (function () {
-  var pistolSel = document.getElementById('pistol-select');
-  var rifleSel  = document.getElementById('rifle-select');
+  var buf = '';
+  var lastKey = 0;
+  var scanning = false;
+  var SCANNER_SPEED = 50;
+  var MIN_LEN = 3;
 
-  // ── Background keyboard-wedge scanner listener ─────────────────────────────
-  // Silent — no visible input. Toast notification shows the result.
-  (function () {
-    var buf = '', lastKey = 0, scanning = false;
-    var SPEED = 50, MIN_LEN = 3;
-
-    function showToast(msg, ok) {
-      var t = document.getElementById('aw-qr-toast');
-      if (!t) {
-        t = document.createElement('div');
-        t.id = 'aw-qr-toast';
-        t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;padding:.6rem 1.1rem;border-radius:.5rem;font-size:.85rem;font-weight:600;z-index:9999;transition:opacity .4s;pointer-events:none';
-        document.body.appendChild(t);
-      }
-      t.style.background = ok ? '#166534' : '#7f1d1d';
-      t.style.color = '#fff';
-      t.textContent = msg;
-      t.style.opacity = '1';
-      clearTimeout(t._h);
-      t._h = setTimeout(function () { t.style.opacity = '0'; }, 2500);
+  function showQrToast(msg, ok) {
+    var t = document.getElementById('aw-qr-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'aw-qr-toast';
+      t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;padding:.6rem 1.1rem;border-radius:.5rem;font-size:.85rem;font-weight:600;z-index:9999;transition:opacity .4s;pointer-events:none';
+      document.body.appendChild(t);
     }
+    t.style.background = ok ? '#166534' : '#7f1d1d';
+    t.style.color = '#fff';
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._hide);
+    t._hide = setTimeout(function () { t.style.opacity = '0'; }, 2500);
+  }
 
-    function tryScan(val) {
-      var piSel = document.querySelector('[name="pistol"]');
-      var riSel = document.querySelector('[name="rifle"]');
+  function tryAutofill(val) {
+    var pistolSel = document.querySelector('[name="pistol"]');
+    var rifleSel  = document.querySelector('[name="rifle"]');
+    var matched = false;
 
-      var piOpt = piSel && Array.from(piSel.options).find(function (o) { return o.value && (o.value === val || o.text.indexOf(val) !== -1); });
+    if (!matched && pistolSel) {
+      var piOpt = Array.from(pistolSel.options).find(function (o) {
+        return o.value && (o.value === val || (o.dataset && o.dataset.qr === val) || o.text.indexOf(val) !== -1);
+      });
       if (piOpt) {
-        piSel.value = piOpt.value;
-        showToast('\u2713 Pistol: ' + piOpt.text.trim(), true);
-        return;
+        pistolSel.value = piOpt.value;
+        pistolSel.dispatchEvent(new Event('change'));
+        showQrToast('\u2713 Pistol: ' + piOpt.text.trim(), true);
+        matched = true;
       }
-
-      var riOpt = riSel && Array.from(riSel.options).find(function (o) { return o.value && (o.value === val || o.text.indexOf(val) !== -1); });
-      if (riOpt) {
-        riSel.value = riOpt.value;
-        showToast('\u2713 Rifle: ' + riOpt.text.trim(), true);
-        return;
-      }
-
-      showToast('\u2717 No item found: ' + val, false);
     }
 
-    document.addEventListener('keydown', function (e) {
-      var now = Date.now();
-      var gap = now - lastKey;
-
-      if (e.key === 'Enter') {
-        // Always block Enter from the background scanner — prevents accidental form submit
-        if (scanning && buf.length >= MIN_LEN) {
-          e.preventDefault();
-          e.stopPropagation();
-          tryScan(buf);
-        } else if (scanning) {
-          // Fast burst ended with Enter but buffer too short — just block
-          e.preventDefault();
-          e.stopPropagation();
-        }
-        // If NOT scanning, allow Enter only on the explicit submit button
-        // by letting it propagate normally there; block everywhere else.
-        if (scanning || (document.activeElement !== document.querySelector('[type="submit"]'))) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-        buf = ''; scanning = false; lastKey = 0;
-        return;
+    if (!matched && rifleSel) {
+      var riOpt = Array.from(rifleSel.options).find(function (o) {
+        return o.value && (o.value === val || (o.dataset && o.dataset.qr === val) || o.text.indexOf(val) !== -1);
+      });
+      if (riOpt) {
+        rifleSel.value = riOpt.value;
+        rifleSel.dispatchEvent(new Event('change'));
+        showQrToast('\u2713 Rifle: ' + riOpt.text.trim(), true);
+        matched = true;
       }
+    }
 
-      if (e.key.length !== 1) return;
+    if (!matched) {
+      showQrToast('\u2717 No match: ' + val, false);
+    }
+  }
 
-      if (buf.length === 0) {
-        buf = e.key;
-        scanning = false;
-      } else if (gap <= SPEED) {
-        buf += e.key;
-        scanning = true;
+  document.addEventListener('keydown', function (e) {
+    var now = Date.now();
+    var gap = now - lastKey;
+
+    if (e.key === 'Enter') {
+      if (scanning && buf.length >= MIN_LEN) {
         e.preventDefault();
         e.stopPropagation();
-      } else {
-        buf = e.key;
-        scanning = false;
+        tryAutofill(buf);
       }
-      lastKey = now;
-    }, true); // capture phase
-  }());
+      buf = '';
+      scanning = false;
+      lastKey = 0;
+      return;
+    }
+
+    if (e.key.length !== 1) return;
+
+    if (buf.length === 0) {
+      buf = e.key;
+      scanning = false;
+    } else if (gap <= SCANNER_SPEED) {
+      buf += e.key;
+      scanning = true;
+      e.preventDefault();
+      e.stopPropagation();
+    } else {
+      buf = e.key;
+      scanning = false;
+    }
+    lastKey = now;
+  }, true); // capture phase — fires before focus target
 }());
 </script>
 {% endblock %}
