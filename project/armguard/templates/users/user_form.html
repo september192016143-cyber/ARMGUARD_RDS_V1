@@ -76,6 +76,7 @@
         </div>
       </div>
 
+      {% if request.user.is_superuser %}
       <div class="form-group">
         <label class="form-label" style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
           {{ form.is_staff }}
@@ -84,6 +85,7 @@
         {% if form.is_staff.errors %}<div class="form-error">{{ form.is_staff.errors|join:", " }}</div>{% endif %}
         <div class="form-hint">Grants access to the Django admin panel (/admin/).</div>
       </div>
+      {% endif %}
       {% if action == 'Edit' %}
       <div class="form-group">
         <label class="form-label" style="display:flex;align-items:center;gap:.5rem;cursor:pointer">

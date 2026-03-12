@@ -176,7 +176,7 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
                 first_name = cd['first_name'],
                 last_name  = cd['last_name'],
                 email      = cd['email'],
-                is_staff   = cd['is_staff'],
+                is_staff   = cd['is_staff'] if request.user.is_superuser else False,
             )
             profile, _ = UserProfile.objects.get_or_create(user=user)
             profile.role = cd['role']
@@ -244,7 +244,8 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             self.object.first_name = cd['first_name']
             self.object.last_name  = cd['last_name']
             self.object.email      = cd['email']
-            self.object.is_staff   = cd['is_staff']
+            if request.user.is_superuser:
+                self.object.is_staff = cd['is_staff']
             self.object.is_active  = cd['is_active']
             if cd['new_password1']:
                 self.object.set_password(cd['new_password1'])
