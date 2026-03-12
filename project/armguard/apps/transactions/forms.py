@@ -158,8 +158,10 @@ class TransactionAdminForm(forms.ModelForm):
                 cleaned_data['rifle_ammunition_quantity'] = 210
                 rifle_ammunition_quantity = 210
         # ── AUTO-ASSIGN: Pistol magazine pool whenever quantity is given ───────────
-        # There is only one pistol magazine pool, so no user selection is needed.
-        if pistol_magazine_quantity and not pistol_magazine:
+        # Only auto-link the pool for purposes that require magazines.
+        # Duty Vigil, Honor Guard, and Others allow firearm-only withdrawal.
+        _no_auto_consumables = purpose_val in ('Duty Vigil', 'Honor Guard', 'Others')
+        if not _no_auto_consumables and pistol_magazine_quantity and not pistol_magazine:
             from armguard.apps.inventory.models import Magazine
             mag_pool = Magazine.objects.filter(weapon_type='Pistol').first()
             if mag_pool:
@@ -169,8 +171,9 @@ class TransactionAdminForm(forms.ModelForm):
         # Derives the correct ammo type from AMMO_WEAPON_COMPATIBILITY so the
         # operator only needs to enter a quantity — no dropdown selection needed.
         # For 5.56mm rifles (M193 / M855 both valid), defaults to M193.
+        # Skipped for Duty Vigil / Honor Guard / Others (firearm-only purposes).
         from armguard.apps.inventory.models import Ammunition, AMMO_WEAPON_COMPATIBILITY
-        if pistol and not pistol_ammunition:
+        if not _no_auto_consumables and pistol and not pistol_ammunition:
             pistol_model = getattr(pistol, 'model', '')
             for ammo_type, weapons in AMMO_WEAPON_COMPATIBILITY.items():
                 if pistol_model in weapons:
@@ -179,7 +182,7 @@ class TransactionAdminForm(forms.ModelForm):
                         cleaned_data['pistol_ammunition'] = ammo_pool
                         pistol_ammunition = ammo_pool
                     break
-        if rifle and not rifle_ammunition:
+        if not _no_auto_consumables and rifle and not rifle_ammunition:
             rifle_model = getattr(rifle, 'model', '')
             for ammo_type, weapons in AMMO_WEAPON_COMPATIBILITY.items():
                 if rifle_model in weapons:
