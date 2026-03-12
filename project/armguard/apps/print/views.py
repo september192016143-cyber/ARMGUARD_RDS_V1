@@ -18,6 +18,7 @@ from .print_config import QR_SIZE_MM, CARDS_PER_ROW, CARD_WIDTH_MM, CARD_HEIGHT_
 from .pdf_filler.form_filler import TransactionFormFiller
 from django.utils import timezone
 from datetime import timedelta
+from django.core.paginator import Paginator
 # H1 FIX: Import shared permission helper instead of duplicating it here.
 from armguard.utils.permissions import can_manage_inventory as _can_manage_armorer
 from armguard.utils.permissions import is_admin as _is_admin
@@ -294,12 +295,17 @@ def reprint_tr(request):
         since = timezone.now() - timedelta(days=range_days[range_filter])
         transactions = transactions.filter(timestamp__gte=since)
 
+    total = transactions.count()
+    paginator = Paginator(transactions, 25)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
     context = {
-        'transactions':   transactions,
+        'transactions':   page_obj,
+        'page_obj':       page_obj,
         'q':              q,
         'selected_type':  txn_type,
         'selected_range': range_filter,
-        'total':          transactions.count(),
+        'total':          total,
     }
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(request, 'print/reprint_tr_rows.html', context)
