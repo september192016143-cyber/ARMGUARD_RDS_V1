@@ -396,10 +396,12 @@
 
 /* ── Print overrides ────────────────────────────── */
 
-/* A4  default — user can switch to Legal in the browser print dialog */
-@page          { size: A4 portrait;     margin: 1.5cm; }
-/* Legal bond */
-@page :legal   { size: legal portrait;  margin: 1.5cm; }
+/*
+ * margin:0 removes the browser's auto header/footer (URL, page number, date).
+ * Padding is applied to .eval-wrapper instead so content stays off the edge.
+ * Works for both A4 and Legal — user selects paper in the print dialog.
+ */
+@page { size: A4 portrait; margin: 0; }
 
 @media print {
   /* Hide all UI chrome */
@@ -407,7 +409,7 @@
   .topbar,
   .no-print { display: none !important; }
 
-  /* Reset layout — fill entire printable area */
+  /* Reset layout — fill entire page */
   html, body {
     background: #fff !important;
     margin: 0 !important; padding: 0 !important;
@@ -418,16 +420,18 @@
     width: 100% !important;
   }
 
-  /* Report container spans the full page width */
+  /* Report container spans full width */
   .container {
     max-width: 100% !important;
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
   }
+
+  /* Content padding replaces the @page margin */
   .eval-wrapper {
     border: none !important;
-    padding: 0 !important;
+    padding: 1.5cm 1.5cm 1.5cm 1.5cm !important;
     width: 100% !important;
     box-sizing: border-box;
   }
