@@ -39,7 +39,7 @@
             {{ p.model }} — SN: {{ p.serial_number }} [{{ p.item_status }}]
           </option>
           {% elif p.item_assigned_to %}
-          <option value="" disabled data-qr="{{ p.qr_code }}" data-item-id="{{ p.item_id }}" data-holder="{{ p.item_assigned_to.rank }} {{ p.item_assigned_to.last_name }}" style="color:var(--muted);font-style:italic">
+          <option value="" disabled data-qr="{{ p.qr_code }}" data-item-id="{{ p.item_id }}" data-holder="{{ p.item_assigned_to.rank }} {{ p.item_assigned_to.last_name }}" data-model="{{ p.model }}" data-serial="{{ p.serial_number }}" style="color:var(--muted);font-style:italic">
             ✗ {{ p.model }} — SN: {{ p.serial_number }} → {{ p.item_assigned_to.rank }} {{ p.item_assigned_to.last_name }} (assigned)
           </option>
           {% else %}
@@ -69,7 +69,7 @@
             {{ r.model }} — SN: {{ r.serial_number }} [{{ r.item_status }}]
           </option>
           {% elif r.item_assigned_to %}
-          <option value="" disabled data-qr="{{ r.qr_code }}" data-item-id="{{ r.item_id }}" data-holder="{{ r.item_assigned_to.rank }} {{ r.item_assigned_to.last_name }}" style="color:var(--muted);font-style:italic">
+          <option value="" disabled data-qr="{{ r.qr_code }}" data-item-id="{{ r.item_id }}" data-holder="{{ r.item_assigned_to.rank }} {{ r.item_assigned_to.last_name }}" data-model="{{ r.model }}" data-serial="{{ r.serial_number }}" style="color:var(--muted);font-style:italic">
             ✗ {{ r.model }} — SN: {{ r.serial_number }} → {{ r.item_assigned_to.rank }} {{ r.item_assigned_to.last_name }} (assigned)
           </option>
           {% else %}

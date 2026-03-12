@@ -63,7 +63,10 @@
     });
     if (disabledMatch) {
       var holder = disabledMatch.dataset.holder || 'another person';
-      showQrToast('\u2717 Already assigned to ' + holder, false);
+      var model  = disabledMatch.dataset.model  || '';
+      var serial = disabledMatch.dataset.serial || '';
+      var detail = model ? model + (serial ? ' SN: ' + serial : '') : 'Item';
+      showQrToast('\u2717 ' + detail + ' \u2014 already assigned to ' + holder, false);
       return;
     }
 
