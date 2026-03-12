@@ -34,8 +34,9 @@ LOG_STATUS_CHOICES = [
  # Purpose options (can be expanded as needed)
 PURPOSE_CHOICES = [
     ('Duty Sentinel', 'Duty Sentinel'),
-    ('Duty Vigil', 'Duty Vigil'),
     ('Duty Security', 'Duty Security'),
+    ('Duty Vigil', 'Duty Vigil'),
+    ('Honor Guard', 'Honor Guard'),
     ('Others', 'Others'),
 ]
 
