@@ -192,7 +192,7 @@
     <div class="card">
       <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
         <span class="card-title">Weapons</span>
-        {% if request.user.is_superuser or request.user.profile.role != 'Armorer' %}
+        {% if can_edit %}
         <a href="{% url 'personnel-assign-weapon' personnel.Personnel_ID %}" class="btn btn-primary btn-sm">
           <i class="fa-solid fa-link"></i> Assign
         </a>
