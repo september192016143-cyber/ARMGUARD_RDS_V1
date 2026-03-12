@@ -18,19 +18,6 @@
     <div class="card-header"><span class="card-title">Weapon Assignment</span></div>
     <div style="display:flex;flex-direction:column;gap:1.25rem;padding:1.25rem">
 
-      <!-- QR / Item ID search -->
-      <div>
-        <label style="font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;display:block">
-          <i class="fa-solid fa-qrcode" style="margin-right:.3rem"></i>QR / Item ID Search
-        </label>
-        <div style="display:flex;align-items:center;gap:.5rem">
-          <input id="qr-search-input" type="text" placeholder="Scan or type item ID…" autocomplete="off"
-            style="flex:1;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
-          <span id="qr-search-status" style="font-size:1rem;font-weight:700;display:none;min-width:1.2rem;text-align:center"></span>
-        </div>
-        <div id="qr-search-info" style="font-size:.8rem;color:var(--muted);margin-top:.3rem"></div>
-      </div>
-
       <div>
         <label style="font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem;display:block">Pistol</label>
         {% if current_pistols %}
@@ -84,78 +71,11 @@
 
 <script>
 (function () {
-  var searchEl  = document.getElementById('qr-search-input');
-  var statusEl  = document.getElementById('qr-search-status');
-  var infoEl    = document.getElementById('qr-search-info');
   var pistolSel = document.getElementById('pistol-select');
   var rifleSel  = document.getElementById('rifle-select');
-  var _timer    = null;
-
-  function showStatus(ok, msg) {
-    statusEl.textContent = ok ? '\u2713' : '\u2717';
-    statusEl.style.color = ok ? 'var(--success, #22c55e)' : 'var(--red, #ef4444)';
-    statusEl.style.display = '';
-    infoEl.textContent = msg;
-    infoEl.style.color = ok ? 'var(--success, #22c55e)' : 'var(--red, #ef4444)';
-  }
-
-  function tryMatch(val) {
-    val = val.trim();
-    if (!val) { statusEl.style.display = 'none'; infoEl.textContent = ''; return; }
-
-    // Match by option value (= item_id = qr_code) — exact
-    var piOpt = Array.from(pistolSel.options).find(function (o) { return o.value === val; });
-    if (piOpt) {
-      pistolSel.value = val;
-      showStatus(true, 'Pistol selected: ' + piOpt.text.trim());
-      searchEl.value = '';
-      return;
-    }
-
-    var riOpt = Array.from(rifleSel.options).find(function (o) { return o.value === val; });
-    if (riOpt) {
-      rifleSel.value = val;
-      showStatus(true, 'Rifle selected: ' + riOpt.text.trim());
-      searchEl.value = '';
-      return;
-    }
-
-    // Fallback: partial text match (model, serial)
-    var piPartial = Array.from(pistolSel.options).find(function (o) { return o.value && o.text.toLowerCase().indexOf(val.toLowerCase()) !== -1; });
-    if (piPartial) {
-      pistolSel.value = piPartial.value;
-      showStatus(true, 'Pistol selected: ' + piPartial.text.trim());
-      searchEl.value = '';
-      return;
-    }
-
-    var riPartial = Array.from(rifleSel.options).find(function (o) { return o.value && o.text.toLowerCase().indexOf(val.toLowerCase()) !== -1; });
-    if (riPartial) {
-      rifleSel.value = riPartial.value;
-      showStatus(true, 'Rifle selected: ' + riPartial.text.trim());
-      searchEl.value = '';
-      return;
-    }
-
-    showStatus(false, 'No item found: "' + val + '"');
-  }
-
-  searchEl.addEventListener('input', function () {
-    clearTimeout(_timer);
-    var val = this.value.trim();
-    if (!val) { statusEl.style.display = 'none'; infoEl.textContent = ''; return; }
-    _timer = setTimeout(function () { tryMatch(val); }, 500);
-  });
-
-  searchEl.addEventListener('keydown', function (e) {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    clearTimeout(_timer);
-    tryMatch(this.value);
-  });
 
   // ── Background keyboard-wedge scanner listener ─────────────────────────────
-  // Mirrors the logic used in transaction_form.js (the proven working pattern).
+  // Silent — no visible input. Toast notification shows the result.
   (function () {
     var buf = '', lastKey = 0, scanning = false;
     var SPEED = 50, MIN_LEN = 3;
@@ -183,7 +103,6 @@
       var piOpt = piSel && Array.from(piSel.options).find(function (o) { return o.value && (o.value === val || o.text.indexOf(val) !== -1); });
       if (piOpt) {
         piSel.value = piOpt.value;
-        showStatus(true, 'Pistol selected: ' + piOpt.text.trim());
         showToast('\u2713 Pistol: ' + piOpt.text.trim(), true);
         return;
       }
@@ -191,7 +110,6 @@
       var riOpt = riSel && Array.from(riSel.options).find(function (o) { return o.value && (o.value === val || o.text.indexOf(val) !== -1); });
       if (riOpt) {
         riSel.value = riOpt.value;
-        showStatus(true, 'Rifle selected: ' + riOpt.text.trim());
         showToast('\u2713 Rifle: ' + riOpt.text.trim(), true);
         return;
       }
