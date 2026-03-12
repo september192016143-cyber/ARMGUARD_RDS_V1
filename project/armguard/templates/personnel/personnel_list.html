@@ -42,7 +42,6 @@
         <option value="{{ g }}" {% if request.GET.group == g %}selected{% endif %}>{{ g }}</option>
         {% endfor %}
       </select>
-      <button type="submit" class="btn btn-secondary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
       {% if request.GET.q or request.GET.status or request.GET.group %}
       <a href="{% url 'personnel-list' %}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
       {% endif %}
