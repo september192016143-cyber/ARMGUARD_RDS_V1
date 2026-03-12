@@ -50,9 +50,26 @@
     var rifleSel  = document.querySelector('[name="rifle"]');
     var matched = false;
 
+    // Check all options (including disabled) across both selects for a match.
+    // This allows the scanner to produce a specific "already assigned" message
+    // instead of the generic "No match" when the scanned weapon is locked.
+    var allOptions = [];
+    if (pistolSel) allOptions = allOptions.concat(Array.from(pistolSel.options));
+    if (rifleSel)  allOptions = allOptions.concat(Array.from(rifleSel.options));
+
+    var disabledMatch = allOptions.find(function (o) {
+      return o.disabled && o.dataset &&
+        (o.dataset.qr === val || o.dataset.itemId === val || o.text.indexOf(val) !== -1);
+    });
+    if (disabledMatch) {
+      var holder = disabledMatch.dataset.holder || 'another person';
+      showQrToast('\u2717 Already assigned to ' + holder, false);
+      return;
+    }
+
     if (!matched && pistolSel) {
       var piOpt = Array.from(pistolSel.options).find(function (o) {
-        return o.value && (o.value === val || (o.dataset && o.dataset.qr === val) || o.text.indexOf(val) !== -1);
+        return !o.disabled && o.value && (o.value === val || (o.dataset && o.dataset.qr === val) || o.text.indexOf(val) !== -1);
       });
       if (piOpt) {
         pistolSel.value = piOpt.value;
@@ -64,7 +81,7 @@
 
     if (!matched && rifleSel) {
       var riOpt = Array.from(rifleSel.options).find(function (o) {
-        return o.value && (o.value === val || (o.dataset && o.dataset.qr === val) || o.text.indexOf(val) !== -1);
+        return !o.disabled && o.value && (o.value === val || (o.dataset && o.dataset.qr === val) || o.text.indexOf(val) !== -1);
       });
       if (riOpt) {
         rifleSel.value = riOpt.value;
