@@ -354,6 +354,17 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Ensure consolidated backup cron is installed / up-to-date
+# ---------------------------------------------------------------------------
+BACKUP_SH_PATH="$DEPLOY_DIR/scripts/backup.sh"
+if [[ -f "$BACKUP_SH_PATH" ]]; then
+    (crontab -l 2>/dev/null | grep -v 'backup.sh'; \
+     echo "0 */3 * * * nice -n 19 ionice -c 3 $BACKUP_SH_PATH >> $LOG_DIR/backup.log 2>&1") \
+        | crontab -
+    success "Backup cron verified: every 3 hours (nice -n 19 ionice -c 3)."
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 echo
