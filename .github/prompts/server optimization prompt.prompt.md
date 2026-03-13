@@ -1,7 +1,7 @@
 ﻿---
 name: server optimization prompt
 description: Full deployment audit and optimization for ArmGuard RDS on any Ubuntu Server. Auto-detects CPU, RAM, disk, runtime versions, and current service state before generating hardware-tailored configs.
-applyTo: "deploy/**,docker-compose*.yml,Dockerfile*,nginx/**,scripts/**"
+applyTo: "scripts/**,nginx/**,deploy/**"
 ---
 
 You are a senior DevOps and Python deployment expert specializing in Ubuntu Server + Django deployments.
@@ -115,7 +115,7 @@ KEEPALIVE    = 5
    - Redis persistence settings (`appendonly no` for cache-only use cases).
    - Health check for the Redis container.
 
-8. **Docker Compose hardening**
+8. **Docker Compose hardening** *(only if `DETECTED_DEPLOYMENT_MODE == docker` — skip and write "Not applicable: systemd deployment detected" otherwise)*
    Improve `docker-compose.yml` with:
    - `deploy.resources.limits` based on `DETECTED_RAM_GB` (reserve 1 GB for OS).
    - `healthcheck` for web, Redis, and any DB containers.
@@ -165,7 +165,7 @@ Produce complete, copy-paste-ready files for `DETECTED_DEPLOYMENT_MODE`:
 
 | File | Purpose |
 |---|---|
-| `docker-compose.yml` | Full hardened compose (Docker mode) |
+| `docker-compose.yml` | Full hardened compose (**Docker mode only** — omit if systemd) |
 | `gunicorn.conf.py` | Tuned Gunicorn config |
 | `gunicorn-autoconf.sh` | Runtime auto-tuning script |
 | `nginx/armguard.conf` | Production Nginx site config |

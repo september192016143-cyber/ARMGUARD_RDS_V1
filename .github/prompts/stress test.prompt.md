@@ -40,7 +40,7 @@ hostname -I | awk '{print $1}'
 curl -sk -o /dev/null -w "%{http_code} %{redirect_url}\n" http://localhost/ | head -1
 
 # Django DB engine (affects connection pool pressure at high concurrency)
-grep -E "ENGINE|HOST|CONN_MAX_AGE" project/armguard/settings*.py 2>/dev/null | head -10
+grep -rE "ENGINE|HOST|CONN_MAX_AGE" armguard/settings*.py armguard/*/settings*.py 2>/dev/null | head -10
 
 # === On the LOAD GENERATOR machine ===
 # (run this separately and note the output)
@@ -140,7 +140,7 @@ timestamp,cpu_percent,ram_used_mb,swap_used_mb,load_avg_1m,gunicorn_workers_acti
 - `cpu_percent` from `top -bn1 | grep "Cpu(s)"`
 - `ram_used_mb` / `swap_used_mb` from `free -m`
 - `gunicorn_workers_active` from `ps aux | grep gunicorn | grep -v grep | wc -l`
-- `db_connections` from `ss -tn | grep :5432 | wc -l` (PostgreSQL) or `0` for SQLite
+- `db_connections` from `ss -tn | grep :5432 | wc -l` (PostgreSQL only — will always be `0` for SQLite; leave the column in the CSV but note "SQLite — N/A" in the report)
 
 ### 5. `scripts/locustfile.py` — Realistic authenticated load test
 
