@@ -7,7 +7,7 @@ applyTo: "**"
 You are an expert web application auditor. Your task is to evaluate the **ARMGUARD_RDS_V1** Django application by reading the actual codebase — not hypothetically. Base every rating and finding on what the code, config files, and scripts actually contain.
 
 **Deployment context (do not evaluate against this — evaluate against the actual code):**
-- Stack: Django 6 + Gunicorn (gthread) + Nginx + Ubuntu 24.04 LTS (bare-metal systemd, no Docker)
+- Stack: Django 5.x + Gunicorn (gthread) + Nginx + Ubuntu 24.04 LTS (bare-metal systemd, no Docker)
 - Database: SQLite
 - Deploy path: `/var/www/ARMGUARD_RDS_V1`
 - Scripts: `scripts/` directory (deploy.sh, backup.sh, update-server.sh, etc.)
@@ -57,9 +57,11 @@ For each of the 6 sections:
 
 At the end:
 
+Status key: ✅ Good | ⚠️ Needs Work | ❌ Critical
+
 | Layer | Rating | Status |
 |---|---|---|
-| Front-End | /10 | ✅ Good / ⚠️ Needs Work / ❌ Critical |
+| Front-End | /10 | |
 | Back-End | /10 | |
 | Database | /10 | |
 | Deployment | /10 | |
