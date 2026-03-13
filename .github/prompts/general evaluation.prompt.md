@@ -59,7 +59,7 @@ At the end:
 
 | Layer | Rating | Status |
 |---|---|---|
-| Front-End | /10 | |
+| Front-End | /10 | ✅ Good / ⚠️ Needs Work / ❌ Critical |
 | Back-End | /10 | |
 | Database | /10 | |
 | Deployment | /10 | |
@@ -70,11 +70,4 @@ At the end:
 **Top 3 priorities to fix immediately** (with specific file/line references where possible)
 
 **Long-term improvements** (3–5 items)
-
-- Run python manage.py check --deploy.
-- Verify HTTPS enforcement.
-- Check Django SECURE_* settings (HSTS, SSL redirect, cookie flags).
-- Scan for secrets in repo (trufflehog, GitHub secret scanning).
-- Fix/Improve:
-- Enforce HTTPS in production.
 
