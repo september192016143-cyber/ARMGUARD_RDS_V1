@@ -344,12 +344,15 @@ fi
 # HTTP endpoint check — verifies the app actually responds (not just systemd state).
 HEALTH_URL="http://127.0.0.1:8000/health/"
 HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_URL" 2>/dev/null || echo "000")
-if [[ "$HTTP_STATUS" == "200" ]]; then
-    success "Health endpoint $HEALTH_URL returned HTTP 200."
+if [[ "$HTTP_STATUS" =~ ^2 ]]; then
+    success "Health endpoint $HEALTH_URL returned HTTP $HTTP_STATUS."
+elif [[ "$HTTP_STATUS" =~ ^3 ]]; then
+    # 3xx redirect (e.g. SECURE_SSL_REDIRECT=True) still means the app is alive.
+    success "Health endpoint $HEALTH_URL returned HTTP $HTTP_STATUS (redirect — service alive)."
 elif [[ "$HTTP_STATUS" == "000" ]]; then
     warn "Could not reach $HEALTH_URL (curl failed). Check if /health/ URL is configured."
 else
-    warn "Health endpoint returned HTTP $HTTP_STATUS (expected 200)."
+    warn "Health endpoint returned HTTP $HTTP_STATUS (expected 2xx/3xx)."
     HEALTH_OK=false
 fi
 
@@ -358,9 +361,15 @@ fi
 # ---------------------------------------------------------------------------
 BACKUP_SH_PATH="$DEPLOY_DIR/scripts/backup.sh"
 if [[ -f "$BACKUP_SH_PATH" ]]; then
-    (crontab -l 2>/dev/null | grep -v 'backup.sh'; \
-     echo "0 */3 * * * nice -n 19 ionice -c 3 $BACKUP_SH_PATH >> $LOG_DIR/backup.log 2>&1") \
-        | crontab -
+    # Use a temp file instead of a pipe so crontab -l's non-zero exit code
+    # (no existing crontab) cannot propagate through set -Eo pipefail and
+    # fire on_error via the inherited ERR trap inside the subshell.
+    _CRON_TMP=$(mktemp)
+    crontab -l 2>/dev/null | grep -v 'backup.sh' > "$_CRON_TMP" || true
+    printf '0 */3 * * * nice -n 19 ionice -c 3 %s >> %s/backup.log 2>&1\n' \
+        "$BACKUP_SH_PATH" "$LOG_DIR" >> "$_CRON_TMP"
+    crontab "$_CRON_TMP"
+    rm -f "$_CRON_TMP"
     success "Backup cron verified: every 3 hours (nice -n 19 ionice -c 3)."
 fi
 

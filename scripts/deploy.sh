@@ -666,10 +666,14 @@ if [[ -f "$SCRIPT_DIR/backup.sh" ]]; then
     [[ "$(realpath "$SCRIPT_DIR/backup.sh")" != "$(realpath "$BACKUP_SH_DEPLOY")" ]] && \
         cp "$SCRIPT_DIR/backup.sh" "$BACKUP_SH_DEPLOY"
     chmod +x "$BACKUP_SH_DEPLOY"
-    # Remove any stale entry then add the current one (idempotent)
-    (crontab -l 2>/dev/null | grep -v 'backup.sh'; \
-     echo "0 */3 * * * nice -n 19 ionice -c 3 $BACKUP_SH_DEPLOY >> $LOG_DIR/backup.log 2>&1") \
-        | crontab -
+    # Use a temp file — avoids crontab -l's non-zero exit (no existing crontab)
+    # from propagating through set -Eo pipefail and firing on_error.
+    _CRON_TMP=$(mktemp)
+    crontab -l 2>/dev/null | grep -v 'backup.sh' > "$_CRON_TMP" || true
+    printf '0 */3 * * * nice -n 19 ionice -c 3 %s >> %s/backup.log 2>&1\n' \
+        "$BACKUP_SH_DEPLOY" "$LOG_DIR" >> "$_CRON_TMP"
+    crontab "$_CRON_TMP"
+    rm -f "$_CRON_TMP"
     success "Every-3-hour consolidated backup cron installed (nice -n 19 ionice -c 3)."
 else
     warn "backup.sh not found in scripts/; consolidated backup cron not installed."
