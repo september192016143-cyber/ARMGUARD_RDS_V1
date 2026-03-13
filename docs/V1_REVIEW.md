@@ -1,6 +1,6 @@
 # ARMGUARD_RDS_V1 — Comprehensive Review Report
 
-**Review Date:** 2026-03-09 (Post-Session 12)  
+**Review Date:** 2026-03-13 (Post-Session 14)  
 **Reviewer:** GitHub Copilot (AI)  
 **Source References:** ARMGUARD_RDS documentation suite (ARCHITECTURE_BEST_PRACTICES, DATABASE_AUDIT, COMPREHENSIVE_CODE_AUDIT, FIX_REPORT, TODO, MODELS_VIEWS_EVALUATION, PROFESSIONAL_EVALUATION, REFACTORING_PLAN, MASTER_DOCUMENTATION, WITHDRAW_RETURN DOCUMENTATION)  
 **V1 Project Path:** `ARMGUARD_RDS_V1/project/`  
@@ -317,6 +317,10 @@ All views enforce authentication and role-based access:
 | Password history | `PasswordHistoryValidator` prevents reuse of last 5 passwords; `PasswordHistory` model | ✅ Session 11 |
 | REST API correctness | `acquired_date` invalid field removed from `PistolSerializer`/`RifleSerializer`; replaced with `created` | ✅ Session 12 |
 | AuditLog IP capture | `_get_client_ip()` defined in `users/models.py`; LOGIN/LOGOUT records now store real IP | ✅ Session 12 |
+| Accessibility | WCAG AA contrast, `:focus-visible`, ARIA live regions, semantic `<h1>` | ✅ Session 14 |
+| API token rate limiting | `ThrottledObtainAuthToken` 5/min per IP on token endpoint | ✅ Session 14 |
+| OpenAPI schema | `drf-spectacular` at `GET /api/v1/schema/` | ✅ Session 14 |
+| CI pipeline | GitHub Actions `ci.yml` — lint, test, coverage, pip-audit, Docker build | ✅ Session 14 |
 | CSRF protection | `CsrfViewMiddleware` in `MIDDLEWARE` | ✅ |
 | Clickjacking protection | `XFrameOptionsMiddleware` + CSP frame-ancestors | ✅ Session 8 |
 | Content Security Policy | `SecurityHeadersMiddleware` — CSP on every response | ✅ Session 8 |
@@ -385,7 +389,9 @@ These items are deferred in the RDS documentation and remain deferred in V1:
 |---|---|---|
 | ~~High~~ | ~~PostgreSQL migration~~ | ⏭️ Deferred — acceptable for LAN-only armory; all models are PostgreSQL-compatible |
 | ~~High~~ | ~~`.env` file setup~~ | ✅ Done (Session 8/9) — `load_dotenv()` in `base.py`; `.env.example` fully documents all 14 variables |
-| ~~Medium~~ | ~~Test suite port~~ | ✅ Done (Sessions 3–8) — 44 tests, 100% passing; covers all critical business paths |
+| ~~Medium~~ | ~~Test suite port~~ | ✅ Done (Sessions 3–14) — 113 tests, 100% passing; 8 test files; cascade/concurrency tests added (S14) |
+| ~~Low~~ | ~~CI/CD pipeline~~ | ✅ Done (Session 14) — `.github/workflows/ci.yml` (lint, test, coverage, pip-audit, Docker build) |
+| ~~Low~~ | ~~OpenAPI schema~~ | ✅ Done (Session 14) — `drf-spectacular` at `GET /api/v1/schema/` |
 | Medium | RI-05 cleanup | Still deferred — deprecated `magazine_item_issued` fields on Personnel require a data migration |
 | ~~Medium~~ | ~~`ALLOWED_HOSTS`~~ | ✅ Done (Session 8) — `production.py` raises `ValueError` if `ALLOWED_HOSTS` is empty |
 | ~~Low~~ | ~~`devices` app~~ | ✅ Done (Session 6) — stub app deleted; not referenced anywhere |
@@ -415,6 +421,6 @@ These items are deferred in the RDS documentation and remain deferred in V1:
 | Settings | ✅ Pass | ENV-based secrets; split base/development/production; all apps registered |
 | API | ✅ Pass | DRF read-only API at `/api/v1/`; token auth; rate-limited |
 | Deployment | ✅ Pass | `scripts/deploy.sh`, systemd unit, nginx conf, GPG-encrypted backup cron |
-| Testing | ✅ Pass | 44 tests; 100% pass; service layer, personnel model, security headers, audit signals all covered |
+| Testing | ✅ Pass | 113 tests across 8 files; 100% pass; cascade/concurrency tests added (S14) |
 
-**Overall: ARMGUARD_RDS_V1 is a complete, production-hardened implementation. All critical, high, medium, and low security gaps documented across Sessions 1–10 have been resolved. Two low-impact items remain deferred by design: `TransactionLogs` normalization (REC-08) and `select_for_update` on weapon fetch in concurrent multi-process scenarios.**
+**Overall (Post-Session 14): ARMGUARD_RDS_V1 scores 8.5/10 on the comprehensive audit. All critical, high, and medium security/quality gaps have been resolved across Sessions 1–14. Accessibility (WCAG AA), API rate limiting, OpenAPI schema, CI/CD pipeline, and 16 cascade tests were the final improvements. Two low-impact items remain deferred by design: `TransactionLogs` normalization (REC-08) and `select_for_update` on weapon fetch in concurrent multi-process scenarios.**

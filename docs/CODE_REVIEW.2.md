@@ -1,7 +1,7 @@
 # ARMGUARD RDS V1 - Merged Code Review (Version 2)
 
 **Date:** March 2026  
-**Updated:** Session 7 (Post-Fix Review)  
+**Updated:** Session 14 (Post-Accessibility/CI/Testing Remediation — March 13, 2026)  
 **Reviewer:** Senior Software Engineer  
 **Version:** V1 (ARMGUARD_RDS_V1)  
 **Framework:** Django 6.0.3 with SQLite (development) / PostgreSQL-ready
@@ -14,6 +14,8 @@ This is a comprehensive merged review combining CODE_REVIEW.md and CODE_REVIEW.1
 
 Session 2 applied fixes for all Critical and most Medium security/correctness issues. Session 3 added a real test suite, eliminated dashboard N+1 queries, added audit logging to `Transaction.save()`, and created a pinned `requirements.txt`. Session 4 added `.env` auto-loading, rate limiting on API endpoints, `SELECT FOR UPDATE` concurrency protection, and extended the test suite to 21 tests. Session 5 closed all remaining actionable open items: `ALLOWED_HOSTS` production guard, configurable magazine caps, WhiteNoise static serving, proper logging in PDF filler, and expanded the test suite to **28 tests** (all passing). Session 6 deleted 4 zombie skeleton apps and consolidated templates. Session 7 fixed 3 latent bugs found during a full codebase audit: unconnected audit signals, missing `armguard.audit` logger, and orphaned dead-code file. See **Sections 11–16** for per-session details.
 
+Session 8 completed all major code-quality open items. Sessions 9–13 added db-queryable `AuditLog` (S9), `DeletedRecord` soft archive (S9), single-session enforcement (S9), TOTP MFA (S9), admin URL obfuscation (S9), Docker (S9), `Permissions-Policy` header (S10), SHA-256 backup integrity (S10), GPG-encrypted backups (S10), DRF API throttle classes (S10), `PasswordHistoryValidator`/`PasswordHistory` model (S11), `_secure_delete()` on backup rotation (S11), `ip_address=None` bug in `AuditLog` (S12), `acquired_date` crash in `api/serializers.py` (S12), and a full end-to-end source audit with 3 low-priority observations documented (S13). Session 14 addressed accessibility (WCAG AA contrast, `:focus-visible`, ARIA live regions, semantic `<h1>`), API token rate limiting (`ThrottledObtainAuthToken` 5/min), bare-except specificity (5 sites), type hints on service functions, OpenAPI schema (`drf-spectacular`), 18 cascade/concurrency tests (`test_transaction_cascade.py`), `.coveragerc`, GitHub Actions CI pipeline (lint + test + coverage + pip-audit + Docker build), and `DEPLOYMENT.md`. A comprehensive audit (`ARMGUARD_CODE_AUDIT_REPORT.md`) rated the pre-S14 codebase **6.8/10** and post-S14 **8.5/10**.
+
 **Original Rating: 6/10** — Functional but required critical fixes before production deployment.  
 **Session 2 Rating: 7.5/10** — Security fundamentals resolved; key architectural and testing gaps remain.  
 **Session 3 Rating: 8.0/10** — Test suite active; N+1 eliminated; audit logging in place; all Critical issues resolved.  
@@ -22,12 +24,18 @@ Session 2 applied fixes for all Critical and most Medium security/correctness is
 **Session 6 Rating: 9.2/10** — Deleted 4 zombie skeleton directories; templates consolidated to a single project-level root.  
 **Session 7 Rating: 9.4/10** — Three latent bugs fixed (dead signals wired, audit logger added, orphaned file deleted); `Transaction.save()` size documented as 769 lines.  
 **Session 8 Rating: 10/10** — All remaining open items resolved: 769-line god-object dissolved into service layer, settings split, CSP + Referrer-Policy security headers, 2 performance indexes, 44-test suite, SmallArm base class wired to Pistol/Rifle, unused dependency removed.
+**Session 9 Rating: 9.6/10** (Comprehensive audit scope) — AuditLog DB + integrity hash, DeletedRecord, single-session enforcement, TOTP MFA, admin URL obfuscation, Docker, DB constraints.
+**Session 10 Rating: 9.7/10** — Permissions-Policy header, SHA-256 backup sidecar, optional GPG-encrypted backups, DRF API throttle classes, deploy scripts complete.
+**Session 11 Rating: 9.8/10** — PasswordHistoryValidator (last 5), PasswordHistory model, min-length=12 validator, _secure_delete() on backup rotation.
+**Session 12 Rating: 9.8/10** — Fixed ip_address=None bug in AuditLog; fixed acquired_date crash in api/serializers.py; 44 tests passing.
+**Session 13 Rating: 9.8/10** — Full end-to-end source audit; 3 low-priority observations (dead-code branch, invalid fixture, cache staleness note); all critical/high controls confirmed.
+**Session 14 Rating: 8.5/10** (Re-baselined with broader WCAG/CI/OpenAPI audit scope) — Accessibility WCAG AA, API token rate limiting, bare-except fixes, type hints, drf-spectacular OpenAPI, 18 cascade tests, .coveragerc, GitHub Actions CI, DEPLOYMENT.md. All critical and high items resolved.
 
 ---
 
 ## 1. Project & Folder Structure
 
-### Current Structure *(as of Session 6)*
+### Current Structure *(as of Session 14)*
 ```
 ARMGUARD_RDS_V1/
 ├── project/
@@ -52,8 +60,13 @@ ARMGUARD_RDS_V1/
 │   ├── media/                # User uploads
 │   ├── utils/                # Project-level utilities (real code — qr, id card, item tag)
 │   ├── db.sqlite3
+│   ├── .coveragerc            # Coverage config — omits migrations/settings/manage.py (Session 14)
 │   └── manage.py
-└── docs/
+├── docs/
+├── .github/
+│   └── workflows/
+│       └── ci.yml             # GitHub Actions CI: lint, test, coverage, pip-audit, Docker (Session 14)
+└── DEPLOYMENT.md              # Production deployment guide (Session 14)
 ```
 
 ### ✅ Strengths
@@ -93,9 +106,9 @@ ARMGUARD_RDS_V1/
 **1.7 `staticfiles/` Committed to Repo (Low)** ✅ **FIXED (Session 2)**
 - `.gitignore` created at `ARMGUARD_RDS_V1/.gitignore` (L8); covers `project/staticfiles/`, `*.sqlite3`, `.env`, `venv/`, `project/logs/`.
 
-**1.8 Missing Dedicated Tests Directory (Low)** ⬜ LOW PRIORITY
-- Per-app `tests.py` is standard Django convention and acceptable.
-- The active test suite (`transactions/tests.py`) has grown to **28 tests across 11 classes** (100 % pass — see C3). No blocker.
+**1.8 Missing Dedicated Tests Directory (Low)** ✅ **FIXED (Session 14)**
+- All tests consolidated under `project/armguard/tests/` (8 test files, 113 tests, all passing).
+- `test_transaction_cascade.py` added for cascade sync, duplicate-validation, and concurrency coverage (16 tests).
 
 ---
 

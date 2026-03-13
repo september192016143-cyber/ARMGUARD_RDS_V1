@@ -224,7 +224,7 @@ def tr_preview(request):
     try:
         from armguard.apps.personnel.models import Personnel as PersonnelModel
         armorer_personnel = PersonnelModel.objects.get(user=request.user)
-    except Exception:
+    except (PersonnelModel.DoesNotExist, AttributeError):
         armorer_personnel = None
 
     def _safe_int(val):
@@ -259,9 +259,9 @@ def tr_preview(request):
     filler = TransactionFormFiller()
     try:
         pdf_bytes = filler.fill_transaction_form(mock_txn)
-    except Exception:
+    except (OSError, RuntimeError, ValueError) as exc:
         import logging
-        logging.getLogger(__name__).exception('TR preview PDF generation failed')
+        logging.getLogger(__name__).exception('TR preview PDF generation failed: %s', exc)
         return JsonResponse(
             {'field_errors': {}, 'non_field_errors': ['PDF generation failed. Please try again.']},
             status=500,

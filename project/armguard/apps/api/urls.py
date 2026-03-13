@@ -1,6 +1,7 @@
 """
 G12 FIX: URL configuration for the ARMGUARD read-only REST API v1.
 G13 FIX: last-modified polling endpoint for frontend staleness detection.
+S01 FIX: obtain_auth_token replaced with ThrottledObtainAuthToken (5/min per IP).
 
 Registered routes:
   GET  /api/v1/pistols/              → list
@@ -11,16 +12,23 @@ Registered routes:
   GET  /api/v1/personnel/{id}/       → retrieve
   GET  /api/v1/transactions/         → list  (newest-first)
   GET  /api/v1/transactions/{id}/    → retrieve
-  POST /api/v1/auth/token/           → obtain DRF auth token
+  POST /api/v1/auth/token/           → obtain DRF auth token (5/min throttled)
   GET  /api/v1/last-modified/        → ISO-8601 timestamp of latest change (G13)
+  GET  /api/v1/schema/               → OpenAPI 3.0 schema (drf-spectacular)
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework.authtoken.views import obtain_auth_token
+
+# T1 FIX: drf-spectacular OpenAPI schema view (staff-only).
+try:
+    from drf_spectacular.views import SpectacularAPIView
+    _spectacular_available = True
+except ImportError:
+    _spectacular_available = False
 
 from .views import (
     PistolViewSet, RifleViewSet, PersonnelViewSet, TransactionViewSet,
-    LastModifiedView,
+    LastModifiedView, ThrottledObtainAuthToken,
 )
 
 router = DefaultRouter()
@@ -37,8 +45,14 @@ app_name = 'api'
 
 urlpatterns = [
     path('', include(router.urls)),
-    # Token auth endpoint for headless clients.
-    path('auth/token/', obtain_auth_token, name='api-token-auth'),
+    # S01 FIX: Token auth — throttled to 5 requests/minute per IP.
+    path('auth/token/', ThrottledObtainAuthToken.as_view(), name='api-token-auth'),
     # G13 FIX: Polling endpoint — returns latest updated_at timestamp across all transactions.
     path('last-modified/', LastModifiedView.as_view(), name='api-last-modified'),
 ]
+
+# T1 FIX: OpenAPI 3.0 schema — only registered when drf-spectacular is installed.
+if _spectacular_available:
+    urlpatterns += [
+        path('schema/', SpectacularAPIView.as_view(), name='api-schema'),
+    ]

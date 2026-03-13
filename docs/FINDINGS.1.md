@@ -247,11 +247,12 @@ def save(self, *args, **kwargs):
 
 | Test Aspect | V1 | v.2 |
 |-------------|-----|------|
-| **Test Suite** | Not explicitly documented | Comprehensive (430 lines) |
-| **Test Categories** | Unknown | Personnel, Transaction, Audit, Performance, Validation |
-| **Database Operations** | Not tested | 18+ test cases |
-| **Race Condition Tests** | ❌ | ✅ |
-| **Business Rule Tests** | Basic | Full validation |
+| **Test Suite** | 115+ tests across 9 files **(S14)** | Comprehensive (430 lines) |
+| **Test Categories** | Auth, Permissions, Inventory, Personnel, Transactions, API, Dashboard, Cascade | Personnel, Transaction, Audit, Performance, Validation |
+| **Database Operations** | ✅ 16 cascade/concurrency tests **(S14)** | 18+ test cases |
+| **Race Condition Tests** | ✅ **(S14)** | ✅ |
+| **Business Rule Tests** | ✅ Full validation | Full validation |
+| **CI/CD** | ✅ GitHub Actions **(S14)** | ❌ |
 
 ### 7.2 V2 Test Categories (Exclusive)
 - PersonnelCreateTests (4 tests)

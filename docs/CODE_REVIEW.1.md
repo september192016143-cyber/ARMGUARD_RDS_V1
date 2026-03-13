@@ -1,4 +1,4 @@
-> **⚠️ SUPERSEDED DOCUMENT:** This is an intermediate code review document. The current authoritative review is [`CODE_REVIEW.2.md`](CODE_REVIEW.2.md), which includes all post-fix session reviews (Sessions 2–10) and reflects the current resolved state of the codebase.
+> **⚠️ SUPERSEDED DOCUMENT:** This is an intermediate code review document. The current authoritative review is [`CODE_REVIEW.2.md`](CODE_REVIEW.2.md) (updated through Session 14). For the current score and state, see `ARMGUARD_CODE_AUDIT_REPORT.md` (8.5/10 post-Session 14).
 
 ---
 

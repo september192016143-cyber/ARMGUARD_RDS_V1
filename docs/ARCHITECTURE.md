@@ -1,7 +1,7 @@
 # ARMGUARD_RDS_V1 — Architecture Overview
 
-**Version:** 2.1  
-**Last Updated:** 2026 (Post-Session 13)  
+**Version:** 2.2  
+**Last Updated:** 2026-03-13 (Post-Session 14)  
 **Project Path:** `ARMGUARD_RDS_V1/project/`
 
 ---
@@ -15,6 +15,7 @@ ARMGUARD_RDS_V1/
 ├── docs/                          ← Documentation (this folder)
 ├── project/                       ← Django project root
 │   ├── manage.py
+│   ├── .coveragerc                ← Coverage config (omits migrations, settings, manage.py)
 │   ├── db.sqlite3                 ← SQLite database (dev)
 │   └── armguard/                  ← Main package
 │       ├── settings/              ← Split settings package
@@ -69,11 +70,15 @@ ARMGUARD_RDS_V1/
 │   ├── nginx-armguard.conf        ← Nginx config (rate limit + media block)
 │   ├── setup-firewall.sh          ← ufw firewall rules
 │   └── db-backup-cron.sh          ← GPG-encrypted nightly backup cron
+├── .github/
+│   └── workflows/
+│       └── ci.yml                 ← GitHub Actions CI (lint, test, coverage, pip-audit, Docker build)
 ├── Dockerfile                     ← Multi-stage build (Python 3.12-slim)
 ├── docker-compose.yml             ← Dev compose (SQLite + media volumes)
 ├── .dockerignore
 ├── .env.example                   ← All variables documented with defaults
 ├── requirements.txt
+├── DEPLOYMENT.md                  ← Production deployment guide (Session 14)
 └── venv/
 ```
 
@@ -148,10 +153,11 @@ ARMGUARD_RDS_V1/
 ### 2.7 `armguard.apps.api`
 - **Role:** Read-only REST API for integration and reporting
 - **Framework:** Django REST Framework 3.16.0
-- **Authentication:** Session auth + Token auth (`POST /api/v1/auth/token/`)
+- **Authentication:** Session auth + Token auth (`POST /api/v1/auth/token/` via `ThrottledObtainAuthToken` — 5/min per IP)
 - **Endpoints:** Read-only `ModelViewSet`s for `Pistol`, `Rifle`, `Personnel`, `Transaction`
 - **Rate Limiting:** `AnonRateThrottle` 10/min; `UserRateThrottle` 30/min
 - **Pagination:** 50 items per page
+- **OpenAPI Schema:** `GET /api/v1/schema/` — machine-readable OpenAPI 3.0 spec (via `drf-spectacular`)
 - **Bonus endpoint:** `GET /api/v1/last-modified/` — staleness detection for the 30-second frontend polling script
 
 ### 2.8 `armguard.apps.print`
@@ -323,3 +329,27 @@ The deployment target is a single-server LAN installation (`settings/production.
 | FK integrity | `on_delete` rules | PROTECT for critical records, SET_NULL for referential safety |
 | Robots/security.txt | Crawler control | `/robots.txt` disallows sensitive paths; `/.well-known/security.txt` present |
 | Production HTTPS | `settings/production.py` | `SECURE_SSL_REDIRECT`, `SECURE_HSTS_SECONDS=31536000`, secure cookies |
+| Accessibility | WCAG AA contrast, `:focus-visible`, ARIA live regions, semantic `<h1>` | `main.css` + templates (Session 14) |
+| API token rate limit | `ThrottledObtainAuthToken` 5/min per IP | `api/views.py` (Session 14) |
+| OpenAPI schema | `drf-spectacular` | `GET /api/v1/schema/` (Session 14) |
+| CI pipeline | GitHub Actions | `.github/workflows/ci.yml` — lint, test, coverage, pip-audit, Docker (Session 14) |
+
+---
+
+## 7. Test Suite
+
+| File | Tests | Coverage Area |
+|---|---|---|
+| `tests/test_auth.py` | 11 | Login, logout, OTP setup/verify, password policy |
+| `tests/test_permissions.py` | 30 | Role-based helpers, access denial (all roles × all helpers) |
+| `tests/test_inventory.py` | 12 | Pistol/Rifle/Magazine/Ammo/Accessory CRUD |
+| `tests/test_personnel.py` | 13 | Personnel CRUD, computed properties |
+| `tests/test_transactions.py` | 12 | Transaction workflow, validation |
+| `tests/test_api.py` | 11 | DRF endpoints, auth, pagination, throttle |
+| `tests/test_dashboard.py` | 8 | Stats context, cache, staleness |
+| `tests/test_transaction_cascade.py` | 16 | Cascade sync, duplicate guard, concurrency (Session 14) |
+
+**Total: 113 tests across 8 test files — all passing.**
+
+Run: `cd project && python manage.py test armguard.tests`  
+With coverage: `coverage run manage.py test armguard.tests && coverage report`

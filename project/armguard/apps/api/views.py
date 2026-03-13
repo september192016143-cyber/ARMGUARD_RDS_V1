@@ -3,6 +3,8 @@ G12 FIX: Read-only DRF viewsets for the ARMGUARD API.
 G13 FIX: LastModifiedView — lightweight polling endpoint used by the
          frontend to detect inventory/transaction changes without Redis
          or Django Channels.
+S01 FIX: ThrottledObtainAuthToken — 5 requests/minute throttle on token
+         auth endpoint to prevent API credential brute-forcing.
 
 All viewsets are read-only (list + retrieve).  Write operations are
 intentionally excluded — all mutations must go through the UI to
@@ -17,6 +19,8 @@ from django.utils import timezone
 from rest_framework import viewsets, permissions, mixins
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.throttling import AnonRateThrottle
 
 from armguard.apps.inventory.models import Pistol, Rifle
 from armguard.apps.personnel.models import Personnel
@@ -95,3 +99,21 @@ class LastModifiedView(APIView):
             'last_modified': last_modified,
             'now': timezone.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
         })
+
+
+class _TokenAuthThrottle(AnonRateThrottle):
+    """S01 FIX: 5/minute scope for the token acquisition endpoint."""
+    scope = 'token_auth'
+
+
+class ThrottledObtainAuthToken(ObtainAuthToken):
+    """
+    S01 FIX: Drop-in replacement for obtain_auth_token that enforces an
+    explicit 5-requests-per-minute throttle per source IP.
+
+    The default DRF obtain_auth_token view carries no throttle class,
+    leaving the endpoint open to credential brute-forcing.  This subclass
+    replaces it — all other behaviour (token creation, JSON response) is
+    unchanged.
+    """
+    throttle_classes = [_TokenAuthThrottle]

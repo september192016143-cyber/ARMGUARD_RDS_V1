@@ -60,6 +60,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'armguard.apps.api',
+    # T1 FIX: OpenAPI 3.0 schema generation via drf-spectacular.
+    # Exposes /api/v1/schema/ with machine-readable API documentation.
+    'drf_spectacular',
     # G15 FIX: django-otp TOTP multi-factor authentication.
     'django_otp',
     'django_otp.plugins.otp_totp',
@@ -211,13 +214,35 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '10/minute',   # anonymous — should never happen (IsAuthenticated default)
         'user': '30/minute',   # authenticated users
+        # S01 FIX: strict throttle for token auth endpoint (5/min per IP)
+        'token_auth': '5/minute',
     },
+    # T1 FIX: Use drf-spectacular for OpenAPI schema generation.
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # L7 FIX: Security headers safe to set in all environments.
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'SAMEORIGIN'  # Allow self-framing for TR/PDF iframes; external clickjacking still blocked
 SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# ---------------------------------------------------------------------------
+# T1 FIX: OpenAPI schema settings (drf-spectacular)
+# Schema is available at /api/v1/schema/ — staff login required.
+# ---------------------------------------------------------------------------
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'ArmGuard RDS API',
+    'DESCRIPTION': (
+        'Read-only REST API for the ArmGuard Resource Data System. '
+        'All write operations must go through the web UI to preserve '
+        'business-rule enforcement (audit logs, select_for_update, etc.).'
+    ),
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,  # Don't include /api/v1/schema/ in itself
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.IsAdminUser'],
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SORT_OPERATIONS': True,
+}
 SECURE_REFERRER_POLICY = 'same-origin'
 
 # M12 FIX: Structured logging to rotating file.

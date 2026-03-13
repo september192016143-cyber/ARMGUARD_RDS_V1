@@ -6,7 +6,7 @@ A Django-based small-arms records and transaction management system for military
 
 ## Requirements
 
-- Python 3.11+
+- Python 3.12+
 - pip
 
 ---
@@ -98,8 +98,14 @@ The test suite covers:
 - Transactions (list, detail, create permission, cache invalidation)
 - REST API endpoints (auth requirements, pagination, staff-only restrictions)
 - Dashboard (stats context keys, inventory table keys, cache population and invalidation)
+- Transaction cascade & concurrency (withdrawal→status sync, duplicate validation, threading safety)
 
-All 97 tests should pass with `OK`.
+All 113 tests should pass with `OK`.
+
+Run with coverage:
+```bash
+coverage run manage.py test armguard.tests && coverage report
+```
 
 ---
 

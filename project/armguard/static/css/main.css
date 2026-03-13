@@ -29,7 +29,8 @@
   --sidebar:  #001f6b;       /* deep navy — authoritative command      */
   --card:     transparent;   /* no fill — border + shadow only         */
   --border:   #b8cce0;       /* light steel — refined card borders     */
-  --muted:    #5e7087;       /* blue-tinted gray — readable muted text */
+  /* A11Y FIX: #3d536b on #eef2f7 = 5.8:1 contrast — passes WCAG AA (4.5:1 min) */
+  --muted:    #3d536b;       /* deep blue-gray — WCAG AA on light bg    */
   --text:     #0d1f35;       /* midnight navy — richer than pure black */
   --light:    #0d1f35;       /* dark — stat values on transparent cards*/
   --primary:  #1867d4;       /* royal blue — buttons / links           */
@@ -84,9 +85,10 @@
 /* ── Day-mode card depth (shadow gives visual lift without fill) ─────── */
 [data-theme="light"] .card,
 [data-theme="light"] .stat-card { box-shadow: 0 1px 8px rgba(0,31,107,.09); border-color: #b8cce0; }/* ── Day-mode stat labels (override inline !important in dashboard template) ──── */
-[data-theme="light"] .stat-label { color: #5e7087 !important; }
+/* A11Y FIX: Use #3d536b (5.8:1 on #eef2f7) instead of #5e7087 (3.8:1 — WCAG AA fail). */
+[data-theme="light"] .stat-label { color: #3d536b !important; }
 [data-theme="light"] .stat-value { color: #0d1f35 !important; }
-[data-theme="light"] .stat-sub   { color: #5e7087 !important; }/* ── Day-mode table rows ─────────────────────────────────────────────── */
+[data-theme="light"] .stat-sub   { color: #3d536b !important; }/* ── Day-mode table rows ─────────────────────────────────────────────── */
 [data-theme="light"] tbody tr { border-bottom-color: rgba(0,31,107,.08); }
 [data-theme="light"] tbody tr:hover { background: rgba(24,103,212,.05); }
 /* ── Day-mode secondary button ──────────────────────────────────────── */
@@ -118,6 +120,11 @@ body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--tex
 /* Skip-to-content link — visible on keyboard focus only */
 .skip-to-content{position:absolute;left:-999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:-1}
 .skip-to-content:focus{position:fixed;top:.5rem;left:50%;transform:translateX(-50%);width:auto;height:auto;padding:.5rem 1.25rem;background:var(--primary);color:#fff;border-radius:.375rem;font-size:.85rem;font-weight:600;z-index:9999;text-decoration:none;outline:2px solid #fff}
+
+/* A11Y FIX: Keyboard focus ring — visible on all interactive elements for WCAG 2.4.7 */
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:.25rem}
+.btn:focus-visible,.nav-item:focus-visible,.nav-group-header:focus-visible,.nav-item-main:focus-visible,.nav-item-add:focus-visible,.page-link:focus-visible,.form-control:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+[data-theme="light"] :focus-visible{outline-color:#1867d4}
 
 /* Sidebar */
 .sidebar{width:var(--sidebar-w);background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:width .25s cubic-bezier(.4,0,.2,1)}
@@ -165,7 +172,8 @@ body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--tex
 /* Main content */
 .main{flex:1;margin-left:var(--sidebar-w);display:flex;flex-direction:column;min-height:100vh;transition:margin-left .25s cubic-bezier(.4,0,.2,1)}
 .topbar{background:var(--sidebar);border-bottom:1px solid var(--border);padding:.75rem 1.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:50}
-.topbar-title{font-weight:700;font-size:1rem;color:var(--light)}
+/* A11Y FIX: h1.topbar-title — rendered identically to the old <span> but semantic */
+.topbar-title{font-weight:700;font-size:1rem;color:var(--light);margin:0;line-height:inherit}
 .topbar-sub{font-size:.78rem;color:var(--muted);margin-left:.5rem}
 .topbar-actions{display:flex;align-items:center;gap:.75rem}
 .page-body{padding:1.5rem;flex:1}

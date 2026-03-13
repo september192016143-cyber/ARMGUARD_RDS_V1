@@ -1,7 +1,7 @@
 # ARMGUARD_RDS_V1 — Setup & Run Guide
 
-**Version:** 2.0  
-**Last Updated:** 2026-03-09 (Post-Session 10)  
+**Version:** 2.1  
+**Last Updated:** 2026-03-13 (Post-Session 14)  
 **Platform:** Windows (PowerShell) / Linux/macOS (bash)  
 **Python:** 3.12+  
 **Django:** 6.0.3
@@ -52,6 +52,7 @@ Core packages included:
 - `whitenoise==6.12.0` — static file serving
 - `python-dotenv==1.2.2` — `.env` auto-loading
 - `djangorestframework==3.16.0` — REST API
+- `drf-spectacular>=0.27.0` — OpenAPI 3 schema generation (`/api/v1/schema/`)
 - `django-otp==1.7.0` — TOTP multi-factor authentication
 - `gunicorn==22.0.0` — WSGI server for production
 
@@ -223,10 +224,16 @@ ARMGUARD enforces TOTP two-factor authentication for **all authenticated session
 
 ```powershell
 cd project
-python manage.py test armguard.apps.transactions
+python manage.py test armguard.tests
 ```
 
-**Expected result:** `Ran 44 tests in ~6s ... OK`
+**Expected result:** `Ran 113 tests in ~10s ... OK`
+
+Run with coverage:
+```powershell
+coverage run manage.py test armguard.tests && coverage report
+```
+(Requires `pip install coverage`; coverage config in `project/.coveragerc`.)
 
 The test suite covers:
 - PDF extension + magic-bytes validation
@@ -240,6 +247,19 @@ The test suite covers:
 - Personnel model methods (`has_pistol_issued`, `can_return_*`, `set_issued`)
 - Audit signal emission (write to `armguard.audit` logger)
 - Security headers (CSP, Referrer-Policy, frame-ancestors)
+- Transaction cascade, concurrency, and duplicate-validation safety (16 tests)
+
+---
+
+## 7b. CI/CD — GitHub Actions
+
+A CI pipeline runs automatically on push/PR to `main` or `develop`:
+
+```
+.github/workflows/ci.yml
+```
+
+Steps: lint (flake8), test (pytest/manage.py), coverage report, pip-audit security scan, Docker build verification.
 
 ---
 

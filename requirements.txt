@@ -26,6 +26,11 @@ charset-normalizer==3.4.5
 # ── REST API (G12) ────────────────────────────────────────────────────────────
 djangorestframework==3.16.0
 
+# ── OpenAPI schema (T1) ───────────────────────────────────────────────────────
+# Generates /api/v1/schema/ endpoint with machine-readable OpenAPI 3.0 JSON.
+# Install: pip install drf-spectacular
+drf-spectacular>=0.27.0
+
 # ── MFA / TOTP (G15) ──────────────────────────────────────────────────────────
 django-otp==1.7.0
 

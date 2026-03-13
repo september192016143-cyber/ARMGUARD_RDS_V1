@@ -5,6 +5,11 @@
 **Target Score:** 10 / 10  
 **Codebase:** `ARMGUARD_RDS_V1`
 
+> **Note (Session 14 — March 13, 2026):** A follow-up comprehensive audit re-baselined the score  
+> to **8.5/10** covering accessibility (WCAG AA), CI/CD pipeline, OpenAPI schema, API token  
+> rate limiting, and cascade testing — areas not previously in scope for this cycle.  
+> See `ARMGUARD_CODE_AUDIT_REPORT.md` for the current authoritative score.
+
 ---
 
 ## Score Progress

@@ -3,7 +3,7 @@
 **Target Platform:** HP ProDesk Mini Computer  
 **Target OS:** Latest Ubuntu Server (24.04 LTS)  
 **Analysis Date:** 2026-03-09  
-**Last Updated:** 2026 (Session 13 — full end-to-end audit of all source files; previous Session 12 fixes confirmed; 3 new low-priority observations documented in `CODE_REVIEW.2.md §22`. All high/critical gaps remain resolved.)  
+**Last Updated:** 2026-03-13 (Session 14 — GitHub Actions CI pipeline added (`ci.yml`): lint, test, coverage, pip-audit, Docker build; `DEPLOYMENT.md` created; `drf-spectacular` OpenAPI schema added at `GET /api/v1/schema/`; `ThrottledObtainAuthToken` API token rate limiting (5/min per IP) added; 16 cascade/concurrency tests added (`test_transaction_cascade.py`); `.coveragerc` coverage config added; accessibility WCAG AA, `:focus-visible`, ARIA live regions, semantic `<h1>` applied to templates and CSS; bare-except specificity fixes; type hints on service functions. Comprehensive audit re-baselined to **8.5/10**.)  
 **Compared Version:** ARMGUARD_RDS_v.2 (Enterprise)
 
 ---
@@ -41,6 +41,7 @@ This document tracks the gap analysis between **ARMGUARD_RDS_V1** and **ARMGUARD
 
 | Feature | V1 Status | v2 Status | Gap Severity |
 |---------|-----------|-----------|--------------|
+| **CI/CD pipeline** | ✅ `.github/workflows/ci.yml` — lint, test, coverage, pip-audit, Docker build **(S14)** | ✅ Present | 🟢 Resolved |
 | **Automated deployment script** | ✅ `scripts/deploy.sh` | ✅ `deploy`, `deploy.bat` | 🟢 Resolved |
 | **Interactive deployment modes** | ✅ `--quick`, `--production`, `--domain`, `--lan-ip` | ✅ Multiple modes | 🟢 Resolved |
 | **Server update script** | ✅ `scripts/update-server.sh` | ✅ `update-server.sh` | 🟢 Resolved |
@@ -230,6 +231,8 @@ AXES_COOLOFF_TIME=1
 | **API default permission** | ✅ `IsAuthenticated` (no anonymous access) | ✅ `IsAuthenticated` | 🟢 Resolved |
 | **API pagination** | ✅ `PAGE_SIZE=50` (prevents large dumps) | ✅ Present | 🟢 Resolved |
 | **API rate limiting (DRF throttle)** | ✅ `AnonRateThrottle` 10/min, `UserRateThrottle` 30/min in `REST_FRAMEWORK` | ✅ 30 requests/minute | 🟢 Resolved |
+| **API token endpoint rate limit** | ✅ `ThrottledObtainAuthToken` 5/min per IP on `POST /api/v1/auth/token/` **(S14)** | ✅ Present | 🟢 Resolved |
+| **OpenAPI schema** | ✅ `drf-spectacular` at `GET /api/v1/schema/` **(S14)** | ✅ Present | 🟢 Resolved |
 | **API input validation** | ✅ DRF serializer validation | ✅ Enhanced | 🟢 Resolved |
 
 ### 2.8 Real-Time Updates

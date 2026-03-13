@@ -1,9 +1,9 @@
 # ARMGUARD_RDS_V1 — Database Schema Reference
 
 **Version:** 1.0  
-**Last Updated:** 2026-03-05  
+**Last Updated:** 2026-03-13  
 **Database Engine:** SQLite (dev) / PostgreSQL (prod-ready)  
-**Django Version:** 6.0.2  
+**Django Version:** 6.0.3  
 
 > This document reflects the V1 schema as implemented in migrations. It maps directly to the RDS Database Audit report and documents all applied fix-series changes.
 

@@ -1,0 +1,35 @@
+# .coveragerc — Coverage.py configuration for ARMGUARD RDS V1
+# Run:  coverage run manage.py test armguard.tests && coverage report
+#       coverage html  # generates htmlcov/index.html
+
+[run]
+# Measure branch coverage (True/False paths) in addition to line coverage.
+branch = True
+source = armguard
+omit =
+    */migrations/*
+    */tests/*
+    armguard/wsgi.py
+    armguard/asgi.py
+    armguard/settings/*
+    */management/commands/*
+
+[report]
+# Fail the CI build when coverage drops below this threshold.
+fail_under = 70
+show_missing = True
+skip_covered = False
+exclude_lines =
+    # Skip defensive stubs that only exist for completeness:
+    pragma: no cover
+    def __repr__
+    def __str__
+    raise NotImplementedError
+    if TYPE_CHECKING:
+
+[html]
+directory = htmlcov
+title = ARMGUARD RDS — Coverage Report
+
+[xml]
+output = coverage.xml

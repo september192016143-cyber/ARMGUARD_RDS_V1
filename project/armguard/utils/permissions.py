@@ -14,6 +14,7 @@ Django built-ins override are also respected:
   is_superuser          — always admin (full access)
   is_staff              — admin-level access (Django admin panel)
 """
+from __future__ import annotations
 
 
 def _get_role(user) -> str:

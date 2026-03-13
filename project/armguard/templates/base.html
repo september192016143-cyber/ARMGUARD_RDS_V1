@@ -143,21 +143,22 @@
 </aside>
 <div class="main">
   <div class="topbar">
-    <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open navigation">
+    <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar-overlay">
       <i class="fa-solid fa-bars" style="font-size:.9rem"></i>
     </button>
-    <span class="topbar-title">{% block page_title %}ArmGuard{% endblock %}</span>
+    {# A11Y FIX: <h1> gives each page a proper heading hierarchy for screen readers. #}
+    <h1 class="topbar-title" style="font-size:1rem;font-weight:700;">{% block page_title %}ArmGuard{% endblock %}</h1>
     <span class="topbar-sub">{% block page_sub %}{% endblock %}</span>
     <div class="topbar-actions" style="flex:1;position:relative;min-width:0;">
       <div style="display:flex;align-items:center;min-width:0;">{% block topbar_actions %}{% endblock %}</div>
       <div style="margin-left:auto;display:flex;align-items:center;gap:.75rem;">
         {% block topbar_submit %}{% endblock %}
         <div class="notif-wrap" id="notif-wrap">
-          <button class="notif-btn" id="notif-btn" title="Notifications">
+          <button class="notif-btn" id="notif-btn" title="Notifications" aria-label="Notifications" aria-expanded="false" aria-controls="notif-panel" aria-haspopup="true">
             <i class="fa-solid fa-bell" style="font-size:.85rem"></i>
-            <span class="notif-badge" id="notif-badge">0</span>
+            <span class="notif-badge" id="notif-badge" aria-live="polite" aria-atomic="true">0</span>
           </button>
-          <div class="notif-panel" id="notif-panel">
+          <div class="notif-panel" id="notif-panel" role="dialog" aria-label="Notifications" aria-live="polite">
             <div class="notif-header">
               <span class="notif-header-title">Notifications</span>
               <button class="notif-clear" id="notif-clear-btn">Mark all read</button>
