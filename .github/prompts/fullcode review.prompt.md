@@ -3,45 +3,83 @@ name: fullcode review
 description: Describe when to use this prompt
 ---
 
-<!-- Tip: Use /create-prompt in chat to generate content with agent assistance -->
+---
+name: fullcode review
+description: Full code review of ARMGUARD_RDS_V1 — structure, architecture, quality, security, performance, testing, and dependencies. Run before a major release or after a large feature merge.
+applyTo: "**"
+---
 
-Define the prompt content here. You can include instructions, examples, and any other relevant information to guide the AI's responses.
+You are a senior software engineer performing a full code review of the **ARMGUARD_RDS_V1** Django application.
 
-You are a senior software engineer tasked with performing a full code review of my web application. Please analyze both the source code and the app folder/file structure with the following focus areas:
+**Project context:**
+- Stack: Django 5.x + Gunicorn (gthread) + Nginx + Ubuntu 24.04 LTS (bare-metal systemd, no Docker)
+- Database: SQLite
+- Deploy path: `/var/www/ARMGUARD_RDS_V1`
+- Key directories: `armguard/` (Django apps), `scripts/` (deploy/backup/update), `templates/`, `static/`
 
-1. **Project & Folder Structure**
-   - Evaluate the organization of folders and files (e.g., separation of concerns, modularity).
-   - Identify redundant, misplaced, or poorly named files.
-   - Suggest improvements for scalability, maintainability, and onboarding new developers.
+**Rules — enforce these for every section:**
+1. **Read the actual files** before commenting — do not give generic advice without citing specific file paths or line numbers.
+2. For each issue found, state: what file, what line/function, what the problem is, and what the fix is.
+3. Skip any sub-item where no problem exists — write "No issues found."
+4. Do not invent problems. Only report what you actually see in the code.
 
-2. **Architecture & Design Patterns**
-   - Assess whether the chosen frameworks, libraries, and patterns are appropriate.
-   - Highlight areas where the architecture could be simplified or modernized.
+---
 
-3. **Code Quality**
-   - Review readability, maintainability, and adherence to coding standards.
-   - Check for consistency in naming conventions, indentation, and formatting.
-   - Identify duplicate logic or unnecessary complexity.
+### 1. Project & Folder Structure
+- Is separation of concerns maintained across apps, templates, static, and scripts?
+- Are there redundant, misplaced, or poorly named files?
+- Would a new developer be able to orient themselves quickly?
 
-4. **Security**
-   - Inspect for vulnerabilities (SQL injection, XSS, CSRF, insecure authentication).
-   - Review data validation, sanitization, and access control mechanisms.
+### 2. Architecture & Design Patterns
+- Are the chosen frameworks, libraries, and patterns appropriate for this scale?
+- Is there anything that should be simplified or that violates Django conventions?
 
-5. **Performance**
-   - Spot inefficient queries, algorithms, or rendering logic.
-   - Recommend optimizations for speed and scalability.
+### 3. Code Quality
+- Readability, naming conventions, indentation consistency.
+- Duplicate logic, dead code, or unnecessary complexity.
+- Are views, forms, and models following Django best practices?
 
-6. **Testing & Reliability**
-   - Evaluate test coverage and quality of unit/integration tests.
-   - Review error handling, logging, and debugging practices.
+### 4. Security
+- SQL injection, XSS, CSRF, insecure authentication, broken access control.
+- Data validation, input sanitization, permission checks on every view.
+- Hardcoded secrets, exposed credentials, unsafe settings.
 
-7. **Dependencies & Environment**
-   - Check for outdated or risky dependencies.
-   - Review environment configuration files for security and maintainability.
+### 5. Performance
+- N+1 query patterns, missing `select_related`/`prefetch_related`.
+- Unindexed foreign keys or filter fields on large tables.
+- Heavy template logic or synchronous blocking calls.
 
-8. **Actionable Recommendations**
-   - Provide prioritized fixes (critical, medium, low).
-   - Suggest refactoring opportunities and folder/file restructuring.
-   - Recommend modern best practices for long-term maintainability.
+### 6. Testing & Reliability
+- Test file locations and coverage (what is tested vs. what is not).
+- Error handling: are exceptions caught and logged appropriately?
+- Any silent failure paths or missing `try/except` on I/O operations.
 
-Deliver the review in a structured format with clear sections, examples from the code and file structure, and practical recommendations for improvement.
+### 7. Dependencies & Environment
+- `requirements.txt`: pinned versions, known CVEs, unused packages.
+- `.env.example`: are all required vars documented?
+- Any dev-only packages that could accidentally reach production.
+
+---
+
+### Output Format
+
+For each section above:
+
+**Findings**
+- `path/to/file.py:line` — description of issue — recommended fix
+
+**Verdict: X/10** — one sentence justification.
+
+---
+
+At the end:
+
+Priority key: 🔴 Critical (fix before next deploy) | 🟠 Medium (fix this sprint) | 🟢 Low (tech debt)
+
+| # | Priority | File | Issue | Fix |
+|---|---|---|---|---|
+| 1 | 🔴 | | | |
+| 2 | 🟠 | | | |
+| 3 | 🟢 | | | |
+
+**Refactoring opportunities** (if any — cite specific files)
