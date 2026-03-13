@@ -648,10 +648,13 @@ if [[ -f "$SCRIPT_DIR/db-backup-cron.sh" ]]; then
     chown "$DEPLOY_USER:$DEPLOY_USER" "$CRON_SCRIPT"
 
     # Install cron for armguard user (daily at 02:00)
-    # crontab -l exits 1 when no crontab exists; || true prevents set -e from aborting
-    (crontab -u "$DEPLOY_USER" -l 2>/dev/null || true; \
-     echo "0 2 * * * $CRON_SCRIPT >> $LOG_DIR/backup.log 2>&1") \
-        | crontab -u "$DEPLOY_USER" -
+    # Use a temp file — avoids crontab -l's non-zero exit (no existing crontab)
+    # from propagating through set -Eo pipefail and firing on_error.
+    _CRON_TMP=$(mktemp)
+    crontab -u "$DEPLOY_USER" -l 2>/dev/null | grep -v "$CRON_SCRIPT" > "$_CRON_TMP" || true
+    printf '0 2 * * * %s >> %s/backup.log 2>&1\n' "$CRON_SCRIPT" "$LOG_DIR" >> "$_CRON_TMP"
+    crontab -u "$DEPLOY_USER" "$_CRON_TMP"
+    rm -f "$_CRON_TMP"
     success "Daily backup cron job installed (02:00 AM)."
 else
     warn "db-backup-cron.sh not found in scripts/; backup cron not installed."
@@ -692,9 +695,11 @@ if [[ -f "$SCRIPT_DIR/renew-ssl-cert.sh" ]]; then
     chmod +x "$RENEW_SCRIPT"
     # Cron runs as root (cert/nginx ops require root privileges).
     # Checks on the 1st of every month at 03:00 AM; renews only if expiry < 45 days away.
-    (crontab -l 2>/dev/null || true; \
-     echo "0 3 1 * * $RENEW_SCRIPT >> $LOG_DIR/ssl-renewal.log 2>&1") \
-        | crontab -
+    _CRON_TMP=$(mktemp)
+    crontab -l 2>/dev/null | grep -v "$RENEW_SCRIPT" > "$_CRON_TMP" || true
+    printf '0 3 1 * * %s >> %s/ssl-renewal.log 2>&1\n' "$RENEW_SCRIPT" "$LOG_DIR" >> "$_CRON_TMP"
+    crontab "$_CRON_TMP"
+    rm -f "$_CRON_TMP"
     success "Monthly SSL renewal cron installed (3:00 AM on 1st of each month)."
 else
     warn "renew-ssl-cert.sh not found in scripts/; SSL renewal cron not installed."
