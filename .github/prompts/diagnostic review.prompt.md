@@ -38,9 +38,9 @@ You are a senior Django developer performing a full diagnostic review of the **A
 - Template tags or context variables referenced but never passed by the view.
 
 ### 3. Sync & Link Problems
-- Migration state: run `python manage.py showmigrations` mentally — are any unapplied or squashed migrations present?
+- Migration state: check the migration files in each app's `migrations/` directory — are any squashed migrations unreplaced, or is there a gap in the numbered sequence?
 - Foreign keys and M2M: `on_delete` policy correct? Any missing `related_name` causing reverse accessor clashes?
-- Signals: `post_save`/`pre_delete` receivers — are they connected, and could they fire in unexpected order?
+- Signals: `post_save`/`pre_delete` receivers — are they connected via `AppConfig.ready()` in `apps.py`? Missing `ready()` import is the most common reason signals silently don't fire.
 - Static/media file paths: `STATICFILES_DIRS`, `MEDIA_ROOT`, Nginx `location` blocks — any broken references?
 - Template `{% url %}` tags and `{% static %}` tags — do the names and paths exist?
 
@@ -55,7 +55,7 @@ You are a senior Django developer performing a full diagnostic review of the **A
 - Authorization: role/permission checks on views that modify data — not just authenticate.
 - CSRF: any `@csrf_exempt` decorators that shouldn't be?
 - Querysets: raw SQL (`cursor.execute`, `extra()`, `RawQuerySet`) — parameterized correctly?
-- File uploads: `MEDIA_ROOT` outside `STATIC_ROOT`? File type/size validation present?
+- File uploads: is `MEDIA_ROOT` separate from `STATIC_ROOT`? Does the Nginx config serving `MEDIA_ROOT` require authentication, or are uploaded files publicly accessible without a login?
 
 ### 6. Performance & Reliability
 - N+1 patterns: loops over querysets that trigger per-row queries — needs `select_related`/`prefetch_related`.
