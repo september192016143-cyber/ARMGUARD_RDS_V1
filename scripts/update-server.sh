@@ -289,11 +289,11 @@ fi
 if [[ -f "/usr/local/bin/gunicorn-autoconf.sh" ]]; then
     step "6a/8 Re-running Gunicorn auto-tuner"
     bash /usr/local/bin/gunicorn-autoconf.sh
-    ok "Worker count recomputed."
+    success "Worker count recomputed."
 elif [[ -f "$SCRIPT_DIR/gunicorn-autoconf.sh" ]]; then
     step "6a/8 Re-running Gunicorn auto-tuner (from scripts/)"
     bash "$SCRIPT_DIR/gunicorn-autoconf.sh"
-    ok "Worker count recomputed."
+    success "Worker count recomputed."
 fi
 
 # ---------------------------------------------------------------------------
