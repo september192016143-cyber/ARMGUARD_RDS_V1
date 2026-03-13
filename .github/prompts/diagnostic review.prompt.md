@@ -3,55 +3,87 @@ name: diagnostic review
 description: Describe when to use this prompt
 ---
 
-<!-- Tip: Use /create-prompt in chat to generate content with agent assistance -->
+---
+name: diagnostic review
+description: Deep Django diagnostic of ARMGUARD_RDS_V1 — bugs, sync/link problems, ORM issues, security gaps, and performance risks. Run when chasing a specific bug or doing a pre-release health check.
+applyTo: "**"
+---
 
-Define the prompt content here. You can include instructions, examples, and any other relevant information to guide the AI's responses.
+You are a senior Django developer performing a full diagnostic review of the **ARMGUARD_RDS_V1** application.
 
-You are a senior Django developer tasked with performing a full diagnostic review of my Django web application. Please analyze all app code, including the app folder and file structure, with the following focus areas:
+**Project context:**
+- Stack: Django 5.x + Gunicorn (gthread) + Nginx + Ubuntu 24.04 LTS (bare-metal systemd, no Docker)
+- Database: SQLite
+- Deploy path: `/var/www/ARMGUARD_RDS_V1`
+- Key directories: `armguard/` (Django apps), `scripts/` (deploy/backup/update), `templates/`, `static/`
 
-1. **Folder & File Structure**
-   - Review the organization of `apps/`, `models.py`, `views.py`, `urls.py`, `forms.py`, `admin.py`, `migrations/`, and `settings.py`.
-   - Identify misplaced logic (e.g., business logic inside views instead of models/services).
-   - Suggest improvements for modularity, scalability, and maintainability.
+**Rules — enforce these for every section:**
+1. **Read the actual files** before reporting — do not give generic advice without citing a specific file path and line number.
+2. For each confirmed issue: state the file, function/line, what is wrong, and the exact fix.
+3. For each potential risk: state why it is fragile and under what condition it breaks.
+4. Skip any sub-item where no problem exists — write "No issues found."
+5. Do not invent problems. Only report what you actually see in the code.
 
-2. **Bug Identification**
-   - Detect syntax errors, runtime errors, and logical flaws in Django models, views, templates, and forms.
-   - Highlight broken imports, misconfigured settings, or incorrect URL routing.
-   - Identify broken functions, incorrect variable usage, or misapplied frameworks.
+---
 
-3. **Issues & Problems**
-   - Spot poor coding practices, inconsistent naming, or missing documentation.
-   - Identify areas where code may break under edge cases or unusual inputs.
+### 1. Folder & File Structure
+- Is business logic separated from views (no fat views, no DB queries in templates)?
+- Are `models.py`, `views.py`, `urls.py`, `forms.py`, `admin.py`, `migrations/` in their correct app?
+- Any misplaced files, dead modules, or apps that should be merged or split?
 
-4. **Sync & Link Problems**
-   - Check database migrations for consistency and synchronization issues.
-   - Verify that models are correctly linked with foreign keys, many-to-many relationships, and signals.
-   - Review URL routing, template linking, and static/media file handling for broken paths or mismatches.
-   - Inspect API integrations and external service connections for sync issues.
-   - Check synchronization between frontend and backend logic.
+### 2. Confirmed Bugs
+- Syntax errors, `NameError`/`AttributeError` risks, broken imports.
+- Misconfigured `settings.py` values (e.g., wrong `ALLOWED_HOSTS`, `STATIC_ROOT`, `MEDIA_ROOT`).
+- Incorrect URL routing: missing `app_name`, reversed URLs that don't resolve, named patterns that conflict.
+- Template tags or context variables referenced but never passed by the view.
 
-5. **Potential Bugs & Risks**
-   - Predict where future bugs may occur due to weak error handling, fragile querysets, or improper use of Django ORM.
-   - Flag dependency mismatches, version conflicts, or outdated libraries in `requirements.txt`.
+### 3. Sync & Link Problems
+- Migration state: run `python manage.py showmigrations` mentally — are any unapplied or squashed migrations present?
+- Foreign keys and M2M: `on_delete` policy correct? Any missing `related_name` causing reverse accessor clashes?
+- Signals: `post_save`/`pre_delete` receivers — are they connected, and could they fire in unexpected order?
+- Static/media file paths: `STATICFILES_DIRS`, `MEDIA_ROOT`, Nginx `location` blocks — any broken references?
+- Template `{% url %}` tags and `{% static %}` tags — do the names and paths exist?
 
-6. **Security**
-   - Review authentication, authorization, CSRF protection, and session handling.
-   - Check for unsafe querysets, unsanitized user input, or insecure file/media handling.
+### 4. Potential Bugs & Risks
+- Fragile querysets: `.get()` calls without `try/except ObjectDoesNotExist`, `.first()` with unchecked `None`.
+- Forms: missing `cleaned_data` checks, `commit=False` saves without explicit `.save_m2m()`.
+- Views: any `request.POST` values accessed directly without form validation.
+- Dependency risks in `requirements.txt`: pinned to a known-broken or CVE-affected version?
 
-7. **Performance & Reliability**
-   - Identify inefficient queries, N+1 problems, or heavy logic inside views.
-   - Spot inefficient loops, rendering logic, or concurrency issues.
-   - Suggest caching, pagination, or async improvements where needed.
+### 5. Security
+- Authentication: are all non-public views protected with `@login_required` or `LoginRequiredMixin`?
+- Authorization: role/permission checks on views that modify data — not just authenticate.
+- CSRF: any `@csrf_exempt` decorators that shouldn't be?
+- Querysets: raw SQL (`cursor.execute`, `extra()`, `RawQuerySet`) — parameterized correctly?
+- File uploads: `MEDIA_ROOT` outside `STATIC_ROOT`? File type/size validation present?
 
-8. **Actionable Recommendations**
-   - Provide a prioritized list of fixes (critical, medium, low).
-   - Suggest refactoring opportunities for models, views, templates, and folder/file structure.
-   - Recommend best practices for migrations, signals, debugging, logging, and monitoring.
+### 6. Performance & Reliability
+- N+1 patterns: loops over querysets that trigger per-row queries — needs `select_related`/`prefetch_related`.
+- Missing indexes: fields used in `.filter()`, `.order_by()`, or FK lookups without `db_index=True`.
+- Heavy view logic: any synchronous external calls (requests, subprocess) without timeout or async alternative?
+- Error handling: bare `except:` clauses, silent `pass`, or exceptions swallowed without logging.
 
-Deliver the review in a structured format with clear sections:
-- **Confirmed Bugs/Issues**
-- **Sync/Link Problems**
-- **Potential Risks**
-- **Recommendations**
+---
 
-Include specific examples from the Django code and folder structure wherever possible.
+### Output Format
+
+For each section:
+
+**Confirmed issues**
+- `path/to/file.py:line` — what is wrong — exact fix
+
+**Potential risks**
+- `path/to/file.py:line` — why it is fragile — what triggers it
+
+---
+
+At the end:
+
+Priority key: 🔴 Critical (breaks in production) | 🟠 Medium (breaks under edge cases) | 🟢 Low (code smell / tech debt)
+
+Add one row per finding. Do not limit the number of rows.
+
+| # | Priority | File | Issue | Fix |
+|---|---|---|---|---|
+
+**Refactoring opportunities** (if any — cite specific files)
