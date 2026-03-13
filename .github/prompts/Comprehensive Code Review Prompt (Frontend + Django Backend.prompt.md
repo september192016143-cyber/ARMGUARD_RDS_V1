@@ -45,16 +45,17 @@ You are a senior full-stack engineer reviewing the **ARMGUARD_RDS_V1** Django ap
 - For paginated views: does the paginator state survive POST redirects correctly?
 - Are file upload views enforcing file type and size limits before saving to `MEDIA_ROOT`?
 
-### 4. Django Backend (Views, Serializers, DRF)
-- If DRF is used: are serializers excluding sensitive fields (`password`, `token`, internal IDs)?
-- Are class-based views using the correct mixins in the right order (MRO)?
+### 4. Django Backend (Views & Backend Logic)
+- Are class-based views using the correct mixins in the right order (MRO — e.g., `LoginRequiredMixin` before `View`)?
 - Are all views that return JSON using `JsonResponse` or DRF `Response` — not `HttpResponse` with manual `json.dumps`?
 - Is `request.user` checked for `is_authenticated` and the correct role before any data mutation?
+- If DRF is present: are serializers excluding sensitive fields (`password`, `token`, internal IDs)? If DRF is not used, write "DRF not present — skipped."
 
 ### 5. Security
+- **Read `settings.py` and `.env.example`** before answering this section.
 - All non-public views: protected with `@login_required` / `LoginRequiredMixin` / `IsAuthenticated`?
 - CSRF: any `@csrf_exempt` that shouldn't be? AJAX requests sending the CSRF token?
-- Are Django `SECURE_*` settings (`SECURE_HSTS_SECONDS`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`) set in production `.env`?
+- Are Django `SECURE_*` settings (`SECURE_HSTS_SECONDS`, `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`) present in `settings.py` and set via `.env` in production?
 - Is `DEBUG=False` enforced in production? Is `ALLOWED_HOSTS` not `['*']`?
 - Sensitive data: are API responses or template context ever leaking passwords, tokens, or internal keys?
 
@@ -62,7 +63,7 @@ You are a senior full-stack engineer reviewing the **ARMGUARD_RDS_V1** Django ap
 - Unused imports, dead JS functions, or template blocks that are never extended or included.
 - Inconsistent naming: snake_case in Python, camelCase in JS — are they consistent within each layer?
 - Duplicate view logic or repeated template fragments that should be `{% include %}`d.
-- JS files: minified/concatenated for production, or served as many individual unoptimized files?
+- JS/CSS files: is `django-compressor`, `whitenoise`, or any asset pipeline configured? If not, are many small unoptimized files served individually via `collectstatic`?
 
 ---
 
