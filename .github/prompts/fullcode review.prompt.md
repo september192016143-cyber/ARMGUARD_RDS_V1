@@ -58,6 +58,7 @@ You are a senior software engineer performing a full code review of the **ARMGUA
 - `requirements.txt`: pinned versions, known CVEs, unused packages.
 - `.env.example`: are all required vars documented?
 - Any dev-only packages that could accidentally reach production.
+- `.github/workflows/`: are CI/CD pipelines present? Do they run tests, linting, or security scans on push?
 
 ---
 
@@ -76,10 +77,9 @@ At the end:
 
 Priority key: 🔴 Critical (fix before next deploy) | 🟠 Medium (fix this sprint) | 🟢 Low (tech debt)
 
+Add one row per finding. Do not limit to 3 rows.
+
 | # | Priority | File | Issue | Fix |
 |---|---|---|---|---|
-| 1 | 🔴 | | | |
-| 2 | 🟠 | | | |
-| 3 | 🟢 | | | |
 
 **Refactoring opportunities** (if any — cite specific files)
