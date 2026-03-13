@@ -89,7 +89,7 @@
     <form id="deleteForm" method="post">
       {% csrf_token %}
       <div class="flex gap-2">
-        <button type="submit" class="btn btn-danger"><i class="fa-solid fa-trash"></i> Delete</button>
+        <button type="submit" id="delete-confirm-submit" name="delete" class="btn btn-danger"><i class="fa-solid fa-trash"></i> Delete</button>
         <button type="button" class="btn btn-secondary" id="deleteModalCancel">Cancel</button>
       </div>
     </form>

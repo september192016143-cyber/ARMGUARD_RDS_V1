@@ -29,7 +29,7 @@
         <option value="Pistol" {% if request.GET.weapon_type == 'Pistol' %}selected{% endif %}>Pistol</option>
         <option value="Rifle" {% if request.GET.weapon_type == 'Rifle' %}selected{% endif %}>Rifle</option>
       </select>
-      <button type="submit" class="btn btn-secondary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
+      <button type="submit" id="filter-submit" name="filter" class="btn btn-secondary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
       {% if request.GET.q or request.GET.weapon_type %}
         <a href="{% url 'magazine-list' %}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
       {% endif %}
@@ -89,7 +89,7 @@
       {% endif %}
       {% for num in page_obj.paginator.page_range %}
         {% if page_obj.number == num %}
-          <a class="page-link active">{{ num }}</a>
+          <a class="page-link active" aria-current="page" aria-disabled="true">{{ num }}</a>
         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
           <a href="?page={{ num }}" class="page-link">{{ num }}</a>
         {% endif %}

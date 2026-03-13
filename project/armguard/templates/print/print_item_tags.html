@@ -108,18 +108,18 @@
     <form method="get" style="display:flex; gap:.5rem; max-width:400px; flex:1;">
       <input type="text" name="q" value="{{ search_q }}"
              placeholder="Search by serial, type, or ID…" class="form-control">
-      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i></button>
+      <button type="submit" id="tags-search-submit" name="search" class="btn btn-primary btn-sm" aria-label="Search"><i class="fas fa-search"></i></button>
       {% if search_q %}
-      <a href="{% url 'print_handler:print_item_tags' %}" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i></a>
+      <a href="{% url 'print_handler:print_item_tags' %}" class="btn btn-secondary btn-sm" aria-label="Clear search"><i class="fas fa-times"></i></a>
       {% endif %}
     </form>
   </div>
 
   <div class="toolbar">
-    <button class="btn btn-primary btn-sm" data-action="print-selected">
+    <button id="print-selected-btn" class="btn btn-primary btn-sm" data-action="print-selected">
       <i class="fas fa-print"></i> Print Selected
     </button>
-    <button class="btn btn-secondary btn-sm" data-action="print-all">
+    <button id="print-all-btn" class="btn btn-secondary btn-sm" data-action="print-all">
       <i class="fas fa-print"></i> Print All
     </button>
     <select id="stackCount" class="btn btn-secondary btn-sm"
@@ -129,11 +129,11 @@
       <option value="3" style="background:#1e293b; color:#e2e8f0;">Stacks 3×</option>
     </select>
     <div class="toolbar-right">
-      <button class="btn btn-sm btn-amber" data-action="gen-missing">
+      <button id="gen-missing-btn" class="btn btn-sm btn-amber" data-action="gen-missing">
         <i class="fas fa-magic regen-icon"></i>
         <i class="fas fa-spinner fa-spin regen-spinner"></i> Generate Missing
       </button>
-      <button class="btn btn-sm btn-red-soft" data-action="regen-all">
+      <button id="regen-all-btn" class="btn btn-sm btn-red-soft" data-action="regen-all">
         <i class="fas fa-sync-alt regen-icon"></i>
         <i class="fas fa-spinner fa-spin regen-spinner"></i> Regenerate All
       </button>
@@ -141,9 +141,9 @@
   </div>
 
   <div style="font-size:.75rem; color:var(--muted); margin-top:.6rem;">
-    <a href="#" data-action="select-all" style="color:var(--primary);">Select All</a>
+    <button type="button" data-action="select-all" style="background:none;border:none;padding:0;cursor:pointer;color:var(--primary);">Select All</button>
     &nbsp;·&nbsp;
-    <a href="#" data-action="clear-all" style="color:var(--muted);">Clear All</a>
+    <button type="button" data-action="clear-all" style="background:none;border:none;padding:0;cursor:pointer;color:var(--muted);">Clear All</button>
     &nbsp;·&nbsp;<span id="selCount">0</span> selected
   </div>
 </div>

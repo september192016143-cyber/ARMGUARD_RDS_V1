@@ -133,7 +133,7 @@
     </button>
     <form method="post" action="{% url 'logout' %}" style="margin:0">
       {% csrf_token %}
-      <button type="submit" class="logout-btn" style="background:none;border:none;cursor:pointer;width:100%;text-align:left" title="Sign out">
+      <button type="submit" id="logout-btn" name="logout" class="logout-btn" style="background:none;border:none;cursor:pointer;width:100%;text-align:left" title="Sign out">
         <i class="fa-solid fa-arrow-right-from-bracket" style="width:16px;text-align:center;flex-shrink:0;"></i>
         <span class="logout-label">Sign out</span>
       </button>
@@ -164,7 +164,7 @@
             <div class="notif-list" id="notif-list">
               <div class="notif-empty" id="notif-empty"><i class="fa-solid fa-bell-slash" style="display:block;font-size:1.5rem;margin-bottom:.5rem;opacity:.3"></i>No new notifications</div>
             </div>
-            <div class="notif-footer"><a href="#">View all notifications</a></div>
+            <div class="notif-footer"><button type="button" class="notif-view-all-btn">View all notifications</button></div>
           </div>
         </div>
       </div>
@@ -248,7 +248,7 @@
       <div class="notif-detail-time" id="notif-detail-time"></div>
     </div>
     <div class="notif-detail-footer">
-      <a href="#" id="notif-detail-action" class="notif-detail-action-btn" style="display:none"></a>
+      <button type="button" id="notif-detail-action" class="notif-detail-action-btn" style="display:none"></button>
       <button id="notif-detail-dismiss" class="notif-detail-dismiss-btn">Dismiss</button>
     </div>
   </div>

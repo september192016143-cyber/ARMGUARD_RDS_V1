@@ -174,7 +174,7 @@
 <div class="no-print">
     <h2>🖨️ ID Card Print – {{ cards|length }} card{{ cards|length|pluralize }}</h2>
     <span class="info">Recommended: A4 Landscape · Actual Size · No scaling</span>
-    <button data-action="print">🖨️ Print Now</button>
+    <button id="print-now-btn" data-action="print">🖨️ Print Now</button>
     <a href="{% url 'print_handler:print_id_cards' %}" class="back-link">← Back to Manager</a>
 </div>
 

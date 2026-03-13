@@ -93,7 +93,7 @@
   {% endif %}
   {% for num in page_obj.paginator.page_range %}
     {% if page_obj.number == num %}
-      <a class="page-link active">{{ num }}</a>
+      <a class="page-link active" aria-current="page" aria-disabled="true">{{ num }}</a>
     {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
       <a href="?q={{ q }}&type={{ selected_type }}&issuance={{ selected_issuance }}&date_from={{ date_from }}&date_to={{ date_to }}&page={{ num }}" class="page-link">{{ num }}</a>
     {% endif %}

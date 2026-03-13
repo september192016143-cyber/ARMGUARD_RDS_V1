@@ -173,7 +173,7 @@
       </div>
 
       <div class="flex gap-2">
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" id="personnel-form-submit" name="save" class="btn btn-primary">
           <i class="fa-solid fa-floppy-disk"></i> {% if object %}Save Changes{% else %}Register Personnel{% endif %}
         </button>
         <a href="{% if object %}{% url 'personnel-detail' object.Personnel_ID %}{% else %}{% url 'personnel-list' %}{% endif %}" class="btn btn-secondary">Cancel</a>

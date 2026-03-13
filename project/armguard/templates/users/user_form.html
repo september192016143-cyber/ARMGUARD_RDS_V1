@@ -201,7 +201,7 @@
     </div>
 
     <div class="flex gap-2">
-      <button type="submit" class="btn btn-primary">
+      <button type="submit" id="user-form-submit" name="save" class="btn btn-primary">
         <i class="fa-solid fa-floppy-disk"></i> {% if action == 'Add' %}Create User{% else %}Save Changes{% endif %}
       </button>
       <a href="{% url 'user-list' %}" class="btn btn-secondary">Cancel</a>

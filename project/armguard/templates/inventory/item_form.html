@@ -139,7 +139,7 @@
       <label class="form-label" for="{{ form.serial_image.id_for_label }}">Serial Image</label>
       {% if object and object.serial_image %}
         <div style="margin-bottom:.5rem">
-          <img src="{{ object.serial_image.url }}" style="max-height:80px;border-radius:.375rem;border:1px solid var(--border)">
+          <img src="{{ object.serial_image.url }}" alt="Current serial image" style="max-height:80px;border-radius:.375rem;border:1px solid var(--border)">
           <div class="form-hint">Current image � upload a new one to replace it.</div>
         </div>
       {% endif %}
@@ -200,7 +200,7 @@
       <label class="form-label" for="{{ form.serial_image.id_for_label }}">Serial Image</label>
       {% if object and object.serial_image %}
         <div style="margin-bottom:.5rem">
-          <img src="{{ object.serial_image.url }}" style="max-height:80px;border-radius:.375rem;border:1px solid var(--border)">
+          <img src="{{ object.serial_image.url }}" alt="Current serial image" style="max-height:80px;border-radius:.375rem;border:1px solid var(--border)">
           <div class="form-hint">Current image � upload a new one to replace it.</div>
         </div>
       {% endif %}
@@ -298,7 +298,7 @@
 
     <hr class="divider">
     <div class="flex gap-2">
-      <button type="submit" class="btn btn-primary">
+      <button type="submit" id="item-form-submit" name="save" class="btn btn-primary">
         <i class="fa-solid fa-floppy-disk"></i>
         {% if object %}Save Changes{% else %}Add {{ item_label }}{% endif %}
       </button>
