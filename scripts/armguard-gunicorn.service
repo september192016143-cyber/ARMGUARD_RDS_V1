@@ -33,8 +33,12 @@ Group=__DEPLOY_USER__
 # ---------------------------------------------------------------------------
 WorkingDirectory=__PROJECT_DIR__
 EnvironmentFile=__DEPLOY_DIR__/.env
+# Default worker/thread counts — overridden by /etc/gunicorn/workers.env when
+# gunicorn-autoconf.sh has run. Systemd Environment= lines set the baseline;
+# EnvironmentFile= values take precedence over them.
+Environment=GUNICORN_WORKERS=3
+Environment=GUNICORN_THREADS=2
 # Worker counts written by gunicorn-autoconf.sh at deploy/boot time.
-# If the file doesn't exist yet, gunicorn.conf.py provides fallback defaults.
 EnvironmentFile=-/etc/gunicorn/workers.env
 Environment=DJANGO_SETTINGS_MODULE=armguard.settings.production
 
@@ -51,9 +55,9 @@ Environment=DJANGO_SETTINGS_MODULE=armguard.settings.production
 ExecStart=__VENV_DIR__/bin/gunicorn armguard.wsgi:application \
     --config __DEPLOY_DIR__/scripts/gunicorn.conf.py \
     --bind 127.0.0.1:8000 \
-    --workers ${GUNICORN_WORKERS:-3} \
+    --workers $GUNICORN_WORKERS \
     --worker-class gthread \
-    --threads ${GUNICORN_THREADS:-2} \
+    --threads $GUNICORN_THREADS \
     --timeout 120 \
     --graceful-timeout 30 \
     --keep-alive 5 \

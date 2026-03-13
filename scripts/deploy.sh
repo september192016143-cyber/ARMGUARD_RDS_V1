@@ -437,13 +437,15 @@ User=$DEPLOY_USER
 Group=$DEPLOY_USER
 WorkingDirectory=$PROJECT_DIR
 EnvironmentFile=$ENV_FILE
+Environment=GUNICORN_WORKERS=3
+Environment=GUNICORN_THREADS=2
 EnvironmentFile=-/etc/gunicorn/workers.env
 Environment=DJANGO_SETTINGS_MODULE=armguard.settings.production
 ExecStart=$VENV_DIR/bin/gunicorn armguard.wsgi:application \\
     --bind 127.0.0.1:8000 \\
-    --workers \${GUNICORN_WORKERS:-3} \\
+    --workers \$GUNICORN_WORKERS \\
     --worker-class gthread \\
-    --threads \${GUNICORN_THREADS:-2} \\
+    --threads \$GUNICORN_THREADS \\
     --timeout 120 \\
     --max-requests 1000 \\
     --max-requests-jitter 100 \\
