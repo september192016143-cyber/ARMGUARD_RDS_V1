@@ -72,14 +72,20 @@ This single command installs all system packages, creates the `armguard` system 
 
 ```bash
 cd /var/www/ARMGUARD_RDS_V1
-sudo bash scripts/deploy.sh --domain YOUR_SERVER_IP --lan-ip YOUR_LAN_IP
+sudo bash scripts/deploy.sh --domain 192.168.0.11 --lan-ip 192.168.0.11
 ```
 
-Replace:
-- `YOUR_SERVER_IP` — public IP of the server (e.g. `192.168.1.50`)
-- `YOUR_LAN_IP` — LAN IP if behind a router (e.g. `192.168.1.50`); same value is fine for single-NIC setups
+Replace `192.168.0.11` with your actual server LAN IP. If you have a real domain name, use `--domain yourdomain.com`.
 
-If you have a real domain name, use `--domain yourdomain.com`.
+**One-liner: set static IP and deploy at the same time:**
+
+```bash
+# Uses 192.168.0.11, derives gateway 192.168.0.1 automatically
+sudo bash scripts/deploy.sh --static-ip 192.168.0.11 --lan-ip 192.168.0.11 --domain 192.168.0.11
+
+# With explicit gateway
+sudo bash scripts/deploy.sh --static-ip 192.168.0.11 --gateway 192.168.0.1 --lan-ip 192.168.0.11 --domain 192.168.0.11
+```
 
 **What the script sets up automatically:**
 
@@ -102,6 +108,18 @@ If you have a real domain name, use `--domain yourdomain.com`.
 
 ## STEP 4 — Create the superuser (admin account)
 
+**First, check the generated `.env`** — confirm the secret key and settings look correct before creating the superuser:
+
+```bash
+# View it
+sudo cat /var/www/ARMGUARD_RDS_V1/.env
+
+# Edit if needed
+sudo nano /var/www/ARMGUARD_RDS_V1/.env
+```
+
+Then create the admin account:
+
 ```bash
 sudo -u armguard /var/www/ARMGUARD_RDS_V1/venv/bin/python \
   /var/www/ARMGUARD_RDS_V1/project/manage.py createsuperuser
@@ -119,7 +137,7 @@ sudo systemctl status armguard-gunicorn
 sudo systemctl status nginx
 
 # Test HTTP response from the server itself
-curl -I http://YOUR_SERVER_IP
+curl -I http://192.168.0.11
 
 # Watch live application logs
 sudo tail -f /var/log/armguard/gunicorn.log
@@ -245,6 +263,9 @@ Every time you push new commits from your development machine, update the server
 
 ```bash
 cd /var/www/ARMGUARD_RDS_V1
+sudo bash scripts/update-server.sh
+
+# Or target a specific branch explicitly
 sudo bash scripts/update-server.sh --branch main
 ```
 
@@ -268,6 +289,9 @@ sudo systemctl restart armguard-gunicorn
 
 # Reload Nginx config (zero downtime)
 sudo systemctl reload nginx
+
+# Rebuild static files manually (after template/CSS changes without a full update)
+sudo bash -c "cd /var/www/ARMGUARD_RDS_V1/project && ../venv/bin/python manage.py collectstatic --noinput"
 
 # Live application logs
 sudo journalctl -u armguard-gunicorn -f
@@ -373,6 +397,45 @@ Location: `/var/www/ARMGUARD_RDS_V1/.env`
 | SSL redirect loop | Confirm Nginx has HTTPS, then set `SECURE_SSL_REDIRECT=True` in `.env` |
 | Wrong worker count | `sudo /usr/local/bin/gunicorn-autoconf.sh --dry-run` to inspect, then reload |
 | Health check fails after update | App responded but `curl http://127.0.0.1:8000/health/` returned non-200 — check `journalctl -u armguard-gunicorn -n 50` |
+| git pull blocked by ownership error | `sudo git config --global --add safe.directory /var/www/ARMGUARD_RDS_V1` |
+| `.env` has bad chars / metacharacters | `sudo rm /var/www/ARMGUARD_RDS_V1/.env` then re-run `deploy.sh` — it regenerates a clean one |
+
+---
+
+## Repair / Re-deploy Cheatsheet
+
+Use this when the server is in a broken state (bad `.env`, git ownership issue, corrupt install, etc.).
+
+```bash
+cd /var/www/ARMGUARD_RDS_V1
+
+# 1. Fix git ownership (needed if root cloned the repo)
+sudo git config --global --add safe.directory /var/www/ARMGUARD_RDS_V1
+
+# 2. Pull latest code
+sudo git pull origin main
+
+# 3. If .env is corrupt / has metacharacters in the secret key — delete and regenerate
+sudo rm /var/www/ARMGUARD_RDS_V1/.env
+
+# 4. Re-run deploy — regenerates .env, re-runs migrations, restarts service
+#    All existing data (database, media/, backups/) is preserved.
+sudo bash scripts/deploy.sh --domain 192.168.0.11 --lan-ip 192.168.0.11
+
+# 5. Review the generated .env
+sudo cat /var/www/ARMGUARD_RDS_V1/.env
+sudo nano /var/www/ARMGUARD_RDS_V1/.env   # edit if needed
+
+# 6. Restart Gunicorn to pick up any .env changes
+sudo systemctl restart armguard-gunicorn
+
+# 7. Verify
+sudo systemctl status armguard-gunicorn
+sudo systemctl status nginx
+curl -I http://192.168.0.11
+```
+
+> **Data safety on re-deploy:** `db.sqlite3`, `media/`, `.env` (if it exists), `backups/`, and the Nginx SSL config are all **skipped** — never overwritten. See the data safety table in the FAQ above.
 
 ---
 
