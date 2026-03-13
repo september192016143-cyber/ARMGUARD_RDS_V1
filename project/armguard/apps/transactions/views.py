@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST, require_GET
 from django.db.models import Q, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from django.core.cache import cache
 from .models import Transaction, TransactionLogs
 from .forms import WithdrawalReturnTransactionForm
 from utils.throttle import ratelimit
@@ -170,6 +171,10 @@ def create_transaction(request):
             txn = form.save(commit=False)
             txn.transaction_personnel = request.user.get_full_name() or request.user.username
             txn.save(user=request.user)
+            # Invalidate dashboard caches so counts and table reflect the new transaction immediately.
+            from django.utils import timezone as _tz
+            cache.delete(f'dashboard_stats_{_tz.localdate()}')
+            cache.delete('dashboard_inventory_tables')
             messages.success(request, f'Transaction #{txn.transaction_id} recorded successfully.')
             return redirect('transaction-detail', transaction_id=txn.transaction_id)
     else:

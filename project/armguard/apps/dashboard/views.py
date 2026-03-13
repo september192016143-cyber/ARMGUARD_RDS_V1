@@ -308,10 +308,27 @@ def dashboard_view(request):
         cache.set(cache_key, stats, 60)
 
     context = dict(stats)
-    context['inventory_rows'], context['inventory_totals'] = _build_inventory_table()
-    context['ammo_rows'], context['ammo_totals'] = _build_ammo_table()
-    context['magazine_rows'], context['magazine_totals'] = _build_magazine_table()
-    context['accessory_rows'], context['accessory_totals'] = _build_accessory_table()
+
+    inv_cache_key = 'dashboard_inventory_tables'
+    tables = cache.get(inv_cache_key)
+    if tables is None:
+        tables = {
+            'inventory_rows':    None,
+            'inventory_totals':  None,
+            'ammo_rows':         None,
+            'ammo_totals':       None,
+            'magazine_rows':     None,
+            'magazine_totals':   None,
+            'accessory_rows':    None,
+            'accessory_totals':  None,
+        }
+        tables['inventory_rows'], tables['inventory_totals'] = _build_inventory_table()
+        tables['ammo_rows'],      tables['ammo_totals']      = _build_ammo_table()
+        tables['magazine_rows'],  tables['magazine_totals']  = _build_magazine_table()
+        tables['accessory_rows'], tables['accessory_totals'] = _build_accessory_table()
+        cache.set(inv_cache_key, tables, 30)  # 30 s — stays fresh during busy duty shifts
+
+    context.update(tables)
 
     return render(request, 'dashboard/dashboard.html', context)
 

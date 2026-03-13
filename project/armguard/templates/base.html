@@ -15,8 +15,9 @@
 {# C2 FIX: data-poll activates G13 inventory polling for authenticated users only (replaces inline auth-block script). #}
 {# F6 FIX: data-last-modified-url passes the API endpoint URL so base.js doesn't need to hardcode it. #}
 <body data-poll="{% if user.is_authenticated %}1{% endif %}" data-last-modified-url="{% url 'api:api-last-modified' %}"{% if request.resolver_match.url_name == 'transaction-create' %} data-collapse-sidebar="1"{% endif %}>
+<a href="#main-content" class="skip-to-content">Skip to main content</a>
 <div class="sidebar-overlay" id="sidebar-overlay"></div>
-<aside class="sidebar">
+<aside class="sidebar" role="navigation" aria-label="Main navigation">
   <div class="sidebar-brand">
     <img src="{% static 'images/logo.png' %}" id="sidebar-toggle" title="Toggle sidebar" style="cursor:pointer;width:40px;height:40px;object-fit:contain;border-radius:.5rem;" alt="ArmGuard RDS">
     <div>
@@ -170,9 +171,9 @@
       </div>
     </div>
   </div>
-  <div class="page-body">
+    <div class="page-body" id="main-content" role="main">
     {% for msg in messages %}
-    <div class="alert alert-{% if msg.tags == 'error' %}error{% elif msg.tags == 'success' %}success{% elif msg.tags == 'warning' %}warning{% else %}info{% endif %}">{{ msg }}</div>
+    <div class="alert alert-{% if msg.tags == 'error' %}error{% elif msg.tags == 'success' %}success{% elif msg.tags == 'warning' %}warning{% else %}info{% endif %}" role="alert" aria-live="polite">{{ msg }}</div>
     {% endfor %}
     {% block content %}{% endblock %}
   </div>

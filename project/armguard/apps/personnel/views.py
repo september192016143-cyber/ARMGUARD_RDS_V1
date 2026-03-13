@@ -135,9 +135,12 @@ class PersonnelDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 		personnel = self.object
 		context["display_str"] = f"{personnel.rank} {personnel.first_name} {personnel.middle_initial} {personnel.last_name} {personnel.AFSN} PAF<br>Personnel ID: {personnel.Personnel_ID}"
 		from armguard.apps.transactions.models import Transaction
-		context["recent_transactions"] = Transaction.objects.filter(
-			personnel=personnel
-		).order_by('-timestamp')[:10]
+		context["recent_transactions"] = (
+			Transaction.objects
+			.filter(personnel=personnel)
+			.select_related('personnel', 'pistol', 'rifle')
+			.order_by('-timestamp')[:10]
+		)
 		# ID card PNGs
 		import os
 		from django.conf import settings

@@ -1,0 +1,29 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>500 — Server Error · ArmGuard RDS</title>
+<link rel="stylesheet" href="{% static 'css/fontawesome/all.min.css' %}">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+<link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
+<style>
+  .error-page{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:1rem;padding:2rem;text-align:center}
+  .error-code{font-size:6rem;font-weight:700;color:#ef4444;line-height:1}
+  .error-title{font-size:1.4rem;font-weight:600;color:var(--text)}
+  .error-sub{font-size:.9rem;color:var(--muted);max-width:380px}
+  .error-actions{display:flex;gap:.75rem;margin-top:.5rem;flex-wrap:wrap;justify-content:center}
+</style>
+</head>
+<body>
+<main class="error-page" role="main">
+  <div class="error-code">500</div>
+  <div class="error-title">Internal Server Error</div>
+  <p class="error-sub">Something went wrong on our end. The error has been logged. Please try again or contact the system administrator.</p>
+  <div class="error-actions">
+    <a href="/dashboard/" class="btn btn-primary"><i class="fa-solid fa-gauge"></i> Dashboard</a>
+    <a href="javascript:history.back()" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Go Back</a>
+  </div>
+</main>
+</body>
+</html>

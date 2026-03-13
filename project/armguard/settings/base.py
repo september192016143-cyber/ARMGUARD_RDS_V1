@@ -105,6 +105,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'armguard.wsgi.application'
 
+# ---------------------------------------------------------------------------
+# Cache — LocMemCache (per-process, in-memory).
+# Fast enough for LAN deployments; upgrade to FileBasedCache or Redis if
+# multi-process cross-worker consistency ever becomes required.
+# ---------------------------------------------------------------------------
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'armguard-default',
+        'TIMEOUT': 300,  # 5 minutes default; individual cache.set() calls override as needed
+    }
+}
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
