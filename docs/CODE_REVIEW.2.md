@@ -1629,5 +1629,185 @@ diagnostic review. ARMGUARD_RDS_V1 is complete — zero open issues.**
 ---
 
 *End of Merged Code Review (Version 2) — Post-Fix Session 12 Update*
+
+---
+
+## 22. Post-Fix Session 13 Review — Full Codebase Audit
+
+**Date:** 2026  
+**Baseline:** After Session 12 (all prior issues resolved, 44 tests passing, 10/10 across all categories)  
+**Scope:** End-to-end rigid codebase audit of every source file: settings, middleware, all 7 apps, service layer, signals, utils, test suite, scripts, and documentation. No regression introduced. New low-priority findings catalogued and documented.
+
+---
+
+### 22.1 Overview
+
+The codebase is in excellent shape after 12 prior review sessions. All critical and high-priority items from every prior session are confirmed resolved. This session documents four new **low-priority** observations uncovered during the full read, plus one documentation staleness fix.
+
+---
+
+### 22.2 Finding S13-L1 — Dead-Code Branches in `Personnel.set_issued()` (Low)
+
+**File:** `project/armguard/apps/personnel/models.py` — `set_issued()` method  
+**Severity:** Low (unreachable code, no runtime impact)
+
+**Background:** REC-05 (Session 9) added separate `pistol_magazine` / `rifle_magazine` typed paths to `set_issued()` to fix a last-write-wins overwrite bug when both magazine types are issued in one transaction. REC-06 similarly added `pistol_ammunition` / `rifle_ammunition` paths.
+
+**Finding:** The original `magazine` and `ammunition` branches in `set_issued()` were never removed after the typed replacements were introduced. `services.py` (the sole caller) exclusively uses the new typed paths (`'pistol_magazine'`, `'rifle_magazine'`, `'pistol_ammunition'`, `'rifle_ammunition'`). The old branches (`'magazine'` → writes to `magazine_item_issued`, `'ammunition'` → writes to `ammunition_item_issued`) are unreachable from the production transaction workflow.
+
+**Impact:** Zero — unreachable in the transaction path. But they create confusion for future maintainers who see two parallel code paths for the same data type. A developer calling `set_issued('magazine', ...)` directly would write to the deprecated field and silently bypass the per-type tracking.
+
+**Recommendation:** Remove the `elif item_type == 'magazine':` and `elif item_type == 'ammunition':` branches from `set_issued()`. Keep the deprecation comment on `magazine_item_issued` / `ammunition_item_issued` model fields (for migration history), but eliminate the dead write paths from the method.
+
+**Status:** ⬜ Open (Low — deferred)
+
+---
+
+### 22.3 Finding S13-L2 — Test Fixture Uses Invalid `group` Value (Low)
+
+**File:** `project/armguard/apps/transactions/tests.py` — `_make_personnel()` helper  
+
+```python
+def _make_personnel(**kwargs) -> Personnel:
+    defaults = dict(
+        ...
+        group='A',       # ← not in GROUP_CHOICES
+        ...
+    )
+```
+
+**Finding:** `group='A'` is hardcoded in the shared test fixture. `Personnel.group` has `choices=GROUP_CHOICES` where `GROUP_CHOICES = [('HAS', 'HAS'), ('951st', '951st'), ('952nd', '952nd'), ('953rd', '953rd')]`. `'A'` is not a valid value.
+
+**Impact:** Django's `Model.save()` does not call `full_clean()` automatically, so `Personnel.objects.create(group='A')` succeeds silently — every test that creates a `Personnel` records an invalid group in the test database. Running `p.full_clean()` on a test-created instance would raise `ValidationError`. If any test ever calls `full_clean()` on a fixture object, it will unexpectedly fail.
+
+**Fix:** Change `group='A'` to `group='HAS'` (or any valid choice) in `_make_personnel()`.
+
+**Status:** ⬜ Open (Low — deferred)
+
+---
+
+### 22.4 Finding S13-L3 — Dashboard Cache Has No Event-Based Invalidation (Low)
+
+**File:** `project/armguard/apps/dashboard/views.py`  
+
+**Finding:** Dashboard inventory and transaction statistics are cached for 60 seconds via Django's low-level cache API:
+
+```python
+# dashboard_view
+cache.set('dashboard_inventory_data', ..., 60)
+cache.set('dashboard_ammo_data', ..., 60)
+```
+
+There is no `cache.delete()` or Django signal in `Transaction.save()` / `post_save` to invalidate the dashboard cache when a new transaction or inventory change occurs. After a withdrawal or return, the dashboard tiles (issued counts, available counts, transaction totals) will continue to show stale data for up to 60 seconds.
+
+**Impact:** Low for an armory management context. Duty armorers who submit a transaction and immediately check the dashboard may see outdated counts. The 30-second polling endpoint (`/api/v1/last-modified/`) triggers a banner notification in the browser, but the numbers themselves don't refresh until the 60-second TTL expires.
+
+**Recommendation:** Add a `post_save` signal handler (or `cache.delete()` call at the end of the transaction service layer) to invalidate `'dashboard_inventory_data'` and `'dashboard_ammo_data'` when a `Transaction` is saved. Since the dashboard cache is per-process, also consider `cache.clear()` or using per-model version-keyed cache keys that can be bumped atomically.
+
+**Status:** ⬜ Open (Low — deferred)
+
+---
+
+### 22.5 Finding S13-L4 — `SingleSessionMiddleware` Fails Open on DB Error (Design Note)
+
+**File:** `project/armguard/middleware/session.py`
+
+```python
+except Exception:
+    # Missing profile or transient DB error — never block the request.
+    pass
+```
+
+**Observation (not a bug — deliberate design):** `SingleSessionMiddleware` catches all exceptions from the `UserProfile` lookup and fails **open** (lets the request proceed). This means a transient database error during the session key comparison silently allows a potentially stale session through without single-session validation.
+
+This is a conscious fail-open design decision documented in the code comment. The rationale: blocking every request on a transient DB hiccup would cause a worse UX failure than the marginal risk of a stale session surviving for one request cycle. Given the LAN-only, low-concurrency deployment context, this tradeoff is reasonable.
+
+**Documenting for completeness:** Operators should be aware that if the database becomes intermittently unavailable, the single-session guarantee temporarily degrades — it does not fully fail. The OTP step (`OTPRequiredMiddleware`) independently enforces authentication and uses the same fail-closed pattern (returns False on DB error), so MFA protection is preserved even if single-session enforcement temporarily degrades.
+
+**Status:** ✅ Acknowledged — design choice, no fix required.
+
+---
+
+### 22.6 Django Settings WAL Signal — Module-Level Import Note (Design Note)
+
+**File:** `project/armguard/settings/base.py` (bottom of file)
+
+```python
+from django.db.backends.signals import connection_created as _db_conn_created
+_db_conn_created.connect(_activate_sqlite_wal)
+```
+
+**Observation:** WAL mode is activated by connecting to Django's `connection_created` signal directly in `settings/base.py` rather than in an `AppConfig.ready()` method. This is unusual but technically sound: `settings` is imported before any model registry or app initialization, and the signal fires on every new DB connection regardless of where the receiver is connected. No circular import risk since only a signal object is imported (not any app model). The approach works correctly in production.
+
+**Best practice note:** The more conventional location for connecting Django signals is `AppConfig.ready()` — any future refactor should move this to `armguard/apps/dashboard/apps.py` or a dedicated `core` app config.
+
+**Status:** ✅ Acknowledged — no functional issue.
+
+---
+
+### 22.7 Confirmed Positives (Full Audit)
+
+The following items were checked end-to-end and confirmed correct:
+
+| Item | Status |
+|------|--------|
+| `SECRET_KEY` raises `ValueError` if unset (no fallback) | ✅ Confirmed |
+| `ALLOWED_HOSTS` raises `ValueError` if empty in production | ✅ Confirmed |
+| `DEBUG=False` by default in `production.py` | ✅ Confirmed |
+| OTP MFA: fail-CLOSED on DB error (`return False`) | ✅ Confirmed |
+| OTP bypass for API Token auth (read-only, no writes) | ✅ Confirmed — intentional |
+| `AuditLog.integrity_hash`: computed via `update()`, no recursive save | ✅ Confirmed |
+| `_get_client_ip()` present in `users/models.py` (S12 fix) | ✅ Confirmed |
+| `acquired_date` removed from API serializers (S12 fix) | ✅ Confirmed |
+| `Transaction.save()` uses `db_transaction.atomic()` | ✅ Confirmed |
+| `select_for_update()` / `F() + Greatest(0, ...)` in `adjust_quantity()` | ✅ Confirmed |
+| PDF magic-bytes validation (not extension-only) | ✅ Confirmed |
+| Login rate limit: 10 POST/min via `_RateLimitedLoginView` | ✅ Confirmed |
+| WhiteNoise `CompressedManifestStaticFilesStorage` in production | ✅ Confirmed |
+| CSP `script-src 'self'` (no `unsafe-inline`) | ✅ Confirmed |
+| DRF API: read-only (no write endpoints) | ✅ Confirmed |
+| `PersonnelViewSet` + `TransactionViewSet`: `IsAdminUser` (PII protection) | ✅ Confirmed |
+| `PasswordHistoryValidator`: checks last 5 hashed passwords | ✅ Confirmed |
+| `SecureDelete` for expired backup files | ✅ Confirmed |
+| SHA-256 sidecar file written alongside every backup | ✅ Confirmed |
+| `SESSION_COOKIE_HTTPONLY = True` | ✅ Confirmed |
+| `CSRF_COOKIE_HTTPONLY = True` (JS reads token from DOM, not cookie) | ✅ Confirmed |
+| `SECURE_HSTS_SECONDS = 31536000` in production | ✅ Confirmed |
+| SQLite WAL mode + `PRAGMA synchronous=NORMAL` | ✅ Confirmed |
+| `CONN_MAX_AGE=600` + `CONN_HEALTH_CHECKS=True` | ✅ Confirmed |
+| `DeletedRecord` soft-delete archive | ✅ Confirmed |
+| `TransactionLogs.issuance_type` resync on edit (REC-06 signal) | ✅ Confirmed |
+
+---
+
+### 22.8 New Findings Summary Table
+
+| ID | Severity | File | Description | Status |
+|----|----------|------|-------------|--------|
+| S13-L1 | Low | `personnel/models.py` | Dead-code `magazine` / `ammunition` branches in `set_issued()` after REC-05/06 | ⬜ Open (deferred) |
+| S13-L2 | Low | `transactions/tests.py` | `_make_personnel()` uses `group='A'` — not in `GROUP_CHOICES` | ⬜ Open (deferred) |
+| S13-L3 | Low | `dashboard/views.py` | 60-second cache has no event-based invalidation after transactions | ⬜ Open (deferred) |
+| S13-L4 | — | `middleware/session.py` | `SingleSessionMiddleware` fails open on DB error — documented design choice | ✅ Acknowledged |
+| S13-D1 | — | `settings/base.py` | WAL signal connected at settings scope, not in `AppConfig.ready()` | ✅ Acknowledged |
+
+---
+
+### Updated Rating (Session 13)
+
+| Category | After S12 | **After S13** |
+|----------|-----------|---------------|
+| Security | 10/10 | **10/10** — No security regressions; all controls confirmed effective |
+| Code Quality | 10/10 | **9.8/10** — 2 dead-code branches + 1 invalid test fixture (low, deferred) |
+| Performance | 10/10 | **9.8/10** — Dashboard cache staleness (low, deferred) |
+| Testing | 10/10 | **9.8/10** — Test fixture creates invalid `group` value (low, deferred) |
+| API Correctness | 10/10 | **10/10** — No issues found |
+| Deployment Readiness | 10/10 | **10/10** — All scripts and configs confirmed correct |
+| Architecture | 10/10 | **10/10** — Service layer, middleware stack, settings split all confirmed correct |
+
+**No Critical, High, or Medium issues found. All 3 low-priority items deferred. ARMGUARD_RDS_V1 is production-ready.**
+
+---
+
+*End of Merged Code Review (Version 2) — Post-Fix Session 13 Update*
 *All categories: 10/10. Genuinely deferred items (M2 Personnel denormalization, M11 wide TransactionLogs, `select_for_update` on SQLite, Fail2Ban system-level setup) are documented as explicit architectural decisions, not gaps.*
 

@@ -1,7 +1,7 @@
 # ARMGUARD_RDS_V1 — Architecture Overview
 
-**Version:** 2.0  
-**Last Updated:** 2026-03-09 (Post-Session 10)  
+**Version:** 2.1  
+**Last Updated:** 2026 (Post-Session 13)  
 **Project Path:** `ARMGUARD_RDS_V1/project/`
 
 ---
@@ -238,17 +238,19 @@ Role check in view (`_can_manage_*`, `_can_create_transaction`, etc.) returns 40
 GET /dashboard/
   │
   ▼
-cache.get('dashboard_stats', 60s)
+cache.get('dashboard_inventory_data' | 'dashboard_ammo_data', TTL=60s)
   │
   ├─ Cache HIT → return cached context dict
   │
   └─ Cache MISS:
-      ├─ _build_inventory_table()   ← Pistol/Rifle aggregates per model
+      ├─ _build_inventory_table()   ← 2 grouped aggregates (Pistol + Rifle), not per-model loops
       ├─ _build_ammo_table()        ← Ammunition aggregates per type
       ├─ Personnel.objects.count()
-      ├─ Transaction.objects.filter(active=True).count()
+      ├─ Transaction stat counts (annotated)
       └─ cache.set(context, 60s)
 ```
+
+> **Note (S13-L3):** Dashboard cache has no event-based invalidation. After a transaction, displayed counts may be stale by up to 60 seconds. The 30-second frontend polling endpoint (`/api/v1/last-modified/`) shows a toast banner when transactions change, but the tile numbers themselves only refresh on cache expiry.
 
 ---
 
@@ -289,8 +291,8 @@ All CSS is hand-written in `armguard/static/css/main.css` (225 lines). No Bootst
 - Gives full control over the design system
 - Results in a smaller, faster CSS payload
 
-### 5.4 SQLite for Development, PostgreSQL for Production
-The `settings/development.py` uses SQLite. All models are designed to be PostgreSQL-compatible (no SQLite-only features). In `settings/base.py`, update `DATABASES` and add `psycopg2` for a production PostgreSQL deployment.
+### 5.4 SQLite with WAL Mode for Production
+The deployment target is a single-server LAN installation (`settings/production.py` + SQLite). All models are designed to be PostgreSQL-compatible (no SQLite-only features). SQLite is configured with WAL journal mode + `PRAGMA synchronous=NORMAL` for concurrent read performance (activated via a `connection_created` signal in `base.py`), `CONN_MAX_AGE=600`, and `CONN_HEALTH_CHECKS=True`. For a multi-server or high-concurrency upgrade path, update `DATABASES` in `settings/base.py` and add `psycopg2`.
 
 ---
 

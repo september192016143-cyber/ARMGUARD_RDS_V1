@@ -3,7 +3,7 @@
 **Target Platform:** HP ProDesk Mini Computer  
 **Target OS:** Latest Ubuntu Server (24.04 LTS)  
 **Analysis Date:** 2026-03-09  
-**Last Updated:** 2026-03-09 (Session 12 — full diagnostic review; 2 critical runtime bugs fixed: `_get_client_ip` missing from `users/models.py`; `acquired_date` invalid field in `api/serializers.py`. All gaps remain resolved.)  
+**Last Updated:** 2026 (Session 13 — full end-to-end audit of all source files; previous Session 12 fixes confirmed; 3 new low-priority observations documented in `CODE_REVIEW.2.md §22`. All high/critical gaps remain resolved.)  
 **Compared Version:** ARMGUARD_RDS_v.2 (Enterprise)
 
 ---
@@ -12,9 +12,15 @@
 
 This document tracks the gap analysis between **ARMGUARD_RDS_V1** and **ARMGUARD_RDS_v.2** regarding deployment readiness and security for production deployment on an HP ProDesk Mini running Ubuntu Server 24.04 LTS.
 
+**Updated Finding (Session 13):** All prior security and deployment gaps remain resolved. Session 13 performed a full end-to-end source audit confirming every critical and high-priority control is working as designed. Three new **low-priority** observations (dead-code branches in `Personnel.set_issued()`, invalid test fixture group value, dashboard cache staleness) are documented in `CODE_REVIEW.2.md §22`. None affect deployment readiness or security posture.
+
+**Updated Finding (Session 12):** Two critical runtime bugs fixed: (1) `_get_client_ip` missing from `users/models.py` caused every LOGIN/LOGOUT audit row to record `ip_address=None`; (2) `acquired_date` non-existent field in `api/serializers.py` crashed all weapon API endpoints. Both resolved; 44 tests passing.
+
+**Updated Finding (Session 11):** Password history enforcement added (`PasswordHistoryValidator`, `PasswordHistory` model, last-5 check on user create/update); minimum password length explicitly set to 12; `_secure_delete()` for expired backup files (zeroes + fsync before unlink).
+
 **Updated Finding (Session 10):** V1 is now fully production-hardened. All high-priority and medium-priority security gaps have been resolved through sessions 1–10. V1 now implements TOTP-based MFA, single-session enforcement, comprehensive security headers (CSP, HSTS, X-Frame-Options, Referrer-Policy, **Permissions-Policy**), audit logging with **user-agent capture** and **SHA-256 integrity hashes**, **DeletedRecord** soft-delete model, **DRF API throttle classes**, **SHA-256 backup checksums**, **optional GPG-encrypted backups**, and **filename sanitization** on file uploads. Deployment scripts are complete and tested.
 
-**Remaining work (optional/N/A for V1):** password history, Django Axes brute-force lockout, device fingerprinting, PostgreSQL migration, Redis/WebSocket layer — all marked Low/N/A as the LAN-only use case does not require them.
+**Remaining work (optional/N/A for V1):** Django Axes brute-force lockout, device fingerprinting, PostgreSQL migration, Redis/WebSocket layer — all marked Low/N/A as the LAN-only use case does not require them.
 
 ---
 

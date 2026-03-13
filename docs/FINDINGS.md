@@ -1173,3 +1173,42 @@ DJANGO_ALLOWED_HOSTS=
 - AuditLog IP capture working correctly for all LOGIN/LOGOUT events
 - Zero open issues
 
+---
+
+### 13.22 Session 13 — Comprehensive Full-Codebase Audit (No Critical/High Regressions)
+
+**Date:** 2026  
+**Scope:** Complete read of every project source file — all 7 apps, settings stack, middleware, service layer, signals, utils, test suite, scripts, and all docs. Confirmed all prior session fixes. Documented three new low-priority observations.
+
+**Overall result:** ARMGUARD_RDS_V1 is confirmed production-ready. No Critical, High, or Medium issues found. Three Low observations documented.
+
+---
+
+**S13-L1 — Dead-code branches in `Personnel.set_issued()` (Low / Deferred)**  
+File: `project/armguard/apps/personnel/models.py`
+
+The `magazine` and `ammunition` branches in `set_issued()` write to the deprecated single-type fields (`magazine_item_issued`, `ammunition_item_issued`). These branches are unreachable from `services.py`, which has used the typed `pistol_magazine`/`rifle_magazine`/`pistol_ammunition`/`rifle_ammunition` paths since REC-05/06. No runtime impact — but dead code creates confusion for future maintainers. Deferred for a future cleanup sprint.
+
+---
+
+**S13-L2 — `_make_personnel()` test fixture uses `group='A'` (Low / Deferred)**  
+File: `project/armguard/apps/transactions/tests.py`
+
+`'A'` is not a valid `GROUP_CHOICES` value (`HAS`, `951st`, `952nd`, `953rd`). Django's `Model.save()` does not auto-call `full_clean()`, so all 44 tests pass. However any test that calls `p.full_clean()` on a fixture object will raise `ValidationError`. Fix: change `group='A'` to `group='HAS'`.
+
+---
+
+**S13-L3 — Dashboard 60-second TTL cache has no event-based invalidation (Low / Deferred)**  
+File: `project/armguard/apps/dashboard/views.py`
+
+After a transaction is saved, dashboard tiles (issued counts, available counts) may show stale data for up to 60 seconds because there is no `cache.delete()` call in `Transaction.save()` or its signal handlers. The 30-second frontend polling endpoint (`/api/v1/last-modified/`) shows a toast banner prompting a page reload, which mitigates the user experience impact. Full fix: add `post_save` handler on `Transaction` to invalidate `'dashboard_inventory_data'` and `'dashboard_ammo_data'` cache keys.
+
+---
+
+**Post-Session 13 state:**
+- All 44 tests pass (no regressions)
+- All prior session fixes confirmed effective end-to-end
+- 3 new Low-priority items documented (S13-L1, S13-L2, S13-L3) — all deferred
+- No security, correctness, or deployment issues found
+- ARMGUARD_RDS_V1 status: **production-ready**
+
