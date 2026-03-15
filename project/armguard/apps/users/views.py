@@ -458,12 +458,96 @@ def _dir_size(path):
     return total
 
 
+def _file_size(field_file):
+    """Safely return the size in bytes of a FieldFile. 0 if missing/unreadable."""
+    try:
+        if field_file and field_file.name:
+            return field_file.size
+    except (OSError, ValueError):
+        pass
+    return 0
+
+
+def _path_size(path):
+    """Return size of a plain path string. 0 if missing."""
+    try:
+        return os.path.getsize(str(path))
+    except OSError:
+        return 0
+
+
 def _fmt(size_bytes):
     for unit in ('B', 'KB', 'MB', 'GB'):
         if size_bytes < 1024:
             return f'{size_bytes:.1f} {unit}'
         size_bytes /= 1024
     return f'{size_bytes:.1f} GB'
+
+
+def _per_record_storage(media_root):
+    """Return per-record storage breakdown for Personnel, Pistols, and Rifles."""
+    from armguard.apps.personnel.models import Personnel
+    from armguard.apps.inventory.models import Pistol, Rifle
+
+    id_cards_dir = os.path.join(str(media_root), 'personnel_id_cards')
+
+    # ── Personnel ─────────────────────────────────────────────────────────────
+    personnel_rows = []
+    for p in Personnel.objects.only(
+        'Personnel_ID', 'rank', 'first_name', 'last_name',
+        'personnel_image', 'qr_code_image',
+    ):
+        size = (
+            _file_size(p.personnel_image) +
+            _file_size(p.qr_code_image) +
+            _path_size(os.path.join(id_cards_dir, f'{p.Personnel_ID}.png')) +
+            _path_size(os.path.join(id_cards_dir, f'{p.Personnel_ID}_front.png')) +
+            _path_size(os.path.join(id_cards_dir, f'{p.Personnel_ID}_back.png'))
+        )
+        name = f'{p.rank} {p.first_name} {p.last_name}'.strip()
+        personnel_rows.append({'id': p.Personnel_ID, 'name': name, 'size_bytes': size, 'size': _fmt(size)})
+
+    personnel_rows.sort(key=lambda r: r['size_bytes'], reverse=True)
+    p_total = sum(r['size_bytes'] for r in personnel_rows)
+    p_avg   = (p_total // len(personnel_rows)) if personnel_rows else 0
+
+    # ── Pistols ───────────────────────────────────────────────────────────────
+    pistol_rows = []
+    for item in Pistol.objects.only('item_id', 'serial_number', 'serial_image', 'qr_code_image', 'item_tag'):
+        size = _file_size(item.serial_image) + _file_size(item.qr_code_image) + _file_size(item.item_tag)
+        pistol_rows.append({'id': item.item_id, 'name': item.item_id, 'size_bytes': size, 'size': _fmt(size)})
+
+    pistol_rows.sort(key=lambda r: r['size_bytes'], reverse=True)
+    pi_total = sum(r['size_bytes'] for r in pistol_rows)
+    pi_avg   = (pi_total // len(pistol_rows)) if pistol_rows else 0
+
+    # ── Rifles ────────────────────────────────────────────────────────────────
+    rifle_rows = []
+    for item in Rifle.objects.only('item_id', 'serial_number', 'serial_image', 'qr_code_image', 'item_tag'):
+        size = _file_size(item.serial_image) + _file_size(item.qr_code_image) + _file_size(item.item_tag)
+        rifle_rows.append({'id': item.item_id, 'name': item.item_id, 'size_bytes': size, 'size': _fmt(size)})
+
+    rifle_rows.sort(key=lambda r: r['size_bytes'], reverse=True)
+    ri_total = sum(r['size_bytes'] for r in rifle_rows)
+    ri_avg   = (ri_total // len(rifle_rows)) if rifle_rows else 0
+
+    return {
+        'personnel': {
+            'total': _fmt(p_total), 'total_bytes': p_total,
+            'avg': _fmt(p_avg), 'count': len(personnel_rows),
+            'rows': personnel_rows[:15],
+        },
+        'pistols': {
+            'total': _fmt(pi_total), 'total_bytes': pi_total,
+            'avg': _fmt(pi_avg), 'count': len(pistol_rows),
+            'rows': pistol_rows[:15],
+        },
+        'rifles': {
+            'total': _fmt(ri_total), 'total_bytes': ri_total,
+            'avg': _fmt(ri_avg), 'count': len(rifle_rows),
+            'rows': rifle_rows[:15],
+        },
+    }
 
 
 @login_required
@@ -537,8 +621,9 @@ def storage_status_json(request):
         records = []
 
     return JsonResponse({
-        'disk':    disk,
-        'folders': folders,
-        'db':      {'size': db_size, 'size_bytes': db_bytes},
-        'records': records,
+        'disk':       disk,
+        'folders':    folders,
+        'db':         {'size': db_size, 'size_bytes': db_bytes},
+        'records':    records,
+        'per_record': _per_record_storage(media_root),
     })

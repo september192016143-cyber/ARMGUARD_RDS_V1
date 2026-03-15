@@ -162,6 +162,15 @@
 
   <div id="storage-error" style="display:none;padding:.5rem 1rem;color:var(--danger);font-size:.8rem"></div>
   <div style="padding:.4rem 1rem .6rem;font-size:.7rem;color:var(--muted)" id="storage-ts"></div>
+
+  <!-- Per-record storage breakdown -->
+  <div style="border-top:1px solid var(--border,rgba(255,255,255,.07));padding:.75rem 1rem 1rem" id="storage-per-record">
+    <div style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Storage Per Record</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem" id="storage-per-record-grid">
+      <!-- populated by JS -->
+      <div style="color:var(--muted);font-size:.8rem">Loading…</div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
