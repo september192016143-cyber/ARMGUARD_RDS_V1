@@ -182,6 +182,7 @@ class PersonnelCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 		return _can_add_personnel(self.request.user)
 
 	def form_valid(self, form):
+		obj = form.save(commit=False)
 		obj.created_by = self.request.user.username
 		obj.updated_by = self.request.user.username
 		# Run model-level clean() so AFSN rules & issued-item validation fire
