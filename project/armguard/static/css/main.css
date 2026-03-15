@@ -101,6 +101,19 @@
 [data-theme="light"] .badge-red    { background: rgba(201,42,42,.14);   color: #8b1a1a; }
 [data-theme="light"] .badge-gray   { background: rgba(94,112,135,.14);  color: #3d536b; }
 [data-theme="light"] .badge-indigo { background: rgba(0,31,107,.14);    color: #001f6b; }
+/* ── Day-mode notification panel (always dark floating panel — white text) ── */
+[data-theme="light"] .notif-panel { background: #0f2050; border-color: rgba(255,255,255,.15); }
+[data-theme="light"] .notif-header { border-bottom-color: rgba(255,255,255,.12); }
+[data-theme="light"] .notif-header-title { color: #ffffff; }
+[data-theme="light"] .notif-clear { color: #7eb8ff; }
+[data-theme="light"] .notif-item { border-bottom-color: rgba(255,255,255,.07); }
+[data-theme="light"] .notif-item:hover { background: rgba(255,255,255,.08); }
+[data-theme="light"] .notif-item.unread { background: rgba(245,158,11,.12); }
+[data-theme="light"] .notif-body-title { color: #e2e8f0; }
+[data-theme="light"] .notif-body-msg,
+[data-theme="light"] .notif-body-time { color: rgba(255,255,255,.6); }
+[data-theme="light"] .notif-empty { color: rgba(255,255,255,.45); }
+[data-theme="light"] .notif-footer { border-top-color: rgba(255,255,255,.12); }
 
 
 /* Theme toggle in sidebar footer */
@@ -442,6 +455,9 @@ body.sidebar-collapsed .theme-label-day,body.sidebar-collapsed .theme-label-nigh
 .notif-empty{padding:2rem 1rem;text-align:center;color:var(--muted);font-size:.8rem}
 .notif-footer{padding:.6rem 1rem;border-top:1px solid var(--border);text-align:center}
 .notif-footer a{font-size:.75rem;color:var(--primary)}
+.notif-view-all-btn{background:none;border:none;font-size:.75rem;color:var(--primary);cursor:pointer;text-decoration:none;padding:0;transition:opacity .15s}
+.notif-view-all-btn:hover{opacity:.75;text-decoration:underline}
+[data-theme="light"] .notif-view-all-btn { color: #7eb8ff; }
 .notif-action-btn{display:inline-block;margin-top:.45rem;padding:.25rem .65rem;background:rgba(245,158,11,.18);border:1px solid var(--primary);border-radius:.35rem;color:var(--primary);font-size:.7rem;font-weight:600;text-decoration:none;cursor:pointer;transition:background .15s}
 .notif-action-btn:hover{background:rgba(245,158,11,.35)}
 /* ── Notification Detail Modal ─────────────────────────────────────────────── */
