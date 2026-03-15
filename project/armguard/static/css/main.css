@@ -94,6 +94,9 @@
 /* ── Day-mode secondary button ──────────────────────────────────────── */
 [data-theme="light"] .btn-secondary { background: rgba(24,103,212,.06); border-color: #b8cce0; color: #0d1f35; }
 [data-theme="light"] .btn-secondary:hover { background: rgba(24,103,212,.12); }
+/* ── Topbar always dark — btn-secondary inside it must use white text ── */
+[data-theme="light"] .topbar .btn-secondary { background: rgba(255,255,255,.13); border-color: rgba(255,255,255,.45); color: #ffffff; }
+[data-theme="light"] .topbar .btn-secondary:hover { background: rgba(255,255,255,.22); }
 /* ── Day-mode badges (readable on light background) ─────────────────── */
 [data-theme="light"] .badge-green  { background: rgba(12,166,120,.14);  color: #066a4a; }
 [data-theme="light"] .badge-amber  { background: rgba(202,138,4,.14);   color: #7c4a03; }
