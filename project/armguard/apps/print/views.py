@@ -270,6 +270,8 @@ def reprint_tr(request):
     q           = (request.GET.get('q') or '').strip()
     txn_type    = (request.GET.get('txn_type') or '').strip()
     range_filter = (request.GET.get('range') or '').strip().lower()
+    date_from   = (request.GET.get('date_from') or '').strip()
+    date_to     = (request.GET.get('date_to') or '').strip()
 
     transactions = (
         Transaction.objects
@@ -290,10 +292,24 @@ def reprint_tr(request):
     # TRs are only issued for Withdrawals — Returns are always excluded
     transactions = transactions.filter(transaction_type='Withdrawal')
 
-    range_days = {'day': 1, 'week': 7, 'month': 30}
-    if range_filter in range_days:
-        since = timezone.now() - timedelta(days=range_days[range_filter])
-        transactions = transactions.filter(timestamp__gte=since)
+    if date_from:
+        try:
+            from datetime import datetime
+            transactions = transactions.filter(timestamp__date__gte=datetime.strptime(date_from, '%Y-%m-%d').date())
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            from datetime import datetime
+            transactions = transactions.filter(timestamp__date__lte=datetime.strptime(date_to, '%Y-%m-%d').date())
+        except ValueError:
+            pass
+
+    if not date_from and not date_to:
+        range_days = {'day': 1, 'week': 7, 'month': 30}
+        if range_filter in range_days:
+            since = timezone.now() - timedelta(days=range_days[range_filter])
+            transactions = transactions.filter(timestamp__gte=since)
 
     total = transactions.count()
     paginator = Paginator(transactions, 25)
@@ -305,6 +321,8 @@ def reprint_tr(request):
         'q':              q,
         'selected_type':  txn_type,
         'selected_range': range_filter,
+        'date_from':      date_from,
+        'date_to':        date_to,
         'total':          total,
     }
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
