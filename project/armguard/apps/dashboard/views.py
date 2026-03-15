@@ -263,6 +263,8 @@ def dashboard_view(request):
 
     stats = cache.get(cache_key)
     if stats is None:
+        from armguard.apps.transactions.models import TransactionLogs
+
         withdrawals_today = Transaction.objects.filter(
             transaction_type='Withdrawal', timestamp__date=today
         ).count()
@@ -273,14 +275,34 @@ def dashboard_view(request):
         _officer_ranks = {'2LT', '1LT', 'CPT', 'MAJ', 'LTCOL', 'COL',
                           'BGEN', 'MGEN', 'LTGEN', 'GEN'}
 
-        issued_tr  = Transaction.objects.filter(
-            transaction_type='Withdrawal',
-            issuance_type='TR (Temporary Receipt)',
-        ).count()
-        issued_par = Transaction.objects.filter(
-            transaction_type='Withdrawal',
-            issuance_type='PAR (Property Acknowledgement Receipt)',
-        ).count()
+        # Count firearms that are *currently* outstanding (not yet returned).
+        # Each TransactionLog row may track a pistol, a rifle, or both; count
+        # each weapon independently so a combined pistol+rifle log adds 2.
+        _open = ('Open', 'Partially Returned')
+        issued_tr = (
+            TransactionLogs.objects.filter(
+                log_status__in=_open,
+                issuance_type='TR (Temporary Receipt)',
+                withdraw_pistol__isnull=False, return_pistol__isnull=True,
+            ).count()
+            + TransactionLogs.objects.filter(
+                log_status__in=_open,
+                issuance_type='TR (Temporary Receipt)',
+                withdraw_rifle__isnull=False, return_rifle__isnull=True,
+            ).count()
+        )
+        issued_par = (
+            TransactionLogs.objects.filter(
+                log_status__in=_open,
+                issuance_type='PAR (Property Acknowledgement Receipt)',
+                withdraw_pistol__isnull=False, return_pistol__isnull=True,
+            ).count()
+            + TransactionLogs.objects.filter(
+                log_status__in=_open,
+                issuance_type='PAR (Property Acknowledgement Receipt)',
+                withdraw_rifle__isnull=False, return_rifle__isnull=True,
+            ).count()
+        )
 
         stats = {
             'total_personnel':        Personnel.objects.filter(status='Active').count(),
@@ -370,18 +392,101 @@ def ssl_cert_status(request):
 
 
 @login_required
+def dashboard_cards_json(request):
+    """Return live counts for all four stat cards — no cache — for real-time polling."""
+    from django.http import JsonResponse
+    from armguard.apps.personnel.models import Personnel
+    from armguard.apps.inventory.models import Magazine
+    from armguard.apps.transactions.models import Transaction, TransactionLogs
+    from django.db.models import Sum
+
+    today = timezone.localdate()
+
+    _officer_ranks = {'2LT', '1LT', 'CPT', 'MAJ', 'LTCOL', 'COL',
+                      'BGEN', 'MGEN', 'LTGEN', 'GEN'}
+
+    _open = ('Open', 'Partially Returned')
+    issued_tr = (
+        TransactionLogs.objects.filter(
+            log_status__in=_open,
+            issuance_type='TR (Temporary Receipt)',
+            withdraw_pistol__isnull=False, return_pistol__isnull=True,
+        ).count()
+        + TransactionLogs.objects.filter(
+            log_status__in=_open,
+            issuance_type='TR (Temporary Receipt)',
+            withdraw_rifle__isnull=False, return_rifle__isnull=True,
+        ).count()
+    )
+    issued_par = (
+        TransactionLogs.objects.filter(
+            log_status__in=_open,
+            issuance_type='PAR (Property Acknowledgement Receipt)',
+            withdraw_pistol__isnull=False, return_pistol__isnull=True,
+        ).count()
+        + TransactionLogs.objects.filter(
+            log_status__in=_open,
+            issuance_type='PAR (Property Acknowledgement Receipt)',
+            withdraw_rifle__isnull=False, return_rifle__isnull=True,
+        ).count()
+    )
+
+    withdrawals_today = Transaction.objects.filter(
+        transaction_type='Withdrawal', timestamp__date=today).count()
+    returns_today = Transaction.objects.filter(
+        transaction_type='Return', timestamp__date=today).count()
+
+    return JsonResponse({
+        # Personnel card
+        'total_personnel':          Personnel.objects.filter(status='Active').count(),
+        'officers_count':           Personnel.objects.filter(status='Active', rank__in=list(_officer_ranks)).count(),
+        'enlisted_count':           Personnel.objects.filter(status='Active').exclude(rank__in=list(_officer_ranks)).count(),
+        # Magazine card
+        'total_magazine_qty':       Magazine.objects.aggregate(t=Sum('quantity'))['t'] or 0,
+        'short_magazine_available': Magazine.objects.filter(type='Short').aggregate(t=Sum('quantity'))['t'] or 0,
+        'long_magazine_available':  Magazine.objects.filter(type='Long').aggregate(t=Sum('quantity'))['t'] or 0,
+        # Issued Firearms card
+        'issued_TR':                issued_tr,
+        'issued_PAR':               issued_par,
+        'total_issued':             issued_tr + issued_par,
+        # Transactions Today card
+        'total_transactions_today': withdrawals_today + returns_today,
+        'withdrawals_today':        withdrawals_today,
+        'returns_today':            returns_today,
+    })
+
+
+@login_required
 def issued_stats_json(request):
     """Return live issued TR/PAR counts — no cache — for real-time polling."""
     from django.http import JsonResponse
-    from armguard.apps.transactions.models import Transaction
-    issued_tr  = Transaction.objects.filter(
-        transaction_type='Withdrawal',
-        issuance_type='TR (Temporary Receipt)',
-    ).count()
-    issued_par = Transaction.objects.filter(
-        transaction_type='Withdrawal',
-        issuance_type='PAR (Property Acknowledgement Receipt)',
-    ).count()
+    from armguard.apps.transactions.models import TransactionLogs
+
+    _open = ('Open', 'Partially Returned')
+    issued_tr = (
+        TransactionLogs.objects.filter(
+            log_status__in=_open,
+            issuance_type='TR (Temporary Receipt)',
+            withdraw_pistol__isnull=False, return_pistol__isnull=True,
+        ).count()
+        + TransactionLogs.objects.filter(
+            log_status__in=_open,
+            issuance_type='TR (Temporary Receipt)',
+            withdraw_rifle__isnull=False, return_rifle__isnull=True,
+        ).count()
+    )
+    issued_par = (
+        TransactionLogs.objects.filter(
+            log_status__in=_open,
+            issuance_type='PAR (Property Acknowledgement Receipt)',
+            withdraw_pistol__isnull=False, return_pistol__isnull=True,
+        ).count()
+        + TransactionLogs.objects.filter(
+            log_status__in=_open,
+            issuance_type='PAR (Property Acknowledgement Receipt)',
+            withdraw_rifle__isnull=False, return_rifle__isnull=True,
+        ).count()
+    )
     return JsonResponse({
         'issued_TR':    issued_tr,
         'issued_PAR':   issued_par,
