@@ -52,9 +52,17 @@
   <div class="stat-card accent-indigo">
     <div class="stat-label">Magazine Qty</div>
     <div class="stat-value" id="card-mag-total">{{ total_magazine_qty|intcomma }}</div>
-    <div class="stat-sub" style="display:flex;flex-direction:column;gap:2px;align-items:flex-start">
-      <span style="color:#a855f7" id="card-mag-short">{{ short_magazine_available|intcomma }} Short</span>
-      <span style="color:#eab308" id="card-mag-long">{{ long_magazine_available|intcomma }} Long</span>
+    <div class="stat-sub" style="display:flex;flex-direction:row;gap:1rem;align-items:flex-start;margin-top:.3rem">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span style="color:#a855f7" id="card-mag-short-avail">{{ short_magazine_available|intcomma }} Short</span>
+        <span style="color:#eab308" id="card-mag-long-avail">{{ long_magazine_available|intcomma }} Long</span>
+        <span style="color:var(--muted);font-size:.68rem;margin-top:1px">available</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <span style="color:#a855f7" id="card-mag-short-issued">{{ short_magazine_issued|intcomma }} Short</span>
+        <span style="color:#eab308" id="card-mag-long-issued">{{ long_magazine_issued|intcomma }} Long</span>
+        <span style="color:var(--muted);font-size:.68rem;margin-top:1px">issued</span>
+      </div>
     </div>
   </div>
 

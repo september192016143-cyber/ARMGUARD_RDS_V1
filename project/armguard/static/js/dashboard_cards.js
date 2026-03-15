@@ -28,9 +28,11 @@
     set('card-personnel-officers', fmt(d.officers_count)           + ' Officers');
     set('card-personnel-enlisted', fmt(d.enlisted_count)           + ' Enlisted');
     // Magazine Qty
-    set('card-mag-total', fmt(d.total_magazine_qty));
-    set('card-mag-short', fmt(d.short_magazine_available)          + ' Short');
-    set('card-mag-long',  fmt(d.long_magazine_available)           + ' Long');
+    set('card-mag-total',        fmt(d.total_magazine_qty));
+    set('card-mag-short-avail',  fmt(d.short_magazine_available)  + ' Short');
+    set('card-mag-long-avail',   fmt(d.long_magazine_available)   + ' Long');
+    set('card-mag-short-issued', fmt(d.short_magazine_issued)     + ' Short');
+    set('card-mag-long-issued',  fmt(d.long_magazine_issued)      + ' Long');
     // Issued Firearms
     set('card-issued-total', fmt(d.total_issued));
     set('card-issued-tr',    fmt(d.issued_TR)                      + ' TR');

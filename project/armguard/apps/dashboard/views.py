@@ -318,6 +318,14 @@ def dashboard_view(request):
             'total_magazine_qty':     Magazine.objects.aggregate(t=Sum('quantity'))['t'] or 0,
             'short_magazine_available': Magazine.objects.filter(type='Short').aggregate(t=Sum('quantity'))['t'] or 0,
             'long_magazine_available':  Magazine.objects.filter(type='Long').aggregate(t=Sum('quantity'))['t'] or 0,
+            'short_magazine_issued':   (lambda a: max((a['w'] or 0) - (a['r'] or 0), 0))(
+                TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__type='Short')
+                .aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
+            ),
+            'long_magazine_issued':    (lambda a: max((a['w'] or 0) - (a['r'] or 0), 0))(
+                TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__type='Long')
+                .aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
+            ),
             'total_ammo_qty':         Ammunition.objects.aggregate(t=Sum('quantity'))['t'] or 0,
             'total_transactions':     Transaction.objects.count(),
             'total_transactions_today': withdrawals_today + returns_today,
@@ -445,6 +453,14 @@ def dashboard_cards_json(request):
         'total_magazine_qty':       Magazine.objects.aggregate(t=Sum('quantity'))['t'] or 0,
         'short_magazine_available': Magazine.objects.filter(type='Short').aggregate(t=Sum('quantity'))['t'] or 0,
         'long_magazine_available':  Magazine.objects.filter(type='Long').aggregate(t=Sum('quantity'))['t'] or 0,
+        'short_magazine_issued': (lambda a: max((a['w'] or 0) - (a['r'] or 0), 0))(
+            TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__type='Short')
+            .aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
+        ),
+        'long_magazine_issued': (lambda a: max((a['w'] or 0) - (a['r'] or 0), 0))(
+            TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__type='Long')
+            .aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
+        ),
         # Issued Firearms card
         'issued_TR':                issued_tr,
         'issued_PAR':               issued_par,
