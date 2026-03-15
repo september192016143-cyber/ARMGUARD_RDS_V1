@@ -7,7 +7,7 @@
 
 {% block topbar_actions %}
 {% if can_add %}
-<a href="{% url 'user-add' %}" class="btn btn-primary btn-sm">
+<a href="{% url 'user-add' %}" class="topbar-icon-btn" style="text-decoration:none;padding:0 1rem;height:40px;font-size:.82rem;font-weight:600;gap:.4rem;width:auto">
   <i class="fa-solid fa-user-plus"></i> Add User
 </a>
 {% endif %}
