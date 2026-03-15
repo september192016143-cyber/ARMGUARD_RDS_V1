@@ -374,6 +374,30 @@ if [[ -f "$BACKUP_SH_PATH" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Post-update storage summary
+# ---------------------------------------------------------------------------
+echo
+step "Storage Summary"
+
+# Disk usage on the deployment partition
+df -h "$DEPLOY_DIR" | awk 'NR==1{next} {printf "  Disk : %s used of %s  (%s free,  %s used)\n",$3,$2,$4,$5}'
+
+# Media folder sizes (sorted by size)
+MEDIA_DIR="$PROJECT_DIR/media"
+if [[ -d "$MEDIA_DIR" ]]; then
+    echo "  Media breakdown:"
+    du -sh "$MEDIA_DIR"/*/  2>/dev/null | sort -rh | awk '{printf "    %-35s %s\n",$2,$1}'
+    echo "  Media total: $(du -sh "$MEDIA_DIR" 2>/dev/null | cut -f1)"
+fi
+
+# SQLite database size
+DB_FILE="$PROJECT_DIR/db.sqlite3"
+if [[ -f "$DB_FILE" ]]; then
+    DB_SIZE=$(du -sh "$DB_FILE" 2>/dev/null | cut -f1)
+    echo "  Database (sqlite3): $DB_SIZE"
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 echo

@@ -1,4 +1,6 @@
 import json
+import os
+import shutil
 
 from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -8,7 +10,10 @@ from django.urls import reverse_lazy
 from django.views import View
 from django import forms
 from django.shortcuts import redirect, render
+from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.conf import settings as django_settings
+from django.contrib.auth.decorators import login_required
 from .models import UserProfile, ROLE_CHOICES, PasswordHistory
 from armguard.apps.personnel.models import Personnel
 # H1 FIX: Import shared permission helper instead of duplicating it here.
@@ -433,3 +438,107 @@ class OTPVerifyView(LoginRequiredMixin, View):
         })
 
 
+# ---------------------------------------------------------------------------
+# Storage status JSON (admin-only)
+# ---------------------------------------------------------------------------
+
+def _dir_size(path):
+    """Return total size in bytes of all files under *path* (non-recursive)."""
+    total = 0
+    try:
+        with os.scandir(path) as it:
+            for entry in it:
+                try:
+                    if entry.is_file(follow_symlinks=False):
+                        total += entry.stat(follow_symlinks=False).st_size
+                except OSError:
+                    pass
+    except OSError:
+        pass
+    return total
+
+
+def _fmt(size_bytes):
+    for unit in ('B', 'KB', 'MB', 'GB'):
+        if size_bytes < 1024:
+            return f'{size_bytes:.1f} {unit}'
+        size_bytes /= 1024
+    return f'{size_bytes:.1f} GB'
+
+
+@login_required
+def storage_status_json(request):
+    if not _is_admin(request.user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+
+    # ── Disk usage ────────────────────────────────────────────────────────────
+    media_root = django_settings.MEDIA_ROOT
+    try:
+        du = shutil.disk_usage(media_root)
+        disk = {
+            'total_bytes': du.total,
+            'used_bytes':  du.used,
+            'free_bytes':  du.free,
+            'total':       _fmt(du.total),
+            'used':        _fmt(du.used),
+            'free':        _fmt(du.free),
+            'used_pct':    round(du.used / du.total * 100, 1) if du.total else 0,
+        }
+    except OSError:
+        disk = {}
+
+    # ── Media folder breakdown ────────────────────────────────────────────────
+    media_folders = [
+        ('Personnel Images',     'personnel_images'),
+        ('Personnel ID Cards',   'personnel_id_cards'),
+        ('QR — Personnel',       'qr_code_images_personnel'),
+        ('QR — Pistol',          'qr_code_images_pistol'),
+        ('QR — Rifle',           'qr_code_images_rifle'),
+        ('Serial Images — Pistol','serial_images_pistol'),
+        ('Serial Images — Rifle', 'serial_images_rifle'),
+        ('Item ID Tags',         'item_id_tags'),
+        ('TR PDF',               'TR_PDF'),
+    ]
+    folders = []
+    for label, rel in media_folders:
+        path = media_root / rel if hasattr(media_root, '__truediv__') else os.path.join(str(media_root), rel)
+        size = _dir_size(path)
+        try:
+            count = len([e for e in os.scandir(path) if e.is_file()])
+        except OSError:
+            count = 0
+        folders.append({'label': label, 'size_bytes': size, 'size': _fmt(size), 'files': count})
+
+    # ── Database sizes ────────────────────────────────────────────────────────
+    db_path = django_settings.DATABASES['default'].get('NAME', '')
+    try:
+        db_bytes = os.path.getsize(str(db_path))
+        db_size  = _fmt(db_bytes)
+    except OSError:
+        db_bytes = 0
+        db_size  = '—'
+
+    # ── Record counts ─────────────────────────────────────────────────────────
+    User = get_user_model()
+    try:
+        from armguard.apps.inventory.models import Pistol, Rifle, Magazine, Ammunition, Accessory
+        from armguard.apps.transactions.models import Transaction
+        records = [
+            {'label': 'Personnel',    'count': Personnel.objects.count()},
+            {'label': 'Pistols',      'count': Pistol.objects.count()},
+            {'label': 'Rifles',       'count': Rifle.objects.count()},
+            {'label': 'Magazines',    'count': Magazine.objects.count()},
+            {'label': 'Ammunition',   'count': Ammunition.objects.count()},
+            {'label': 'Accessories',  'count': Accessory.objects.count()},
+            {'label': 'Transactions', 'count': Transaction.objects.count()},
+            {'label': 'Users',        'count': User.objects.count()},
+        ]
+    except Exception:
+        records = []
+
+    return JsonResponse({
+        'disk':    disk,
+        'folders': folders,
+        'db':      {'size': db_size, 'size_bytes': db_bytes},
+        'records': records,
+    })

@@ -95,8 +95,77 @@
     </form>
   </div>
 </div>
+
+<!-- ── Storage Status Panel ───────────────────────────────────────────────── -->
+<div class="card" style="margin-top:1.5rem" id="storage-panel">
+  <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+    <span class="card-title"><i class="fa-solid fa-hard-drive"></i> Storage Status</span>
+    <button id="storage-refresh-btn" class="btn btn-secondary btn-sm btn-icon" title="Refresh">
+      <i class="fa-solid fa-rotate-right"></i>
+    </button>
+  </div>
+
+  <!-- Disk usage bar -->
+  <div style="padding:.75rem 1rem .25rem" id="storage-disk-wrap">
+    <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:.4rem">
+      <span>Disk Usage</span>
+      <span id="storage-disk-label">Loading…</span>
+    </div>
+    <div style="height:8px;background:var(--surface2);border-radius:4px;overflow:hidden">
+      <div id="storage-disk-bar" style="height:100%;width:0%;background:var(--primary);border-radius:4px;transition:width .5s"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-top:.3rem">
+      <span id="storage-disk-used">—</span>
+      <span id="storage-disk-free">—</span>
+    </div>
+  </div>
+
+  <!-- Two-column layout: media folders + DB records -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:.75rem 1rem 1rem" id="storage-body">
+
+    <!-- Media folders -->
+    <div>
+      <div style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Media Files</div>
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem" id="storage-folders-table">
+        <thead>
+          <tr style="color:var(--muted);font-size:.7rem">
+            <th style="text-align:left;padding:.2rem .3rem">Folder</th>
+            <th style="text-align:right;padding:.2rem .3rem">Files</th>
+            <th style="text-align:right;padding:.2rem .3rem">Size</th>
+          </tr>
+        </thead>
+        <tbody id="storage-folders-body">
+          <tr><td colspan="3" style="color:var(--muted);padding:.5rem .3rem">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- DB records + size -->
+    <div>
+      <div style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Database</div>
+      <div style="font-size:.78rem;color:var(--muted);margin-bottom:.6rem">
+        Size: <strong id="storage-db-size" style="color:var(--text)">—</strong>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem">
+        <thead>
+          <tr style="color:var(--muted);font-size:.7rem">
+            <th style="text-align:left;padding:.2rem .3rem">Table</th>
+            <th style="text-align:right;padding:.2rem .3rem">Records</th>
+          </tr>
+        </thead>
+        <tbody id="storage-records-body">
+          <tr><td colspan="2" style="color:var(--muted);padding:.5rem .3rem">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="storage-error" style="display:none;padding:.5rem 1rem;color:var(--danger);font-size:.8rem"></div>
+  <div style="padding:.4rem 1rem .6rem;font-size:.7rem;color:var(--muted)" id="storage-ts"></div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/user_list.js' %}" defer></script>
+<script src="{% static 'js/storage_panel.js' %}" defer></script>
 {% endblock %}
