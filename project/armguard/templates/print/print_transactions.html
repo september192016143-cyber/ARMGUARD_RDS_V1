@@ -8,7 +8,7 @@
 {% block topbar_actions %}
 <button data-action="print"
   data-print-url="{% url 'print_handler:print_transactions' %}?bare=1{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}"
-  title="Print Report" style="display:flex;align-items:center;justify-content:center;gap:.4rem;height:40px;padding:0 1rem;border-radius:.5rem;background:rgba(245,158,11,.15);border:1.5px solid var(--primary);cursor:pointer;color:var(--primary);font-size:.82rem;font-weight:600;font-family:inherit;transition:all .2s;box-shadow:0 0 8px rgba(245,158,11,.2)">
+  title="Print Report" class="topbar-icon-btn" style="gap:.4rem;height:40px;padding:0 1rem;width:auto;font-size:.82rem;font-weight:600;font-family:inherit">
   <i class="fa-solid fa-print" style="font-size:.9rem"></i> Print
 </button>
 <!-- Print tip: visible on screen, hidden when printing -->
@@ -17,7 +17,7 @@
   In print dialog &rarr; uncheck <strong>Headers and footers</strong> for a clean output
 </span>
 <div style="position:relative" id="cal-wrap">
-  <button id="calendar-toggle" title="Date Filter" style="position:relative;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:.5rem;background:rgba(245,158,11,.15);border:1.5px solid var(--primary);cursor:pointer;color:var(--primary);transition:all .2s;box-shadow:0 0 8px rgba(245,158,11,.2)">
+  <button id="calendar-toggle" class="topbar-icon-btn" title="Date Filter">
     <i class="fa-solid fa-calendar-days" style="font-size:1rem"></i>
   </button>
 
@@ -54,7 +54,7 @@
     <!-- Actions -->
     <div style="display:flex;gap:.5rem;padding:.6rem 1rem;border-top:1px solid #334155">
       <button id="cal-apply" class="btn btn-primary btn-sm" style="flex:1">Apply</button>
-      <button id="cal-clear" class="btn btn-secondary btn-sm" style="flex:1">Clear</button>
+      <button id="cal-clear" class="btn btn-sm" style="flex:1;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#e2e8f0">Clear</button>
     </div>
   </div>
 </div>
