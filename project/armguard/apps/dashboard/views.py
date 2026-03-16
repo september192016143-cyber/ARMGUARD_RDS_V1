@@ -247,19 +247,49 @@ def _build_magazine_table():
     pistol_issued = max((pistol_agg['w'] or 0) - (pistol_agg['r'] or 0), 0)
     rifle_issued  = max((rifle_agg['w']  or 0) - (rifle_agg['r']  or 0), 0)
 
+    pistol_par_agg = TransactionLogs.objects.filter(
+        log_status__in=open_statuses,
+        issuance_type='PAR (Property Acknowledgement Receipt)',
+        withdraw_pistol_magazine_quantity__isnull=False,
+    ).aggregate(w=Sum('withdraw_pistol_magazine_quantity'), r=Sum('return_pistol_magazine_quantity'))
+    rifle_par_agg = TransactionLogs.objects.filter(
+        log_status__in=open_statuses,
+        issuance_type='PAR (Property Acknowledgement Receipt)',
+        withdraw_rifle_magazine_quantity__isnull=False,
+    ).aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
+    pistol_tr_agg = TransactionLogs.objects.filter(
+        log_status__in=open_statuses,
+        issuance_type='TR (Temporary Receipt)',
+        withdraw_pistol_magazine_quantity__isnull=False,
+    ).aggregate(w=Sum('withdraw_pistol_magazine_quantity'), r=Sum('return_pistol_magazine_quantity'))
+    rifle_tr_agg = TransactionLogs.objects.filter(
+        log_status__in=open_statuses,
+        issuance_type='TR (Temporary Receipt)',
+        withdraw_rifle_magazine_quantity__isnull=False,
+    ).aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
+
+    pistol_issued_par = max((pistol_par_agg['w'] or 0) - (pistol_par_agg['r'] or 0), 0)
+    rifle_issued_par  = max((rifle_par_agg['w']  or 0) - (rifle_par_agg['r']  or 0), 0)
+    pistol_issued_tr  = max((pistol_tr_agg['w']  or 0) - (pistol_tr_agg['r']  or 0), 0)
+    rifle_issued_tr   = max((rifle_tr_agg['w']   or 0) - (rifle_tr_agg['r']   or 0), 0)
+
     MAG_DEFS = [
-        ('Pistol Standard', 'Pistol', 'Pistol Magazine',          pistol_issued),
-        ('Short',           'Rifle',  'Rifle Magazine (Short/20-rnd)', rifle_issued),
-        ('Long',            'Rifle',  'Rifle Magazine (Long/30-rnd)',  rifle_issued),
+        ('Pistol Standard', 'Pistol', 'Pistol Magazine',               pistol_issued, pistol_issued_par, pistol_issued_tr),
+        ('Short',           'Rifle',  'Rifle Magazine (Short/20-rnd)', rifle_issued,  rifle_issued_par,  rifle_issued_tr),
+        ('Long',            'Rifle',  'Rifle Magazine (Long/30-rnd)',  rifle_issued,  rifle_issued_par,  rifle_issued_tr),
     ]
     list_url = reverse('magazine-list')
-    rows, totals = [], {'on_stock': 0, 'issued': 0}
-    for type_key, label, nomenclature, issued in MAG_DEFS:
+    rows, totals = [], {'on_stock': 0, 'issued': 0, 'issued_par': 0, 'issued_tr': 0}
+    for type_key, label, nomenclature, issued, issued_par, issued_tr in MAG_DEFS:
         on_stock = on_stock_map.get(type_key, 0)
         rows.append(dict(label=label, nomenclature=nomenclature, type=type_key,
-                         on_stock=on_stock, issued=issued, list_url=list_url))
-        totals['on_stock'] += on_stock
-        totals['issued']   += issued
+                         on_stock=on_stock, issued=issued,
+                         issued_par=issued_par, issued_tr=issued_tr,
+                         list_url=list_url))
+        totals['on_stock']   += on_stock
+        totals['issued']     += issued
+        totals['issued_par'] += issued_par
+        totals['issued_tr']  += issued_tr
     return rows, totals
 
 
@@ -593,10 +623,10 @@ def dashboard_tables_json(request):
         },
         'magazine': {
             'rows': [
-                _row_fields(r, ['nomenclature', 'on_stock', 'issued'])
+                _row_fields(r, ['nomenclature', 'on_stock', 'issued_par', 'issued_tr'])
                 for r in magazine_rows
             ],
-            'totals': _row_fields(magazine_totals, ['on_stock', 'issued']),
+            'totals': _row_fields(magazine_totals, ['on_stock', 'issued_par', 'issued_tr']),
         },
         'accessory': {
             'rows': [

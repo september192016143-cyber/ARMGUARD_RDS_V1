@@ -150,7 +150,8 @@
       html += '<tr style="border-bottom:1px solid rgba(29,78,216,.1);background:' + bg + ';transition:background .15s">'
         + '<td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + r.nomenclature + '">' + r.nomenclature + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.on_stock) + '</td>'
-        + '<td style="padding:5px 4px;text-align:center' + (r.issued ? ';color:#d97706;font-weight:700' : '') + '">' + fmt(r.issued) + '</td>'
+        + '<td style="padding:5px 4px;text-align:center">' + fmt(r.issued_par) + '</td>'
+        + '<td style="padding:5px 4px;text-align:center">' + fmt(r.issued_tr) + '</td>'
         + '<td></td>'
         + '</tr>';
     });
@@ -160,10 +161,10 @@
     var ftr = foot.querySelector('tr');
     if (ftr) {
       var cells = ftr.querySelectorAll('td');
-      if (cells.length >= 3) {
+      if (cells.length >= 4) {
         cells[1].textContent = fmt(t.on_stock);
-        cells[2].textContent = fmt(t.issued);
-        cells[2].style.color = t.issued ? '#fcd34d' : '';
+        cells[2].textContent = fmt(t.issued_par);
+        cells[3].textContent = fmt(t.issued_tr);
       }
     }
   }

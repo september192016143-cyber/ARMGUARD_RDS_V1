@@ -281,10 +281,14 @@
           </colgroup>
           <thead>
             <tr style="background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 100%);color:#fff;text-align:center">
-              <th style="padding:7px 8px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;white-space:nowrap">NOMENCLATURE</th>
-              <th style="padding:7px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;background:linear-gradient(135deg,#065f46,#047857);white-space:nowrap">ON STOCK</th>
-              <th style="padding:7px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">ISSUED</th>
-              <th style="padding:7px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;white-space:nowrap">ACTION</th>
+              <th rowspan="2" style="padding:7px 8px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;white-space:nowrap;vertical-align:middle">NOMENCLATURE</th>
+              <th rowspan="2" style="padding:7px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;background:linear-gradient(135deg,#065f46,#047857);white-space:nowrap;vertical-align:middle">ON STOCK</th>
+              <th colspan="2" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.65rem;font-weight:700;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309)">ISSUED</th>
+              <th rowspan="2" style="padding:7px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;white-space:nowrap;vertical-align:middle">ACTION</th>
+            </tr>
+            <tr style="background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 100%);color:#fff;text-align:center;font-size:0.63rem;line-height:1.2">
+              <th style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">PAR</th>
+              <th style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">TR</th>
             </tr>
           </thead>
           <tbody id="tbl-magazine-body">
@@ -292,7 +296,8 @@
             <tr style="border-bottom:1px solid rgba(29,78,216,.1);background:{% if forloop.even %}rgba(29,78,216,.04){% else %}transparent{% endif %};transition:background .15s">
               <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.on_stock|intcomma }}</td>
-              <td style="padding:5px 4px;text-align:center{% if row.issued %};color:#d97706;font-weight:700{% endif %}">{{ row.issued|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.issued_par|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.issued_tr|intcomma }}</td>
               <td style="padding:3px 4px;text-align:center"><a href="{{ row.list_url }}" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.68rem">View</a></td>
             </tr>
             {% endfor %}
@@ -301,7 +306,8 @@
             <tr style="background:linear-gradient(90deg,#1d4ed8 0%,#1e3a8a 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #1d4ed8;font-size:0.76rem">
               <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
               <td style="padding:6px 2px">{{ magazine_totals.on_stock|intcomma }}</td>
-              <td style="padding:6px 2px{% if magazine_totals.issued %};color:#fcd34d{% endif %}">{{ magazine_totals.issued|intcomma }}</td>
+              <td style="padding:6px 2px">{{ magazine_totals.issued_par|intcomma }}</td>
+              <td style="padding:6px 2px">{{ magazine_totals.issued_tr|intcomma }}</td>
               <td></td>
             </tr>
           </tfoot>
