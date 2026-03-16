@@ -12,84 +12,112 @@
     <i class="fa-solid fa-plus"></i> Add Ammo Lot
   </a>
   {% endif %}
-  <span class="stat-card accent-green" style="padding:.4rem .85rem;display:inline-flex;flex-direction:column">
-    <span style="font-size:.65rem;color:var(--muted);text-transform:uppercase">On Stock</span>
-    <span style="font-weight:700;color:var(--green)">{{ total_on_stock|intcomma }}</span>
-  </span>
-  <span class="stat-card accent-red" style="padding:.4rem .85rem;display:inline-flex;flex-direction:column">
-    <span style="font-size:.65rem;color:var(--muted);text-transform:uppercase">Issued</span>
-    <span style="font-weight:700;color:var(--red)">{{ total_issued|intcomma }}</span>
-  </span>
-  <span class="stat-card" style="padding:.4rem .85rem;display:inline-flex;flex-direction:column">
-    <span style="font-size:.65rem;color:var(--muted);text-transform:uppercase">Possessed</span>
-    <span style="font-weight:700">{{ total_possessed|intcomma }}</span>
-  </span>
+  <span class="text-muted" style="font-size:.82rem"><i class="fa-solid fa-bullseye"></i> {{ total_qty|intcomma }} total rounds in stock</span>
 </div>
 {% endblock %}
 
-
+{% block extra_css %}
+<style>
+  .ammo-report-wrap { overflow-x: auto; }
+  .ammo-report {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .76rem;
+    table-layout: auto;
+  }
+  .ammo-report th, .ammo-report td {
+    padding: .45rem .6rem;
+    border: 1px solid rgba(255,255,255,.18);
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .ammo-report td:first-child { text-align: left; font-weight: 600; }
+  .ammo-report tbody tr { border-bottom: 1px solid rgba(12,166,120,.1); transition: background .15s; }
+  .ammo-report tbody tr:nth-child(even) td { background: rgba(12,166,120,.06); }
+  .ammo-report tfoot td {
+    background: linear-gradient(90deg,#0ca678 0%,#047857 100%);
+    color: #fff;
+    font-weight: 700;
+    border-top: 2px solid #0ca678;
+  }
+  .ammo-report tfoot td:first-child { text-align: left; letter-spacing: .06em; font-size: .72rem; }
+  .ammo-report thead th { color: #fff !important; }
+  /* Day-mode overrides */
+  [data-theme="light"] .ammo-report th, [data-theme="light"] .ammo-report td {
+    border-color: var(--border);
+  }
+  [data-theme="light"] .ammo-report thead th { color: #fff !important; }
+  [data-theme="light"] .ammo-report tbody td,
+  [data-theme="light"] .ammo-report tbody td *:not(.ammo-drill) { color: #000 !important; }
+  [data-theme="light"] .ammo-drill { color: #0d1f35; }
+  [data-theme="light"] .ammo-drill:hover { color: #2563eb !important; }
+  [data-theme="light"] .ammo-report tbody tr:nth-child(even) td { background: rgba(12,166,120,.09); }
+  .ammo-drill {
+    color: inherit;
+    text-decoration: none;
+    display: inline-block;
+    transition: color .18s, transform .15s, letter-spacing .15s;
+    cursor: pointer;
+  }
+  .ammo-drill:hover {
+    color: #2563eb;
+    transform: translateX(3px);
+    letter-spacing: .01em;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<style>
-.main{height:100vh;min-height:unset;overflow:hidden}
-.page-body{display:flex;flex-direction:column;overflow:hidden;padding-bottom:.75rem}
-.page-body>.card{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
-.page-body>.card>.filter-bar{flex-shrink:0}
-.page-body>.card>.table-wrap{flex:1;overflow-y:auto;min-height:0}
-.page-body>.card table tbody td{padding:.45rem .85rem}
-.page-body>.card table thead th{padding:.45rem .85rem}
-.ammo-drill{color:inherit;text-decoration:none;display:inline-block;transition:color .18s,transform .15s,letter-spacing .15s;cursor:pointer}
-.ammo-drill:hover{color:#2563eb;transform:translateX(3px);letter-spacing:.01em}
-</style>
 <div class="card">
-  <div class="filter-bar">
-    <form method="get" class="search-bar" style="flex:1">
-      <div class="input-wrap" style="flex:1;max-width:300px">
-        <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;pointer-events:none"></i>
-        <input type="text" name="q" value="{{ request.GET.q }}" class="form-control"
-               placeholder="Search nomenclature…" style="padding-left:2.1rem" autocomplete="off">
-      </div>
-      {% if request.GET.q %}
-        <a href="{% url 'ammunition-list' %}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
-      {% endif %}
-    </form>
-    <span class="text-muted" style="font-size:.8rem;white-space:nowrap">{{ grouped_ammo|length }} type{{ grouped_ammo|length|pluralize }}</span>
-  </div>
-
-  <div class="table-wrap">
-    <table>
+  <div class="ammo-report-wrap">
+    <table class="ammo-report">
       <thead>
-        <tr>
-          <th>Nomenclature</th>
-          <th>Possessed</th>
-          <th>On Stock</th>
-          <th>Issued PAR</th>
-          <th>Issued TR</th>
+        <tr style="background:linear-gradient(135deg,#064e3b 0%,#065f46 100%);color:#fff;text-align:center">
+          <th rowspan="2" style="text-align:left;font-size:.68rem;letter-spacing:.08em;font-weight:700;min-width:180px">NOMENCLATURE</th>
+          <th colspan="2" style="font-size:.67rem;font-weight:800;letter-spacing:.06em;white-space:nowrap">INVENTORY</th>
+          <th colspan="2" style="font-size:.65rem;font-weight:700;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">ISSUED</th>
+          <th rowspan="2" style="background:linear-gradient(135deg,#065f46,#047857);font-size:.65rem;letter-spacing:.04em;white-space:nowrap">Serviceable</th>
+          <th rowspan="2" style="background:linear-gradient(135deg,#92400e,#b45309);font-size:.65rem;letter-spacing:.04em;white-space:nowrap">Unserviceable</th>
+          <th rowspan="2" style="background:linear-gradient(135deg,#7f1d1d,#b91c1c);font-size:.65rem;letter-spacing:.04em;white-space:nowrap">Lost</th>
+        </tr>
+        <tr style="background:linear-gradient(135deg,#065f46 0%,#047857 100%);color:#fff;text-align:center;font-size:.63rem;line-height:1.2">
+          <th style="white-space:nowrap">Possessed</th>
+          <th style="white-space:nowrap">On Stock</th>
+          <th style="background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">PAR</th>
+          <th style="background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">TR</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="ammo-tbody">
         {% for g in grouped_ammo %}
-        <tr>
+        <tr data-ammo-type="{{ g.type }}">
           <td><a href="{% url 'ammunition-lots-by-type' g.type %}" class="ammo-drill">{{ g.type }}</a></td>
-          <td>{{ g.possessed|intcomma }}</td>
-          <td style="color:var(--green)">{{ g.on_stock|intcomma }}</td>
-          <td style="{% if g.issued_par %}color:var(--primary);font-weight:700{% else %}color:var(--muted){% endif %}">{{ g.issued_par|intcomma }}</td>
-          <td style="{% if g.issued_tr %}color:var(--primary);font-weight:700{% else %}color:var(--muted){% endif %}">{{ g.issued_tr|intcomma }}</td>
+          <td class="ammo-possessed">{{ g.possessed|intcomma }}</td>
+          <td class="ammo-on-stock" style="color:var(--green)">{{ g.on_stock|intcomma }}</td>
+          <td class="ammo-par" style="{% if g.issued_par %}color:var(--primary);font-weight:700{% else %}color:var(--muted){% endif %}">{{ g.issued_par|intcomma }}</td>
+          <td class="ammo-tr" style="{% if g.issued_tr %}color:var(--primary);font-weight:700{% else %}color:var(--muted){% endif %}">{{ g.issued_tr|intcomma }}</td>
+          <td class="ammo-serviceable" style="color:var(--green)">{{ g.on_stock|intcomma }}</td>
+          <td>0</td>
+          <td>0</td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1.5rem">No ammunition records found.</td></tr>
+        <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:1.5rem">No ammunition records found.</td></tr>
         {% endfor %}
       </tbody>
       <tfoot>
         <tr>
-          <td style="font-weight:700">TOTAL</td>
-          <td style="font-weight:700">{{ total_possessed|intcomma }}</td>
-          <td style="font-weight:700;color:var(--green)">{{ total_on_stock|intcomma }}</td>
-          <td style="font-weight:700">{{ total_issued_par|intcomma }}</td>
-          <td style="font-weight:700">{{ total_issued_tr|intcomma }}</td>
+          <td>&#9658; SUB-TOTAL</td>
+          <td>{{ total_possessed|intcomma }}</td>
+          <td>{{ total_on_stock|intcomma }}</td>
+          <td>{{ total_issued_par|intcomma }}</td>
+          <td>{{ total_issued_tr|intcomma }}</td>
+          <td>{{ total_on_stock|intcomma }}</td>
+          <td>0</td>
+          <td>0</td>
         </tr>
       </tfoot>
     </table>
+
   </div>
 </div>
 {% endblock %}

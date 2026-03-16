@@ -50,11 +50,49 @@
   .lot-stat-lbl { font-size: .62rem; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; margin-top: .1rem; }
   .lot-meta { font-size: .68rem; color: var(--muted); margin-top: .25rem; }
   .lot-actions { display: flex; gap: .4rem; margin-left: auto; }
+  /* Summary bar */
+  .lot-summary {
+    background: linear-gradient(90deg,#0ca678,#047857);
+    color: #fff;
+    border-radius: .6rem;
+    padding: .7rem 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 1.4rem;
+    font-size: .78rem;
+    font-weight: 700;
+  }
+  .lot-summary-lbl { font-size: .62rem; letter-spacing: .06em; opacity: .85; text-transform: uppercase; }
   [data-theme="light"] .lot-card { box-shadow: 0 1px 4px rgba(0,0,0,.07); }
 </style>
 {% endblock %}
 
 {% block content %}
+{% if lots %}
+<!-- Summary bar -->
+<div class="lot-summary" style="margin-bottom:1rem">
+  <div>
+    <div class="lot-summary-lbl">Total Lots</div>
+    <div>{{ lots|length }}</div>
+  </div>
+  <div>
+    <div class="lot-summary-lbl">Possessed</div>
+    <div>{{ total_possessed|intcomma }}</div>
+  </div>
+  <div>
+    <div class="lot-summary-lbl">On Stock</div>
+    <div>{{ total_on_stock|intcomma }}</div>
+  </div>
+  <div>
+    <div class="lot-summary-lbl">Issued PAR</div>
+    <div>{{ total_issued_par|intcomma }}</div>
+  </div>
+  <div>
+    <div class="lot-summary-lbl">Issued TR</div>
+    <div>{{ total_issued_tr|intcomma }}</div>
+  </div>
+</div>
+{% endif %}
 
 <div class="lot-list">
   {% for lot in lots %}
