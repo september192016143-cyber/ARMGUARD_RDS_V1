@@ -365,6 +365,34 @@ class AmmunitionListView(LoginRequiredMixin, ListView):
         ctx['can_add'] = can_add(self.request.user)
         ctx['can_edit'] = can_edit(self.request.user)
         ctx['can_delete'] = can_delete(self.request.user)
+        # Group all lots by ammo type
+        type_map = {}
+        for a in self.object_list:
+            if a.type not in type_map:
+                type_map[a.type] = {
+                    'type': a.type, '_order': a.type_order,
+                    '_qty': 0, '_pi': 0, '_ri': 0,
+                    '_pp': 0, '_rp': 0, '_pt': 0, '_rt': 0, '_os': 0,
+                }
+            g = type_map[a.type]
+            g['_qty'] += a.quantity
+            g['_pi'] += a.pistol_issued
+            g['_ri'] += a.rifle_issued
+            g['_pp'] += a.pistol_issued_par
+            g['_rp'] += a.rifle_issued_par
+            g['_pt'] += a.pistol_issued_tr
+            g['_rt'] += a.rifle_issued_tr
+            g['_os'] += a.on_stock
+        ctx['grouped_ammo'] = [
+            {
+                'type': g['type'],
+                'possessed': g['_qty'] + g['_pi'] + g['_ri'],
+                'on_stock': g['_os'],
+                'issued_par': g['_pp'] + g['_rp'],
+                'issued_tr': g['_pt'] + g['_rt'],
+            }
+            for g in sorted(type_map.values(), key=lambda x: x['_order'])
+        ]
         totals = self.object_list.aggregate(
             total_on_stock=Sum('quantity'),
             total_pistol_issued=Sum('pistol_issued'),
@@ -386,7 +414,7 @@ class AmmunitionListView(LoginRequiredMixin, ListView):
 
 @login_required
 def ammunition_stock_json(request):
-    """JSON endpoint for real-time ammo polling — returns possessed/on_stock/par/tr per lot."""
+    """JSON endpoint: returns possessed/on_stock/par/tr grouped by ammo type."""
     pistol_sub, rifle_sub, pistol_par, rifle_par, pistol_tr, rifle_tr = _ammo_issued_subqueries()
     rows = Ammunition.objects.annotate(
         pistol_issued=Coalesce(Subquery(pistol_sub, output_field=IntegerField()), Value(0)),
@@ -395,19 +423,20 @@ def ammunition_stock_json(request):
         rifle_issued_par=Coalesce(Subquery(rifle_par, output_field=IntegerField()), Value(0)),
         pistol_issued_tr=Coalesce(Subquery(pistol_tr, output_field=IntegerField()), Value(0)),
         rifle_issued_tr=Coalesce(Subquery(rifle_tr, output_field=IntegerField()), Value(0)),
-    ).values('pk', 'quantity', 'pistol_issued', 'rifle_issued',
+    ).values('type', 'quantity', 'pistol_issued', 'rifle_issued',
              'pistol_issued_par', 'rifle_issued_par', 'pistol_issued_tr', 'rifle_issued_tr')
-    data = []
+    groups = {}
     for r in rows:
-        total_issued = r['pistol_issued'] + r['rifle_issued']
-        data.append({
-            'pk': r['pk'],
-            'possessed': r['quantity'] + total_issued,
-            'on_stock': r['quantity'],
-            'issued_par': r['pistol_issued_par'] + r['rifle_issued_par'],
-            'issued_tr': r['pistol_issued_tr'] + r['rifle_issued_tr'],
-        })
-    return JsonResponse({'items': data})
+        t = r['type']
+        if t not in groups:
+            groups[t] = {'type': t, 'possessed': 0, 'on_stock': 0, 'issued_par': 0, 'issued_tr': 0}
+        g = groups[t]
+        issued = r['pistol_issued'] + r['rifle_issued']
+        g['possessed'] += r['quantity'] + issued
+        g['on_stock'] += r['quantity'] - issued
+        g['issued_par'] += r['pistol_issued_par'] + r['rifle_issued_par']
+        g['issued_tr'] += r['pistol_issued_tr'] + r['rifle_issued_tr']
+    return JsonResponse({'items': list(groups.values())})
 
 
 class AmmunitionCreateView(_InventorySaveMixin, CreateView):

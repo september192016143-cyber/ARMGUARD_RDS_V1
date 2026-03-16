@@ -9,7 +9,7 @@
   function refresh() {
     fetch(API).then(function (r) { return r.json(); }).then(function (data) {
       data.items.forEach(function (item) {
-        var row = document.querySelector('tr[data-ammo-pk="' + item.pk + '"]');
+        var row = document.querySelector('tr[data-ammo-type="' + item.type + '"]');
         if (!row) return;
 
         var possessedEl = row.querySelector('.ammo-possessed');
@@ -18,27 +18,27 @@
         var onStockEl = row.querySelector('.ammo-on-stock');
         if (onStockEl) {
           onStockEl.textContent = fmt(item.on_stock);
-          onStockEl.style.color = item.on_stock === 0 ? 'var(--red)' : '#3cb83c';
+          onStockEl.style.color = item.on_stock === 0 ? 'var(--red)' : 'var(--green)';
         }
 
         var parEl = row.querySelector('.ammo-par');
         if (parEl) {
           parEl.textContent = fmt(item.issued_par);
-          parEl.style.color = item.issued_par > 0 ? '#f0a030' : 'var(--muted)';
+          parEl.style.color = item.issued_par > 0 ? 'var(--primary)' : 'var(--muted)';
           parEl.style.fontWeight = item.issued_par > 0 ? '700' : '';
         }
 
         var trEl = row.querySelector('.ammo-tr');
         if (trEl) {
           trEl.textContent = fmt(item.issued_tr);
-          trEl.style.color = item.issued_tr > 0 ? '#f0a030' : 'var(--muted)';
+          trEl.style.color = item.issued_tr > 0 ? 'var(--primary)' : 'var(--muted)';
           trEl.style.fontWeight = item.issued_tr > 0 ? '700' : '';
         }
 
         var svcEl = row.querySelector('.ammo-serviceable');
         if (svcEl) {
           svcEl.textContent = fmt(item.on_stock);
-          svcEl.style.color = item.on_stock === 0 ? 'var(--red)' : '#3cb83c';
+          svcEl.style.color = item.on_stock === 0 ? 'var(--red)' : 'var(--green)';
         }
       });
     }).catch(function () {});
