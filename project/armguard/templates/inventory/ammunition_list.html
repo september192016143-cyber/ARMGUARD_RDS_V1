@@ -49,7 +49,9 @@
   }
   [data-theme="light"] .ammo-report thead th { color: #fff !important; }
   [data-theme="light"] .ammo-report tbody td,
-  [data-theme="light"] .ammo-report tbody td * { color: #000 !important; }
+  [data-theme="light"] .ammo-report tbody td *:not(.ammo-drill) { color: #000 !important; }
+  [data-theme="light"] .ammo-drill { color: #0d1f35; }
+  [data-theme="light"] .ammo-drill:hover { color: #2563eb !important; }
   [data-theme="light"] .ammo-report tbody tr:nth-child(even) td { background: rgba(12,166,120,.09); }
   .ammo-drill {
     color: inherit;
