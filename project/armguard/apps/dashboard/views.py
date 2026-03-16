@@ -182,7 +182,8 @@ def _build_ammo_table():
         log_status__in=open_statuses,
     ).values_list('withdraw_pistol_ammunition__type',
                   'withdraw_pistol_ammunition_quantity',
-                  'return_pistol_ammunition_quantity')
+                  'return_pistol_ammunition_quantity',
+                  'issuance_type')
 
     # Single query for all open rifle-ammo log quantities
     rifle_logs = TransactionLogs.objects.filter(
@@ -190,16 +191,24 @@ def _build_ammo_table():
         log_status__in=open_statuses,
     ).values_list('withdraw_rifle_ammunition__type',
                   'withdraw_rifle_ammunition_quantity',
-                  'return_rifle_ammunition_quantity')
+                  'return_rifle_ammunition_quantity',
+                  'issuance_type')
 
-    # Accumulate issued qty per ammo type
+    # Accumulate issued qty per ammo type (total, PAR, TR)
     issued_map: dict[str, int] = {}
-    for ammo_type, w, r in list(pistol_logs) + list(rifle_logs):
+    issued_par_map: dict[str, int] = {}
+    issued_tr_map: dict[str, int] = {}
+    for ammo_type, w, r, itype in list(pistol_logs) + list(rifle_logs):
         if ammo_type:
-            issued_map[ammo_type] = issued_map.get(ammo_type, 0) + max((w or 0) - (r or 0), 0)
+            net = max((w or 0) - (r or 0), 0)
+            issued_map[ammo_type] = issued_map.get(ammo_type, 0) + net
+            if itype and 'PAR' in itype:
+                issued_par_map[ammo_type] = issued_par_map.get(ammo_type, 0) + net
+            elif itype and 'TR' in itype:
+                issued_tr_map[ammo_type] = issued_tr_map.get(ammo_type, 0) + net
 
     rows = []
-    totals = {k: 0 for k in ('basic_load', 'training', 'issued',
+    totals = {k: 0 for k in ('basic_load', 'issued', 'issued_par', 'issued_tr',
                               'unserviceable', 'expenditures', 'on_hand', 'lost')}
     list_url = reverse('ammunition-list')
 
@@ -210,8 +219,9 @@ def _build_ammo_table():
             nomenclature=_AMMO_NOMENCLATURE.get(ammo_type, ammo_type),
             ammo_type=ammo_type,
             basic_load=on_hand + issued,
-            training=0,
             issued=issued,
+            issued_par=issued_par_map.get(ammo_type, 0),
+            issued_tr=issued_tr_map.get(ammo_type, 0),
             unserviceable=0,
             expenditures=0,
             on_hand=on_hand,
@@ -607,12 +617,12 @@ def dashboard_tables_json(request):
         'ammo': {
             'rows': [
                 _row_fields(r, ['nomenclature', 'basic_load', 'on_hand', 'issued',
-                                'expenditures', 'unserviceable', 'lost'])
+                                'issued_par', 'issued_tr', 'expenditures', 'unserviceable', 'lost'])
                 for r in ammo_rows
             ],
             'totals': _row_fields(ammo_totals,
                                   ['basic_load', 'on_hand', 'issued',
-                                   'expenditures', 'unserviceable', 'lost']),
+                                   'issued_par', 'issued_tr', 'expenditures', 'unserviceable', 'lost']),
         },
         'magazine': {
             'rows': [
