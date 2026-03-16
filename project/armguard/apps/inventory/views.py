@@ -454,10 +454,11 @@ class AmmunitionLotsByTypeView(LoginRequiredMixin, ListView):
     model = Ammunition
     template_name = 'inventory/ammunition_lots_by_type.html'
     context_object_name = 'lots'
+    paginate_by = 25
 
     def get_queryset(self):
         pistol_sub, rifle_sub, pistol_par, rifle_par, pistol_tr, rifle_tr = _ammo_issued_subqueries()
-        return Ammunition.objects.filter(type=self.kwargs['ammo_type']).annotate(
+        qs = Ammunition.objects.filter(type=self.kwargs['ammo_type']).annotate(
             pistol_issued=Coalesce(Subquery(pistol_sub, output_field=IntegerField()), Value(0)),
             rifle_issued=Coalesce(Subquery(rifle_sub, output_field=IntegerField()), Value(0)),
             pistol_issued_par=Coalesce(Subquery(pistol_par, output_field=IntegerField()), Value(0)),
@@ -470,6 +471,10 @@ class AmmunitionLotsByTypeView(LoginRequiredMixin, ListView):
                 output_field=IntegerField()
             )
         ).order_by('lot_number')
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(lot_number__icontains=q)
+        return qs
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -477,7 +482,22 @@ class AmmunitionLotsByTypeView(LoginRequiredMixin, ListView):
         ctx['can_add'] = can_add(self.request.user)
         ctx['can_edit'] = can_edit(self.request.user)
         ctx['can_delete'] = can_delete(self.request.user)
-        totals = self.get_queryset().aggregate(
+        ctx['q'] = self.request.GET.get('q', '')
+        # Totals across ALL lots of this type (unfiltered)
+        ps, rs, pp, rp, pt, rt = _ammo_issued_subqueries()
+        totals = Ammunition.objects.filter(type=self.kwargs['ammo_type']).annotate(
+            pistol_issued=Coalesce(Subquery(ps, output_field=IntegerField()), Value(0)),
+            rifle_issued=Coalesce(Subquery(rs, output_field=IntegerField()), Value(0)),
+            pistol_issued_par=Coalesce(Subquery(pp, output_field=IntegerField()), Value(0)),
+            rifle_issued_par=Coalesce(Subquery(rp, output_field=IntegerField()), Value(0)),
+            pistol_issued_tr=Coalesce(Subquery(pt, output_field=IntegerField()), Value(0)),
+            rifle_issued_tr=Coalesce(Subquery(rt, output_field=IntegerField()), Value(0)),
+        ).annotate(
+            on_stock=ExpressionWrapper(
+                F('quantity') - F('pistol_issued') - F('rifle_issued'),
+                output_field=IntegerField()
+            )
+        ).aggregate(
             total_qty=Sum('quantity'),
             total_pi=Sum('pistol_issued'),
             total_ri=Sum('rifle_issued'),
