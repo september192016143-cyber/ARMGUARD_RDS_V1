@@ -127,8 +127,7 @@
               <th style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#1f2937,#374151);white-space:nowrap">Tampered</th>
             </tr>
           </thead>
-          <tbody>
-            {% for row in inventory_rows %}
+          <tbody id="tbl-inventory-body">
             <tr style="border-bottom:1px solid rgba(24,103,212,.1);background:{% if forloop.even %}rgba(24,103,212,.04){% else %}transparent{% endif %};transition:background .15s">
               <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.possessed|intcomma }}</td>
@@ -143,7 +142,7 @@
             </tr>
             {% endfor %}
           </tbody>
-          <tfoot>
+          <tfoot id="tbl-inventory-foot">
             <tr style="background:linear-gradient(90deg,#1867d4 0%,#1a3f70 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #1867d4;font-size:0.76rem">
               <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
               <td style="padding:6px 2px">{{ inventory_totals.possessed|intcomma }}</td>
@@ -180,7 +179,7 @@
               <th style="padding:7px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;white-space:nowrap">ACTION</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="tbl-accessory-body">
             {% for row in accessory_rows %}
             <tr style="border-bottom:1px solid rgba(124,58,237,.1);background:{% if forloop.even %}rgba(124,58,237,.04){% else %}transparent{% endif %};transition:background .15s">
               <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
@@ -190,7 +189,7 @@
             </tr>
             {% endfor %}
           </tbody>
-          <tfoot>
+          <tfoot id="tbl-accessory-foot">
             <tr style="background:linear-gradient(90deg,#7c3aed 0%,#4c1d95 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #7c3aed;font-size:0.76rem">
               <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
               <td style="padding:6px 2px">{{ accessory_totals.on_stock|intcomma }}</td>
@@ -230,7 +229,7 @@
               <th style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);white-space:nowrap">Issued</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="tbl-ammo-body">
             {% for row in ammo_rows %}
             <tr style="border-bottom:1px solid rgba(12,166,120,.1);background:{% if forloop.even %}rgba(12,166,120,.04){% else %}transparent{% endif %};transition:background .15s">
               <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
@@ -245,7 +244,7 @@
             </tr>
             {% endfor %}
           </tbody>
-          <tfoot>
+          <tfoot id="tbl-ammo-foot">
             <tr style="background:linear-gradient(90deg,#0ca678 0%,#047857 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #0ca678;font-size:0.76rem">
               <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
               <td style="padding:6px 2px">{{ ammo_totals.basic_load|intcomma }}</td>
@@ -281,7 +280,7 @@
               <th style="padding:7px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;white-space:nowrap">ACTION</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="tbl-magazine-body">
             {% for row in magazine_rows %}
             <tr style="border-bottom:1px solid rgba(29,78,216,.1);background:{% if forloop.even %}rgba(29,78,216,.04){% else %}transparent{% endif %};transition:background .15s">
               <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
@@ -291,7 +290,7 @@
             </tr>
             {% endfor %}
           </tbody>
-          <tfoot>
+          <tfoot id="tbl-magazine-foot">
             <tr style="background:linear-gradient(90deg,#1d4ed8 0%,#1e3a8a 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #1d4ed8;font-size:0.76rem">
               <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
               <td style="padding:6px 2px">{{ magazine_totals.on_stock|intcomma }}</td>
@@ -309,7 +308,9 @@
 </div>
 
 <span id="dashboard-poll-meta" data-url="{% url 'dashboard-cards-json' %}" hidden></span>
+<span id="dashboard-tables-poll-meta" data-url="{% url 'dashboard-tables-json' %}" hidden></span>
 <script src="{% static 'js/dashboard_cards.js' %}"></script>
+<script src="{% static 'js/dashboard_tables.js' %}"></script>
 
 {% endblock %}
 

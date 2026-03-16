@@ -521,6 +521,58 @@ def dashboard_cards_json(request):
 
 
 @login_required
+def dashboard_tables_json(request):
+    """Return live analytics table data for all four tables — used by real-time poller."""
+    from django.http import JsonResponse
+
+    inventory_rows, inventory_totals = _build_inventory_table()
+    ammo_rows,      ammo_totals      = _build_ammo_table()
+    magazine_rows,  magazine_totals  = _build_magazine_table()
+    accessory_rows, accessory_totals = _build_accessory_table()
+
+    def _row_fields(row, keys):
+        return {k: row.get(k, 0) for k in keys}
+
+    return JsonResponse({
+        'inventory': {
+            'rows': [
+                _row_fields(r, ['nomenclature', 'possessed', 'on_stock',
+                                'issued_par', 'issued_tr',
+                                'serviceable', 'unserviceable', 'lost', 'tampered'])
+                for r in inventory_rows
+            ],
+            'totals': _row_fields(inventory_totals,
+                                  ['possessed', 'on_stock', 'issued_par', 'issued_tr',
+                                   'serviceable', 'unserviceable', 'lost', 'tampered']),
+        },
+        'ammo': {
+            'rows': [
+                _row_fields(r, ['nomenclature', 'basic_load', 'training', 'issued',
+                                'unserviceable', 'expenditures', 'on_hand', 'lost'])
+                for r in ammo_rows
+            ],
+            'totals': _row_fields(ammo_totals,
+                                  ['basic_load', 'training', 'issued',
+                                   'unserviceable', 'expenditures', 'on_hand', 'lost']),
+        },
+        'magazine': {
+            'rows': [
+                _row_fields(r, ['nomenclature', 'on_stock', 'issued'])
+                for r in magazine_rows
+            ],
+            'totals': _row_fields(magazine_totals, ['on_stock', 'issued']),
+        },
+        'accessory': {
+            'rows': [
+                _row_fields(r, ['nomenclature', 'on_stock', 'issued'])
+                for r in accessory_rows
+            ],
+            'totals': _row_fields(accessory_totals, ['on_stock', 'issued']),
+        },
+    })
+
+
+@login_required
 def issued_stats_json(request):
     """Return live issued TR/PAR counts — no cache — for real-time polling."""
     from django.http import JsonResponse
