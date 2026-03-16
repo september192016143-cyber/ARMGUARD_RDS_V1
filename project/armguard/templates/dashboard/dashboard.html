@@ -128,6 +128,7 @@
             </tr>
           </thead>
           <tbody id="tbl-inventory-body">
+            {% for row in inventory_rows %}
             <tr style="border-bottom:1px solid rgba(24,103,212,.1);background:{% if forloop.even %}rgba(24,103,212,.04){% else %}transparent{% endif %};transition:background .15s">
               <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.possessed|intcomma }}</td>
