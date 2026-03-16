@@ -58,6 +58,8 @@ def _build_inventory_table():
     # 5.6 FIX: Replace 10 per-model queries with 2 grouped aggregate queries
     # (one for Pistol, one for Rifle), then merge into the display order.
     from armguard.apps.inventory.models import Pistol, Rifle
+    from armguard.apps.transactions.models import Transaction as _Txn
+    from django.db.models import Subquery, OuterRef
     from django.urls import reverse
     from urllib.parse import quote
 
@@ -81,16 +83,59 @@ def _build_inventory_table():
         for row in Rifle.objects.values('model').annotate(**_AGG_FIELDS)
     }
 
+    # PAR / TR split — subquery: latest withdrawal issuance_type per item
+    _pistol_issuance = (
+        _Txn.objects
+        .filter(transaction_type='Withdrawal', pistol=OuterRef('pk'))
+        .order_by('-timestamp')
+        .values('issuance_type')[:1]
+    )
+    _rifle_issuance = (
+        _Txn.objects
+        .filter(transaction_type='Withdrawal', rifle=OuterRef('pk'))
+        .order_by('-timestamp')
+        .values('issuance_type')[:1]
+    )
+
+    _pistol_par_tr = {
+        row['model']: row
+        for row in (
+            Pistol.objects
+            .annotate(last_issuance=Subquery(_pistol_issuance))
+            .filter(item_status='Issued')
+            .values('model')
+            .annotate(
+                issued_par=Count('item_id', filter=Q(last_issuance__startswith='PAR')),
+                issued_tr =Count('item_id', filter=Q(last_issuance__startswith='TR')),
+            )
+        )
+    }
+    _rifle_par_tr = {
+        row['model']: row
+        for row in (
+            Rifle.objects
+            .annotate(last_issuance=Subquery(_rifle_issuance))
+            .filter(item_status='Issued')
+            .values('model')
+            .annotate(
+                issued_par=Count('item_id', filter=Q(last_issuance__startswith='PAR')),
+                issued_tr =Count('item_id', filter=Q(last_issuance__startswith='TR')),
+            )
+        )
+    }
+
     _zero = {k: 0 for k in _AGG_FIELDS}
     data = {}
     for model_name in _MODEL_ORDER:
         nom = _NOMENCLATURE.get(model_name, '')
         if 'Pistol' in nom or 'pistol' in model_name.lower():
             url_name, item_type = 'pistol-list', 'pistol'
-            agg = pistol_data.get(model_name, {**_zero, 'model': model_name})
+            agg     = pistol_data.get(model_name, {**_zero, 'model': model_name})
+            par_tr  = _pistol_par_tr.get(model_name, {})
         else:
             url_name, item_type = 'rifle-list', 'rifle'
-            agg = rifle_data.get(model_name, {**_zero, 'model': model_name})
+            agg     = rifle_data.get(model_name, {**_zero, 'model': model_name})
+            par_tr  = _rifle_par_tr.get(model_name, {})
 
         data[model_name] = dict(
             nomenclature=nom,
@@ -98,6 +143,8 @@ def _build_inventory_table():
             model=model_name,
             list_url=reverse(url_name) + f'?q={quote(model_name)}',
             **{k: agg.get(k, 0) for k in _AGG_FIELDS},
+            issued_par=par_tr.get('issued_par', 0),
+            issued_tr =par_tr.get('issued_tr',  0),
         )
 
     rows = [data[m] for m in _MODEL_ORDER]
@@ -106,6 +153,7 @@ def _build_inventory_table():
         return sum(r[col] for r in rows)
 
     totals = {k: _sum(k) for k in ('possessed', 'on_stock', 'issued',
+                                    'issued_par', 'issued_tr',
                                     'serviceable', 'unserviceable', 'lost', 'tampered')}
     return rows, totals
 
