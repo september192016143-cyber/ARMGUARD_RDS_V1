@@ -20,76 +20,120 @@
 
 {% block extra_css %}
 <style>
-  .lot-list { display: flex; flex-direction: column; gap: .75rem; }
+  /* ── Summary row ── */
+  .lot-summary-row {
+    display: flex;
+    gap: .6rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .lot-sum-card {
+    flex: 1;
+    min-width: 110px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: .55rem;
+    padding: .6rem .9rem;
+    display: flex;
+    flex-direction: column;
+    gap: .1rem;
+  }
+  .lot-sum-card.accent-green { border-left: 3px solid var(--green); }
+  .lot-sum-card.accent-blue  { border-left: 3px solid var(--primary); }
+  .lot-sum-card.accent-em    { border-left: 3px solid #0ca678; background: linear-gradient(135deg,#064e3b,#065f46); color:#fff; }
+  .lot-sum-lbl { font-size: .6rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+  .lot-sum-card.accent-em .lot-sum-lbl { color: rgba(255,255,255,.75); }
+  .lot-sum-val { font-size: 1.05rem; font-weight: 800; line-height: 1.2; }
+
+  /* ── Lot cards ── */
+  .lot-list { display: flex; flex-direction: column; gap: .6rem; }
   .lot-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: .6rem;
-    padding: .9rem 1.1rem;
-    display: flex;
+    border-left: 4px solid #065f46;
+    border-radius: .55rem;
+    padding: .75rem 1rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    gap: 1.2rem;
+    gap: 1rem;
     transition: box-shadow .18s, transform .15s;
   }
-  .lot-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,.18); transform: translateY(-1px); }
-  .lot-badge {
-    background: linear-gradient(135deg,#064e3b,#065f46);
-    color: #fff;
-    border-radius: .45rem;
-    padding: .45rem .85rem;
-    font-size: .7rem;
-    font-weight: 700;
-    letter-spacing: .06em;
-    white-space: nowrap;
-    min-width: 130px;
-    text-align: center;
-  }
-  .lot-stats { display: flex; gap: 1.4rem; flex-wrap: wrap; flex: 1; }
-  .lot-stat { display: flex; flex-direction: column; align-items: center; min-width: 64px; }
-  .lot-stat-val { font-size: .95rem; font-weight: 700; line-height: 1.2; }
-  .lot-stat-lbl { font-size: .62rem; color: var(--muted); letter-spacing: .05em; text-transform: uppercase; margin-top: .1rem; }
-  .lot-meta { font-size: .68rem; color: var(--muted); margin-top: .25rem; }
-  .lot-actions { display: flex; gap: .4rem; margin-left: auto; }
-  /* Summary bar */
-  .lot-summary {
-    background: linear-gradient(90deg,#0ca678,#047857);
-    color: #fff;
-    border-radius: .6rem;
-    padding: .7rem 1.1rem;
+  .lot-card:hover { box-shadow: 0 6px 22px rgba(0,0,0,.2); transform: translateY(-1px); }
+
+  /* Left: lot identity */
+  .lot-identity { min-width: 160px; }
+  .lot-number {
+    font-size: .82rem;
+    font-weight: 800;
+    letter-spacing: .04em;
     display: flex;
     align-items: center;
-    gap: 1.4rem;
-    font-size: .78rem;
-    font-weight: 700;
+    gap: .45rem;
   }
-  .lot-summary-lbl { font-size: .62rem; letter-spacing: .06em; opacity: .85; text-transform: uppercase; }
-  [data-theme="light"] .lot-card { box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .lot-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg,#064e3b,#0ca678);
+    border-radius: .35rem;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: .75rem; flex-shrink: 0;
+  }
+  .lot-meta { font-size: .66rem; color: var(--muted); margin-top: .25rem; line-height: 1.5; }
+  .lot-desc { font-size: .65rem; color: var(--muted); font-style: italic; margin-top: .1rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Middle: stats chips */
+  .lot-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .lot-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--bg, rgba(255,255,255,.04));
+    border: 1px solid var(--border);
+    border-radius: .4rem;
+    padding: .35rem .65rem;
+    min-width: 68px;
+  }
+  .lot-chip-val { font-size: .88rem; font-weight: 700; line-height: 1.15; }
+  .lot-chip-lbl { font-size: .58rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: .1rem; }
+  .lot-chip.c-green { border-color: var(--green); }
+  .lot-chip.c-green .lot-chip-val { color: var(--green); }
+  .lot-chip.c-blue  { border-color: var(--primary); }
+  .lot-chip.c-blue  .lot-chip-val { color: var(--primary); }
+  .lot-chip.c-muted .lot-chip-val { color: var(--muted); }
+
+  /* Right: actions */
+  .lot-actions { display: flex; flex-direction: column; gap: .35rem; }
+
+  /* Day mode tweaks */
+  [data-theme="light"] .lot-card { box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  [data-theme="light"] .lot-chip { background: #f8fafc; }
 </style>
 {% endblock %}
 
 {% block content %}
+
 {% if lots %}
-<!-- Summary bar -->
-<div class="lot-summary" style="margin-bottom:1rem">
-  <div>
-    <div class="lot-summary-lbl">Total Lots</div>
-    <div>{{ lots|length }}</div>
+<!-- Summary stat cards -->
+<div class="lot-summary-row">
+  <div class="lot-sum-card accent-em">
+    <span class="lot-sum-lbl">Total Lots</span>
+    <span class="lot-sum-val">{{ lots|length }}</span>
   </div>
-  <div>
-    <div class="lot-summary-lbl">Possessed</div>
-    <div>{{ total_possessed|intcomma }}</div>
+  <div class="lot-sum-card">
+    <span class="lot-sum-lbl">Possessed</span>
+    <span class="lot-sum-val">{{ total_possessed|intcomma }}</span>
   </div>
-  <div>
-    <div class="lot-summary-lbl">On Stock</div>
-    <div>{{ total_on_stock|intcomma }}</div>
+  <div class="lot-sum-card accent-green">
+    <span class="lot-sum-lbl">On Stock</span>
+    <span class="lot-sum-val" style="color:var(--green)">{{ total_on_stock|intcomma }}</span>
   </div>
-  <div>
-    <div class="lot-summary-lbl">Issued PAR</div>
-    <div>{{ total_issued_par|intcomma }}</div>
+  <div class="lot-sum-card accent-blue">
+    <span class="lot-sum-lbl">Issued PAR</span>
+    <span class="lot-sum-val" style="color:var(--primary)">{{ total_issued_par|intcomma }}</span>
   </div>
-  <div>
-    <div class="lot-summary-lbl">Issued TR</div>
-    <div>{{ total_issued_tr|intcomma }}</div>
+  <div class="lot-sum-card accent-blue">
+    <span class="lot-sum-lbl">Issued TR</span>
+    <span class="lot-sum-val" style="color:var(--primary)">{{ total_issued_tr|intcomma }}</span>
   </div>
 </div>
 {% endif %}
@@ -98,43 +142,65 @@
   {% for lot in lots %}
   {% with par=lot.pistol_issued_par|add:lot.rifle_issued_par tr=lot.pistol_issued_tr|add:lot.rifle_issued_tr possessed=lot.quantity|add:lot.pistol_issued|add:lot.rifle_issued %}
   <div class="lot-card">
-    <div>
-      <div class="lot-badge"><i class="fa-solid fa-boxes-stacked" style="margin-right:.3rem"></i>{{ lot.lot_number }}</div>
-      {% if lot.created %}<div class="lot-meta">Added {{ lot.created|date:"d M Y" }}{% if lot.created_by %} by {{ lot.created_by }}{% endif %}</div>{% endif %}
-      {% if lot.description %}<div class="lot-meta" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ lot.description }}">{{ lot.description }}</div>{% endif %}
+
+    <!-- Identity -->
+    <div class="lot-identity">
+      <div class="lot-number">
+        <span class="lot-icon"><i class="fa-solid fa-box-archive"></i></span>
+        {{ lot.lot_number }}
+      </div>
+      {% if lot.created %}
+      <div class="lot-meta">
+        <i class="fa-regular fa-calendar" style="width:12px"></i>
+        Added {{ lot.created|date:"d M Y" }}{% if lot.created_by %} &bull; {{ lot.created_by }}{% endif %}
+      </div>
+      {% endif %}
+      {% if lot.description %}
+      <div class="lot-desc" title="{{ lot.description }}">
+        <i class="fa-solid fa-note-sticky" style="width:11px"></i> {{ lot.description }}
+      </div>
+      {% endif %}
     </div>
-    <div class="lot-stats">
-      <div class="lot-stat">
-        <span class="lot-stat-val">{{ possessed|intcomma }}</span>
-        <span class="lot-stat-lbl">Possessed</span>
+
+    <!-- Stat chips -->
+    <div class="lot-chips">
+      <div class="lot-chip">
+        <span class="lot-chip-val">{{ possessed|intcomma }}</span>
+        <span class="lot-chip-lbl">Possessed</span>
       </div>
-      <div class="lot-stat">
-        <span class="lot-stat-val" style="color:var(--green)">{{ lot.on_stock|intcomma }}</span>
-        <span class="lot-stat-lbl">On Stock</span>
+      <div class="lot-chip c-green">
+        <span class="lot-chip-val">{{ lot.on_stock|intcomma }}</span>
+        <span class="lot-chip-lbl">On Stock</span>
       </div>
-      <div class="lot-stat">
-        <span class="lot-stat-val" style="{% if par %}color:var(--primary){% else %}color:var(--muted){% endif %}">{{ par|intcomma }}</span>
-        <span class="lot-stat-lbl">PAR</span>
+      <div class="lot-chip {% if par %}c-blue{% else %}c-muted{% endif %}">
+        <span class="lot-chip-val">{{ par|intcomma }}</span>
+        <span class="lot-chip-lbl">PAR</span>
       </div>
-      <div class="lot-stat">
-        <span class="lot-stat-val" style="{% if tr %}color:var(--primary){% else %}color:var(--muted){% endif %}">{{ tr|intcomma }}</span>
-        <span class="lot-stat-lbl">TR</span>
+      <div class="lot-chip {% if tr %}c-blue{% else %}c-muted{% endif %}">
+        <span class="lot-chip-val">{{ tr|intcomma }}</span>
+        <span class="lot-chip-lbl">TR</span>
       </div>
-      <div class="lot-stat">
-        <span class="lot-stat-val" style="color:var(--green)">{{ lot.on_stock|intcomma }}</span>
-        <span class="lot-stat-lbl">Serviceable</span>
+      <div class="lot-chip c-green">
+        <span class="lot-chip-val">{{ lot.on_stock|intcomma }}</span>
+        <span class="lot-chip-lbl">Serviceable</span>
       </div>
     </div>
+
+    <!-- Actions -->
     {% if can_edit or can_delete %}
     <div class="lot-actions">
       {% if can_edit %}<a href="{% url 'ammunition-edit' lot.pk %}" class="btn btn-xs btn-secondary" title="Edit"><i class="fa-solid fa-pen"></i></a>{% endif %}
       {% if can_delete %}<a href="{% url 'ammunition-delete' lot.pk %}" class="btn btn-xs btn-danger" title="Delete"><i class="fa-solid fa-trash"></i></a>{% endif %}
     </div>
     {% endif %}
+
   </div>
   {% endwith %}
   {% empty %}
-  <div class="card" style="text-align:center;color:var(--muted);padding:2rem">No lots found for this ammunition type.</div>
+  <div class="card" style="text-align:center;color:var(--muted);padding:2.5rem">
+    <i class="fa-solid fa-box-open" style="font-size:1.6rem;margin-bottom:.5rem;display:block"></i>
+    No lots found for this ammunition type.
+  </div>
   {% endfor %}
 </div>
 {% endblock %}
