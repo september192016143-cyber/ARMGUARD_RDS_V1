@@ -13,6 +13,18 @@
 <style>
   .analytics-table th { color: #fff !important; }
   .stat-label { color: #fff !important; }
+  .nom-link {
+    color: inherit;
+    text-decoration: none;
+    display: inline-block;
+    transition: color .18s, transform .15s, letter-spacing .15s;
+    cursor: pointer;
+  }
+  .nom-link:hover {
+    color: #2563eb;
+    transform: translateX(3px);
+    letter-spacing: .01em;
+  }
 </style>
 
 <!-- ── Stat Cards ────────────────────────────────────────────────────────── -->
@@ -129,7 +141,7 @@
           <tbody id="tbl-inventory-body">
             {% for row in inventory_rows %}
             <tr style="border-bottom:1px solid rgba(24,103,212,.1);background:{% if forloop.even %}rgba(24,103,212,.04){% else %}transparent{% endif %};transition:background .15s">
-              <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="{{ row.list_url }}" style="color:inherit;text-decoration:none;border-bottom:1px dashed currentColor" title="{{ row.nomenclature }}">{{ row.nomenclature }}</a></td>
+              <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="{{ row.list_url }}" class="nom-link" title="{{ row.nomenclature }}">{{ row.nomenclature }}</a></td>
               <td style="padding:5px 4px;text-align:center">{{ row.possessed|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.on_stock|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.issued_par|intcomma }}</td>
@@ -183,7 +195,7 @@
           <tbody id="tbl-accessory-body">
             {% for row in accessory_rows %}
             <tr style="border-bottom:1px solid rgba(124,58,237,.1);background:{% if forloop.even %}rgba(124,58,237,.04){% else %}transparent{% endif %};transition:background .15s">
-              <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="{{ row.list_url }}" style="color:inherit;text-decoration:none;border-bottom:1px dashed currentColor" title="{{ row.nomenclature }}">{{ row.nomenclature }}</a></td>
+              <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="{{ row.list_url }}" class="nom-link" title="{{ row.nomenclature }}">{{ row.nomenclature }}</a></td>
               <td style="padding:5px 4px;text-align:center">{{ row.on_stock|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.issued_par|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.issued_tr|intcomma }}</td>
@@ -233,7 +245,7 @@
           <tbody id="tbl-ammo-body">
             {% for row in ammo_rows %}
             <tr style="border-bottom:1px solid rgba(12,166,120,.1);background:{% if forloop.even %}rgba(12,166,120,.04){% else %}transparent{% endif %};transition:background .15s">
-              <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="{{ row.list_url }}" style="color:inherit;text-decoration:none;border-bottom:1px dashed currentColor" title="{{ row.nomenclature }}">{{ row.nomenclature }}</a></td>
+              <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="{{ row.list_url }}" class="nom-link" title="{{ row.nomenclature }}">{{ row.nomenclature }}</a></td>
               <td style="padding:5px 4px;text-align:center">{{ row.basic_load|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.on_hand|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.issued_par|intcomma }}</td>
@@ -285,7 +297,7 @@
           <tbody id="tbl-magazine-body">
             {% for row in magazine_rows %}
             <tr style="border-bottom:1px solid rgba(29,78,216,.1);background:{% if forloop.even %}rgba(29,78,216,.04){% else %}transparent{% endif %};transition:background .15s">
-              <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="{{ row.list_url }}" style="color:inherit;text-decoration:none;border-bottom:1px dashed currentColor" title="{{ row.nomenclature }}">{{ row.nomenclature }}</a></td>
+              <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="{{ row.list_url }}" class="nom-link" title="{{ row.nomenclature }}">{{ row.nomenclature }}</a></td>
               <td style="padding:5px 4px;text-align:center">{{ row.on_stock|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.issued_par|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.issued_tr|intcomma }}</td>
