@@ -31,7 +31,7 @@
           {% endfor %}
         </div>
         {% endif %}
-        <select id="pistol-select" name="pistol" style="width:100%;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
+        <select id="pistol-select" name="pistol" style="width:100%;background:var(--card);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
           <option value="">— None (clear assignment) —</option>
           {% for p in pistols %}
           {% if p in current_pistols %}
@@ -61,7 +61,7 @@
           {% endfor %}
         </div>
         {% endif %}
-        <select id="rifle-select" name="rifle" style="width:100%;background:var(--sidebar);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
+        <select id="rifle-select" name="rifle" style="width:100%;background:var(--card);border:1.5px solid var(--border);color:var(--text);border-radius:.4rem;font-size:.85rem;padding:.45rem .7rem;outline:none">
           <option value="">— None (clear assignment) —</option>
           {% for r in rifles %}
           {% if r in current_rifles %}
