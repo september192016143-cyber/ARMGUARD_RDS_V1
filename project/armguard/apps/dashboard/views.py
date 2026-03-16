@@ -236,47 +236,40 @@ def _build_magazine_table():
         row['type']: row['total']
         for row in Magazine.objects.values('type').annotate(total=Sum('quantity'))
     }
+    # Query per magazine type to avoid double-counting Short/Long
+    def _mag_net(qs):
+        a = qs.aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
+        return max((a['w'] or 0) - (a['r'] or 0), 0)
+
     pistol_agg = TransactionLogs.objects.filter(
         log_status__in=open_statuses,
         withdraw_pistol_magazine_quantity__isnull=False,
     ).aggregate(w=Sum('withdraw_pistol_magazine_quantity'), r=Sum('return_pistol_magazine_quantity'))
-    rifle_agg = TransactionLogs.objects.filter(
-        log_status__in=open_statuses,
-        withdraw_rifle_magazine_quantity__isnull=False,
-    ).aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
     pistol_issued = max((pistol_agg['w'] or 0) - (pistol_agg['r'] or 0), 0)
-    rifle_issued  = max((rifle_agg['w']  or 0) - (rifle_agg['r']  or 0), 0)
 
-    pistol_par_agg = TransactionLogs.objects.filter(
-        log_status__in=open_statuses,
-        issuance_type='PAR (Property Acknowledgement Receipt)',
-        withdraw_pistol_magazine_quantity__isnull=False,
-    ).aggregate(w=Sum('withdraw_pistol_magazine_quantity'), r=Sum('return_pistol_magazine_quantity'))
-    rifle_par_agg = TransactionLogs.objects.filter(
-        log_status__in=open_statuses,
-        issuance_type='PAR (Property Acknowledgement Receipt)',
-        withdraw_rifle_magazine_quantity__isnull=False,
-    ).aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
-    pistol_tr_agg = TransactionLogs.objects.filter(
-        log_status__in=open_statuses,
-        issuance_type='TR (Temporary Receipt)',
-        withdraw_pistol_magazine_quantity__isnull=False,
-    ).aggregate(w=Sum('withdraw_pistol_magazine_quantity'), r=Sum('return_pistol_magazine_quantity'))
-    rifle_tr_agg = TransactionLogs.objects.filter(
-        log_status__in=open_statuses,
-        issuance_type='TR (Temporary Receipt)',
-        withdraw_rifle_magazine_quantity__isnull=False,
-    ).aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
+    short_base = TransactionLogs.objects.filter(log_status__in=open_statuses, withdraw_rifle_magazine__type='Short')
+    long_base  = TransactionLogs.objects.filter(log_status__in=open_statuses, withdraw_rifle_magazine__type='Long')
+    short_issued = _mag_net(short_base)
+    long_issued  = _mag_net(long_base)
 
-    pistol_issued_par = max((pistol_par_agg['w'] or 0) - (pistol_par_agg['r'] or 0), 0)
-    rifle_issued_par  = max((rifle_par_agg['w']  or 0) - (rifle_par_agg['r']  or 0), 0)
-    pistol_issued_tr  = max((pistol_tr_agg['w']  or 0) - (pistol_tr_agg['r']  or 0), 0)
-    rifle_issued_tr   = max((rifle_tr_agg['w']   or 0) - (rifle_tr_agg['r']   or 0), 0)
+    def _pistol_par_tr(it):
+        a = TransactionLogs.objects.filter(
+            log_status__in=open_statuses, issuance_type=it,
+            withdraw_pistol_magazine_quantity__isnull=False,
+        ).aggregate(w=Sum('withdraw_pistol_magazine_quantity'), r=Sum('return_pistol_magazine_quantity'))
+        return max((a['w'] or 0) - (a['r'] or 0), 0)
+
+    pistol_issued_par = _pistol_par_tr('PAR (Property Acknowledgement Receipt)')
+    pistol_issued_tr  = _pistol_par_tr('TR (Temporary Receipt)')
+    short_issued_par  = _mag_net(short_base.filter(issuance_type='PAR (Property Acknowledgement Receipt)'))
+    short_issued_tr   = _mag_net(short_base.filter(issuance_type='TR (Temporary Receipt)'))
+    long_issued_par   = _mag_net(long_base.filter(issuance_type='PAR (Property Acknowledgement Receipt)'))
+    long_issued_tr    = _mag_net(long_base.filter(issuance_type='TR (Temporary Receipt)'))
 
     MAG_DEFS = [
         ('Pistol Standard', 'Pistol', 'Pistol Magazine',               pistol_issued, pistol_issued_par, pistol_issued_tr),
-        ('Short',           'Rifle',  'Rifle Magazine (Short/20-rnd)', rifle_issued,  rifle_issued_par,  rifle_issued_tr),
-        ('Long',            'Rifle',  'Rifle Magazine (Long/30-rnd)',  rifle_issued,  rifle_issued_par,  rifle_issued_tr),
+        ('Short',           'Rifle',  'Rifle Magazine (Short/20-rnd)', short_issued,  short_issued_par,  short_issued_tr),
+        ('Long',            'Rifle',  'Rifle Magazine (Long/30-rnd)',  long_issued,   long_issued_par,   long_issued_tr),
     ]
     list_url = reverse('magazine-list')
     rows, totals = [], {'on_stock': 0, 'issued': 0, 'issued_par': 0, 'issued_tr': 0}
