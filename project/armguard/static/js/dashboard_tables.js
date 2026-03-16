@@ -111,7 +111,7 @@
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.on_hand) + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.issued_par) + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.issued_tr) + '</td>'
-        + '<td style="padding:5px 4px;text-align:center">' + fmt(r.expenditures) + '</td>'
+        + '<td style="padding:5px 4px;text-align:center">' + fmt(r.serviceable) + '</td>'
         + '<td style="padding:5px 4px;text-align:center' + (r.unserviceable ? ';color:#d97706;font-weight:700' : '') + '">' + fmt(r.unserviceable) + '</td>'
         + '<td style="padding:5px 4px;text-align:center' + (r.lost ? ';color:#dc2626;font-weight:700' : '') + '">' + fmt(r.lost) + '</td>'
         + '<td></td>'
@@ -128,7 +128,7 @@
         cells[2].textContent = fmt(t.on_hand);
         cells[3].textContent = fmt(t.issued_par);
         cells[4].textContent = fmt(t.issued_tr);
-        cells[5].textContent = fmt(t.expenditures);
+        cells[5].textContent = fmt(t.serviceable);
         cells[5].style.color = '';
         cells[6].textContent = fmt(t.unserviceable);
         cells[6].style.color = t.unserviceable ? '#fcd34d' : '';

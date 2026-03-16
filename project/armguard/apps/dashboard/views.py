@@ -209,7 +209,7 @@ def _build_ammo_table():
 
     rows = []
     totals = {k: 0 for k in ('basic_load', 'issued', 'issued_par', 'issued_tr',
-                              'unserviceable', 'expenditures', 'on_hand', 'lost')}
+                              'unserviceable', 'serviceable', 'on_hand', 'lost')}
     list_url = reverse('ammunition-list')
 
     for ammo_type in _AMMO_ORDER:
@@ -223,7 +223,7 @@ def _build_ammo_table():
             issued_par=issued_par_map.get(ammo_type, 0),
             issued_tr=issued_tr_map.get(ammo_type, 0),
             unserviceable=0,
-            expenditures=0,
+            serviceable=on_hand,
             on_hand=on_hand,
             lost=0,
             list_url=list_url,
@@ -617,12 +617,12 @@ def dashboard_tables_json(request):
         'ammo': {
             'rows': [
                 _row_fields(r, ['nomenclature', 'basic_load', 'on_hand', 'issued',
-                                'issued_par', 'issued_tr', 'expenditures', 'unserviceable', 'lost'])
+                                'issued_par', 'issued_tr', 'serviceable', 'unserviceable', 'lost'])
                 for r in ammo_rows
             ],
             'totals': _row_fields(ammo_totals,
                                   ['basic_load', 'on_hand', 'issued',
-                                   'issued_par', 'issued_tr', 'expenditures', 'unserviceable', 'lost']),
+                                   'issued_par', 'issued_tr', 'serviceable', 'unserviceable', 'lost']),
         },
         'magazine': {
             'rows': [

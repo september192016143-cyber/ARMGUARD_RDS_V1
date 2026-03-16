@@ -245,7 +245,7 @@
               <td style="padding:5px 4px;text-align:center">{{ row.on_hand|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.issued_par|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.issued_tr|intcomma }}</td>
-              <td style="padding:5px 4px;text-align:center">{{ row.expenditures|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.serviceable|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center{% if row.unserviceable %};color:#d97706;font-weight:700{% endif %}">{{ row.unserviceable|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center{% if row.lost %};color:#dc2626;font-weight:700{% endif %}">{{ row.lost|intcomma }}</td>
               <td style="padding:3px 4px;text-align:center"><a href="{{ row.list_url }}" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.68rem">View</a></td>
@@ -259,7 +259,7 @@
               <td style="padding:6px 2px">{{ ammo_totals.on_hand|intcomma }}</td>
               <td style="padding:6px 2px">{{ ammo_totals.issued_par|intcomma }}</td>
               <td style="padding:6px 2px">{{ ammo_totals.issued_tr|intcomma }}</td>
-              <td style="padding:6px 2px">{{ ammo_totals.expenditures|intcomma }}</td>
+              <td style="padding:6px 2px">{{ ammo_totals.serviceable|intcomma }}</td>
               <td style="padding:6px 2px{% if ammo_totals.unserviceable %};color:#fcd34d{% endif %}">{{ ammo_totals.unserviceable|intcomma }}</td>
               <td style="padding:6px 2px{% if ammo_totals.lost %};color:#fca5a5{% endif %}">{{ ammo_totals.lost|intcomma }}</td>
               <td></td>
