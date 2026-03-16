@@ -605,7 +605,7 @@ def dashboard_tables_json(request):
     return JsonResponse({
         'inventory': {
             'rows': [
-                _row_fields(r, ['nomenclature', 'possessed', 'on_stock',
+                _row_fields(r, ['nomenclature', 'list_url', 'possessed', 'on_stock',
                                 'issued_par', 'issued_tr',
                                 'serviceable', 'unserviceable', 'lost', 'tampered'])
                 for r in inventory_rows
@@ -616,7 +616,7 @@ def dashboard_tables_json(request):
         },
         'ammo': {
             'rows': [
-                _row_fields(r, ['nomenclature', 'basic_load', 'on_hand', 'issued',
+                _row_fields(r, ['nomenclature', 'list_url', 'basic_load', 'on_hand', 'issued',
                                 'issued_par', 'issued_tr', 'serviceable', 'unserviceable', 'lost'])
                 for r in ammo_rows
             ],
@@ -626,14 +626,14 @@ def dashboard_tables_json(request):
         },
         'magazine': {
             'rows': [
-                _row_fields(r, ['nomenclature', 'on_stock', 'issued_par', 'issued_tr'])
+                _row_fields(r, ['nomenclature', 'list_url', 'on_stock', 'issued_par', 'issued_tr'])
                 for r in magazine_rows
             ],
             'totals': _row_fields(magazine_totals, ['on_stock', 'issued_par', 'issued_tr']),
         },
         'accessory': {
             'rows': [
-                _row_fields(r, ['nomenclature', 'on_stock', 'issued_par', 'issued_tr'])
+                _row_fields(r, ['nomenclature', 'list_url', 'on_stock', 'issued_par', 'issued_tr'])
                 for r in accessory_rows
             ],
             'totals': _row_fields(accessory_totals, ['on_stock', 'issued_par', 'issued_tr']),
