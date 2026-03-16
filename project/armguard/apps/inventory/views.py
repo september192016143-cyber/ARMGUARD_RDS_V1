@@ -1,3 +1,4 @@
+import json
 from django.views.generic import ListView, View
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -393,6 +394,17 @@ class AmmunitionListView(LoginRequiredMixin, ListView):
             }
             for g in sorted(type_map.values(), key=lambda x: x['_order'])
         ]
+        # Build per-type lot breakdown for drill-down modal
+        lots_by_type = {}
+        for a in self.object_list:
+            lots_by_type.setdefault(a.type, []).append({
+                'lot': a.lot_number,
+                'possessed': a.quantity + a.pistol_issued + a.rifle_issued,
+                'on_stock': a.on_stock,
+                'issued_par': a.pistol_issued_par + a.rifle_issued_par,
+                'issued_tr': a.pistol_issued_tr + a.rifle_issued_tr,
+            })
+        ctx['lots_by_type_json'] = json.dumps(lots_by_type)
         totals = self.object_list.aggregate(
             total_on_stock=Sum('quantity'),
             total_pistol_issued=Sum('pistol_issued'),
