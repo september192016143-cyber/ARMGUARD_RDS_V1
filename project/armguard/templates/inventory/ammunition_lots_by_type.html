@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load humanize static %}
+
+{% block title %}{{ ammo_type }} — Lots — ArmGuard RDS{% endblock %}
+{% block page_title %}{{ ammo_type }}{% endblock %}
+{% block page_sub %}Ammunition lots by type{% endblock %}
+
+{% block topbar_actions %}
+<div class="flex gap-2" style="align-items:center">
+  <a href="{% url 'ammunition-list' %}" class="btn btn-secondary btn-sm">
+    <i class="fa-solid fa-arrow-left"></i> Back to Ammunition
+  </a>
+  {% if can_add %}
+  <a href="{% url 'ammunition-add' %}" class="btn btn-primary btn-sm">
+    <i class="fa-solid fa-plus"></i> Add Ammo Lot
+  </a>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .lot-report-wrap { overflow-x: auto; }
+  .lot-report {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .76rem;
+    table-layout: auto;
+  }
+  .lot-report th, .lot-report td {
+    padding: .5rem .7rem;
+    border: 1px solid rgba(255,255,255,.18);
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .lot-report td:first-child { text-align: left; font-weight: 600; }
+  .lot-report tbody tr { border-bottom: 1px solid rgba(12,166,120,.1); transition: background .15s; }
+  .lot-report tbody tr:nth-child(even) td { background: rgba(12,166,120,.06); }
+  .lot-report tfoot td {
+    background: linear-gradient(90deg,#0ca678 0%,#047857 100%);
+    color: #fff;
+    font-weight: 700;
+    border-top: 2px solid #0ca678;
+  }
+  .lot-report tfoot td:first-child { text-align: left; letter-spacing: .06em; font-size: .72rem; }
+  .lot-report thead th { color: #fff !important; }
+  /* Day-mode overrides */
+  [data-theme="light"] .lot-report th, [data-theme="light"] .lot-report td { border-color: var(--border); }
+  [data-theme="light"] .lot-report thead th { color: #fff !important; }
+  [data-theme="light"] .lot-report tbody td,
+  [data-theme="light"] .lot-report tbody td * { color: #000 !important; }
+  [data-theme="light"] .lot-report tbody tr:nth-child(even) td { background: rgba(12,166,120,.09); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="lot-report-wrap">
+    <table class="lot-report">
+      <thead>
+        <tr style="background:linear-gradient(135deg,#064e3b 0%,#065f46 100%);color:#fff;text-align:center">
+          <th rowspan="2" style="text-align:left;font-size:.68rem;letter-spacing:.08em;font-weight:700;min-width:180px">LOT NUMBER</th>
+          <th colspan="2" style="font-size:.67rem;font-weight:800;letter-spacing:.06em;white-space:nowrap">INVENTORY</th>
+          <th colspan="2" style="font-size:.65rem;font-weight:700;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">ISSUED</th>
+          <th rowspan="2" style="background:linear-gradient(135deg,#065f46,#047857);font-size:.65rem;letter-spacing:.04em;white-space:nowrap">Serviceable</th>
+          <th rowspan="2" style="background:linear-gradient(135deg,#92400e,#b45309);font-size:.65rem;letter-spacing:.04em;white-space:nowrap">Unserviceable</th>
+          <th rowspan="2" style="background:linear-gradient(135deg,#7f1d1d,#b91c1c);font-size:.65rem;letter-spacing:.04em;white-space:nowrap">Lost</th>
+          {% if can_edit or can_delete %}
+          <th rowspan="2" style="font-size:.65rem;letter-spacing:.04em;white-space:nowrap">Action</th>
+          {% endif %}
+        </tr>
+        <tr style="background:linear-gradient(135deg,#065f46 0%,#047857 100%);color:#fff;text-align:center;font-size:.63rem;line-height:1.2">
+          <th style="white-space:nowrap">Possessed</th>
+          <th style="white-space:nowrap">On Stock</th>
+          <th style="background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">PAR</th>
+          <th style="background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">TR</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lot in lots %}
+        {% with par=lot.pistol_issued_par|add:lot.rifle_issued_par tr=lot.pistol_issued_tr|add:lot.rifle_issued_tr %}
+        <tr>
+          <td>{{ lot.lot_number }}</td>
+          <td>{{ lot.quantity|add:lot.pistol_issued|add:lot.rifle_issued|intcomma }}</td>
+          <td style="color:var(--green)">{{ lot.on_stock|intcomma }}</td>
+          <td style="{% if par %}color:var(--primary);font-weight:700{% else %}color:var(--muted){% endif %}">{{ par|intcomma }}</td>
+          <td style="{% if tr %}color:var(--primary);font-weight:700{% else %}color:var(--muted){% endif %}">{{ tr|intcomma }}</td>
+          <td style="color:var(--green)">{{ lot.on_stock|intcomma }}</td>
+          <td>0</td>
+          <td>0</td>
+          {% if can_edit or can_delete %}
+          <td>
+            {% if can_edit %}<a href="{% url 'ammunition-edit' lot.pk %}" class="btn btn-xs btn-secondary"><i class="fa-solid fa-pen"></i></a>{% endif %}
+            {% if can_delete %}<a href="{% url 'ammunition-delete' lot.pk %}" class="btn btn-xs btn-danger"><i class="fa-solid fa-trash"></i></a>{% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:1.5rem">No lots found for this ammunition type.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if lots %}
+      <tfoot>
+        <tr>
+          <td>&#9658; SUB-TOTAL ({{ lots|length }} lot{{ lots|length|pluralize }})</td>
+          <td>{{ total_possessed|intcomma }}</td>
+          <td style="color:#fff">{{ total_on_stock|intcomma }}</td>
+          <td style="{% if total_issued_par %}font-weight:700{% endif %}">{{ total_issued_par|intcomma }}</td>
+          <td style="{% if total_issued_tr %}font-weight:700{% endif %}">{{ total_issued_tr|intcomma }}</td>
+          <td style="color:#fff">{{ total_on_stock|intcomma }}</td>
+          <td>0</td>
+          <td>0</td>
+          {% if can_edit or can_delete %}<td></td>{% endif %}
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}

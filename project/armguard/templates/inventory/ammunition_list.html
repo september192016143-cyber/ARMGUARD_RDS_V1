@@ -84,7 +84,7 @@
       <tbody id="ammo-tbody">
         {% for g in grouped_ammo %}
         <tr data-ammo-type="{{ g.type }}">
-          <td><span class="ammo-drill" data-type="{{ g.type }}">{{ g.type }}</span></td>
+          <td><a href="{% url 'ammunition-lots-by-type' g.type %}" class="ammo-drill">{{ g.type }}</a></td>
           <td class="ammo-possessed">{{ g.possessed|intcomma }}</td>
           <td class="ammo-on-stock" style="color:var(--green)">{{ g.on_stock|intcomma }}</td>
           <td class="ammo-par" style="{% if g.issued_par %}color:var(--primary);font-weight:700{% else %}color:var(--muted){% endif %}">{{ g.issued_par|intcomma }}</td>
@@ -113,30 +113,9 @@
 
   </div>
 </div>
-
-<!-- Lot drill-down modal -->
-<div id="ammo-lot-modal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:rgba(0,0,0,.55);align-items:center;justify-content:center">
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:.75rem;min-width:540px;max-width:92vw;max-height:85vh;overflow:auto;padding:1.5rem;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.4)">
-    <button id="ammo-lot-close" style="position:absolute;top:.6rem;right:.9rem;background:none;border:none;font-size:1.4rem;line-height:1;cursor:pointer;color:var(--text);opacity:.7">&times;</button>
-    <h3 id="ammo-lot-title" style="margin:0 0 1rem;font-size:.92rem;font-weight:700;color:var(--text);padding-right:1.5rem"></h3>
-    <table style="width:100%;border-collapse:collapse;font-size:.74rem">
-      <thead>
-        <tr style="background:linear-gradient(135deg,#064e3b,#065f46);color:#fff">
-          <th style="padding:.4rem .65rem;text-align:left;font-weight:700;letter-spacing:.05em">LOT NUMBER</th>
-          <th style="padding:.4rem .65rem;font-weight:700;letter-spacing:.05em">POSSESSED</th>
-          <th style="padding:.4rem .65rem;font-weight:700;letter-spacing:.05em">ON STOCK</th>
-          <th style="padding:.4rem .65rem;font-weight:700;letter-spacing:.05em;background:linear-gradient(135deg,#92400e,#b45309)">PAR</th>
-          <th style="padding:.4rem .65rem;font-weight:700;letter-spacing:.05em;background:linear-gradient(135deg,#92400e,#b45309)">TR</th>
-        </tr>
-      </thead>
-      <tbody id="ammo-lot-tbody"></tbody>
-    </table>
-  </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
 <script type="application/json" id="ammo-config">{"apiUrl": "{% url 'ammunition-stock-json' %}"}</script>
-<script type="application/json" id="lots-by-type">{{ lots_by_type_json|safe }}</script>
 <script src="{% static 'js/ammunition_list.js' %}"></script>
 {% endblock %}

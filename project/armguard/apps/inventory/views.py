@@ -426,7 +426,6 @@ class AmmunitionListView(LoginRequiredMixin, ListView):
 
 @login_required
 def ammunition_stock_json(request):
-    """JSON endpoint: returns possessed/on_stock/par/tr grouped by ammo type."""
     pistol_sub, rifle_sub, pistol_par, rifle_par, pistol_tr, rifle_tr = _ammo_issued_subqueries()
     rows = Ammunition.objects.annotate(
         pistol_issued=Coalesce(Subquery(pistol_sub, output_field=IntegerField()), Value(0)),
@@ -449,6 +448,51 @@ def ammunition_stock_json(request):
         g['issued_par'] += r['pistol_issued_par'] + r['rifle_issued_par']
         g['issued_tr'] += r['pistol_issued_tr'] + r['rifle_issued_tr']
     return JsonResponse({'items': list(groups.values())})
+
+
+class AmmunitionLotsByTypeView(LoginRequiredMixin, ListView):
+    model = Ammunition
+    template_name = 'inventory/ammunition_lots_by_type.html'
+    context_object_name = 'lots'
+
+    def get_queryset(self):
+        pistol_sub, rifle_sub, pistol_par, rifle_par, pistol_tr, rifle_tr = _ammo_issued_subqueries()
+        return Ammunition.objects.filter(type=self.kwargs['ammo_type']).annotate(
+            pistol_issued=Coalesce(Subquery(pistol_sub, output_field=IntegerField()), Value(0)),
+            rifle_issued=Coalesce(Subquery(rifle_sub, output_field=IntegerField()), Value(0)),
+            pistol_issued_par=Coalesce(Subquery(pistol_par, output_field=IntegerField()), Value(0)),
+            rifle_issued_par=Coalesce(Subquery(rifle_par, output_field=IntegerField()), Value(0)),
+            pistol_issued_tr=Coalesce(Subquery(pistol_tr, output_field=IntegerField()), Value(0)),
+            rifle_issued_tr=Coalesce(Subquery(rifle_tr, output_field=IntegerField()), Value(0)),
+        ).annotate(
+            on_stock=ExpressionWrapper(
+                F('quantity') - F('pistol_issued') - F('rifle_issued'),
+                output_field=IntegerField()
+            )
+        ).order_by('lot_number')
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['ammo_type'] = self.kwargs['ammo_type']
+        ctx['can_add'] = can_add(self.request.user)
+        ctx['can_edit'] = can_edit(self.request.user)
+        ctx['can_delete'] = can_delete(self.request.user)
+        totals = self.get_queryset().aggregate(
+            total_qty=Sum('quantity'),
+            total_pi=Sum('pistol_issued'),
+            total_ri=Sum('rifle_issued'),
+            total_pp=Sum('pistol_issued_par'),
+            total_rp=Sum('rifle_issued_par'),
+            total_pt=Sum('pistol_issued_tr'),
+            total_rt=Sum('rifle_issued_tr'),
+            total_os=Sum('on_stock'),
+        )
+        issued = (totals['total_pi'] or 0) + (totals['total_ri'] or 0)
+        ctx['total_possessed'] = (totals['total_qty'] or 0) + issued
+        ctx['total_on_stock'] = totals['total_os'] or 0
+        ctx['total_issued_par'] = (totals['total_pp'] or 0) + (totals['total_rp'] or 0)
+        ctx['total_issued_tr'] = (totals['total_pt'] or 0) + (totals['total_rt'] or 0)
+        return ctx
 
 
 class AmmunitionCreateView(_InventorySaveMixin, CreateView):

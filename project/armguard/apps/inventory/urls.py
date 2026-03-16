@@ -26,6 +26,7 @@ urlpatterns = [
     path('ammunition/<int:pk>/edit/', views.AmmunitionUpdateView.as_view(), name='ammunition-edit'),
     path('ammunition/<int:pk>/delete/', views.AmmunitionDeleteView.as_view(), name='ammunition-delete'),
     path('ammunition/stock.json', views.ammunition_stock_json, name='ammunition-stock-json'),
+    path('ammunition/lots/<path:ammo_type>/', views.AmmunitionLotsByTypeView.as_view(), name='ammunition-lots-by-type'),
 
     # ── Accessory ────────────────────────────────────────────────────────────
     path('accessories/', views.AccessoryListView.as_view(), name='accessory-list'),
