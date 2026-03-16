@@ -115,7 +115,7 @@
 </div>
 
 <!-- Lot drill-down modal -->
-<div id="ammo-lot-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);align-items:center;justify-content:center">
+<div id="ammo-lot-modal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:rgba(0,0,0,.55);align-items:center;justify-content:center">
   <div style="background:var(--card);border:1px solid var(--border);border-radius:.75rem;min-width:540px;max-width:92vw;max-height:85vh;overflow:auto;padding:1.5rem;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.4)">
     <button id="ammo-lot-close" style="position:absolute;top:.6rem;right:.9rem;background:none;border:none;font-size:1.4rem;line-height:1;cursor:pointer;color:var(--text);opacity:.7">&times;</button>
     <h3 id="ammo-lot-title" style="margin:0 0 1rem;font-size:.92rem;font-weight:700;color:var(--text);padding-right:1.5rem"></h3>
@@ -137,44 +137,6 @@
 
 {% block extra_js %}
 <script type="application/json" id="ammo-config">{"apiUrl": "{% url 'ammunition-stock-json' %}"}</script>
+<script type="application/json" id="lots-by-type">{{ lots_by_type_json|safe }}</script>
 <script src="{% static 'js/ammunition_list.js' %}"></script>
-<script>
-(function () {
-  var LOTS = {{ lots_by_type_json|safe }};
-  var modal = document.getElementById('ammo-lot-modal');
-
-  function fmt(n) { return Number(n).toLocaleString(); }
-
-  function openModal(type) {
-    document.getElementById('ammo-lot-title').textContent = type;
-    var tbody = document.getElementById('ammo-lot-tbody');
-    tbody.innerHTML = '';
-    var lots = LOTS[type] || [];
-    lots.forEach(function (l, i) {
-      var tr = document.createElement('tr');
-      tr.style.background = i % 2 ? 'rgba(12,166,120,.06)' : '';
-      var parStyle = l.issued_par > 0 ? 'color:var(--primary);font-weight:700' : 'color:var(--muted)';
-      var trStyle  = l.issued_tr  > 0 ? 'color:var(--primary);font-weight:700' : 'color:var(--muted)';
-      tr.innerHTML =
-        '<td style="padding:.4rem .65rem;font-weight:600">' + l.lot + '</td>' +
-        '<td style="padding:.4rem .65rem;text-align:center">' + fmt(l.possessed) + '</td>' +
-        '<td style="padding:.4rem .65rem;text-align:center;color:var(--green)">' + fmt(l.on_stock) + '</td>' +
-        '<td style="padding:.4rem .65rem;text-align:center;' + parStyle + '">' + fmt(l.issued_par) + '</td>' +
-        '<td style="padding:.4rem .65rem;text-align:center;' + trStyle  + '">' + fmt(l.issued_tr)  + '</td>';
-      tbody.appendChild(tr);
-    });
-    modal.style.display = 'flex';
-  }
-
-  document.querySelectorAll('.ammo-drill').forEach(function (el) {
-    el.addEventListener('click', function () { openModal(this.dataset.type); });
-  });
-  document.getElementById('ammo-lot-close').addEventListener('click', function () {
-    modal.style.display = 'none';
-  });
-  modal.addEventListener('click', function (e) {
-    if (e.target === this) this.style.display = 'none';
-  });
-})();
-</script>
 {% endblock %}
