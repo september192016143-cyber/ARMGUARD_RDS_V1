@@ -130,6 +130,14 @@
             {% for row in inventory_rows %}
             <tr style="border-bottom:1px solid rgba(24,103,212,.1);background:{% if forloop.even %}rgba(24,103,212,.04){% else %}transparent{% endif %};transition:background .15s">
               <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="{{ row.list_url }}" style="color:inherit;text-decoration:none;border-bottom:1px dashed currentColor" title="{{ row.nomenclature }}">{{ row.nomenclature }}</a></td>
+              <td style="padding:5px 4px;text-align:center">{{ row.possessed|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.on_stock|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.issued_par|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.issued_tr|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.serviceable|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center{% if row.unserviceable %};color:#d97706;font-weight:700{% endif %}">{{ row.unserviceable|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center{% if row.lost %};color:#dc2626;font-weight:700{% endif %}">{{ row.lost|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center{% if row.tampered %};color:#dc2626;font-weight:700{% endif %}">{{ row.tampered|intcomma }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -144,7 +152,6 @@
               <td style="padding:6px 2px{% if inventory_totals.unserviceable %};color:#fcd34d{% endif %}">{{ inventory_totals.unserviceable|intcomma }}</td>
               <td style="padding:6px 2px{% if inventory_totals.lost %};color:#fca5a5{% endif %}">{{ inventory_totals.lost|intcomma }}</td>
               <td style="padding:6px 2px{% if inventory_totals.tampered %};color:#fca5a5{% endif %}">{{ inventory_totals.tampered|intcomma }}</td>
-            </tr>
             </tr>
           </tfoot>
         </table>
@@ -167,6 +174,8 @@
               <th rowspan="2" style="padding:7px 8px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;white-space:nowrap;vertical-align:middle">NOMENCLATURE</th>
               <th rowspan="2" style="padding:7px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;background:linear-gradient(135deg,#065f46,#047857);white-space:nowrap;vertical-align:middle">ON STOCK</th>
               <th colspan="2" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.65rem;font-weight:700;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309)">ISSUED</th>
+            </tr>
+            <tr style="background:linear-gradient(135deg,#4c1d95 0%,#7c3aed 100%);color:#fff;text-align:center;font-size:0.63rem;line-height:1.2">
               <th style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">PAR</th>
               <th style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">TR</th>
             </tr>
@@ -211,6 +220,8 @@
               <th colspan="2" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.67rem;font-weight:800;letter-spacing:.06em;text-align:center;color:#ffffff;white-space:nowrap">INVENTORY</th>
               <th colspan="2" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.65rem;font-weight:700;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309);text-align:center;white-space:nowrap">ISSUED</th>
               <th rowspan="2" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#065f46,#047857);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em;white-space:nowrap">Serviceable</th>
+              <th rowspan="2" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em;white-space:nowrap">Unserviceable</th>
+              <th rowspan="2" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#7f1d1d,#b91c1c);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em;white-space:nowrap">Lost</th>
             </tr>
             <tr style="background:linear-gradient(135deg,#065f46 0%,#047857 100%);color:#fff;text-align:center;font-size:0.63rem;line-height:1.2">
               <th style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);white-space:nowrap">Possesed</th>
@@ -231,6 +242,9 @@
               <td style="padding:5px 4px;text-align:center{% if row.unserviceable %};color:#d97706;font-weight:700{% endif %}">{{ row.unserviceable|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center{% if row.lost %};color:#dc2626;font-weight:700{% endif %}">{{ row.lost|intcomma }}</td>
             </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot id="tbl-ammo-foot">
             <tr style="background:linear-gradient(90deg,#0ca678 0%,#047857 100%);color:#fff;font-weight:700;text-align:center;border-top:2px solid #0ca678;font-size:0.76rem">
               <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
               <td style="padding:6px 2px">{{ ammo_totals.basic_load|intcomma }}</td>
@@ -240,7 +254,6 @@
               <td style="padding:6px 2px">{{ ammo_totals.serviceable|intcomma }}</td>
               <td style="padding:6px 2px{% if ammo_totals.unserviceable %};color:#fcd34d{% endif %}">{{ ammo_totals.unserviceable|intcomma }}</td>
               <td style="padding:6px 2px{% if ammo_totals.lost %};color:#fca5a5{% endif %}">{{ ammo_totals.lost|intcomma }}</td>
-            </tr>
             </tr>
           </tfoot>
         </table>
@@ -263,7 +276,6 @@
               <th rowspan="2" style="padding:7px 8px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;white-space:nowrap;vertical-align:middle">NOMENCLATURE</th>
               <th rowspan="2" style="padding:7px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;background:linear-gradient(135deg,#065f46,#047857);white-space:nowrap;vertical-align:middle">ON STOCK</th>
               <th colspan="2" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.65rem;font-weight:700;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309)">ISSUED</th>
-              <th rowspan="2" style="padding:7px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.66rem;letter-spacing:.06em;white-space:nowrap;vertical-align:middle">ACTION</th>
             </tr>
             <tr style="background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 100%);color:#fff;text-align:center;font-size:0.63rem;line-height:1.2">
               <th style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">PAR</th>
