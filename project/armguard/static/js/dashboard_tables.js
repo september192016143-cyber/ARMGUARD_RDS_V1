@@ -29,7 +29,7 @@
     rows.forEach(function (r, i) {
       var bg = (i % 2 === 1) ? 'rgba(24,103,212,.04)' : 'transparent';
       html += '<tr style="border-bottom:1px solid rgba(24,103,212,.1);background:' + bg + ';transition:background .15s">'
-        + '<td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + r.nomenclature + '">' + r.nomenclature + '</td>'
+        + '<td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="' + r.list_url + '" style="color:inherit;text-decoration:none;border-bottom:1px dashed currentColor" title="' + r.nomenclature + '">' + r.nomenclature + '</a></td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.possessed) + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.on_stock) + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.issued_par) + '</td>'
@@ -38,7 +38,6 @@
         + '<td style="padding:5px 4px;text-align:center' + (r.unserviceable ? ';color:#d97706;font-weight:700' : '') + '">' + fmt(r.unserviceable) + '</td>'
         + '<td style="padding:5px 4px;text-align:center' + (r.lost ? ';color:#dc2626;font-weight:700' : '') + '">' + fmt(r.lost) + '</td>'
         + '<td style="padding:5px 4px;text-align:center' + (r.tampered ? ';color:#dc2626;font-weight:700' : '') + '">' + fmt(r.tampered) + '</td>'
-        + '<td></td>'
         + '</tr>';
     });
     body.innerHTML = html;
@@ -106,7 +105,7 @@
     rows.forEach(function (r, i) {
       var bg = (i % 2 === 1) ? 'rgba(12,166,120,.04)' : 'transparent';
       html += '<tr style="border-bottom:1px solid rgba(12,166,120,.1);background:' + bg + ';transition:background .15s">'
-        + '<td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + r.nomenclature + '">' + r.nomenclature + '</td>'
+        + '<td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="' + r.list_url + '" style="color:inherit;text-decoration:none;border-bottom:1px dashed currentColor" title="' + r.nomenclature + '">' + r.nomenclature + '</a></td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.basic_load) + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.on_hand) + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.issued_par) + '</td>'
@@ -114,7 +113,6 @@
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.serviceable) + '</td>'
         + '<td style="padding:5px 4px;text-align:center' + (r.unserviceable ? ';color:#d97706;font-weight:700' : '') + '">' + fmt(r.unserviceable) + '</td>'
         + '<td style="padding:5px 4px;text-align:center' + (r.lost ? ';color:#dc2626;font-weight:700' : '') + '">' + fmt(r.lost) + '</td>'
-        + '<td></td>'
         + '</tr>';
     });
     body.innerHTML = html;
