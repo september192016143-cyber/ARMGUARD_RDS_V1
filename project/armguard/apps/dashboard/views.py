@@ -83,7 +83,10 @@ def _build_inventory_table():
         for row in Rifle.objects.values('model').annotate(**_AGG_FIELDS)
     }
 
-    # PAR / TR split — subquery: latest withdrawal issuance_type per item
+    # PAR / TR split — annotate each issued item with its latest withdrawal
+    # issuance_type, then group in Python (avoids Subquery-inside-Count
+    # which is unreliable across Django/SQLite versions).
+    from collections import defaultdict
     _pistol_issuance = (
         _Txn.objects
         .filter(transaction_type='Withdrawal', pistol=OuterRef('pk'))
@@ -97,32 +100,31 @@ def _build_inventory_table():
         .values('issuance_type')[:1]
     )
 
-    _pistol_par_tr = {
-        row['model']: row
-        for row in (
-            Pistol.objects
-            .annotate(last_issuance=Subquery(_pistol_issuance))
-            .filter(item_status='Issued')
-            .values('model')
-            .annotate(
-                issued_par=Count('item_id', filter=Q(last_issuance__startswith='PAR')),
-                issued_tr =Count('item_id', filter=Q(last_issuance__startswith='TR')),
-            )
-        )
-    }
-    _rifle_par_tr = {
-        row['model']: row
-        for row in (
-            Rifle.objects
-            .annotate(last_issuance=Subquery(_rifle_issuance))
-            .filter(item_status='Issued')
-            .values('model')
-            .annotate(
-                issued_par=Count('item_id', filter=Q(last_issuance__startswith='PAR')),
-                issued_tr =Count('item_id', filter=Q(last_issuance__startswith='TR')),
-            )
-        )
-    }
+    _pistol_par_tr = defaultdict(lambda: {'issued_par': 0, 'issued_tr': 0})
+    for model, issuance in (
+        Pistol.objects
+        .annotate(last_issuance=Subquery(_pistol_issuance))
+        .filter(item_status='Issued')
+        .values_list('model', 'last_issuance')
+    ):
+        t = issuance or ''
+        if t.startswith('PAR'):
+            _pistol_par_tr[model]['issued_par'] += 1
+        elif t.startswith('TR'):
+            _pistol_par_tr[model]['issued_tr'] += 1
+
+    _rifle_par_tr = defaultdict(lambda: {'issued_par': 0, 'issued_tr': 0})
+    for model, issuance in (
+        Rifle.objects
+        .annotate(last_issuance=Subquery(_rifle_issuance))
+        .filter(item_status='Issued')
+        .values_list('model', 'last_issuance')
+    ):
+        t = issuance or ''
+        if t.startswith('PAR'):
+            _rifle_par_tr[model]['issued_par'] += 1
+        elif t.startswith('TR'):
+            _rifle_par_tr[model]['issued_tr'] += 1
 
     _zero = {k: 0 for k in _AGG_FIELDS}
     data = {}
@@ -131,11 +133,11 @@ def _build_inventory_table():
         if 'Pistol' in nom or 'pistol' in model_name.lower():
             url_name, item_type = 'pistol-list', 'pistol'
             agg     = pistol_data.get(model_name, {**_zero, 'model': model_name})
-            par_tr  = _pistol_par_tr.get(model_name, {})
+            par_tr  = _pistol_par_tr[model_name]
         else:
             url_name, item_type = 'rifle-list', 'rifle'
             agg     = rifle_data.get(model_name, {**_zero, 'model': model_name})
-            par_tr  = _rifle_par_tr.get(model_name, {})
+            par_tr  = _rifle_par_tr[model_name]
 
         data[model_name] = dict(
             nomenclature=nom,
