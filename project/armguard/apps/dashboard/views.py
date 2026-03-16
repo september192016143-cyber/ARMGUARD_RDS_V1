@@ -284,6 +284,34 @@ def _build_accessory_table():
         band_w=Sum('withdraw_bandoleer_quantity'),
         band_r=Sum('return_bandoleer_quantity'),
     )
+    # PAR / TR split per accessory type
+    par_agg = TransactionLogs.objects.filter(
+        log_status__in=open_statuses,
+        issuance_type='PAR (Property Acknowledgement Receipt)',
+    ).aggregate(
+        holster_w=Sum('withdraw_pistol_holster_quantity'),
+        holster_r=Sum('return_pistol_holster_quantity'),
+        pouch_w=Sum('withdraw_magazine_pouch_quantity'),
+        pouch_r=Sum('return_magazine_pouch_quantity'),
+        sling_w=Sum('withdraw_rifle_sling_quantity'),
+        sling_r=Sum('return_rifle_sling_quantity'),
+        band_w=Sum('withdraw_bandoleer_quantity'),
+        band_r=Sum('return_bandoleer_quantity'),
+    )
+    tr_agg = TransactionLogs.objects.filter(
+        log_status__in=open_statuses,
+        issuance_type='TR (Temporary Receipt)',
+    ).aggregate(
+        holster_w=Sum('withdraw_pistol_holster_quantity'),
+        holster_r=Sum('return_pistol_holster_quantity'),
+        pouch_w=Sum('withdraw_magazine_pouch_quantity'),
+        pouch_r=Sum('return_magazine_pouch_quantity'),
+        sling_w=Sum('withdraw_rifle_sling_quantity'),
+        sling_r=Sum('return_rifle_sling_quantity'),
+        band_w=Sum('withdraw_bandoleer_quantity'),
+        band_r=Sum('return_bandoleer_quantity'),
+    )
+
     ACC_DEFS = [
         ('Pistol Holster',        'Pistol', 'Pistol Holster',        'holster_w', 'holster_r'),
         ('Pistol Magazine Pouch', 'Pistol', 'Pistol Magazine Pouch', 'pouch_w',   'pouch_r'),
@@ -291,14 +319,20 @@ def _build_accessory_table():
         ('Bandoleer',             'Rifle',  'Bandoleer',             'band_w',    'band_r'),
     ]
     list_url = reverse('accessory-list')
-    rows, totals = [], {'on_stock': 0, 'issued': 0}
+    rows, totals = [], {'on_stock': 0, 'issued': 0, 'issued_par': 0, 'issued_tr': 0}
     for type_key, label, nomenclature, w_key, r_key in ACC_DEFS:
-        on_stock = on_stock_map.get(type_key, 0)
-        issued   = max((agg[w_key] or 0) - (agg[r_key] or 0), 0)
+        on_stock   = on_stock_map.get(type_key, 0)
+        issued     = max((agg[w_key] or 0) - (agg[r_key] or 0), 0)
+        issued_par = max((par_agg[w_key] or 0) - (par_agg[r_key] or 0), 0)
+        issued_tr  = max((tr_agg[w_key]  or 0) - (tr_agg[r_key]  or 0), 0)
         rows.append(dict(label=label, nomenclature=nomenclature, type=type_key,
-                         on_stock=on_stock, issued=issued, list_url=list_url))
-        totals['on_stock'] += on_stock
-        totals['issued']   += issued
+                         on_stock=on_stock, issued=issued,
+                         issued_par=issued_par, issued_tr=issued_tr,
+                         list_url=list_url))
+        totals['on_stock']   += on_stock
+        totals['issued']     += issued
+        totals['issued_par'] += issued_par
+        totals['issued_tr']  += issued_tr
     return rows, totals
 
 
@@ -566,10 +600,10 @@ def dashboard_tables_json(request):
         },
         'accessory': {
             'rows': [
-                _row_fields(r, ['nomenclature', 'on_stock', 'issued'])
+                _row_fields(r, ['nomenclature', 'on_stock', 'issued_par', 'issued_tr'])
                 for r in accessory_rows
             ],
-            'totals': _row_fields(accessory_totals, ['on_stock', 'issued']),
+            'totals': _row_fields(accessory_totals, ['on_stock', 'issued_par', 'issued_tr']),
         },
     })
 
