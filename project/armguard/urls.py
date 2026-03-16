@@ -21,7 +21,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView, TemplateView
 from django.utils.decorators import method_decorator
-from armguard.apps.dashboard.views import dashboard_view, download_ssl_cert, ssl_cert_status, issued_stats_json, dashboard_cards_json
+from armguard.apps.dashboard.views import dashboard_view, download_ssl_cert, ssl_cert_status, issued_stats_json, dashboard_cards_json, dashboard_tables_json
 from armguard.apps.users.views import logout_view, OTPSetupView, OTPVerifyView
 from utils.throttle import ratelimit as _ratelimit
 
@@ -44,6 +44,7 @@ urlpatterns = [
     path('dashboard/', dashboard_view, name='dashboard'),
     path('dashboard/issued-stats/', issued_stats_json, name='issued-stats-json'),
     path('dashboard/cards-stats/', dashboard_cards_json, name='dashboard-cards-json'),
+    path('dashboard/tables-json/', dashboard_tables_json, name='dashboard-tables-json'),
     path('personnel/', include('armguard.apps.personnel.urls')),
     path('inventory/', include('armguard.apps.inventory.urls')),
     path('transactions/', include('armguard.apps.transactions.urls')),
