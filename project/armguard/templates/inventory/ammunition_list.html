@@ -27,7 +27,7 @@
   }
   .ammo-report th, .ammo-report td {
     padding: .45rem .6rem;
-    border: 2px solid rgba(255,255,255,.2);
+    border: 1px solid rgba(255,255,255,.18);
     text-align: center;
     white-space: nowrap;
     vertical-align: middle;
@@ -44,9 +44,10 @@
   .ammo-report tfoot td:first-child { text-align: left; letter-spacing: .06em; font-size: .72rem; }
   /* Day-mode overrides */
   [data-theme="light"] .ammo-report th, [data-theme="light"] .ammo-report td {
-    border-color: rgba(0,31,107,.15);
+    border-color: var(--border);
   }
-  [data-theme="light"] .ammo-report tbody tr:nth-child(even) td { background: rgba(12,166,120,.07); }
+  [data-theme="light"] .ammo-report tbody td { color: var(--text); }
+  [data-theme="light"] .ammo-report tbody tr:nth-child(even) td { background: rgba(12,166,120,.09); }
 </style>
 {% endblock %}
 
@@ -92,10 +93,10 @@
         <tr data-ammo-pk="{{ a.pk }}">
           <td>{{ a.type|default:"--" }}</td>
           <td class="ammo-possessed">{{ a.quantity|add:a.pistol_issued|add:a.rifle_issued|intcomma }}</td>
-          <td class="ammo-on-stock" style="color:#3cb83c">{{ a.on_stock|intcomma }}</td>
-          <td class="ammo-par" style="{% if par %}color:#f0a030;font-weight:700{% else %}color:var(--muted){% endif %}">{{ par|intcomma }}</td>
-          <td class="ammo-tr" style="{% if tr %}color:#f0a030;font-weight:700{% else %}color:var(--muted){% endif %}">{{ tr|intcomma }}</td>
-          <td class="ammo-serviceable" style="color:#3cb83c">{{ a.on_stock|intcomma }}</td>
+          <td class="ammo-on-stock" style="color:var(--green)">{{ a.on_stock|intcomma }}</td>
+          <td class="ammo-par" style="{% if par %}color:var(--primary);font-weight:700{% else %}color:var(--muted){% endif %}">{{ par|intcomma }}</td>
+          <td class="ammo-tr" style="{% if tr %}color:var(--primary);font-weight:700{% else %}color:var(--muted){% endif %}">{{ tr|intcomma }}</td>
+          <td class="ammo-serviceable" style="color:var(--green)">{{ a.on_stock|intcomma }}</td>
           <td>0</td>
           <td>0</td>
           <td>
