@@ -224,7 +224,7 @@
             <tr style="background:linear-gradient(135deg,#064e3b 0%,#065f46 100%);color:#fff;text-align:center">
               <th rowspan="2" style="text-align:center;padding:7px 8px;border:2px solid rgba(255,255,255,.2);vertical-align:middle;font-size:0.68rem;letter-spacing:.08em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700">NOMENCLATURE</th>
               <th colspan="2" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.67rem;font-weight:800;letter-spacing:.06em;text-align:center;color:#ffffff;white-space:nowrap">INVENTORY</th>
-              <th colspan="3" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.65rem;font-weight:700;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309);text-align:center;white-space:nowrap">ISSUED</th>
+              <th colspan="2" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);font-size:0.65rem;font-weight:700;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309);text-align:center;white-space:nowrap">ISSUED</th>
               <th rowspan="2" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#065f46,#047857);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em;white-space:nowrap">Serviceable</th>
               <th rowspan="2" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em;white-space:nowrap">Unserviceable</th>
               <th rowspan="2" style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#7f1d1d,#b91c1c);vertical-align:middle;font-size:0.65rem;letter-spacing:.04em;white-space:nowrap">Lost</th>
@@ -233,7 +233,6 @@
             <tr style="background:linear-gradient(135deg,#065f46 0%,#047857 100%);color:#fff;text-align:center;font-size:0.63rem;line-height:1.2">
               <th style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);white-space:nowrap">Possesed</th>
               <th style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);white-space:nowrap">On Stock</th>
-              <th style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">Issued</th>
               <th style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">PAR</th>
               <th style="padding:5px 6px;border:2px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">TR</th>
             </tr>
@@ -244,7 +243,6 @@
               <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.basic_load|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.on_hand|intcomma }}</td>
-              <td style="padding:5px 4px;text-align:center">{{ row.issued|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.issued_par|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.issued_tr|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.expenditures|intcomma }}</td>
@@ -259,7 +257,6 @@
               <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
               <td style="padding:6px 2px">{{ ammo_totals.basic_load|intcomma }}</td>
               <td style="padding:6px 2px">{{ ammo_totals.on_hand|intcomma }}</td>
-              <td style="padding:6px 2px">{{ ammo_totals.issued|intcomma }}</td>
               <td style="padding:6px 2px">{{ ammo_totals.issued_par|intcomma }}</td>
               <td style="padding:6px 2px">{{ ammo_totals.issued_tr|intcomma }}</td>
               <td style="padding:6px 2px">{{ ammo_totals.expenditures|intcomma }}</td>

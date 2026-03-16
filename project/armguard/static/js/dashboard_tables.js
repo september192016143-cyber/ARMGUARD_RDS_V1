@@ -109,7 +109,6 @@
         + '<td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + r.nomenclature + '">' + r.nomenclature + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.basic_load) + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.on_hand) + '</td>'
-        + '<td style="padding:5px 4px;text-align:center">' + fmt(r.issued) + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.issued_par) + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.issued_tr) + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.expenditures) + '</td>'
@@ -124,18 +123,17 @@
     var ftr = foot.querySelector('tr');
     if (ftr) {
       var cells = ftr.querySelectorAll('td');
-      if (cells.length >= 9) {
+      if (cells.length >= 8) {
         cells[1].textContent = fmt(t.basic_load);
         cells[2].textContent = fmt(t.on_hand);
-        cells[3].textContent = fmt(t.issued);
-        cells[4].textContent = fmt(t.issued_par);
-        cells[5].textContent = fmt(t.issued_tr);
-        cells[6].textContent = fmt(t.expenditures);
-        cells[6].style.color = '';
-        cells[7].textContent = fmt(t.unserviceable);
-        cells[7].style.color = t.unserviceable ? '#fcd34d' : '';
-        cells[8].textContent = fmt(t.lost);
-        cells[8].style.color = t.lost ? '#fca5a5' : '';
+        cells[3].textContent = fmt(t.issued_par);
+        cells[4].textContent = fmt(t.issued_tr);
+        cells[5].textContent = fmt(t.expenditures);
+        cells[5].style.color = '';
+        cells[6].textContent = fmt(t.unserviceable);
+        cells[6].style.color = t.unserviceable ? '#fcd34d' : '';
+        cells[7].textContent = fmt(t.lost);
+        cells[7].style.color = t.lost ? '#fca5a5' : '';
       }
     }
   }
