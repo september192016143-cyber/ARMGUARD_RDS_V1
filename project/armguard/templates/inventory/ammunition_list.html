@@ -57,7 +57,6 @@
 {% block content %}
 <div class="card">
   <div class="ammo-report-wrap">
-    {% if page_obj.object_list %}
     <table class="ammo-report">
       <thead>
         <tr style="background:linear-gradient(135deg,#064e3b 0%,#065f46 100%);color:#fff;text-align:center">
@@ -89,6 +88,8 @@
           <td>0</td>
         </tr>
         {% endwith %}
+        {% empty %}
+        <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:1.5rem">No ammunition records found.</td></tr>
         {% endfor %}
       </tbody>
       <tfoot>
@@ -123,12 +124,6 @@
     </div>
     {% endif %}
 
-    {% else %}
-    <div class="empty-state">
-      <i class="fa-solid fa-bullseye"></i>
-      <p>No ammunition records found.</p>
-    </div>
-    {% endif %}
   </div>
 </div>
 {% endblock %}
