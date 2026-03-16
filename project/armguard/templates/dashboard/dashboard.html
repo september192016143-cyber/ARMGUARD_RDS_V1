@@ -133,8 +133,8 @@
               <td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ row.nomenclature }}">{{ row.nomenclature }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.possessed|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.on_stock|intcomma }}</td>
-              <td style="padding:5px 4px;text-align:center{% if row.issued_par %};color:#60a5fa;font-weight:700{% endif %}">{{ row.issued_par|intcomma }}</td>
-              <td style="padding:5px 4px;text-align:center{% if row.issued_tr %};color:#fbbf24;font-weight:700{% endif %}">{{ row.issued_tr|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.issued_par|intcomma }}</td>
+              <td style="padding:5px 4px;text-align:center">{{ row.issued_tr|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center">{{ row.serviceable|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center{% if row.unserviceable %};color:#d97706;font-weight:700{% endif %}">{{ row.unserviceable|intcomma }}</td>
               <td style="padding:5px 4px;text-align:center{% if row.lost %};color:#dc2626;font-weight:700{% endif %}">{{ row.lost|intcomma }}</td>
@@ -148,8 +148,8 @@
               <td style="padding:6px 8px;text-align:left;letter-spacing:.06em;font-size:.72rem">▸ SUB-TOTAL</td>
               <td style="padding:6px 2px">{{ inventory_totals.possessed|intcomma }}</td>
               <td style="padding:6px 2px">{{ inventory_totals.on_stock|intcomma }}</td>
-              <td style="padding:6px 2px{% if inventory_totals.issued_par %};color:#93c5fd{% endif %}">{{ inventory_totals.issued_par|intcomma }}</td>
-              <td style="padding:6px 2px{% if inventory_totals.issued_tr %};color:#fcd34d{% endif %}">{{ inventory_totals.issued_tr|intcomma }}</td>
+              <td style="padding:6px 2px">{{ inventory_totals.issued_par|intcomma }}</td>
+              <td style="padding:6px 2px">{{ inventory_totals.issued_tr|intcomma }}</td>
               <td style="padding:6px 2px">{{ inventory_totals.serviceable|intcomma }}</td>
               <td style="padding:6px 2px{% if inventory_totals.unserviceable %};color:#fcd34d{% endif %}">{{ inventory_totals.unserviceable|intcomma }}</td>
               <td style="padding:6px 2px{% if inventory_totals.lost %};color:#fca5a5{% endif %}">{{ inventory_totals.lost|intcomma }}</td>
