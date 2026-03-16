@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.urls import reverse_lazy, reverse
-from django.db.models import Q, Sum, OuterRef, Subquery, IntegerField, Value, Case, When, Count
+from django.db.models import Q, Sum, OuterRef, Subquery, IntegerField, Value, Case, When, Count, F, ExpressionWrapper
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
@@ -279,7 +279,7 @@ class MagazineDeleteView(_InventoryPermMixin, DeleteView):
 
 # --- Ammunition --------------------------------------------------------------
 def _ammo_issued_subqueries():
-    """Return (pistol_sub, rifle_sub) Subquery annotations for open TransactionLogs."""
+    """Return (pistol_sub, rifle_sub, pistol_par, rifle_par, pistol_tr, rifle_tr) Subquery annotations."""
     from armguard.apps.transactions.models import TransactionLogs
     pistol_sub = TransactionLogs.objects.filter(
         withdraw_pistol_ammunition=OuterRef('pk'),
@@ -293,7 +293,35 @@ def _ammo_issued_subqueries():
     ).values('withdraw_rifle_ammunition').annotate(
         s=Sum('withdraw_rifle_ammunition_quantity')
     ).values('s')[:1]
-    return pistol_sub, rifle_sub
+    pistol_par = TransactionLogs.objects.filter(
+        withdraw_pistol_ammunition=OuterRef('pk'),
+        return_pistol_ammunition__isnull=True,
+        issuance_type__icontains='PAR',
+    ).values('withdraw_pistol_ammunition').annotate(
+        s=Sum('withdraw_pistol_ammunition_quantity')
+    ).values('s')[:1]
+    rifle_par = TransactionLogs.objects.filter(
+        withdraw_rifle_ammunition=OuterRef('pk'),
+        return_rifle_ammunition__isnull=True,
+        issuance_type__icontains='PAR',
+    ).values('withdraw_rifle_ammunition').annotate(
+        s=Sum('withdraw_rifle_ammunition_quantity')
+    ).values('s')[:1]
+    pistol_tr = TransactionLogs.objects.filter(
+        withdraw_pistol_ammunition=OuterRef('pk'),
+        return_pistol_ammunition__isnull=True,
+        issuance_type__icontains='TR',
+    ).values('withdraw_pistol_ammunition').annotate(
+        s=Sum('withdraw_pistol_ammunition_quantity')
+    ).values('s')[:1]
+    rifle_tr = TransactionLogs.objects.filter(
+        withdraw_rifle_ammunition=OuterRef('pk'),
+        return_rifle_ammunition__isnull=True,
+        issuance_type__icontains='TR',
+    ).values('withdraw_rifle_ammunition').annotate(
+        s=Sum('withdraw_rifle_ammunition_quantity')
+    ).values('s')[:1]
+    return pistol_sub, rifle_sub, pistol_par, rifle_par, pistol_tr, rifle_tr
 
 
 class AmmunitionListView(LoginRequiredMixin, ListView):
@@ -303,7 +331,7 @@ class AmmunitionListView(LoginRequiredMixin, ListView):
     paginate_by = 25
 
     def get_queryset(self):
-        pistol_sub, rifle_sub = _ammo_issued_subqueries()
+        pistol_sub, rifle_sub, pistol_par, rifle_par, pistol_tr, rifle_tr = _ammo_issued_subqueries()
         type_order = Case(
             *[When(type=value, then=Value(i)) for i, (value, _) in enumerate(AMMUNITION_TYPES)],
             default=Value(len(AMMUNITION_TYPES)),
@@ -312,7 +340,16 @@ class AmmunitionListView(LoginRequiredMixin, ListView):
         qs = Ammunition.objects.annotate(
             pistol_issued=Coalesce(Subquery(pistol_sub, output_field=IntegerField()), Value(0)),
             rifle_issued=Coalesce(Subquery(rifle_sub, output_field=IntegerField()), Value(0)),
+            pistol_issued_par=Coalesce(Subquery(pistol_par, output_field=IntegerField()), Value(0)),
+            rifle_issued_par=Coalesce(Subquery(rifle_par, output_field=IntegerField()), Value(0)),
+            pistol_issued_tr=Coalesce(Subquery(pistol_tr, output_field=IntegerField()), Value(0)),
+            rifle_issued_tr=Coalesce(Subquery(rifle_tr, output_field=IntegerField()), Value(0)),
             type_order=type_order,
+        ).annotate(
+            on_stock=ExpressionWrapper(
+                F('quantity') - F('pistol_issued') - F('rifle_issued'),
+                output_field=IntegerField()
+            )
         ).order_by('type_order', 'lot_number')
         q = self.request.GET.get('q', '').strip()
         if q:
@@ -328,33 +365,48 @@ class AmmunitionListView(LoginRequiredMixin, ListView):
         ctx['can_add'] = can_add(self.request.user)
         ctx['can_edit'] = can_edit(self.request.user)
         ctx['can_delete'] = can_delete(self.request.user)
-        # F12 FIX: Reuse the already-annotated object_list queryset for footer totals
-        # instead of calling _ammo_issued_subqueries() a second time per request.
         totals = self.object_list.aggregate(
-            total_basic_load=Sum('quantity'),
+            total_on_stock=Sum('quantity'),
             total_pistol_issued=Sum('pistol_issued'),
             total_rifle_issued=Sum('rifle_issued'),
+            total_pistol_par=Sum('pistol_issued_par'),
+            total_rifle_par=Sum('rifle_issued_par'),
+            total_pistol_tr=Sum('pistol_issued_tr'),
+            total_rifle_tr=Sum('rifle_issued_tr'),
         )
         total_issued = (totals['total_pistol_issued'] or 0) + (totals['total_rifle_issued'] or 0)
-        total_basic_load = totals['total_basic_load'] or 0
-        ctx['total_basic_load'] = total_basic_load
+        total_on_stock = totals['total_on_stock'] or 0
+        ctx['total_on_stock'] = total_on_stock
+        ctx['total_possessed'] = total_on_stock + total_issued
         ctx['total_issued'] = total_issued
-        ctx['total_on_hand'] = total_basic_load - total_issued
+        ctx['total_issued_par'] = (totals['total_pistol_par'] or 0) + (totals['total_rifle_par'] or 0)
+        ctx['total_issued_tr'] = (totals['total_pistol_tr'] or 0) + (totals['total_rifle_tr'] or 0)
         return ctx
 
 
 @login_required
 def ammunition_stock_json(request):
-    """JSON endpoint for real-time ammo issued/on-hand polling."""
-    pistol_sub, rifle_sub = _ammo_issued_subqueries()
+    """JSON endpoint for real-time ammo polling — returns possessed/on_stock/par/tr per lot."""
+    pistol_sub, rifle_sub, pistol_par, rifle_par, pistol_tr, rifle_tr = _ammo_issued_subqueries()
     rows = Ammunition.objects.annotate(
         pistol_issued=Coalesce(Subquery(pistol_sub, output_field=IntegerField()), Value(0)),
         rifle_issued=Coalesce(Subquery(rifle_sub, output_field=IntegerField()), Value(0)),
-    ).values('pk', 'quantity', 'pistol_issued', 'rifle_issued')
-    data = [
-        {'pk': r['pk'], 'on_hand': r['quantity'], 'issued': r['pistol_issued'] + r['rifle_issued']}
-        for r in rows
-    ]
+        pistol_issued_par=Coalesce(Subquery(pistol_par, output_field=IntegerField()), Value(0)),
+        rifle_issued_par=Coalesce(Subquery(rifle_par, output_field=IntegerField()), Value(0)),
+        pistol_issued_tr=Coalesce(Subquery(pistol_tr, output_field=IntegerField()), Value(0)),
+        rifle_issued_tr=Coalesce(Subquery(rifle_tr, output_field=IntegerField()), Value(0)),
+    ).values('pk', 'quantity', 'pistol_issued', 'rifle_issued',
+             'pistol_issued_par', 'rifle_issued_par', 'pistol_issued_tr', 'rifle_issued_tr')
+    data = []
+    for r in rows:
+        total_issued = r['pistol_issued'] + r['rifle_issued']
+        data.append({
+            'pk': r['pk'],
+            'possessed': r['quantity'] + total_issued,
+            'on_stock': r['quantity'],
+            'issued_par': r['pistol_issued_par'] + r['rifle_issued_par'],
+            'issued_tr': r['pistol_issued_tr'] + r['rifle_issued_tr'],
+        })
     return JsonResponse({'items': data})
 
 

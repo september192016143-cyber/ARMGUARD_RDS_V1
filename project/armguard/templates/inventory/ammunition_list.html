@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+﻿{% extends 'base.html' %}
 {% load humanize static %}
 
 {% block title %}Ammunition — ArmGuard RDS{% endblock %}
@@ -19,22 +19,30 @@
 {% block extra_css %}
 <style>
   .ammo-report-wrap { overflow-x: auto; }
-  .ammo-report { width: 100%; border-collapse: collapse; font-size: .82rem; }
-  .ammo-report th, .ammo-report td { padding: .45rem .75rem; border: 1px solid #2e3448; text-align: center; white-space: nowrap; }
+  .ammo-report {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .76rem;
+    table-layout: auto;
+  }
+  .ammo-report th, .ammo-report td {
+    padding: .45rem .6rem;
+    border: 2px solid rgba(255,255,255,.2);
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
   .ammo-report td:first-child { text-align: left; font-weight: 600; }
-  .ammo-report thead tr.hdr-top th { background: #1a3a6b; color: #fff; font-weight: 700; letter-spacing: .03em; }
-  .ammo-report thead tr.hdr-sub th { background: #2c4fa3; color: #fff; font-weight: 600; font-size: .78rem; }
-  .ammo-report thead tr.hdr-sub th.col-training  { background: #5c6a2d; }
-  .ammo-report thead tr.hdr-sub th.col-issued     { background: #996633; }
-  .ammo-report thead tr.hdr-sub th.col-unserv     { background: #6e1a1a; }
-  .ammo-report thead tr.hdr-sub th.col-expend     { background: #3a3a3a; }
-  .ammo-report thead tr.hdr-sub th.col-onhand     { background: #1e6b1e; }
-  .ammo-report thead tr.hdr-sub th.col-lost       { background: #6b1e6b; }
-  .ammo-report thead tr.hdr-sub th.col-action     { background: #1a3a6b; }
-  .ammo-report tbody tr td { background: #141824; color: #c8d0e8; vertical-align: middle; }
-  .ammo-report tbody tr:nth-child(even) td { background: #1a1f2e; }
-  .ammo-report tfoot td { background: #293050; color: #c8d0e8; font-weight: 700; border-top: 2px solid #4a5890; }
-  .ammo-report tfoot td:first-child { text-align: left; }
+  .ammo-report tbody tr td { background: #141824; color: #c8d0e8; }
+  .ammo-report tbody tr:nth-child(even) td { background: rgba(12,166,120,.04); }
+  .ammo-report tbody tr { border-bottom: 1px solid rgba(12,166,120,.1); transition: background .15s; }
+  .ammo-report tfoot td {
+    background: linear-gradient(90deg,#0ca678 0%,#047857 100%);
+    color: #fff;
+    font-weight: 700;
+    border-top: 2px solid #0ca678;
+  }
+  .ammo-report tfoot td:first-child { text-align: left; letter-spacing: .06em; font-size: .72rem; }
 </style>
 {% endblock %}
 
@@ -45,7 +53,7 @@
       <div class="input-wrap" style="flex:1;max-width:300px">
         <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;pointer-events:none"></i>
         <input type="text" name="q" value="{{ request.GET.q }}" class="form-control"
-               placeholder="Ammunition type…" style="padding-left:2.1rem">
+               placeholder="Ammunition type..." style="padding-left:2.1rem">
       </div>
       <button type="submit" id="filter-submit" name="filter" class="btn btn-secondary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
       {% if request.GET.q %}
@@ -58,49 +66,44 @@
     {% if page_obj.object_list %}
     <table class="ammo-report">
       <thead>
-        <tr class="hdr-top">
-          <th rowspan="2">Nomenclature</th>
-          <th colspan="2">Inventory</th>
-          <th rowspan="2" class="col-issued">Issued</th>
-          <th rowspan="2" class="col-unserv">Unserviceable</th>
-          <th rowspan="2" class="col-expend">Expenditures</th>
-          <th rowspan="2" class="col-onhand">On-hand</th>
-          <th rowspan="2" class="col-lost">Lost</th>
-          <th rowspan="2" class="col-action">Action</th>
+        <tr style="background:linear-gradient(135deg,#064e3b 0%,#065f46 100%);color:#fff;text-align:center">
+          <th rowspan="2" style="text-align:left;font-size:.68rem;letter-spacing:.08em;font-weight:700;min-width:180px">NOMENCLATURE</th>
+          <th colspan="2" style="font-size:.67rem;font-weight:800;letter-spacing:.06em;white-space:nowrap">INVENTORY</th>
+          <th colspan="2" style="font-size:.65rem;font-weight:700;letter-spacing:.06em;background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">ISSUED</th>
+          <th rowspan="2" style="background:linear-gradient(135deg,#065f46,#047857);font-size:.65rem;letter-spacing:.04em;white-space:nowrap">Serviceable</th>
+          <th rowspan="2" style="background:linear-gradient(135deg,#92400e,#b45309);font-size:.65rem;letter-spacing:.04em;white-space:nowrap">Unserviceable</th>
+          <th rowspan="2" style="background:linear-gradient(135deg,#7f1d1d,#b91c1c);font-size:.65rem;letter-spacing:.04em;white-space:nowrap">Lost</th>
+          <th rowspan="2" style="font-size:.65rem;letter-spacing:.04em">Action</th>
         </tr>
-        <tr class="hdr-sub">
-          <th>Basic Load</th>
-          <th class="col-training">Training</th>
+        <tr style="background:linear-gradient(135deg,#065f46 0%,#047857 100%);color:#fff;text-align:center;font-size:.63rem;line-height:1.2">
+          <th style="white-space:nowrap">Possessed</th>
+          <th style="white-space:nowrap">On Stock</th>
+          <th style="background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">PAR</th>
+          <th style="background:linear-gradient(135deg,#92400e,#b45309);white-space:nowrap">TR</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="ammo-tbody">
         {% for a in page_obj %}
-        {% with issued=a.pistol_issued|add:a.rifle_issued %}
+        {% with par=a.pistol_issued_par|add:a.rifle_issued_par tr=a.pistol_issued_tr|add:a.rifle_issued_tr %}
         <tr data-ammo-pk="{{ a.pk }}">
-          <td>{{ a.type|default:"—" }}</td>
-          <td>{{ a.quantity|default:0|intcomma }}</td>
-          <td>0</td>
-          <td>
-            <span class="ammo-issued" style="{% if issued > 0 %}color:#f0a030{% else %}color:var(--muted){% endif %}">
-              {% if issued > 0 %}{{ issued }}{% else %}0{% endif %}
-            </span>
-          </td>
+          <td>{{ a.type|default:"--" }}</td>
+          <td class="ammo-possessed">{{ a.quantity|add:a.pistol_issued|add:a.rifle_issued|intcomma }}</td>
+          <td class="ammo-on-stock" style="color:#3cb83c">{{ a.on_stock|intcomma }}</td>
+          <td class="ammo-par" style="{% if par %}color:#f0a030;font-weight:700{% else %}color:var(--muted){% endif %}">{{ par|intcomma }}</td>
+          <td class="ammo-tr" style="{% if tr %}color:#f0a030;font-weight:700{% else %}color:var(--muted){% endif %}">{{ tr|intcomma }}</td>
+          <td class="ammo-serviceable" style="color:#3cb83c">{{ a.on_stock|intcomma }}</td>
           <td>0</td>
           <td>0</td>
           <td>
-            <span class="ammo-onhand" style="color:#3cb83c">{{ a.quantity|intcomma }}</span>
-          </td>
-          <td>0</td>
-          <td>
-            {% if can_edit %}
+            {% if can_edit or can_delete %}
             <div class="flex gap-2" style="justify-content:center">
+              {% if can_edit %}
               <a href="{% url 'ammunition-edit' a.pk %}" class="btn btn-secondary btn-sm btn-icon" title="Edit"><i class="fa-solid fa-pen"></i></a>
+              {% endif %}
               {% if can_delete %}
               <a href="{% url 'ammunition-delete' a.pk %}" class="btn btn-danger btn-sm btn-icon" title="Delete"><i class="fa-solid fa-trash"></i></a>
               {% endif %}
             </div>
-            {% else %}
-            <a href="{% url 'ammunition-edit' a.pk %}" class="btn btn-secondary btn-sm" style="font-size:.78rem"><i class="fa-solid fa-table-list"></i> View</a>
             {% endif %}
           </td>
         </tr>
@@ -109,13 +112,13 @@
       </tbody>
       <tfoot>
         <tr>
-          <td>SUB-TOTAL &gt;&gt;&gt;&gt;</td>
-          <td>{{ total_basic_load|intcomma }}</td>
+          <td>&#9658; SUB-TOTAL</td>
+          <td>{{ total_possessed|intcomma }}</td>
+          <td>{{ total_on_stock|intcomma }}</td>
+          <td>{{ total_issued_par|intcomma }}</td>
+          <td>{{ total_issued_tr|intcomma }}</td>
+          <td>{{ total_on_stock|intcomma }}</td>
           <td>0</td>
-          <td>{{ total_issued|intcomma }}</td>
-          <td>0</td>
-          <td>0</td>
-          <td>{{ total_on_hand|intcomma }}</td>
           <td>0</td>
           <td></td>
         </tr>
@@ -154,5 +157,3 @@
 <script type="application/json" id="ammo-config">{"apiUrl": "{% url 'ammunition-stock-json' %}"}</script>
 <script src="{% static 'js/ammunition_list.js' %}"></script>
 {% endblock %}
-
-
