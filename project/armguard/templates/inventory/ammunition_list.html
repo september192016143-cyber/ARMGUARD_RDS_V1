@@ -52,12 +52,17 @@
   [data-theme="light"] .ammo-report tbody td * { color: #000 !important; }
   [data-theme="light"] .ammo-report tbody tr:nth-child(even) td { background: rgba(12,166,120,.09); }
   .ammo-drill {
+    color: inherit;
+    text-decoration: none;
+    display: inline-block;
+    transition: color .18s, transform .15s, letter-spacing .15s;
     cursor: pointer;
-    text-decoration: underline dotted;
-    text-underline-offset: 3px;
-    transition: color .15s;
   }
-  .ammo-drill:hover { color: var(--primary) !important; }
+  .ammo-drill:hover {
+    color: #2563eb;
+    transform: translateX(3px);
+    letter-spacing: .01em;
+  }
 </style>
 {% endblock %}
 
