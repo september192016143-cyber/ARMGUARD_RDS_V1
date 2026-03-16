@@ -67,7 +67,6 @@
           <th rowspan="2" style="background:linear-gradient(135deg,#065f46,#047857);font-size:.65rem;letter-spacing:.04em;white-space:nowrap">Serviceable</th>
           <th rowspan="2" style="background:linear-gradient(135deg,#92400e,#b45309);font-size:.65rem;letter-spacing:.04em;white-space:nowrap">Unserviceable</th>
           <th rowspan="2" style="background:linear-gradient(135deg,#7f1d1d,#b91c1c);font-size:.65rem;letter-spacing:.04em;white-space:nowrap">Lost</th>
-          <th rowspan="2" style="font-size:.65rem;letter-spacing:.04em">Action</th>
         </tr>
         <tr style="background:linear-gradient(135deg,#065f46 0%,#047857 100%);color:#fff;text-align:center;font-size:.63rem;line-height:1.2">
           <th style="white-space:nowrap">Possessed</th>
@@ -88,18 +87,6 @@
           <td class="ammo-serviceable" style="color:var(--green)">{{ a.on_stock|intcomma }}</td>
           <td>0</td>
           <td>0</td>
-          <td>
-            {% if can_edit or can_delete %}
-            <div class="flex gap-2" style="justify-content:center">
-              {% if can_edit %}
-              <a href="{% url 'ammunition-edit' a.pk %}" class="btn btn-secondary btn-sm btn-icon" title="Edit"><i class="fa-solid fa-pen"></i></a>
-              {% endif %}
-              {% if can_delete %}
-              <a href="{% url 'ammunition-delete' a.pk %}" class="btn btn-danger btn-sm btn-icon" title="Delete"><i class="fa-solid fa-trash"></i></a>
-              {% endif %}
-            </div>
-            {% endif %}
-          </td>
         </tr>
         {% endwith %}
         {% endfor %}
@@ -114,7 +101,6 @@
           <td>{{ total_on_stock|intcomma }}</td>
           <td>0</td>
           <td>0</td>
-          <td></td>
         </tr>
       </tfoot>
     </table>
