@@ -137,11 +137,10 @@
 
 {% block extra_js %}
 <script type="application/json" id="ammo-config">{"apiUrl": "{% url 'ammunition-stock-json' %}"}</script>
-<script type="application/json" id="lots-by-type">{{ lots_by_type_json|safe }}</script>
 <script src="{% static 'js/ammunition_list.js' %}"></script>
 <script>
 (function () {
-  var LOTS = JSON.parse(document.getElementById('lots-by-type').textContent);
+  var LOTS = {{ lots_by_type_json|safe }};
   var modal = document.getElementById('ammo-lot-modal');
 
   function fmt(n) { return Number(n).toLocaleString(); }
