@@ -56,20 +56,6 @@
 
 {% block content %}
 <div class="card">
-  <div class="filter-bar">
-    <form method="get" class="search-bar" style="flex:1">
-      <div class="input-wrap" style="flex:1;max-width:300px">
-        <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;pointer-events:none"></i>
-        <input type="text" name="q" value="{{ request.GET.q }}" class="form-control"
-               placeholder="Ammunition type..." style="padding-left:2.1rem">
-      </div>
-      <button type="submit" id="filter-submit" name="filter" class="btn btn-secondary btn-sm"><i class="fa-solid fa-filter"></i> Filter</button>
-      {% if request.GET.q %}
-        <a href="{% url 'ammunition-list' %}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
-      {% endif %}
-    </form>
-  </div>
-
   <div class="ammo-report-wrap">
     {% if page_obj.object_list %}
     <table class="ammo-report">
