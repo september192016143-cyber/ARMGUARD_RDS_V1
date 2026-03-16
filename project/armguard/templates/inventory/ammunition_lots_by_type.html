@@ -120,4 +120,16 @@
     {% endif %}
   </div>
 </div>
+
+<script>
+(function(){
+  var input = document.getElementById('lot-q');
+  var form  = document.getElementById('lot-filter-form');
+  var timer;
+  input.addEventListener('input', function(){
+    clearTimeout(timer);
+    timer = setTimeout(function(){ form.submit(); }, 350);
+  });
+})();
+</script>
 {% endblock %}
