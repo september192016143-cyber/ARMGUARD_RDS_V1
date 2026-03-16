@@ -607,12 +607,12 @@ def dashboard_tables_json(request):
         'ammo': {
             'rows': [
                 _row_fields(r, ['nomenclature', 'basic_load', 'on_hand', 'issued',
-                                'unserviceable', 'expenditures', 'lost'])
+                                'expenditures', 'unserviceable', 'lost'])
                 for r in ammo_rows
             ],
             'totals': _row_fields(ammo_totals,
                                   ['basic_load', 'on_hand', 'issued',
-                                   'unserviceable', 'expenditures', 'lost']),
+                                   'expenditures', 'unserviceable', 'lost']),
         },
         'magazine': {
             'rows': [
