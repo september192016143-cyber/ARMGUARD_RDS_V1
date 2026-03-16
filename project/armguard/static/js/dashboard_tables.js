@@ -108,11 +108,10 @@
       html += '<tr style="border-bottom:1px solid rgba(12,166,120,.1);background:' + bg + ';transition:background .15s">'
         + '<td style="padding:5px 8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + r.nomenclature + '">' + r.nomenclature + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.basic_load) + '</td>'
-        + '<td style="padding:5px 4px;text-align:center">' + fmt(r.training) + '</td>'
+        + '<td style="padding:5px 4px;text-align:center">' + fmt(r.on_hand) + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.issued) + '</td>'
         + '<td style="padding:5px 4px;text-align:center' + (r.unserviceable ? ';color:#d97706;font-weight:700' : '') + '">' + fmt(r.unserviceable) + '</td>'
         + '<td style="padding:5px 4px;text-align:center">' + fmt(r.expenditures) + '</td>'
-        + '<td style="padding:5px 4px;text-align:center">' + fmt(r.on_hand) + '</td>'
         + '<td style="padding:5px 4px;text-align:center' + (r.lost ? ';color:#dc2626;font-weight:700' : '') + '">' + fmt(r.lost) + '</td>'
         + '<td></td>'
         + '</tr>';
@@ -123,16 +122,15 @@
     var ftr = foot.querySelector('tr');
     if (ftr) {
       var cells = ftr.querySelectorAll('td');
-      if (cells.length >= 8) {
+      if (cells.length >= 7) {
         cells[1].textContent = fmt(t.basic_load);
-        cells[2].textContent = fmt(t.training);
+        cells[2].textContent = fmt(t.on_hand);
         cells[3].textContent = fmt(t.issued);
         cells[4].textContent = fmt(t.unserviceable);
         cells[4].style.color = t.unserviceable ? '#fcd34d' : '';
         cells[5].textContent = fmt(t.expenditures);
-        cells[6].textContent = fmt(t.on_hand);
-        cells[7].textContent = fmt(t.lost);
-        cells[7].style.color = t.lost ? '#fca5a5' : '';
+        cells[6].textContent = fmt(t.lost);
+        cells[6].style.color = t.lost ? '#fca5a5' : '';
       }
     }
   }
