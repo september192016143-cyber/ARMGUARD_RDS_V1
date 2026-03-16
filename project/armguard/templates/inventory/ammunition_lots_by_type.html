@@ -61,10 +61,7 @@
       <thead>
         <tr>
           <th>Lot Number</th>
-          <th>Possessed</th>
-          <th>On Stock</th>
-          <th>PAR</th>
-          <th>TR</th>
+          <th>Quantity</th>
           <th>Description</th>
           <th>Added</th>
           {% if can_edit or can_delete %}<th style="width:80px"></th>{% endif %}
@@ -72,22 +69,12 @@
       </thead>
       <tbody>
         {% for lot in page_obj %}
-        {% with par=lot.pistol_issued_par|add:lot.rifle_issued_par tr=lot.pistol_issued_tr|add:lot.rifle_issued_tr possessed=lot.quantity|add:lot.pistol_issued|add:lot.rifle_issued %}
         <tr>
           <td class="fw-600">
             <i class="fa-solid fa-box-archive" style="color:var(--green);margin-right:.4rem;font-size:.75rem"></i>
             {{ lot.lot_number }}
           </td>
-          <td>{{ possessed|intcomma }}</td>
-          <td style="color:var(--green);font-weight:600">{{ lot.on_stock|intcomma }}</td>
-          <td>
-            {% if par %}<span style="color:var(--primary);font-weight:600">{{ par|intcomma }}</span>
-            {% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
-            {% if tr %}<span style="color:var(--primary);font-weight:600">{{ tr|intcomma }}</span>
-            {% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
+          <td style="color:var(--green);font-weight:600">{{ lot.quantity|intcomma }}</td>
           <td class="text-muted" style="font-size:.78rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
             {{ lot.description|default:"—" }}
           </td>
@@ -103,7 +90,6 @@
           </td>
           {% endif %}
         </tr>
-        {% endwith %}
         {% endfor %}
       </tbody>
     </table>
