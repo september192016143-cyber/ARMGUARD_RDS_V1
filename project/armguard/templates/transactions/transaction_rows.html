@@ -11,6 +11,7 @@
       <th>Weapon(s)</th>
       <th>Processed By</th>
       <th>Timestamp</th>
+      <th>Return By</th>
       <th>Returned</th>
       <th style="width:70px"></th>
     </tr>
@@ -64,6 +65,17 @@
       </td>
       <td class="text-muted" style="font-size:.78rem">{{ t.transaction_personnel|default:"—" }}</td>
       <td class="text-muted" style="font-size:.75rem;white-space:nowrap">{{ t.timestamp|date:"M d, Y" }}<br>{{ t.timestamp|date:"H:i" }}</td>
+      <td style="font-size:.75rem;white-space:nowrap">
+        {% if t.due_by %}
+          {% if t.due_by < now %}
+            <span style="color:#ef4444;font-weight:700">{{ t.due_by|date:"M d, Y" }}<br>{{ t.due_by|date:"H:i" }}</span>
+          {% else %}
+            <span style="color:#facc15">{{ t.due_by|date:"M d, Y" }}<br>{{ t.due_by|date:"H:i" }}</span>
+          {% endif %}
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
       <td style="font-size:.75rem;white-space:nowrap">
         {% if t.due_by %}
           {% if t.due_by < now %}
