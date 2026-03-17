@@ -519,6 +519,11 @@ class Transaction(models.Model):
             from datetime import timedelta
             from django.utils import timezone as _tz
             self.return_by = (self.timestamp or _tz.now()) + timedelta(hours=24)
+        elif self.transaction_type == 'Return':
+            # Return transactions have no deadline of their own; the deadline
+            # lives on the originating Withdrawal.  Clear any accidental value
+            # (e.g. a stale form field that was hidden but not cleared).
+            self.return_by = None
 
         TransactionLogs = apps.get_model('transactions', 'TransactionLogs')
 

@@ -5,7 +5,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.views.decorators.http import require_POST, require_GET
-from django.db.models import Q, Subquery, OuterRef
+from django.db.models import Q, Subquery, OuterRef, Case, When, F
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.core.cache import cache
@@ -39,10 +39,31 @@ class TransactionListView(LoginRequiredMixin, ListView):
             .order_by('-timestamp')
             .values('issuance_type')[:1]
         )
+        # For Return rows: look up the most-recent prior Withdrawal's return_by
+        # so we can show the original deadline instead of a stale/wrong value.
+        _withdrawal_return_by = (
+            Transaction.objects
+            .filter(
+                transaction_type='Withdrawal',
+                personnel=OuterRef('personnel'),
+                timestamp__lt=OuterRef('timestamp'),
+            )
+            .order_by('-timestamp')
+            .values('return_by')[:1]
+        )
         qs = (
             Transaction.objects
             .select_related('personnel', 'pistol', 'rifle')
-            .annotate(effective_issuance=Coalesce('issuance_type', Subquery(_prior_withdrawal_issuance)))
+            .annotate(
+                effective_issuance=Coalesce('issuance_type', Subquery(_prior_withdrawal_issuance)),
+                # due_by: for Withdrawals use their own return_by; for Returns use
+                # the linked Withdrawal's return_by so the deadline is always the
+                # original one, not a wrongly-propagated copy.
+                due_by=Case(
+                    When(transaction_type='Return', then=Subquery(_withdrawal_return_by)),
+                    default=F('return_by'),
+                ),
+            )
             .order_by('-timestamp')
         )
         q = self.request.GET.get('q', '').strip()
