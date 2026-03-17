@@ -69,6 +69,7 @@
         {% if t.due_by %}
           {% if t.due_by < now %}
             <span style="color:#ef4444;font-weight:700">{{ t.due_by|date:"M d, Y" }}<br>{{ t.due_by|date:"H:i" }}</span>
+            <span class="badge badge-red" style="font-size:.6rem;display:block;margin-top:.15rem">OVERDUE</span>
           {% else %}
             <span style="color:#facc15">{{ t.due_by|date:"M d, Y" }}<br>{{ t.due_by|date:"H:i" }}</span>
           {% endif %}
