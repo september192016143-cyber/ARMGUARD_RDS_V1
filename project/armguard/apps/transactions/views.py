@@ -51,6 +51,30 @@ class TransactionListView(LoginRequiredMixin, ListView):
             .order_by('-timestamp')
             .values('return_by')[:1]
         )
+        # For Withdrawal rows: find the timestamp of the matching Return so the
+        # Returned column shows when the item was actually handed back.
+        _pistol_returned_ts = (
+            Transaction.objects
+            .filter(
+                transaction_type='Return',
+                personnel=OuterRef('personnel'),
+                pistol_id=OuterRef('pistol_id'),
+                timestamp__gt=OuterRef('timestamp'),
+            )
+            .order_by('timestamp')
+            .values('timestamp')[:1]
+        )
+        _rifle_returned_ts = (
+            Transaction.objects
+            .filter(
+                transaction_type='Return',
+                personnel=OuterRef('personnel'),
+                rifle_id=OuterRef('rifle_id'),
+                timestamp__gt=OuterRef('timestamp'),
+            )
+            .order_by('timestamp')
+            .values('timestamp')[:1]
+        )
         qs = (
             Transaction.objects
             .select_related('personnel', 'pistol', 'rifle')
@@ -62,6 +86,11 @@ class TransactionListView(LoginRequiredMixin, ListView):
                 due_by=Case(
                     When(transaction_type='Return', then=Subquery(_withdrawal_return_by)),
                     default=F('return_by'),
+                ),
+                # returned_at: for Withdrawal rows, the timestamp of the matching Return.
+                returned_at=Coalesce(
+                    Subquery(_pistol_returned_ts),
+                    Subquery(_rifle_returned_ts),
                 ),
             )
             .order_by('-timestamp')

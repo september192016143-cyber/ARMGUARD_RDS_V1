@@ -83,6 +83,11 @@
           {% if t.due_by and t.timestamp > t.due_by %}
             <span class="badge badge-red" style="font-size:.6rem;display:block;margin-top:.15rem">OVERDUE</span>
           {% endif %}
+        {% elif t.returned_at %}
+          <span style="color:var(--green);font-weight:600">{{ t.returned_at|date:"M d, Y" }}<br>{{ t.returned_at|date:"H:i" }}</span>
+          {% if t.due_by and t.returned_at > t.due_by %}
+            <span class="badge badge-red" style="font-size:.6rem;display:block;margin-top:.15rem">OVERDUE</span>
+          {% endif %}
         {% else %}
           <span class="text-muted">—</span>
         {% endif %}
