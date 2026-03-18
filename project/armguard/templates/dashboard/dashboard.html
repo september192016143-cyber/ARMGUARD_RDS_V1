@@ -12,7 +12,14 @@
 {% block content %}
 <style>
   .analytics-table th { color: #fff !important; }
+  .analytics-table td { color: #fff !important; }
   .stat-label { color: #fff !important; }
+  .stat-value { color: #fff !important; }
+  .dash-section-heading { color: #fff !important; }
+  /* muted labels ("available", "issued", etc.) — readable in night mode */
+  [data-theme="light"] .analytics-table td { color: #0d1f35 !important; }
+  [data-theme="light"] .stat-value { color: #0d1f35 !important; }
+  [data-theme="light"] .dash-section-heading { color: #0d1f35 !important; }
   .nom-link {
     color: inherit;
     text-decoration: none;
@@ -113,7 +120,7 @@
 
     <!-- ── Firearm Analytics ─────────────────────────────────── -->
     <div style="flex:1;min-width:460px">
-      <div style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #1867d4;margin-bottom:6px">FIREARM ANALYTICS</div>
+      <div class="dash-section-heading" style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #1867d4;margin-bottom:6px">FIREARM ANALYTICS</div>
       <div>
         {% if inventory_rows %}
         <table class="analytics-table" style="width:auto;border-collapse:collapse;font-size:0.76rem;table-layout:auto">
@@ -175,7 +182,7 @@
 
     <!-- ── Accessories Analytics ─────────────────────────────── -->
     <div style="flex:0 0 auto;min-width:240px">
-      <div style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #7c3aed;margin-bottom:6px">ACCESSORIES ANALYTICS</div>
+      <div class="dash-section-heading" style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #7c3aed;margin-bottom:6px">ACCESSORIES ANALYTICS</div>
       <div>
         <table class="analytics-table" style="width:auto;border-collapse:collapse;font-size:0.76rem;table-layout:auto">
           <colgroup>
@@ -219,7 +226,7 @@
 
     <!-- ── Ammunition Analytics ──────────────────────────────── -->
     <div style="flex:1;min-width:460px">
-      <div style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #0ca678;margin-bottom:6px">AMMUNITION ANALYTICS</div>
+      <div class="dash-section-heading" style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #0ca678;margin-bottom:6px">AMMUNITION ANALYTICS</div>
       <div>
         {% if ammo_rows %}
         <table class="analytics-table" style="width:auto;border-collapse:collapse;font-size:0.76rem;table-layout:auto">
@@ -277,7 +284,7 @@
 
     <!-- ── Magazine Analytics ────────────────────────────────── -->
     <div style="flex:0 0 auto;min-width:240px">
-      <div style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #1d4ed8;margin-bottom:6px">MAGAZINE ANALYTICS</div>
+      <div class="dash-section-heading" style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #1d4ed8;margin-bottom:6px">MAGAZINE ANALYTICS</div>
       <div>
         <table class="analytics-table" style="width:auto;border-collapse:collapse;font-size:0.76rem;table-layout:auto">
           <colgroup>
