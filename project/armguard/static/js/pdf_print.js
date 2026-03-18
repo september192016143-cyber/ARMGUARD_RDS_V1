@@ -25,8 +25,20 @@
   }
 
   var pdfFrame = document.getElementById('pdfFrame');
+  var pdfUrl = pdfFrame.getAttribute('data-pdf-url');
   pdfFrame.addEventListener('load', function () { attemptPrint(); });
-  pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 2000);
+  if (pdfUrl) {
+    fetch(pdfUrl, {credentials: 'same-origin'})
+      .then(function (r) { return r.blob(); })
+      .then(function (blob) {
+        pdfFrame.src = URL.createObjectURL(blob);
+      })
+      .catch(function () {
+        pdfFrame.src = pdfUrl;
+      });
+  } else {
+    pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 2000);
+  }
 
   window.onafterprint = function () {
     setTimeout(function () { window.close(); }, 1000);
