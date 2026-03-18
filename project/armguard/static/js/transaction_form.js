@@ -51,6 +51,26 @@ function toggleReturnMode() {
   if (issuanceWrapper) issuanceWrapper.style.display = isReturn ? 'none' : 'flex';
   if (purposeWrapper) purposeWrapper.style.display = isReturn ? 'none' : 'flex';
   toggleTrPreview();
+  // When switching away from Return mode, clear any auto-filled consumable values
+  // so they don't bleed into a Withdrawal form submission.
+  if (!isReturn) {
+    var pmq = document.querySelector('[name="pistol_magazine_quantity"]');
+    if (pmq) pmq.value = '';
+    var paq = document.querySelector('[name="pistol_ammunition_quantity"]');
+    if (paq) paq.value = '';
+    var rmq = document.querySelector('[name="rifle_magazine_quantity"]');
+    if (rmq) rmq.value = '';
+    var raq = document.querySelector('[name="rifle_ammunition_quantity"]');
+    if (raq) raq.value = '';
+    var h = document.querySelector('[name="include_pistol_holster"]');
+    if (h) h.checked = false;
+    var mp = document.querySelector('[name="include_magazine_pouch"]');
+    if (mp) mp.checked = false;
+    var rs = document.querySelector('[name="include_rifle_sling"]');
+    if (rs) rs.checked = false;
+    var bd = document.querySelector('[name="include_bandoleer"]');
+    if (bd) bd.checked = false;
+  }
 }
 
 // ── TR Preview ─────────────────────────────────────────────────────────────────
@@ -209,6 +229,66 @@ function setBanner(id, type, html) {
     '<span>' + html + '</span></div>';
 }
 
+// ── Auto-fill Return form consumables from personnel_status data ──────────────
+// Called when Return mode is active and a personnel is selected.
+// Pre-populates magazine qty, ammo qty, accessory checkboxes, and weapon selects
+// so the operator doesn't have to enter them manually. The backend binding rule
+// requires all issued consumables to be present; this makes compliance easy.
+function autoFillReturnConsumables(d) {
+  // Pistol magazine quantity
+  var pmq = document.querySelector('[name="pistol_magazine_quantity"]');
+  if (pmq && d.pistol_mag_qty) pmq.value = d.pistol_mag_qty;
+
+  // Pistol ammo quantity
+  var paq = document.querySelector('[name="pistol_ammunition_quantity"]');
+  if (paq && d.pistol_ammo_qty) paq.value = d.pistol_ammo_qty;
+
+  // Rifle magazine: set dropdown by PK from open log, then set quantity
+  if (d.open_rifle_mag_id) {
+    var rmSel = document.getElementById('id_rifle_magazine') || document.querySelector('[name="rifle_magazine"]');
+    if (rmSel) {
+      rmSel.value = String(d.open_rifle_mag_id);
+      // Trigger change so any dependent logic fires
+      rmSel.dispatchEvent(new Event('change'));
+    }
+  }
+  var rmq = document.querySelector('[name="rifle_magazine_quantity"]');
+  if (rmq && d.rifle_mag_qty) rmq.value = d.rifle_mag_qty;
+
+  // Rifle ammo quantity
+  var raq = document.querySelector('[name="rifle_ammunition_quantity"]');
+  if (raq && d.rifle_ammo_qty) raq.value = d.rifle_ammo_qty;
+
+  // Accessories — check the boxes that have issued items
+  var holster = document.querySelector('[name="include_pistol_holster"]');
+  if (holster) holster.checked = !!d.holster_issued;
+
+  var magPouch = document.querySelector('[name="include_magazine_pouch"]');
+  if (magPouch) magPouch.checked = !!d.mag_pouch_issued;
+
+  var rifleSling = document.querySelector('[name="include_rifle_sling"]');
+  if (rifleSling) rifleSling.checked = !!d.rifle_sling_issued;
+
+  var bandoleer = document.querySelector('[name="include_bandoleer"]');
+  if (bandoleer) bandoleer.checked = !!d.bandoleer_issued;
+
+  // Auto-select pistol and rifle in the dropdowns if issued to this personnel
+  if (d.pistol_issued) {
+    var pistolSel2 = document.getElementById('id_pistol') || document.querySelector('[name="pistol"]');
+    if (pistolSel2 && !pistolSel2.value) {
+      pistolSel2.value = String(d.pistol_issued);
+      pistolSel2.dispatchEvent(new Event('change'));
+    }
+  }
+  if (d.rifle_issued) {
+    var rifleSel2 = document.getElementById('id_rifle') || document.querySelector('[name="rifle"]');
+    if (rifleSel2 && !rifleSel2.value) {
+      rifleSel2.value = String(d.rifle_issued);
+      rifleSel2.dispatchEvent(new Event('change'));
+    }
+  }
+}
+
 // ── Real-time field checks ─────────────────────────────────────────────────────
 // F7 FIX: 300ms debounce timers — prevent firing on every dropdown option scrolled.
 var _personnelTimer, _pistolTimer, _rifleTimer;
@@ -259,6 +339,10 @@ function checkPersonnel(val) {
         if (d.rifle_sling_issued) lines.push('Rifle sling: '             + escHtml(String(d.rifle_sling_qty)) + ' unit' + (d.rifle_sling_qty == 1 ? '' : 's'));
         if (d.bandoleer_issued)   lines.push('Bandoleer: '               + escHtml(String(d.bandoleer_qty))   + ' unit' + (d.bandoleer_qty == 1 ? '' : 's'));
         setBanner('personnel-status-banner', 'info', '<b>Currently issued:</b><br>' + lines.join('<br>'));
+
+        // AUTO-FILL Return form: populate all issued consumable fields so the
+        // operator doesn't have to enter them manually (binding rule enforces completeness).
+        autoFillReturnConsumables(d);
       }
     })
     .catch(function () { setBanner('personnel-status-banner', 'err', 'Could not fetch personnel status.'); });

@@ -364,6 +364,22 @@ def personnel_status(request):
         'bandoleer_issued': p.bandoleer_issued or None,
         'bandoleer_qty': p.bandoleer_issued_quantity or None,
     }
+    # For Return form auto-fill: resolve open TransactionLog to get actual FKs
+    # (Personnel stores magazine/ammo as strings, not PKs — we need PKs for dropdowns)
+    _open_log = (
+        TransactionLogs.objects
+        .filter(personnel_id=p, log_status__in=['Open', 'Partially Returned'])
+        .order_by('-record_id')
+        .first()
+    )
+    if _open_log:
+        data['open_rifle_mag_id']   = _open_log.withdraw_rifle_magazine_id
+        data['open_pistol_mag_id']  = _open_log.withdraw_pistol_magazine_id
+        data['open_pistol_ammo_id'] = _open_log.withdraw_pistol_ammunition_id
+        data['open_rifle_ammo_id']  = _open_log.withdraw_rifle_ammunition_id
+    else:
+        data['open_rifle_mag_id'] = data['open_pistol_mag_id'] = None
+        data['open_pistol_ammo_id'] = data['open_rifle_ammo_id'] = None
     # ID card front image
     import os
     from django.conf import settings as _settings

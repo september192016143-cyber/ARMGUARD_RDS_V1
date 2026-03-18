@@ -377,6 +377,85 @@ class Transaction(models.Model):
             # This blocks returning items that were never recorded as withdrawn for this personnel.
             # HIGH IMPROVEMENT: Also validates that return qty never exceeds the original withdrawn qty.
             TransactionLogs = apps.get_model('transactions', 'TransactionLogs')
+
+            # BINDING RULE: When returning a pistol, ALL unreturned consumables that were
+            # withdrawn together (same TransactionLog record) must be included in this return.
+            if self.pistol:
+                _pistol_open_log = TransactionLogs.objects.filter(
+                    personnel_id=self.personnel,
+                    withdraw_pistol=self.pistol,
+                    return_pistol__isnull=True,
+                ).order_by('-withdraw_pistol_timestamp').first()
+                if _pistol_open_log:
+                    _missing = []
+                    if _pistol_open_log.withdraw_pistol_magazine_id and not _pistol_open_log.return_pistol_magazine_id:
+                        if not self.pistol_magazine:
+                            _missing.append(
+                                f"Pistol Magazine '{_pistol_open_log.withdraw_pistol_magazine}'"
+                                f" ×{_pistol_open_log.withdraw_pistol_magazine_quantity}"
+                            )
+                    if _pistol_open_log.withdraw_pistol_ammunition_id and not _pistol_open_log.return_pistol_ammunition_id:
+                        if not self.pistol_ammunition:
+                            _missing.append(
+                                f"Pistol Ammunition '{_pistol_open_log.withdraw_pistol_ammunition}'"
+                                f" ×{_pistol_open_log.withdraw_pistol_ammunition_quantity} rounds"
+                            )
+                    if _pistol_open_log.withdraw_pistol_holster_quantity and not _pistol_open_log.return_pistol_holster_quantity:
+                        if not self.pistol_holster_quantity:
+                            _missing.append(
+                                f"Pistol Holster ×{_pistol_open_log.withdraw_pistol_holster_quantity}"
+                            )
+                    if _pistol_open_log.withdraw_magazine_pouch_quantity and not _pistol_open_log.return_magazine_pouch_quantity:
+                        if not self.magazine_pouch_quantity:
+                            _missing.append(
+                                f"Magazine Pouch ×{_pistol_open_log.withdraw_magazine_pouch_quantity}"
+                            )
+                    if _missing:
+                        raise ValidationError(
+                            "Cannot return the pistol without also returning all items issued with it. "
+                            "The following must be included in this return: "
+                            + "; ".join(_missing) + "."
+                        )
+
+            # BINDING RULE: When returning a rifle, ALL unreturned consumables that were
+            # withdrawn together (same TransactionLog record) must be included in this return.
+            if self.rifle:
+                _rifle_open_log = TransactionLogs.objects.filter(
+                    personnel_id=self.personnel,
+                    withdraw_rifle=self.rifle,
+                    return_rifle__isnull=True,
+                ).order_by('-withdraw_rifle_timestamp').first()
+                if _rifle_open_log:
+                    _missing = []
+                    if _rifle_open_log.withdraw_rifle_magazine_id and not _rifle_open_log.return_rifle_magazine_id:
+                        if not self.rifle_magazine:
+                            _missing.append(
+                                f"Rifle Magazine '{_rifle_open_log.withdraw_rifle_magazine}'"
+                                f" ×{_rifle_open_log.withdraw_rifle_magazine_quantity}"
+                            )
+                    if _rifle_open_log.withdraw_rifle_ammunition_id and not _rifle_open_log.return_rifle_ammunition_id:
+                        if not self.rifle_ammunition:
+                            _missing.append(
+                                f"Rifle Ammunition '{_rifle_open_log.withdraw_rifle_ammunition}'"
+                                f" ×{_rifle_open_log.withdraw_rifle_ammunition_quantity} rounds"
+                            )
+                    if _rifle_open_log.withdraw_rifle_sling_quantity and not _rifle_open_log.return_rifle_sling_quantity:
+                        if not self.rifle_sling_quantity:
+                            _missing.append(
+                                f"Rifle Sling ×{_rifle_open_log.withdraw_rifle_sling_quantity}"
+                            )
+                    if _rifle_open_log.withdraw_bandoleer_quantity and not _rifle_open_log.return_bandoleer_quantity:
+                        if not self.bandoleer_quantity:
+                            _missing.append(
+                                f"Bandoleer ×{_rifle_open_log.withdraw_bandoleer_quantity}"
+                            )
+                    if _missing:
+                        raise ValidationError(
+                            "Cannot return the rifle without also returning all items issued with it. "
+                            "The following must be included in this return: "
+                            + "; ".join(_missing) + "."
+                        )
+
             if self.pistol_magazine:
                 open_log = TransactionLogs.objects.filter(
                     personnel_id=self.personnel,
