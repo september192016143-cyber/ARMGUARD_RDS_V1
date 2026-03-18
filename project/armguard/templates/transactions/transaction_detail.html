@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Transaction #{{ transaction.transaction_id }} — ArmGuard RDS{% endblock %}
 {% block page_title %}Transaction #{{ transaction.transaction_id }}{% endblock %}
@@ -131,6 +132,7 @@
     </div>
   </div>
   <iframe id="tr-pdf-iframe"
+          data-pdf-url="{% url 'print_handler:download_transaction_pdf' transaction.transaction_id %}"
           style="width:100%;height:calc(100vh - 240px);min-height:480px;border:none;border-radius:0 0 .45rem .45rem;display:block;background:#525659"
           title="TR PDF Preview"></iframe>
 </div>
@@ -138,19 +140,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-(function () {
-  var iframe = document.getElementById('tr-pdf-iframe');
-  if (!iframe) return;
-  fetch("{% url 'print_handler:download_transaction_pdf' transaction.transaction_id %}", {credentials: 'same-origin'})
-    .then(function (r) { return r.blob(); })
-    .then(function (blob) {
-      var url = URL.createObjectURL(blob);
-      iframe.src = url + '#toolbar=1&view=FitH';
-    })
-    .catch(function () {
-      iframe.src = "{% url 'print_handler:download_transaction_pdf' transaction.transaction_id %}";
-    });
-})();
-</script>
+<script src="{% static 'js/transaction_detail.js' %}"></script>
 {% endblock %}
