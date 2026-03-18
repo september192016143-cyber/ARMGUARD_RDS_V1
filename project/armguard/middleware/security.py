@@ -59,7 +59,13 @@ class SecurityHeadersMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
-        response['Content-Security-Policy'] = self.CSP
+        # CSP is only meaningful for HTML documents. Applying it to binary
+        # responses (application/pdf, images, etc.) causes browser plugin
+        # compatibility issues — e.g. Chrome's PDF viewer creates internal
+        # sub-frames that trigger frame-src violations on the PDF response.
+        content_type = response.get('Content-Type', '')
+        if 'text/html' in content_type:
+            response['Content-Security-Policy'] = self.CSP
         response['Referrer-Policy'] = 'same-origin'
         response['Permissions-Policy'] = self.PERMISSIONS_POLICY
         return response
