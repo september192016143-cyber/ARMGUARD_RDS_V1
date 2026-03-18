@@ -81,7 +81,7 @@
         <p style="color: #d32f2f; font-weight: bold; margin-top: 10px;">⚠️ If using A4 paper, content will be cut off!</p>
     </div>
     
-    <iframe id="pdfFrame" src="about:blank" data-pdf-url="{{ pdf_url }}" type="application/pdf"></iframe>
+    <object id="pdfFrame" data="{{ pdf_url }}" type="application/pdf" style="width:100%;height:100vh;border:none;"></object>
     
     <script src="{% static 'js/pdf_print.js' %}"></script>
 </body>

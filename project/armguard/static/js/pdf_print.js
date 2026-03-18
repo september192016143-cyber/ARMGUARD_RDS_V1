@@ -7,12 +7,9 @@
     printAttempted = true;
     if (pdfLoadTimeout) clearTimeout(pdfLoadTimeout);
     try {
-      var iframe = document.getElementById('pdfFrame');
-      if (iframe.contentWindow) {
-        iframe.contentWindow.print();
-      } else {
-        window.print();
-      }
+      // <object> has no contentWindow — use window.print() directly.
+      // Chrome prints the embedded PDF content when window.print() is called.
+      window.print();
       setTimeout(function () {
         var inst = document.getElementById('print-instructions');
         if (inst) inst.style.display = 'none';
@@ -24,21 +21,13 @@
     }
   }
 
+  // <object> tag used instead of <iframe> to bypass X-Frame-Options and frame-src CSP.
+  // <object> uses object-src (default-src 'self'), and X-Frame-Options is not enforced on it.
   var pdfFrame = document.getElementById('pdfFrame');
-  var pdfUrl = pdfFrame.getAttribute('data-pdf-url');
-  pdfFrame.addEventListener('load', function () { attemptPrint(); });
-  if (pdfUrl) {
-    fetch(pdfUrl, {credentials: 'same-origin'})
-      .then(function (r) { return r.blob(); })
-      .then(function (blob) {
-        pdfFrame.src = URL.createObjectURL(blob);
-      })
-      .catch(function () {
-        pdfFrame.src = pdfUrl;
-      });
-  } else {
-    pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 2000);
+  if (pdfFrame) {
+    pdfFrame.addEventListener('load', function () { attemptPrint(); });
   }
+  pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 2500);
 
   window.onafterprint = function () {
     setTimeout(function () { window.close(); }, 1000);
