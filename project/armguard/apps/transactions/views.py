@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.views.decorators.http import require_POST, require_GET
 from django.db.models import Q, Subquery, OuterRef, Case, When, F
@@ -220,7 +221,14 @@ def create_transaction(request):
         if form.is_valid():
             txn = form.save(commit=False)
             txn.transaction_personnel = request.user.get_full_name() or request.user.username
-            txn.save(user=request.user)
+            try:
+                txn.save(user=request.user)
+            except ValidationError as ve:
+                # Catch model-level binding/business rule errors and show them as form errors
+                err_msgs = ve.messages if hasattr(ve, 'messages') else [str(ve)]
+                for msg in err_msgs:
+                    form.add_error(None, msg)
+                return render(request, 'transactions/transaction_form.html', {'form': form})
             # Invalidate dashboard caches so counts and table reflect the new transaction immediately.
             from django.utils import timezone as _tz
             cache.delete(f'dashboard_stats_{_tz.localdate()}')

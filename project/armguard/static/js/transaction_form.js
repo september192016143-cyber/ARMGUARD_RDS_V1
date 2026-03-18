@@ -54,6 +54,13 @@ function toggleReturnMode() {
   // When switching away from Return mode, clear any auto-filled consumable values
   // so they don't bleed into a Withdrawal form submission.
   if (!isReturn) {
+    // Clear hidden FK fields
+    var pmHid = document.getElementById('id_pistol_magazine') || document.querySelector('[name="pistol_magazine"]');
+    if (pmHid) pmHid.value = '';
+    var paHid = document.getElementById('id_pistol_ammunition') || document.querySelector('[name="pistol_ammunition"]');
+    if (paHid) paHid.value = '';
+    var raHid = document.getElementById('id_rifle_ammunition') || document.querySelector('[name="rifle_ammunition"]');
+    if (raHid) raHid.value = '';
     var pmq = document.querySelector('[name="pistol_magazine_quantity"]');
     if (pmq) pmq.value = '';
     var paq = document.querySelector('[name="pistol_ammunition_quantity"]');
@@ -235,11 +242,19 @@ function setBanner(id, type, html) {
 // so the operator doesn't have to enter them manually. The backend binding rule
 // requires all issued consumables to be present; this makes compliance easy.
 function autoFillReturnConsumables(d) {
-  // Pistol magazine quantity
+  // Pistol magazine hidden FK (id_pistol_magazine) + quantity
+  if (d.open_pistol_mag_id) {
+    var pmHid = document.getElementById('id_pistol_magazine') || document.querySelector('[name="pistol_magazine"]');
+    if (pmHid) pmHid.value = String(d.open_pistol_mag_id);
+  }
   var pmq = document.querySelector('[name="pistol_magazine_quantity"]');
   if (pmq && d.pistol_mag_qty) pmq.value = d.pistol_mag_qty;
 
-  // Pistol ammo quantity
+  // Pistol ammo hidden FK (id_pistol_ammunition) + quantity
+  if (d.open_pistol_ammo_id) {
+    var paHid = document.getElementById('id_pistol_ammunition') || document.querySelector('[name="pistol_ammunition"]');
+    if (paHid) paHid.value = String(d.open_pistol_ammo_id);
+  }
   var paq = document.querySelector('[name="pistol_ammunition_quantity"]');
   if (paq && d.pistol_ammo_qty) paq.value = d.pistol_ammo_qty;
 
@@ -255,7 +270,11 @@ function autoFillReturnConsumables(d) {
   var rmq = document.querySelector('[name="rifle_magazine_quantity"]');
   if (rmq && d.rifle_mag_qty) rmq.value = d.rifle_mag_qty;
 
-  // Rifle ammo quantity
+  // Rifle ammo hidden FK (id_rifle_ammunition) + quantity
+  if (d.open_rifle_ammo_id) {
+    var raHid = document.getElementById('id_rifle_ammunition') || document.querySelector('[name="rifle_ammunition"]');
+    if (raHid) raHid.value = String(d.open_rifle_ammo_id);
+  }
   var raq = document.querySelector('[name="rifle_ammunition_quantity"]');
   if (raq && d.rifle_ammo_qty) raq.value = d.rifle_ammo_qty;
 
