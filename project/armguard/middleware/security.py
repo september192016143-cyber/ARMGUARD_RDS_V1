@@ -38,7 +38,7 @@ class SecurityHeadersMiddleware:
             "https://cdnjs.cloudflare.com; "    # Font Awesome font files
         "img-src 'self' data: blob:; "          # QR codes: data: URIs; card preview: blob: URLs
         "frame-src 'self' blob: about:; "       # about:blank initial iframe src (transaction_form); blob: PDF preview
-        "object-src 'self'; "                   # <object> PDF embeds (transaction_detail, pdf_print)
+        "object-src 'self' blob:; "             # <embed> PDF via blob URL (transaction_detail, pdf_print)
         "connect-src 'self'; "
         "frame-ancestors 'self';"               # Allow self-framing; block external framing
     )

@@ -21,13 +21,24 @@
     }
   }
 
-  // <object> tag used instead of <iframe> to bypass X-Frame-Options and frame-src CSP.
-  // <object> uses object-src (default-src 'self'), and X-Frame-Options is not enforced on it.
+  // Use blob fetch so X-Frame-Options DENY on server never applies
+  // (blob: URLs have no HTTP headers; Chrome's embed PDF viewer renders them fine).
   var pdfFrame = document.getElementById('pdfFrame');
-  if (pdfFrame) {
-    pdfFrame.addEventListener('load', function () { attemptPrint(); });
+  var pdfUrl = pdfFrame ? pdfFrame.getAttribute('data-pdf-url') : null;
+  if (pdfUrl) {
+    fetch(pdfUrl, {credentials: 'same-origin'})
+      .then(function (r) { return r.blob(); })
+      .then(function (blob) {
+        pdfFrame.src = URL.createObjectURL(blob);
+        pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 2500);
+      })
+      .catch(function () {
+        pdfFrame.src = pdfUrl;
+        pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 2500);
+      });
+  } else {
+    pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 2500);
   }
-  pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 2500);
 
   window.onafterprint = function () {
     setTimeout(function () { window.close(); }, 1000);
