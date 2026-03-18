@@ -37,9 +37,10 @@ class SecurityHeadersMiddleware:
             "https://fonts.gstatic.com "        # Google Fonts files
             "https://cdnjs.cloudflare.com; "    # Font Awesome font files
         "img-src 'self' data: blob:; "          # QR codes: data: URIs; card preview: blob: URLs
-        "frame-src 'self' blob:; "             # TR PDF preview iframe uses blob: URL
+        "frame-src 'self' blob: about:; "       # about:blank initial iframe src (transaction_form); blob: PDF preview
+        "object-src 'self'; "                   # <object> PDF embeds (transaction_detail, pdf_print)
         "connect-src 'self'; "
-        "frame-ancestors 'self';"               # Allow self-framing (TR/PDF iframes); external framing still blocked
+        "frame-ancestors 'self';"               # Allow self-framing; block external framing
     )
 
     # Disable browser features not required by the application.
