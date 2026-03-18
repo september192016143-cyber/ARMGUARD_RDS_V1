@@ -7,9 +7,13 @@
     printAttempted = true;
     if (pdfLoadTimeout) clearTimeout(pdfLoadTimeout);
     try {
-      // <object> has no contentWindow — use window.print() directly.
-      // Chrome prints the embedded PDF content when window.print() is called.
-      window.print();
+      // iframe blob URL: can use contentWindow.print() for cleaner print output.
+      var frame = document.getElementById('pdfFrame');
+      if (frame && frame.contentWindow) {
+        frame.contentWindow.print();
+      } else {
+        window.print();
+      }
       setTimeout(function () {
         var inst = document.getElementById('print-instructions');
         if (inst) inst.style.display = 'none';
@@ -21,8 +25,9 @@
     }
   }
 
-  // Use blob fetch so X-Frame-Options DENY on server never applies
-  // (blob: URLs have no HTTP headers; Chrome's embed PDF viewer renders them fine).
+  // Fetch PDF as blob — blob: URLs have no HTTP headers so X-Frame-Options
+  // is never checked. Chrome renders PDFs inline in iframes with blob URLs.
+  // CSP frame-src blob: allows this.
   var pdfFrame = document.getElementById('pdfFrame');
   var pdfUrl = pdfFrame ? pdfFrame.getAttribute('data-pdf-url') : null;
   if (pdfUrl) {

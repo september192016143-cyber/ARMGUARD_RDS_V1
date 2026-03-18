@@ -131,10 +131,11 @@
       <a href="{% url 'print_handler:print_transaction_pdf' transaction.transaction_id %}" class="btn btn-secondary btn-sm" style="font-size:.72rem" target="_blank"><i class="fa-solid fa-print"></i> Print</a>
     </div>
   </div>
-  <embed id="tr-pdf-embed"
-         type="application/pdf"
+  <iframe id="tr-pdf-iframe"
+         src="about:blank"
          data-pdf-url="{% url 'print_handler:download_transaction_pdf' transaction.transaction_id %}"
-         style="width:100%;height:calc(100vh - 240px);min-height:480px;border:none;border-radius:0 0 .45rem .45rem;display:block;background:#525659">
+         style="width:100%;height:calc(100vh - 240px);min-height:480px;border:none;border-radius:0 0 .45rem .45rem;display:block;background:#525659"
+         title="TR PDF Preview"></iframe>
 </div>
 {% endif %}
 {% endblock %}

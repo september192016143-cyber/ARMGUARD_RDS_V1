@@ -1,14 +1,17 @@
 (function () {
-  var embed = document.getElementById('tr-pdf-embed');
-  if (!embed) return;
-  var pdfUrl = embed.getAttribute('data-pdf-url');
+  var iframe = document.getElementById('tr-pdf-iframe');
+  if (!iframe) return;
+  var pdfUrl = iframe.getAttribute('data-pdf-url');
   if (!pdfUrl) return;
   fetch(pdfUrl, {credentials: 'same-origin'})
     .then(function (r) { return r.blob(); })
     .then(function (blob) {
-      embed.src = URL.createObjectURL(blob);
+      // blob: URLs have no HTTP headers — X-Frame-Options is never checked.
+      // CSP frame-src blob: allows this. Chrome renders PDFs inline in iframes
+      // with blob URLs (unlike embed+blob which shows a file card).
+      iframe.src = URL.createObjectURL(blob);
     })
     .catch(function () {
-      embed.src = pdfUrl;
+      iframe.src = pdfUrl;
     });
 })();
