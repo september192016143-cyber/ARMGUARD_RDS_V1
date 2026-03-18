@@ -130,9 +130,27 @@
       <a href="{% url 'print_handler:print_transaction_pdf' transaction.transaction_id %}" class="btn btn-secondary btn-sm" style="font-size:.72rem" target="_blank"><i class="fa-solid fa-print"></i> Print</a>
     </div>
   </div>
-  <iframe src="{% url 'print_handler:download_transaction_pdf' transaction.transaction_id %}#toolbar=1&view=FitH"
+  <iframe id="tr-pdf-iframe"
           style="width:100%;height:calc(100vh - 240px);min-height:480px;border:none;border-radius:0 0 .45rem .45rem;display:block;background:#525659"
           title="TR PDF Preview"></iframe>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var iframe = document.getElementById('tr-pdf-iframe');
+  if (!iframe) return;
+  fetch("{% url 'print_handler:download_transaction_pdf' transaction.transaction_id %}", {credentials: 'same-origin'})
+    .then(function (r) { return r.blob(); })
+    .then(function (blob) {
+      var url = URL.createObjectURL(blob);
+      iframe.src = url + '#toolbar=1&view=FitH';
+    })
+    .catch(function () {
+      iframe.src = "{% url 'print_handler:download_transaction_pdf' transaction.transaction_id %}";
+    });
+})();
+</script>
 {% endblock %}
