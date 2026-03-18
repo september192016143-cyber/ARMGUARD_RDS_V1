@@ -6,7 +6,6 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
-from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.db.models import Count, Q
 import os
 import re
@@ -499,7 +498,6 @@ def print_transactions(request):
 
 
 @login_required
-@xframe_options_sameorigin
 def download_transaction_pdf(request, transaction_id):
     """
     Serve the TR (Temporary Receipt) filled PDF for a transaction.
