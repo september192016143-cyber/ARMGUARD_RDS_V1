@@ -82,7 +82,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     # G4 FIX: Enforce single active session per user — new login invalidates the old one.
     'armguard.middleware.session.SingleSessionMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # XFrameOptionsMiddleware removed — CSP frame-ancestors 'self' in SecurityHeadersMiddleware
+    # already handles clickjacking. Duplicate X-Frame-Options headers caused PDF iframe failures.
     # G15 FIX: Enforce OTP step for every authenticated session.
     'armguard.middleware.mfa.OTPRequiredMiddleware',
     # Security: CSP + Referrer-Policy response headers on every response.

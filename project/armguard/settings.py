@@ -79,7 +79,9 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # XFrameOptionsMiddleware removed — CSP frame-ancestors 'self' in SecurityHeadersMiddleware
+    # already handles clickjacking. Keeping the Django middleware caused duplicate/conflicting
+    # X-Frame-Options headers (SAMEORIGIN vs DENY) that blocked PDF iframes in Chrome.
 ]
 
 ROOT_URLCONF = 'armguard.urls'
@@ -171,7 +173,7 @@ CSRF_COOKIE_HTTPONLY = True
 # These are safe to set even in development (they only apply via HTTPS).
 # In production, also set: SECURE_SSL_REDIRECT=True, SECURE_HSTS_SECONDS=31536000
 SECURE_BROWSER_XSS_FILTER = True
-X_FRAME_OPTIONS = 'DENY'
+X_FRAME_OPTIONS = 'SAMEORIGIN'  # Allow self-framing for TR/PDF iframes; external clickjacking blocked by CSP frame-ancestors
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # M12 FIX: Structured logging to file.
