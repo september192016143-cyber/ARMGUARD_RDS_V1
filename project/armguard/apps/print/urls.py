@@ -29,4 +29,10 @@ urlpatterns = [
 
     # TR Reprint
     path('reprint-tr/', views.reprint_tr, name='reprint_tr'),
+
+    # Mission Order PDF
+    path('transaction/<int:transaction_id>/mo/', views.download_mo_pdf, name='download_mo_pdf'),
+
+    # Daily Firearms Evaluation PDF
+    path('daily-report/pdf/', views.download_daily_report_pdf, name='daily_report_pdf'),
 ]

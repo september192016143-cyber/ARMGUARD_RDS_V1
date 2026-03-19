@@ -10,6 +10,10 @@ from django.db.models import Count, Q
 import os
 import re
 from django.conf import settings
+from utils.pdf_viewer import (
+    serve_pdf, serve_pdf_bytes,
+    PDF_TYPE_TR, PDF_TYPE_PAR, PDF_TYPE_MO, PDF_TYPE_REPORT,
+)
 from armguard.apps.transactions.models import Transaction
 from armguard.apps.personnel.models import Personnel
 from armguard.apps.inventory.models import Pistol, Rifle
@@ -516,11 +520,12 @@ def download_transaction_pdf(request, transaction_id):
             messages.error(request, 'No PAR document has been uploaded for this transaction.')
             return redirect('transaction-detail', transaction_id=transaction_id)
         try:
-            return FileResponse(
-                transaction.par_document.open('rb'),
-                content_type='application/pdf',
-                as_attachment=False,
-                filename=os.path.basename(transaction.par_document.name),
+            par_filename = os.path.basename(transaction.par_document.name)
+            return serve_pdf(
+                request,
+                pdf_type=PDF_TYPE_PAR,
+                filename=par_filename,
+                label=f'PAR #{transaction_id} – {transaction.personnel}',
             )
         except Exception as e:
             messages.error(request, f'Error serving PAR document: {e}')
@@ -544,16 +549,14 @@ def download_transaction_pdf(request, transaction_id):
         file_mtime = _dt.datetime.fromtimestamp(os.path.getmtime(output_path), tz=_dt.timezone.utc)
         if transaction.updated_at is None or file_mtime >= transaction.updated_at:
             try:
-                response = FileResponse(
-                    open(output_path, 'rb'),
-                    content_type='application/pdf',
+                return serve_pdf(
+                    request,
+                    pdf_type=PDF_TYPE_TR,
                     filename=filename,
+                    label=f'TR #{transaction_id} – {transaction.personnel} (cached)',
+                    extra_headers={'X-Print-Page-Size': 'legal'},
                 )
-                response['Content-Disposition'] = f'inline; filename="{filename}"'
-                response['X-Print-Page-Size'] = 'legal'
-                response['Cache-Control'] = 'no-cache, must-revalidate'
-                return response
-            except Exception as e:
+            except Exception:
                 pass  # Fall through to regeneration
 
     # Generate PDF
@@ -568,11 +571,13 @@ def download_transaction_pdf(request, transaction_id):
         with open(output_path, 'wb') as f:
             f.write(pdf_bytes)
 
-        response = HttpResponse(pdf_bytes, content_type='application/pdf')
-        response['Content-Disposition'] = f'inline; filename="{filename}"'
-        response['X-Print-Page-Size'] = 'legal'
-        response['Cache-Control'] = 'no-cache, must-revalidate'
-        return response
+        return serve_pdf_bytes(
+            request,
+            pdf_bytes=pdf_bytes,
+            filename=filename,
+            label=f'TR #{transaction_id} – {transaction.personnel} (generated)',
+            extra_headers={'X-Print-Page-Size': 'legal'},
+        )
 
     except Exception as e:
         messages.error(request, f'Error generating TR PDF: {e}')
@@ -844,3 +849,154 @@ def print_id_cards_view(request):
             cards.append({'personnel': p, 'front_url': front_url, 'back_url': back_url})
 
     return render(request, 'print/print_id_cards_printview.html', {'cards': cards})
+
+
+# ---------------------------------------------------------------------------
+# Mission Order (MO) PDF Viewer
+# ---------------------------------------------------------------------------
+
+@login_required
+def download_mo_pdf(request, transaction_id):
+    """
+    Serve the Mission Order PDF attached to a transaction.
+
+    The MO document is an uploaded signed PDF stored in media/MO_PDF/.
+    Access is authenticated, audited, and routed through the centralized
+    pdf_viewer so all PDF security guarantees apply.
+
+    Expects Transaction.mo_document (FileField) to be populated.
+    Returns a 404-redirect if the field is not yet present on the model
+    or no document has been uploaded.
+    """
+    transaction = get_object_or_404(Transaction, transaction_id=transaction_id)
+
+    mo_doc = getattr(transaction, 'mo_document', None)
+    if not mo_doc:
+        messages.error(request, 'No Mission Order document has been uploaded for this transaction.')
+        return redirect('transaction-detail', transaction_id=transaction_id)
+
+    try:
+        mo_filename = os.path.basename(mo_doc.name)
+        return serve_pdf(
+            request,
+            pdf_type=PDF_TYPE_MO,
+            filename=mo_filename,
+            label=f'MO #{transaction_id} – {transaction.personnel}',
+        )
+    except Exception as e:
+        messages.error(request, f'Error serving Mission Order document: {e}')
+        return redirect('transaction-detail', transaction_id=transaction_id)
+
+
+# ---------------------------------------------------------------------------
+# Daily Report PDF — generated from the firearms evaluation data
+# ---------------------------------------------------------------------------
+
+@login_required
+def download_daily_report_pdf(request):
+    """
+    Generate and serve the Daily Firearms Evaluation as a PDF.
+
+    Builds the report from live DB data (same _firearms_evaluation() query
+    used by the HTML print view) and streams it as a PDF via the centralized
+    pdf_viewer utility.
+
+    Requires PyMuPDF (fitz).  Falls back to a plain-text error response if
+    PyMuPDF is not available.
+    """
+    try:
+        import fitz  # PyMuPDF
+    except ImportError:
+        return HttpResponse(
+            'PDF generation requires PyMuPDF.  Install it with: pip install pymupdf',
+            content_type='text/plain',
+            status=503,
+        )
+
+    from django.utils import timezone as dj_tz
+    from utils.pdf_viewer import serve_pdf_bytes
+
+    eval_rows, eval_totals = _firearms_evaluation()
+
+    now      = dj_tz.localtime(dj_tz.now())
+    date_str = now.strftime('%d %B %Y')
+    time_str = now.strftime('%H:%M')
+
+    # ── build PDF with PyMuPDF ────────────────────────────────────────────────
+    doc  = fitz.open()
+    page = doc.new_page(width=595, height=842)   # A4 portrait
+
+    # ── helpers ───────────────────────────────────────────────────────────────
+    BLACK  = (0, 0, 0)
+    WHITE  = (1, 1, 1)
+    NAVY   = (0.08, 0.20, 0.40)
+    ORANGE = (0.95, 0.55, 0.10)
+
+    def _text(pt, txt, size=10, color=BLACK, bold=False):
+        page.insert_text(
+            fitz.Point(*pt), txt,
+            fontname='helv-bold' if bold else 'helv',
+            fontsize=size,
+            color=color,
+        )
+
+    def _rect_fill(rect, color):
+        page.draw_rect(fitz.Rect(*rect), color=color, fill=color)
+
+    # ── header banner ────────────────────────────────────────────────────────
+    _rect_fill((30, 22, 565, 58), NAVY)
+    _text((35, 48), 'PHILIPPINE AIR FORCE — 950th CEWW', size=13, color=WHITE, bold=True)
+    _rect_fill((30, 59, 565, 70), ORANGE)
+    _text((35, 83), 'DAILY FIREARMS EVALUATION REPORT', size=11, color=BLACK, bold=True)
+    _text((35, 97), f'Date: {date_str}   Time: {time_str}', size=9, color=BLACK)
+
+    # ── table header ─────────────────────────────────────────────────────────
+    cols = [35, 200, 280, 340, 400, 465, 530]
+    heads = ['NOMENCLATURE', 'STOCK', 'PAR', 'TR', 'UNSVC', 'TOTAL']
+    _rect_fill((30, 112, 565, 128), NAVY)
+    for idx, (hx, label) in enumerate(zip(cols, heads)):
+        _text((hx + 2, 124), label, size=8, color=WHITE, bold=True)
+
+    # ── table rows ────────────────────────────────────────────────────────────
+    y = 140
+    for i, row in enumerate(eval_rows):
+        if i % 2 == 0:
+            _rect_fill((30, y - 12, 565, y + 4), (0.94, 0.96, 0.99))
+        values = [row['label'], str(row['stock']), str(row['par']),
+                  str(row['tr']), str(row['unserviceable']), str(row['total'])]
+        for hx, val in zip(cols, values):
+            _text((hx + 2, y), val, size=8)
+        y += 18
+
+    # ── totals row ────────────────────────────────────────────────────────────
+    _rect_fill((30, y - 4, 565, y + 14), NAVY)
+    totals_values = ['TOTAL', str(eval_totals['stock']), str(eval_totals['par']),
+                     str(eval_totals['tr']), str(eval_totals['unserviceable']),
+                     str(eval_totals['total'])]
+    for hx, val in zip(cols, totals_values):
+        _text((hx + 2, y + 10), val, size=9, color=WHITE, bold=True)
+
+    y += 38
+
+    # ── signature block ───────────────────────────────────────────────────────
+    _armorer_name   = getattr(settings, 'ARMGUARD_ARMORER_NAME', '')
+    _armorer_rank   = getattr(settings, 'ARMGUARD_ARMORER_RANK', '')
+    _commander_name = getattr(settings, 'ARMGUARD_COMMANDER_NAME', '')
+    _commander_rank = getattr(settings, 'ARMGUARD_COMMANDER_RANK', '')
+
+    _text((60, y + 20),  f'{_armorer_rank} {_armorer_name}'.strip() or 'ARMORER',       size=9, bold=True)
+    _text((60, y + 32),  'Armorer',                                                       size=8)
+    _text((350, y + 20), f'{_commander_rank} {_commander_name}'.strip() or 'COMMANDER',  size=9, bold=True)
+    _text((350, y + 32), getattr(settings, 'ARMGUARD_COMMANDER_DESIGNATION', 'Commander'), size=8)
+
+    pdf_bytes = doc.tobytes(deflate=True)
+    doc.close()
+
+    filename = f'Daily_Firearms_Evaluation_{now.strftime("%Y%m%d_%H%M")}.pdf'
+
+    return serve_pdf_bytes(
+        request,
+        pdf_bytes=pdf_bytes,
+        filename=filename,
+        label=f'Daily Firearms Evaluation – {date_str}',
+    )

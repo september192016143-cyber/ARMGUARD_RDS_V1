@@ -325,9 +325,13 @@ def tr_preview(request):
             status=500,
         )
 
-    response = HttpResponse(pdf_bytes.read(), content_type='application/pdf')
-    response['Content-Disposition'] = 'inline; filename="TR_Preview.pdf"'
-    return response
+    from utils.pdf_viewer import serve_pdf_bytes
+    return serve_pdf_bytes(
+        request,
+        pdf_bytes=pdf_bytes.read(),
+        filename='TR_Preview.pdf',
+        label='TR Preview (in-progress transaction)',
+    )
 
 
 @login_required
