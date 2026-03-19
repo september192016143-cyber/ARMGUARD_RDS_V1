@@ -118,11 +118,19 @@ function openTrPreview() {
   })
   .then(function (blob) {
     clearTrPreviewErrors();
-    var url = URL.createObjectURL(blob);
-    var iframe = document.getElementById('tr-preview-iframe');
-    if (iframe._prevUrl) URL.revokeObjectURL(iframe._prevUrl);
-    iframe._prevUrl = url;
-    iframe.src = url + '#toolbar=0&navpanes=0&scrollbar=0';
+    var blobUrl = URL.createObjectURL(blob);
+    var previewContainer = document.getElementById('tr-preview-container');
+    // Revoke the previous blob URL to free memory before creating a new one.
+    if (previewContainer._prevUrl) URL.revokeObjectURL(previewContainer._prevUrl);
+    previewContainer._prevUrl = blobUrl;
+    // Use <embed type="application/pdf"> — governed by object-src (already 'self' blob:),
+    // NOT frame-src — so Chrome's internal PDF viewer sub-frames never violate frame-src CSP.
+    var embed = document.createElement('embed');
+    embed.setAttribute('type', 'application/pdf');
+    embed.style.cssText = 'width:100%;height:100%;border:none;display:block;';
+    embed.src = blobUrl;
+    previewContainer.innerHTML = '';
+    previewContainer.appendChild(embed);
     document.getElementById('tr-preview-modal').style.display = 'flex';
     document.body.style.overflow = 'hidden';
   })
@@ -142,6 +150,15 @@ function openTrPreview() {
 function closeTrPreview() {
   document.getElementById('tr-preview-modal').style.display = 'none';
   document.body.style.overflow = '';
+  // Clear the embed and revoke the blob URL to free memory.
+  var previewContainer = document.getElementById('tr-preview-container');
+  if (previewContainer) {
+    if (previewContainer._prevUrl) {
+      URL.revokeObjectURL(previewContainer._prevUrl);
+      previewContainer._prevUrl = null;
+    }
+    previewContainer.innerHTML = '';
+  }
 }
 
 // ── Error display helpers ──────────────────────────────────────────────────────

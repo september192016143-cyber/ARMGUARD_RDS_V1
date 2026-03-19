@@ -27,6 +27,17 @@ class SecurityHeadersMiddleware:
     # script-src allowances:
     #   'self'          — our own static/js/* files
     #   (no unsafe-inline — all JS is external files)
+    #
+    # PDF rendering strategy — ALL PDFs use <embed type="application/pdf">:
+    #   • <embed> is governed by object-src, NOT frame-src.
+    #   • Chrome's built-in PDF viewer creates internal sub-frames with src=''
+    #     when rendering PDFs inside <iframe>. Those sub-frames are checked
+    #     against frame-src, and '' matches nothing — causing
+    #     "Framing '' violates frame-src" CSP errors.
+    #   • Inside <embed>, Chrome's PDF sub-frames are checked against object-src
+    #     instead, which is correctly set to 'self' blob:.
+    #   • All PDF rendering paths (transaction_detail.js, transaction_form.js,
+    #     pdf_print.js) use fetch→blob→<embed>. No <iframe> is used for PDFs.
     CSP = (
         "default-src 'self'; "
         "script-src 'self'; "
@@ -37,8 +48,8 @@ class SecurityHeadersMiddleware:
             "https://fonts.gstatic.com "        # Google Fonts files
             "https://cdnjs.cloudflare.com; "    # Font Awesome font files
         "img-src 'self' data: blob:; "          # QR codes: data: URIs; card preview: blob: URLs
-        "frame-src 'self' blob: about:; "       # about:blank initial iframe src (transaction_form); blob: PDF preview
-        "object-src 'self' blob:; "             # <embed> PDF via blob URL (transaction_detail, pdf_print)
+        "frame-src 'self'; "                    # No PDF iframes — all PDFs rendered via <embed>
+        "object-src 'self' blob:; "             # <embed type="application/pdf"> — transaction_detail, transaction_form, pdf_print
         "connect-src 'self'; "
         "frame-ancestors 'self';"               # Allow self-framing; block external framing
     )
@@ -61,9 +72,8 @@ class SecurityHeadersMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
         # CSP is only meaningful for HTML documents. Applying it to binary
-        # responses (application/pdf, images, etc.) causes browser plugin
-        # compatibility issues — e.g. Chrome's PDF viewer creates internal
-        # sub-frames that trigger frame-src violations on the PDF response.
+        # responses (application/pdf, images, etc.) is unnecessary — the browser
+        # does not interpret CSP directives on non-HTML MIME types.
         content_type = response.get('Content-Type', '')
         if 'text/html' in content_type:
             response['Content-Security-Policy'] = self.CSP
