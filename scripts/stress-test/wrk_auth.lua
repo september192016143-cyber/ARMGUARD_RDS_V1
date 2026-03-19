@@ -9,7 +9,7 @@
 --   source /tmp/armguard_session.env
 --   wrk -s scripts/stress-test/wrk_auth.lua \
 --       -t4 -c50 -d30s --latency \
---       http://192.168.0.11/dashboard/
+--       http://<server-ip>/dashboard/
 --
 -- Thread count (-t): number of OS threads (use CPU cores, e.g. 4)
 -- Concurrency (-c):  total open connections (users), e.g. 50
@@ -25,7 +25,7 @@ local csrf   = os.getenv("CSRF_TOKEN")
 if not cookie or cookie == "" then
     error(
         "AUTH_COOKIE_HEADER env var is not set.\n" ..
-        "Run: source <(./scripts/stress-test/auth_session.sh http://192.168.0.11 USER PASS)\n" ..
+        "Run: source <(./scripts/stress-test/auth_session.sh http://<server-ip> USER PASS)\n" ..
         "Then retry wrk."
     )
 end

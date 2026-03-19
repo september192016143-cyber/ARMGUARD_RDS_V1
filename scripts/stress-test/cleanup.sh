@@ -10,7 +10,7 @@
 #
 # Optional env vars:
 #   SERVER_SSH    If set, runs Django clearsessions on the server via SSH.
-#                 Example: export SERVER_SSH=armguard@192.168.0.11
+#                 Example: export SERVER_SSH=armguard@<server-ip>
 #   RESULTS_DIR   Base results directory (default: ~/armguard-stress-results)
 # =============================================================================
 

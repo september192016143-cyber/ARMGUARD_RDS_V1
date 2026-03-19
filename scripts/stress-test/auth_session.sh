@@ -2,21 +2,21 @@
 # =============================================================================
 # ArmGuard RDS V1 — Stress Test Session Cookie Helper
 # =============================================================================
-# Run this FIRST from the LOAD GENERATOR machine (Dev PC: 192.168.0.82).
+# Run this FIRST from the LOAD GENERATOR machine (not on the server itself).
 # It logs in, handles TOTP MFA, and writes cookies to /tmp/armguard_session.env.
 #
 # Usage:
-#   source <(./scripts/stress-test/auth_session.sh http://192.168.0.11 admin password)
+#   source <(./scripts/stress-test/auth_session.sh http://<server-ip> admin password)
 #
 # With TOTP (MFA is required for all users):
 #   TOTP_SECRET=BASE32SECRET \
-#     source <(./scripts/stress-test/auth_session.sh http://192.168.0.11 admin password)
+#     source <(./scripts/stress-test/auth_session.sh http://<server-ip> admin password)
 #
 # Outputs (exported into caller's shell via source <(...)  ):
 #   SESSION_COOKIE="sessionid=<value>"
 #   CSRF_TOKEN="<value>"
 #   AUTH_COOKIE_HEADER="sessionid=<value>; csrftoken=<value>"
-#   STRESS_BASE_URL="http://192.168.0.11"
+#   STRESS_BASE_URL="http://<server-ip>"
 #
 # Status messages go to stderr so they don't interfere with source <(...).
 # Requires: curl, python3 + pyotp (for TOTP step — pip install pyotp)
@@ -25,7 +25,7 @@
 set -euo pipefail
 
 # ── Arguments ─────────────────────────────────────────────────────────────────
-BASE_URL="${1:-http://192.168.0.11}"
+BASE_URL="${1:-http://localhost}"
 USERNAME="${2:-${STRESS_TEST_USER:-}}"
 PASSWORD="${3:-${STRESS_TEST_PASSWORD:-}}"
 

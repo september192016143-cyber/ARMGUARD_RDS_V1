@@ -9,7 +9,7 @@ Usage:
     export AUTH_COOKIE_HEADER="sessionid=xxx; csrftoken=yyy"
     locust -f scripts/stress-test/locustfile.py \\
            --headless -u 50 --spawn-rate 5 --run-time 30s \\
-           --host http://192.168.0.11 \\
+           --host http://<server-ip> \\
            --csv results/locust_c50
 
 Required env vars:
@@ -38,7 +38,7 @@ from locust.exception import StopUser
 
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-_BASE_URL       = os.environ.get("STRESS_BASE_URL", "http://192.168.0.11")
+_BASE_URL       = os.environ.get("STRESS_BASE_URL", "http://localhost")
 _AUTH_COOKIE    = os.environ.get("AUTH_COOKIE_HEADER", "")   # sessionid=x; csrftoken=y
 _CSRF_TOKEN     = os.environ.get("CSRF_TOKEN", "")
 _USERNAME       = os.environ.get("STRESS_TEST_USER", "")

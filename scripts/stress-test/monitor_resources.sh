@@ -2,7 +2,7 @@
 # =============================================================================
 # ArmGuard RDS V1 — Background Resource Monitor
 # =============================================================================
-# Run this ON THE SERVER (192.168.0.11), not on the load generator.
+# Run this ON THE SERVER (the machine running ArmGuard RDS), not on the load generator.
 # stress_test.sh starts this automatically via SSH when SERVER_SSH is set.
 # You can also start it manually before running the stress test.
 #

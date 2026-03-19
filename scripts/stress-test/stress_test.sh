@@ -2,28 +2,30 @@
 # =============================================================================
 # ArmGuard RDS V1 — Stress Test Master Orchestrator
 # =============================================================================
-# Run this from the LOAD GENERATOR machine (Dev PC: 192.168.0.82).
-# DO NOT run this on the server — results will be misleading.
+# Run this from the LOAD GENERATOR machine — NOT on the server itself.
+# Results will be misleading if both are on the same host.
 #
 # Prerequisites:
-#   1. source <(./scripts/stress-test/auth_session.sh http://192.168.0.11 USER PASS)
-#   2. (Optional) export SERVER_SSH="armguard@192.168.0.11" for remote monitoring
+#   1. export SERVER_IP=<your-server-ip-or-hostname>
+#   2. source <(./scripts/stress-test/auth_session.sh http://$SERVER_IP USER PASS)
+#   3. (Optional) export SERVER_SSH="armguard@$SERVER_IP" for remote monitoring
 #
 # Usage:
 #   ./scripts/stress-test/stress_test.sh [--dry-run] [--force-local]
 #
 # Environment variables (all optional overrides):
-#   SERVER_IP        Target server IP      (default: 192.168.0.11)
-#   SERVER_PROTOCOL  http or https         (default: http)
+#   SERVER_IP        Target server IP/hostname  (default: localhost)
+#   SERVER_PROTOCOL  http or https              (default: http)
 #   SERVER_SSH       SSH target for remote resource monitoring
-#                    Example: armguard@192.168.0.11
-#   RESULTS_DIR      Override output dir   (default: ~/armguard-stress-results)
+#                    Example: armguard@<server-ip>
+#   RESULTS_DIR      Override output dir        (default: ~/armguard-stress-results)
 # =============================================================================
 
 set -euo pipefail
 
 # ── Known values (from deployed codebase) ────────────────────────────────────
-SERVER_IP="${SERVER_IP:-192.168.0.11}"
+# Set SERVER_IP to the IP or hostname of the machine running ArmGuard RDS.
+SERVER_IP="${SERVER_IP:-localhost}"
 SERVER_PROTOCOL="${SERVER_PROTOCOL:-http}"
 BASE_URL="${SERVER_PROTOCOL}://${SERVER_IP}"
 DB_ENGINE="sqlite3"
@@ -83,7 +85,7 @@ fi
 # Running ab/wrk/locust on the server host inflates latency and deflates RPS.
 if [[ "$LOAD_GENERATOR_IP" == "$SERVER_IP" ]] && [[ "$FORCE_LOCAL" == "false" ]]; then
     err "SAFETY: Load generator IP ($LOAD_GENERATOR_IP) == Server IP ($SERVER_IP).
-Run this script from a separate machine (e.g. Dev PC 192.168.0.82).
+Run this script from a separate load-generator machine.
 Pass --force-local to override (results will NOT be reliable)."
 fi
 
@@ -187,7 +189,7 @@ EOF
 start_remote_monitor() {
     if [[ -z "${SERVER_SSH:-}" ]]; then
         warn "SERVER_SSH not set — skipping remote resource monitoring."
-        warn "To enable: export SERVER_SSH=armguard@192.168.0.11"
+        warn "To enable: export SERVER_SSH=armguard@<server-ip>"
         return
     fi
 
