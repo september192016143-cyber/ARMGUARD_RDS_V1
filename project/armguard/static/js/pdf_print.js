@@ -25,29 +25,31 @@
     }
   }
 
-  // fetch() bypasses X-Frame-Options — never checked for fetch requests.
-  // Blob URL has no HTTP headers so neither X-Frame-Options nor CSP applies.
-  // Iframe born with blob: src — no about:blank state ever.
+  // Load the PDF directly into an <iframe> using the authenticated same-origin
+  // URL.  The PDF response carries no X-Frame-Options or CSP (SecurityHeaders
+  // middleware skips non-HTML responses), so direct framing is safe.
+  // This avoids the fetch→blob→iframe pattern that caused Chrome PDF viewer
+  // to create internal empty-src sub-frames violating frame-src CSP.
   var container = document.getElementById('pdfContainer');
   var pdfUrl = container ? container.getAttribute('data-pdf-url') : null;
   if (pdfUrl) {
-    fetch(pdfUrl, {credentials: 'same-origin'})
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.blob();
-      })
-      .then(function (blob) {
-        var pdfBlob = new Blob([blob], {type: 'application/pdf'});
-        var iframe = document.createElement('iframe');
-        iframe.style.cssText = 'width:100%;height:100vh;border:none;display:block';
-        iframe.src = URL.createObjectURL(pdfBlob);
-        iframe.addEventListener('load', function () { attemptPrint(); });
-        container.appendChild(iframe);
-        pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 3000);
-      })
-      .catch(function () {
-        pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 1000);
-      });
+    var iframe = document.createElement('iframe');
+    iframe.style.cssText = 'width:100%;height:100vh;border:none;display:block';
+    iframe.addEventListener('load', function () {
+      // Verify the iframe loaded PDF and not an HTML redirect/error page.
+      try {
+        if (iframe.contentDocument && iframe.contentDocument.body) {
+          // Accessible contentDocument means it's HTML (auth redirect, error).
+          // Fall back to window.print() after a short delay.
+          pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 500);
+          return;
+        }
+      } catch (e) { /* cross-origin PDF viewer — expected success case */ }
+      attemptPrint();
+    });
+    iframe.src = pdfUrl;
+    container.appendChild(iframe);
+    pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 4000);
   } else {
     pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 2500);
   }
