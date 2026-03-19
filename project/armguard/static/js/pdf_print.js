@@ -25,25 +25,18 @@
     }
   }
 
-  // Create iframe dynamically ONLY after blob is ready.
-  // Never use src="about:blank" — it fires CSP check for null/''/about: origin.
-  // Born-with-blob-src iframes pass frame-src blob: and carry no X-Frame-Options.
+  // Create iframe with src set directly to the PDF URL — no fetch, no blob.
+  // Same-origin URL passes frame-src 'self' (CSP) and X-Frame-Options SAMEORIGIN.
+  // Setting src before appending avoids any about:blank navigation.
   var container = document.getElementById('pdfContainer');
   var pdfUrl = container ? container.getAttribute('data-pdf-url') : null;
   if (pdfUrl) {
-    fetch(pdfUrl, {credentials: 'same-origin'})
-      .then(function (r) { return r.blob(); })
-      .then(function (blob) {
-        var iframe = document.createElement('iframe');
-        iframe.style.cssText = 'width:100%;height:100vh;border:none;display:block';
-        iframe.src = URL.createObjectURL(blob);
-        iframe.addEventListener('load', function () { attemptPrint(); });
-        container.appendChild(iframe);
-        pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 3000);
-      })
-      .catch(function () {
-        pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 1000);
-      });
+    var iframe = document.createElement('iframe');
+    iframe.style.cssText = 'width:100%;height:100vh;border:none;display:block';
+    iframe.src = pdfUrl;
+    iframe.addEventListener('load', function () { attemptPrint(); });
+    container.appendChild(iframe);
+    pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 3000);
   } else {
     pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 2500);
   }
