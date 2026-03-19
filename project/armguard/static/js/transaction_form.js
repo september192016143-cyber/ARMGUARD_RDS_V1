@@ -27,6 +27,27 @@ function escHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
+// ── PDF.js loader: fetch source as text, import via correctly-typed Blob URL ───
+// Dynamic import() enforces strict MIME checking. Nginx may serve .mjs files as
+// application/octet-stream on servers whose mime.types lacks an .mjs entry.
+// By creating the Blob ourselves we set type:'text/javascript', so the browser
+// checks the Blob MIME type rather than the server Content-Type header.
+function importPdfjsViaBlob(url) {
+  return fetch(url)
+    .then(function (r) {
+      if (!r.ok) throw new Error('PDF.js load failed: HTTP ' + r.status);
+      return r.text();
+    })
+    .then(function (src) {
+      var blob    = new Blob([src], {type: 'text/javascript'});
+      var blobUrl = URL.createObjectURL(blob);
+      return import(blobUrl).then(function (mod) {
+        URL.revokeObjectURL(blobUrl);
+        return mod;
+      });
+    });
+}
+
 // ── Topbar logic ──────────────────────────────────────────────────────────────
 function toggleDutyOther() {
   var sel = document.getElementById('tb_purpose');
@@ -146,7 +167,9 @@ function openTrPreview() {
     document.body.style.overflow = 'hidden';
     // Render with PDF.js onto <canvas> elements.
     // No <embed>, no <iframe> — zero frame-src / object-src CSP involvement.
-    return import(pdfjsUrl).then(function (pdfjsLib) {
+    // import() enforces strict MIME checking; bypass by fetching as text and
+    // creating a correctly-typed Blob URL (browser checks Blob MIME, not server header).
+    return importPdfjsViaBlob(pdfjsUrl).then(function (pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
       return pdfjsLib.getDocument({data: buffer}).promise;
     }).then(function (pdf) {

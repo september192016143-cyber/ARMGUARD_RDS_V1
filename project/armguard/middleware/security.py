@@ -41,7 +41,7 @@ class SecurityHeadersMiddleware:
     #     pdf_print.js) use fetch→ArrayBuffer→pdfjsLib.getDocument→<canvas>.
     CSP = (
         "default-src 'self'; "
-        "script-src 'self'; "
+        "script-src 'self' blob:; "  # blob: — PDF.js loaded via Blob URL to bypass server MIME type
         "style-src 'self' 'unsafe-inline' "     # unsafe-inline for Django admin only
             "https://fonts.googleapis.com "     # Google Fonts CSS
             "https://cdnjs.cloudflare.com; "    # Font Awesome CSS

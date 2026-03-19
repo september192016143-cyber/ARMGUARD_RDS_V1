@@ -50,13 +50,31 @@
       }, Promise.resolve());
     }
 
+    // import() enforces strict MIME checking; bypass by fetching as text and
+    // creating a correctly-typed Blob URL (browser checks Blob MIME, not server header).
+    function importPdfjsViaBlob(url) {
+      return fetch(url)
+        .then(function (r) {
+          if (!r.ok) throw new Error('PDF.js load failed: HTTP ' + r.status);
+          return r.text();
+        })
+        .then(function (src) {
+          var blob    = new Blob([src], {type: 'text/javascript'});
+          var blobUrl = URL.createObjectURL(blob);
+          return import(blobUrl).then(function (mod) {
+            URL.revokeObjectURL(blobUrl);
+            return mod;
+          });
+        });
+    }
+
     fetch(pdfUrl, {credentials: 'same-origin'})
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.arrayBuffer();
       })
       .then(function (buffer) {
-        return import(pdfjsUrl).then(function (pdfjsLib) {
+        return importPdfjsViaBlob(pdfjsUrl).then(function (pdfjsLib) {
           pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
           return pdfjsLib.getDocument({data: buffer}).promise;
         });

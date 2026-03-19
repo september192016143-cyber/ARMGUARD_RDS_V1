@@ -35,9 +35,30 @@
     }, Promise.resolve());
   }
 
+  // Dynamic import() enforces strict MIME type checking. Nginx may serve .mjs
+  // as application/octet-stream on servers whose mime.types lacks an .mjs entry.
+  // Fix: fetch the source as text, wrap in a correctly-typed Blob, import the
+  // blob URL — browser checks the Blob MIME type (which we control), not the
+  // server Content-Type header.
+  function importPdfjsViaBlob(url) {
+    return fetch(url)
+      .then(function (r) {
+        if (!r.ok) throw new Error('PDF.js load failed: HTTP ' + r.status);
+        return r.text();
+      })
+      .then(function (src) {
+        var blob    = new Blob([src], {type: 'text/javascript'});
+        var blobUrl = URL.createObjectURL(blob);
+        return import(blobUrl).then(function (mod) {
+          URL.revokeObjectURL(blobUrl);
+          return mod;
+        });
+      });
+  }
+
   // 1. Fetch PDF bytes — session cookie is sent (credentials:'same-origin'),
   //    so Django's auth and audit logging in pdf_viewer.py fire as normal.
-  // 2. Parse with PDF.js (dynamically imported from self-hosted static file).
+  // 2. Parse with PDF.js (imported via blob URL to sidestep MIME type enforcement).
   // 3. Render each page onto a <canvas> element.
   //    No <iframe>, no <embed> — zero frame-src / object-src CSP involvement.
   fetch(pdfUrl, {credentials: 'same-origin'})
@@ -46,7 +67,7 @@
       return r.arrayBuffer();
     })
     .then(function (buffer) {
-      return import(pdfjsUrl).then(function (pdfjsLib) {
+      return importPdfjsViaBlob(pdfjsUrl).then(function (pdfjsLib) {
         pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
         return pdfjsLib.getDocument({data: buffer}).promise;
       });
