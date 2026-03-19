@@ -165,9 +165,27 @@ STATICFILES_DIRS = [BASE_DIR / 'armguard' / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # L6 FIX: WhiteNoise compressed+versioned static files.
+# CompressedManifestStaticFilesStorage post-processes every collected file to
+# rewrite internal static URL references for cache-busting. pdf.min.mjs and
+# pdf.worker.min.mjs are large minified bundles that must NOT be scanned for
+# URL substitutions — doing so corrupts them. We override matches_patterns() so
+# .mjs files are treated as non-adjustable (hashed+copied but not URL-rewritten)
+# while all other files behave normally.
+from whitenoise.storage import CompressedManifestStaticFilesStorage as _WNBase
+
+class _ArmguardStaticStorage(_WNBase):
+    """Skip URL-rewriting (but not hashing/copying/compression) for .mjs files."""
+
+    def matches_patterns(self, path, patterns=None):
+        # .mjs files must not be scanned for internal URL substitutions —
+        # they are large minified bundles and the rewriter would corrupt them.
+        if path.endswith('.mjs'):
+            return False
+        return super().matches_patterns(path, patterns)
+
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    "staticfiles": {"BACKEND": "armguard.settings.base._ArmguardStaticStorage"},
 }
 
 MEDIA_URL = '/media/'
