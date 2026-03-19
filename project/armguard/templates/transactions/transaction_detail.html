@@ -133,6 +133,8 @@
   </div>
   <div id="tr-pdf-container"
        data-pdf-url="{% url 'print_handler:download_transaction_pdf' transaction.transaction_id %}"
+       data-pdfjs-url="{% static 'js/pdfjs/pdf.min.mjs' %}"
+       data-pdfjs-worker="{% static 'js/pdfjs/pdf.worker.min.mjs' %}"
        style="width:100%;height:calc(100vh - 240px);min-height:480px;border:none;border-radius:0 0 .45rem .45rem;background:#525659;display:flex;align-items:center;justify-content:center">
     <span style="color:#94a3b8;font-size:.85rem">Loading PDF…</span>
   </div>

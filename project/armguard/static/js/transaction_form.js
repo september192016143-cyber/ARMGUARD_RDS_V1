@@ -80,11 +80,33 @@ function toggleReturnMode() {
   }
 }
 
-// ── TR Preview ─────────────────────────────────────────────────────────────────
+// ── PDF.js render helper (shared by openTrPreview) ────────────────────────────────────
+// Renders every page of a PDF.js document into targetEl as sequential <canvas> nodes.
+function renderAllPages(pdf, targetEl, scale) {
+  var pageNums = [];
+  for (var i = 1; i <= pdf.numPages; i++) pageNums.push(i);
+  return pageNums.reduce(function (chain, num) {
+    return chain.then(function () {
+      return pdf.getPage(num).then(function (page) {
+        var vp     = page.getViewport({scale: scale});
+        var canvas = document.createElement('canvas');
+        canvas.width  = vp.width;
+        canvas.height = vp.height;
+        canvas.style.cssText = 'display:block;width:100%;margin-bottom:4px;border-radius:.2rem;';
+        targetEl.appendChild(canvas);
+        return page.render({canvasContext: canvas.getContext('2d'), viewport: vp}).promise;
+      });
+    });
+  }, Promise.resolve());
+}
+
+// ── TR Preview ──────────────────────────────────────────────────────────────────
 function openTrPreview() {
   var form = document.getElementById('txn-form');
   if (!form) return;
   var TR_PREVIEW_URL = form.dataset.trPreviewUrl;
+  var pdfjsUrl  = form.dataset.pdfjsUrl;
+  var workerUrl = form.dataset.pdfjsWorker;
   var data = new FormData(form);
   ['transaction_type', 'issuance_type', 'purpose', 'purpose_other'].forEach(function (name) {
     var id = name === 'purpose_other' ? 'tb_purpose_other' : 'tb_' + name;
@@ -114,25 +136,22 @@ function openTrPreview() {
           throw { fieldErrors: fieldErrs, messages: nonFieldErrs };
         });
     }
-    return resp.blob();
+    return resp.arrayBuffer();
   })
-  .then(function (blob) {
+  .then(function (buffer) {
     clearTrPreviewErrors();
-    var blobUrl = URL.createObjectURL(blob);
     var previewContainer = document.getElementById('tr-preview-container');
-    // Revoke the previous blob URL to free memory before creating a new one.
-    if (previewContainer._prevUrl) URL.revokeObjectURL(previewContainer._prevUrl);
-    previewContainer._prevUrl = blobUrl;
-    // Use <embed type="application/pdf"> — governed by object-src (already 'self' blob:),
-    // NOT frame-src — so Chrome's internal PDF viewer sub-frames never violate frame-src CSP.
-    var embed = document.createElement('embed');
-    embed.setAttribute('type', 'application/pdf');
-    embed.style.cssText = 'width:100%;height:100%;border:none;display:block;';
-    embed.src = blobUrl;
     previewContainer.innerHTML = '';
-    previewContainer.appendChild(embed);
     document.getElementById('tr-preview-modal').style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    // Render with PDF.js onto <canvas> elements.
+    // No <embed>, no <iframe> — zero frame-src / object-src CSP involvement.
+    return import(pdfjsUrl).then(function (pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+      return pdfjsLib.getDocument({data: buffer}).promise;
+    }).then(function (pdf) {
+      return renderAllPages(pdf, previewContainer, 1.5);
+    });
   })
   .catch(function (err) {
     clearTrPreviewErrors();
@@ -150,15 +169,9 @@ function openTrPreview() {
 function closeTrPreview() {
   document.getElementById('tr-preview-modal').style.display = 'none';
   document.body.style.overflow = '';
-  // Clear the embed and revoke the blob URL to free memory.
+  // Clear the PDF.js canvas nodes.
   var previewContainer = document.getElementById('tr-preview-container');
-  if (previewContainer) {
-    if (previewContainer._prevUrl) {
-      URL.revokeObjectURL(previewContainer._prevUrl);
-      previewContainer._prevUrl = null;
-    }
-    previewContainer.innerHTML = '';
-  }
+  if (previewContainer) previewContainer.innerHTML = '';
 }
 
 // ── Error display helpers ──────────────────────────────────────────────────────

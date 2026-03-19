@@ -23,11 +23,23 @@
             overflow: hidden;
         }
         
-        embed {
-            width: 100%;
-            height: 100vh;
-            border: none;
+        /* Each PDF page rendered as a <canvas> by PDF.js */
+        canvas {
             display: block;
+            width: 100%;
+            margin: 0;
+        }
+        @media print {
+            canvas {
+                page-break-after: always;
+                page-break-inside: avoid;
+                break-after: page;
+                break-inside: avoid;
+            }
+            canvas:last-of-type {
+                page-break-after: auto;
+                break-after: auto;
+            }
         }
         
         /* Print instructions overlay (hidden after print starts) */
@@ -82,7 +94,11 @@
         <p style="color: #d32f2f; font-weight: bold; margin-top: 10px;">⚠️ If using A4 paper, content will be cut off!</p>
     </div>
     
-    <div id="pdfContainer" data-pdf-url="{{ pdf_url }}" style="width:100%;height:100vh;"></div>
+    <div id="pdfContainer"
+         data-pdf-url="{{ pdf_url }}"
+         data-pdfjs-url="{% static 'js/pdfjs/pdf.min.mjs' %}"
+         data-pdfjs-worker="{% static 'js/pdfjs/pdf.worker.min.mjs' %}"
+         style="width:100%;"></div>
     
     <script src="{% static 'js/pdf_print.js' %}"></script>
 </body>

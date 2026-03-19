@@ -28,16 +28,17 @@ class SecurityHeadersMiddleware:
     #   'self'          — our own static/js/* files
     #   (no unsafe-inline — all JS is external files)
     #
-    # PDF rendering strategy — ALL PDFs use <embed type="application/pdf">:
-    #   • <embed> is governed by object-src, NOT frame-src.
-    #   • Chrome's built-in PDF viewer creates internal sub-frames with src=''
-    #     when rendering PDFs inside <iframe>. Those sub-frames are checked
-    #     against frame-src, and '' matches nothing — causing
-    #     "Framing '' violates frame-src" CSP errors.
-    #   • Inside <embed>, Chrome's PDF sub-frames are checked against object-src
-    #     instead, which is correctly set to 'self' blob:.
+    # PDF rendering strategy — ALL PDFs use PDF.js rendered onto <canvas>:
+    #   • PDF.js (self-hosted at static/js/pdfjs/) fetches PDF bytes via
+    #     fetch(url, {credentials:'same-origin'}) and renders each page onto
+    #     an HTML <canvas> element. No <iframe>, no <embed>, no <object>.
+    #   • This eliminates ALL frame-src and object-src CSP involvement.
+    #   • PDF.js spawns a Web Worker (pdf.worker.min.mjs, same-origin)
+    #     → worker-src 'self'. Internally it may wrap it as a blob: worker
+    #     → worker-src blob:.
+    #   • object-src is now 'none' — the tightest possible setting.
     #   • All PDF rendering paths (transaction_detail.js, transaction_form.js,
-    #     pdf_print.js) use fetch→blob→<embed>. No <iframe> is used for PDFs.
+    #     pdf_print.js) use fetch→ArrayBuffer→pdfjsLib.getDocument→<canvas>.
     CSP = (
         "default-src 'self'; "
         "script-src 'self'; "
@@ -48,8 +49,9 @@ class SecurityHeadersMiddleware:
             "https://fonts.gstatic.com "        # Google Fonts files
             "https://cdnjs.cloudflare.com; "    # Font Awesome font files
         "img-src 'self' data: blob:; "          # QR codes: data: URIs; card preview: blob: URLs
-        "frame-src 'self'; "                    # No PDF iframes — all PDFs rendered via <embed>
-        "object-src 'self' blob:; "             # <embed type="application/pdf"> — transaction_detail, transaction_form, pdf_print
+        "frame-src 'self'; "                    # No PDF iframes — all PDFs rendered via PDF.js <canvas>
+        "object-src 'none'; "                   # No <embed> or <object> — PDF.js uses <canvas> only
+        "worker-src 'self' blob:; "             # PDF.js Web Worker (static/js/pdfjs/pdf.worker.min.mjs)
         "connect-src 'self'; "
         "frame-ancestors 'self';"               # Allow self-framing; block external framing
     )

@@ -1,11 +1,13 @@
 (function () {
   var printAttempted = false;
-  var pdfLoadTimeout = null;
+  var fallbackTimer  = null;
+  var printTimer     = null;
 
   function attemptPrint() {
     if (printAttempted) return;
     printAttempted = true;
-    if (pdfLoadTimeout) clearTimeout(pdfLoadTimeout);
+    if (fallbackTimer) clearTimeout(fallbackTimer);
+    if (printTimer)    clearTimeout(printTimer);
     try {
       window.print();
       setTimeout(function () {
@@ -17,37 +19,64 @@
     }
   }
 
-  // Use fetch→blob→<embed type="application/pdf">.
-  // <embed> is governed by object-src (already 'self' blob:), NOT frame-src,
-  // so Chrome's internal PDF viewer sub-frames never trigger frame-src CSP
-  // violations ("Framing '' violates frame-src ...").
+  // Render PDF via PDF.js onto <canvas> elements, then auto-print.
+  // PDF.js uses fetch→ArrayBuffer→<canvas> — no <embed>, no <iframe>,
+  // zero frame-src / object-src CSP involvement.
+  // The Web Worker (pdf.worker.min.mjs) is same-origin → worker-src 'self'.
   var container = document.getElementById('pdfContainer');
-  var pdfUrl = container ? container.getAttribute('data-pdf-url') : null;
-  if (pdfUrl) {
+  var pdfUrl    = container ? container.getAttribute('data-pdf-url')      : null;
+  var pdfjsUrl  = container ? container.getAttribute('data-pdfjs-url')    : null;
+  var workerUrl = container ? container.getAttribute('data-pdfjs-worker') : null;
+
+  if (pdfUrl && pdfjsUrl && workerUrl) {
+    // High scale for print-quality rendering (300 dpi-equivalent).
+    var PRINT_SCALE = 2.0;
+
+    function renderAllPages(pdf, targetEl, scale) {
+      var pageNums = [];
+      for (var i = 1; i <= pdf.numPages; i++) pageNums.push(i);
+      return pageNums.reduce(function (chain, num) {
+        return chain.then(function () {
+          return pdf.getPage(num).then(function (page) {
+            var vp     = page.getViewport({scale: scale});
+            var canvas = document.createElement('canvas');
+            canvas.width  = vp.width;
+            canvas.height = vp.height;
+            canvas.style.cssText = 'display:block;width:100%;margin:0;';
+            targetEl.appendChild(canvas);
+            return page.render({canvasContext: canvas.getContext('2d'), viewport: vp}).promise;
+          });
+        });
+      }, Promise.resolve());
+    }
+
     fetch(pdfUrl, {credentials: 'same-origin'})
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.blob();
+        return r.arrayBuffer();
       })
-      .then(function (blob) {
-        var blobUrl = URL.createObjectURL(new Blob([blob], {type: 'application/pdf'}));
-        var embed = document.createElement('embed');
-        embed.setAttribute('type', 'application/pdf');
-        embed.style.cssText = 'width:100%;height:100vh;border:none;display:block;';
-        // <embed> fires a load event in most browsers once the PDF is rendered.
-        embed.addEventListener('load', function () { attemptPrint(); });
-        embed.src = blobUrl;
-        container.appendChild(embed);
-        // Fallback: trigger print after 4 s in case load event does not fire.
-        pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 4000);
+      .then(function (buffer) {
+        return import(pdfjsUrl).then(function (pdfjsLib) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+          return pdfjsLib.getDocument({data: buffer}).promise;
+        });
+      })
+      .then(function (pdf) {
+        return renderAllPages(pdf, container, PRINT_SCALE);
+      })
+      .then(function () {
+        // All pages rendered — small delay lets the browser paint before the dialog.
+        printTimer = setTimeout(function () { attemptPrint(); }, 300);
       })
       .catch(function () {
-        // If fetch fails (session expired, network error), attempt print anyway
-        // so the user at least gets the browser print dialog on the blank page.
-        pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 1000);
+        // Fetch / parse error — still open print dialog so the user isn't stuck.
+        printTimer = setTimeout(function () { attemptPrint(); }, 500);
       });
+
+    // Hard fallback: if PDF.js never resolves (network hang), print after 8 s.
+    fallbackTimer = setTimeout(function () { attemptPrint(); }, 8000);
   } else {
-    pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 2500);
+    fallbackTimer = setTimeout(function () { attemptPrint(); }, 2500);
   }
 
   window.onafterprint = function () {
