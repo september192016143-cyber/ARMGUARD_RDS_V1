@@ -25,18 +25,29 @@
     }
   }
 
-  // Create iframe with src set directly to the PDF URL — no fetch, no blob.
-  // Same-origin URL passes frame-src 'self' (CSP) and X-Frame-Options SAMEORIGIN.
-  // Setting src before appending avoids any about:blank navigation.
+  // fetch() bypasses X-Frame-Options — never checked for fetch requests.
+  // Blob URL has no HTTP headers so neither X-Frame-Options nor CSP applies.
+  // Iframe born with blob: src — no about:blank state ever.
   var container = document.getElementById('pdfContainer');
   var pdfUrl = container ? container.getAttribute('data-pdf-url') : null;
   if (pdfUrl) {
-    var iframe = document.createElement('iframe');
-    iframe.style.cssText = 'width:100%;height:100vh;border:none;display:block';
-    iframe.src = pdfUrl;
-    iframe.addEventListener('load', function () { attemptPrint(); });
-    container.appendChild(iframe);
-    pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 3000);
+    fetch(pdfUrl, {credentials: 'same-origin'})
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.blob();
+      })
+      .then(function (blob) {
+        var pdfBlob = new Blob([blob], {type: 'application/pdf'});
+        var iframe = document.createElement('iframe');
+        iframe.style.cssText = 'width:100%;height:100vh;border:none;display:block';
+        iframe.src = URL.createObjectURL(pdfBlob);
+        iframe.addEventListener('load', function () { attemptPrint(); });
+        container.appendChild(iframe);
+        pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 3000);
+      })
+      .catch(function () {
+        pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 1000);
+      });
   } else {
     pdfLoadTimeout = setTimeout(function () { attemptPrint(); }, 2500);
   }

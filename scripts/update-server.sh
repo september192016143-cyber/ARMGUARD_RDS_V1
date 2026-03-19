@@ -193,6 +193,33 @@ fi
 # ---------------------------------------------------------------------------
 # 3. Update Python dependencies
 # ---------------------------------------------------------------------------
+# 2b. Deploy Nginx config (copy from repo to sites-available and reload)
+# ---------------------------------------------------------------------------
+step "2b/8 Deploying Nginx config"
+
+NGINX_SRC="$DEPLOY_DIR/scripts/nginx-armguard-ssl-lan.conf"
+NGINX_DEST="/etc/nginx/sites-available/armguard-ssl-lan"
+NGINX_DEST_ALT="/etc/nginx/sites-available/armguard"
+
+# Determine which destination file is currently symlinked/active
+if [[ -f "$NGINX_DEST_ALT" ]] && [[ ! -f "$NGINX_DEST" ]]; then
+    NGINX_DEST="$NGINX_DEST_ALT"
+fi
+
+if [[ -f "$NGINX_SRC" ]]; then
+    cp "$NGINX_SRC" "$NGINX_DEST"
+    if nginx -t 2>/dev/null; then
+        systemctl reload nginx 2>/dev/null || nginx -s reload 2>/dev/null || true
+        success "Nginx config deployed and reloaded."
+    else
+        warn "Nginx config test failed — reverting."
+        nginx -t
+    fi
+else
+    warn "Nginx config not found at $NGINX_SRC — skipping."
+fi
+
+# ---------------------------------------------------------------------------
 step "3/8 Updating Python dependencies"
 
 REQUIREMENTS="$DEPLOY_DIR/requirements.txt"
