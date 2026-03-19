@@ -208,6 +208,16 @@ fi
 
 if [[ -f "$NGINX_SRC" ]]; then
     cp "$NGINX_SRC" "$NGINX_DEST"
+    # Ensure .mjs → text/javascript is present in the system mime.types.
+    # Nginx 1.24 on Ubuntu 24.04 does not include .mjs by default.
+    # types{} and default_type inside a location block are both bypassed when
+    # the system-level types table has an explicit entry, so patching here is
+    # the most reliable fix.
+    if ! grep -qE '\bmjs\b' /etc/nginx/mime.types 2>/dev/null; then
+        sed -i 's/\(text\/javascript[^;]*\);/\1 mjs;/' /etc/nginx/mime.types \
+            && info ".mjs mapped to text/javascript in /etc/nginx/mime.types" \
+            || warn "Could not patch /etc/nginx/mime.types — default_type fallback in location is active"
+    fi
     if nginx -t 2>/dev/null; then
         systemctl reload nginx 2>/dev/null || nginx -s reload 2>/dev/null || true
         success "Nginx config deployed and reloaded."
