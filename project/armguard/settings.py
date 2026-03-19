@@ -153,14 +153,6 @@ STORAGES = {
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 
-# Teach WhiteNoise (and Django's dev server) that .mjs files are JavaScript.
-# Without this, .mjs are served as application/octet-stream, which causes
-# Chrome to reject them when loaded via dynamic import() ("Strict MIME type
-# checking is enforced for module scripts per HTML spec").
-WHITENOISE_MIMETYPES = {
-    '.mjs': 'application/javascript',
-}
-
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 # Card and PDF template files (not served publicly — stored outside media/)
