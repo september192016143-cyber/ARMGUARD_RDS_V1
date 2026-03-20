@@ -262,8 +262,9 @@ if [[ "$SKIP_MIGRATE" == "false" ]]; then
         cd '$PROJECT_DIR'
         '$VENV_PYTHON' manage.py migrate --noinput
         '$VENV_PYTHON' manage.py setup_groups
+        '$VENV_PYTHON' manage.py backfill_user_groups
     "
-    success "Migrations and group setup complete."
+    success "Migrations, group setup, and user backfill complete."
 else
     info "Skipping migrations (--skip-migrate)."
 fi

@@ -11,7 +11,12 @@ from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 import logging
 from django.contrib import messages
-from armguard.utils.permissions import can_delete as _can_delete_personnel, can_add as _can_add_personnel, can_edit as _can_edit_personnel, can_manage_inventory as _can_manage_inventory
+from armguard.utils.permissions import (
+    can_view_personnel as _can_view_personnel,
+    can_add_personnel  as _can_add_personnel,
+    can_edit_personnel as _can_edit_personnel,
+    can_delete_personnel as _can_delete_personnel,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,16 +40,6 @@ def _simulate_personnel_id(rank: str, afsn: str) -> str | None:
 	else:
 		return f"P{afsn}-{suffix}"
 
-def _can_manage_personnel(user):
-	"""True for superusers, staff, and named management roles (NOT Armorer)."""
-	if user.is_superuser or user.is_staff:
-		return True
-	try:
-		return user.profile.role in ('System Administrator', 'Administrator')
-	except AttributeError:
-		return False
-
-# ModelForm for Personnel
 class PersonnelForm(forms.ModelForm):
 	# tel is blank=True/null=True in the model — optional in the form so records
 	# can be created before a phone number is known. Validator fires when provided.
@@ -117,7 +112,7 @@ class PersonnelListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 		return ctx
 
 	def test_func(self):
-		return _can_manage_inventory(self.request.user)
+		return _can_view_personnel(self.request.user)
 
 class PersonnelDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 	model = Personnel
@@ -159,7 +154,7 @@ class PersonnelDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 		return context
 
 	def test_func(self):
-		return _can_manage_inventory(self.request.user)
+		return _can_view_personnel(self.request.user)
 
 class PersonnelCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 	model = Personnel

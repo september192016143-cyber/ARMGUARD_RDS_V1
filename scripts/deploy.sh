@@ -408,9 +408,10 @@ sudo -u "$DEPLOY_USER" bash -c "
     '$VENV_PYTHON' manage.py collectstatic --noinput --clear
     '$VENV_PYTHON' manage.py migrate --noinput
     '$VENV_PYTHON' manage.py setup_groups
+    '$VENV_PYTHON' manage.py backfill_user_groups
 "
 
-success "Migrations applied, groups created, and static files collected."
+success "Migrations applied, groups created, users backfilled, and static files collected."
 
 # ---------------------------------------------------------------------------
 # 8. Systemd service

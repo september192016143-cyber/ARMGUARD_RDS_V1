@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.views.generic import ListView, DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
@@ -13,15 +13,21 @@ from django.core.cache import cache
 from .models import Transaction, TransactionLogs
 from .forms import WithdrawalReturnTransactionForm
 from utils.throttle import ratelimit
-# H1 FIX: Import shared permission helper instead of duplicating it here.
-from armguard.utils.permissions import can_create_transaction as _can_create_transaction
+# H1 FIX: Import per-module permission helpers.
+from armguard.utils.permissions import (
+    can_view_transactions as _can_view_transactions,
+    can_create_transaction as _can_create_transaction,
+)
 
 
-class TransactionListView(LoginRequiredMixin, ListView):
+class TransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Transaction
     template_name = 'transactions/transaction_list.html'
     context_object_name = 'transactions'
     paginate_by = 25
+
+    def test_func(self):
+        return _can_view_transactions(self.request.user)
 
     def get_queryset(self):
         # M6: Return transactions now carry their own issuance_type (copied from the
@@ -136,11 +142,14 @@ class TransactionListView(LoginRequiredMixin, ListView):
         return super().render_to_response(context, **response_kwargs)
 
 
-class TransactionDetailView(LoginRequiredMixin, DetailView):
+class TransactionDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = Transaction
     template_name = 'transactions/transaction_detail.html'
     context_object_name = 'transaction'
     pk_url_kwarg = 'transaction_id'
+
+    def test_func(self):
+        return _can_view_transactions(self.request.user)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

@@ -64,16 +64,32 @@ class UserProfile(models.Model):
         null=True,
         help_text="Session key from the last successful login. Used for single-session enforcement.",
     )
-    # Granular permissions for the Administrator role only.
-    # Superusers and System Administrators always have full access regardless of these flags.
-    perm_can_add = models.BooleanField(
-        default=True,
-        help_text="Administrator: allowed to create new records. Has no effect on System Administrator or Armorer.",
-    )
-    perm_can_edit = models.BooleanField(
-        default=True,
-        help_text="Administrator: allowed to edit existing records. Has no effect on System Administrator or Armorer.",
-    )
+    # ── Per-module granular permissions (Administrator role only) ─────────────
+    # Superusers and System Administrators always have full access regardless
+    # of these flags. Armorers have fixed access regardless of these flags.
+    # All flags default to False; Group assignment sets appropriate defaults.
+
+    # Inventory module
+    perm_inventory_view   = models.BooleanField(default=False, help_text="May view inventory lists (pistols, rifles, ammo, magazines, accessories).")
+    perm_inventory_add    = models.BooleanField(default=False, help_text="May create new inventory records.")
+    perm_inventory_edit   = models.BooleanField(default=False, help_text="May edit existing inventory records.")
+    perm_inventory_delete = models.BooleanField(default=False, help_text="May delete inventory records.")
+
+    # Personnel module
+    perm_personnel_view   = models.BooleanField(default=False, help_text="May view personnel list and detail pages.")
+    perm_personnel_add    = models.BooleanField(default=False, help_text="May create new personnel records.")
+    perm_personnel_edit   = models.BooleanField(default=False, help_text="May edit personnel records and assign weapons.")
+    perm_personnel_delete = models.BooleanField(default=False, help_text="May delete personnel records.")
+
+    # Transactions module
+    perm_transaction_view   = models.BooleanField(default=False, help_text="May view transaction list and detail pages.")
+    perm_transaction_create = models.BooleanField(default=False, help_text="May create new withdrawal/return transactions.")
+
+    # Reports & Print module
+    perm_reports = models.BooleanField(default=False, help_text="May access print pages, generate/regenerate ID cards and item tags, and download reports.")
+
+    # User management module
+    perm_users_manage = models.BooleanField(default=False, help_text="May view, create, edit, and delete user accounts.")
 
     class Meta:
         verbose_name = "User Profile"
@@ -228,25 +244,53 @@ class PasswordHistory(models.Model):
 
 
 # ── Group → UserProfile sync ─────────────────────────────────────────────────
-# Maps ArmGuard role Group names to (role, perm_can_add, perm_can_edit).
-# Assigning a user to one of these Groups automatically sets their profile.
-# System Administrator is set directly on UserProfile.role — no Group needed.
+# Maps ArmGuard role Group names to (role, per-module perm flags dict).
+# System Administrator is set via is_superuser — no Group needed.
 
+_T = True
+_F = False
+
+#                                role,              inv_v  inv_a  inv_e  inv_d  per_v  per_a  per_e  per_d  txn_v  txn_c  rep    usr
 _GROUP_ROLE_MAP = {
-    'Armorer':                     ('Armorer',       False, False),
-    'Administrator \u2014 View Only':  ('Administrator', False, False),
-    'Administrator \u2014 Edit & Add': ('Administrator', True,  True),
+    'Armorer': (
+        'Armorer',
+        dict(perm_inventory_view=_T, perm_inventory_add=_F, perm_inventory_edit=_F, perm_inventory_delete=_F,
+             perm_personnel_view=_T, perm_personnel_add=_F, perm_personnel_edit=_F, perm_personnel_delete=_F,
+             perm_transaction_view=_T, perm_transaction_create=_T,
+             perm_reports=_T, perm_users_manage=_F),
+    ),
+    'Administrator \u2014 View Only': (
+        'Administrator',
+        dict(perm_inventory_view=_T, perm_inventory_add=_F, perm_inventory_edit=_F, perm_inventory_delete=_F,
+             perm_personnel_view=_T, perm_personnel_add=_F, perm_personnel_edit=_F, perm_personnel_delete=_F,
+             perm_transaction_view=_T, perm_transaction_create=_F,
+             perm_reports=_T, perm_users_manage=_F),
+    ),
+    'Administrator \u2014 Edit & Add': (
+        'Administrator',
+        dict(perm_inventory_view=_T, perm_inventory_add=_T, perm_inventory_edit=_T, perm_inventory_delete=_F,
+             perm_personnel_view=_T, perm_personnel_add=_T, perm_personnel_edit=_T, perm_personnel_delete=_F,
+             perm_transaction_view=_T, perm_transaction_create=_T,
+             perm_reports=_T, perm_users_manage=_T),
+    ),
 }
+
+_ALL_PERM_FIELDS = [
+    'perm_inventory_view', 'perm_inventory_add', 'perm_inventory_edit', 'perm_inventory_delete',
+    'perm_personnel_view', 'perm_personnel_add', 'perm_personnel_edit', 'perm_personnel_delete',
+    'perm_transaction_view', 'perm_transaction_create',
+    'perm_reports', 'perm_users_manage',
+]
 
 
 def _sync_profile_from_groups(user):
     """
-    Sync UserProfile.role + perm flags from the user's Group membership
-    (or superuser status).
+    Sync UserProfile.role + per-module perm flags from the user's Group
+    membership (or superuser status).
 
-    Priority order:
-      1. is_superuser  → System Administrator (full access)
-      2. ArmGuard role Group → matching role + perm flags
+    Priority:
+      1. is_superuser  → System Administrator, all flags True
+      2. ArmGuard role Group → role + flags from _GROUP_ROLE_MAP
       If neither applies, leave the profile unchanged.
     """
     try:
@@ -254,22 +298,20 @@ def _sync_profile_from_groups(user):
     except Exception:
         return
 
-    # Superuser always maps to System Administrator regardless of Groups
     if user.is_superuser:
-        profile.role          = 'System Administrator'
-        profile.perm_can_add  = True
-        profile.perm_can_edit = True
-        profile.save(update_fields=['role', 'perm_can_add', 'perm_can_edit'])
+        profile.role = 'System Administrator'
+        for f in _ALL_PERM_FIELDS:
+            setattr(profile, f, True)
+        profile.save(update_fields=['role'] + _ALL_PERM_FIELDS)
         return
 
     group_names = set(user.groups.values_list('name', flat=True))
-
-    for group_name, (role, can_add, can_edit) in _GROUP_ROLE_MAP.items():
+    for group_name, (role, perms) in _GROUP_ROLE_MAP.items():
         if group_name in group_names:
-            profile.role          = role
-            profile.perm_can_add  = can_add
-            profile.perm_can_edit = can_edit
-            profile.save(update_fields=['role', 'perm_can_add', 'perm_can_edit'])
+            profile.role = role
+            for f, v in perms.items():
+                setattr(profile, f, v)
+            profile.save(update_fields=['role'] + list(perms.keys()))
             return  # first matching group wins
 
 

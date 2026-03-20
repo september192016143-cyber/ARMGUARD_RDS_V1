@@ -42,7 +42,13 @@ class UserProfileInline(admin.StackedInline):
     can_delete = False
     verbose_name = "ArmGuard Permissions"
     verbose_name_plural = "ArmGuard Permissions"
-    fields = ('role', 'perm_can_add', 'perm_can_edit')
+    fields = (
+        'role',
+        'perm_inventory_view', 'perm_inventory_add', 'perm_inventory_edit', 'perm_inventory_delete',
+        'perm_personnel_view', 'perm_personnel_add', 'perm_personnel_edit', 'perm_personnel_delete',
+        'perm_transaction_view', 'perm_transaction_create',
+        'perm_reports', 'perm_users_manage',
+    )
     readonly_fields = ('role',)   # role is always driven by Group
     extra = 0
     max_num = 1

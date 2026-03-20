@@ -16,8 +16,8 @@ from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
 from .models import UserProfile, ROLE_CHOICES, PasswordHistory
 from armguard.apps.personnel.models import Personnel
-# H1 FIX: Import shared permission helper instead of duplicating it here.
-from armguard.utils.permissions import is_admin as _is_admin, can_add as _can_add_user, can_edit as _can_edit_user, can_delete as _can_delete_user
+# H1 FIX: Import per-module permission helpers for user management.
+from armguard.utils.permissions import can_manage_users as _can_manage_users, is_admin as _is_admin
 
 
 @require_POST
@@ -62,16 +62,19 @@ class UserCreateForm(forms.Form):
     email       = forms.EmailField(required=False, widget=forms.EmailInput(attrs={'autocomplete': 'email'}))
     role         = forms.ChoiceField(choices=ROLE_CHOICES)
     is_staff     = forms.BooleanField(required=False, label='Staff (Django admin access)')
-    perm_can_add = forms.BooleanField(
-        required=False, label='Can Add',
-        help_text='Administrator: may create new records.',
-        initial=True,
-    )
-    perm_can_edit = forms.BooleanField(
-        required=False, label='Can Edit',
-        help_text='Administrator: may edit existing records.',
-        initial=True,
-    )
+    # Per-module permission flags (fine-tune after assigning a Role Group)
+    perm_inventory_view   = forms.BooleanField(required=False, label='Can view inventory', initial=False)
+    perm_inventory_add    = forms.BooleanField(required=False, label='Can add inventory records', initial=False)
+    perm_inventory_edit   = forms.BooleanField(required=False, label='Can edit inventory records', initial=False)
+    perm_inventory_delete = forms.BooleanField(required=False, label='Can delete inventory records', initial=False)
+    perm_personnel_view   = forms.BooleanField(required=False, label='Can view personnel', initial=False)
+    perm_personnel_add    = forms.BooleanField(required=False, label='Can add personnel records', initial=False)
+    perm_personnel_edit   = forms.BooleanField(required=False, label='Can edit personnel records', initial=False)
+    perm_personnel_delete = forms.BooleanField(required=False, label='Can delete personnel records', initial=False)
+    perm_transaction_view   = forms.BooleanField(required=False, label='Can view transactions', initial=False)
+    perm_transaction_create = forms.BooleanField(required=False, label='Can create transactions', initial=False)
+    perm_reports       = forms.BooleanField(required=False, label='Can access reports & print', initial=False)
+    perm_users_manage  = forms.BooleanField(required=False, label='Can manage user accounts', initial=False)
     password1   = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), label='Password')
     password2   = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), label='Confirm password')
     linked_personnel = _PersonnelChoiceField(
@@ -110,14 +113,19 @@ class UserUpdateForm(forms.Form):
     role          = forms.ChoiceField(choices=ROLE_CHOICES)
     is_staff      = forms.BooleanField(required=False, label='Staff (Django admin access)')
     is_active     = forms.BooleanField(required=False, label='Active', initial=True)
-    perm_can_add  = forms.BooleanField(
-        required=False, label='Can Add',
-        help_text='Administrator: may create new records.',
-    )
-    perm_can_edit = forms.BooleanField(
-        required=False, label='Can Edit',
-        help_text='Administrator: may edit existing records.',
-    )
+    # Per-module permission flags (fine-tune after assigning a Role Group)
+    perm_inventory_view   = forms.BooleanField(required=False, label='Can view inventory')
+    perm_inventory_add    = forms.BooleanField(required=False, label='Can add inventory records')
+    perm_inventory_edit   = forms.BooleanField(required=False, label='Can edit inventory records')
+    perm_inventory_delete = forms.BooleanField(required=False, label='Can delete inventory records')
+    perm_personnel_view   = forms.BooleanField(required=False, label='Can view personnel')
+    perm_personnel_add    = forms.BooleanField(required=False, label='Can add personnel records')
+    perm_personnel_edit   = forms.BooleanField(required=False, label='Can edit personnel records')
+    perm_personnel_delete = forms.BooleanField(required=False, label='Can delete personnel records')
+    perm_transaction_view   = forms.BooleanField(required=False, label='Can view transactions')
+    perm_transaction_create = forms.BooleanField(required=False, label='Can create transactions')
+    perm_reports       = forms.BooleanField(required=False, label='Can access reports & print')
+    perm_users_manage  = forms.BooleanField(required=False, label='Can manage user accounts')
     new_password1 = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), required=False,
                                     label='New password',
                                     help_text='Leave blank to keep current password.')
@@ -171,12 +179,12 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     ordering             = ['username']
 
     def test_func(self):
-        return _is_admin(self.request.user)
+        return _can_manage_users(self.request.user)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['can_add'] = _can_add_user(self.request.user)
-        ctx['can_edit'] = _can_edit_user(self.request.user)
+        ctx['can_add'] = _can_manage_users(self.request.user)
+        ctx['can_edit'] = _can_manage_users(self.request.user)
         return ctx
 
 
@@ -185,7 +193,7 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     success_url   = reverse_lazy('user-list')
 
     def test_func(self):
-        return _can_add_user(self.request.user)
+        return _can_manage_users(self.request.user)
 
     def get(self, request, *args, **kwargs):
         qs = Personnel.objects.filter(user__isnull=True)
@@ -210,8 +218,18 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             profile, _ = UserProfile.objects.get_or_create(user=user)
             profile.role = cd['role']
             if cd['role'] == 'Administrator':
-                profile.perm_can_add  = cd.get('perm_can_add', True)
-                profile.perm_can_edit = cd.get('perm_can_edit', True)
+                profile.perm_inventory_view   = cd.get('perm_inventory_view', False)
+                profile.perm_inventory_add    = cd.get('perm_inventory_add', False)
+                profile.perm_inventory_edit   = cd.get('perm_inventory_edit', False)
+                profile.perm_inventory_delete = cd.get('perm_inventory_delete', False)
+                profile.perm_personnel_view   = cd.get('perm_personnel_view', False)
+                profile.perm_personnel_add    = cd.get('perm_personnel_add', False)
+                profile.perm_personnel_edit   = cd.get('perm_personnel_edit', False)
+                profile.perm_personnel_delete = cd.get('perm_personnel_delete', False)
+                profile.perm_transaction_view   = cd.get('perm_transaction_view', False)
+                profile.perm_transaction_create = cd.get('perm_transaction_create', False)
+                profile.perm_reports       = cd.get('perm_reports', False)
+                profile.perm_users_manage  = cd.get('perm_users_manage', False)
             profile.save()
             # G16-EXT: Record initial password in history to prevent immediate reuse.
             PasswordHistory.objects.create(user=user, password_hash=user.password)
@@ -232,7 +250,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     fields        = []   # handled manually
 
     def test_func(self):
-        return _can_edit_user(self.request.user)
+        return _can_manage_users(self.request.user)
 
     def _make_form(self, data=None):
         user = self.object
@@ -248,8 +266,18 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             'is_active':         user.is_active,
             'role':              current_role,
             'linked_personnel':  current_linked_pk,
-            'perm_can_add':      getattr(profile, 'perm_can_add', True),
-            'perm_can_edit':     getattr(profile, 'perm_can_edit', True),
+            'perm_inventory_view':   getattr(profile, 'perm_inventory_view', False),
+            'perm_inventory_add':    getattr(profile, 'perm_inventory_add', False),
+            'perm_inventory_edit':   getattr(profile, 'perm_inventory_edit', False),
+            'perm_inventory_delete': getattr(profile, 'perm_inventory_delete', False),
+            'perm_personnel_view':   getattr(profile, 'perm_personnel_view', False),
+            'perm_personnel_add':    getattr(profile, 'perm_personnel_add', False),
+            'perm_personnel_edit':   getattr(profile, 'perm_personnel_edit', False),
+            'perm_personnel_delete': getattr(profile, 'perm_personnel_delete', False),
+            'perm_transaction_view':   getattr(profile, 'perm_transaction_view', False),
+            'perm_transaction_create': getattr(profile, 'perm_transaction_create', False),
+            'perm_reports':      getattr(profile, 'perm_reports', False),
+            'perm_users_manage': getattr(profile, 'perm_users_manage', False),
         }
         if data:
             return UserUpdateForm(data, initial=initial, current_role=current_role,
@@ -299,8 +327,18 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             profile, _ = UserProfile.objects.get_or_create(user=self.object)
             profile.role = cd['role']
             if cd['role'] == 'Administrator':
-                profile.perm_can_add  = cd.get('perm_can_add', True)
-                profile.perm_can_edit = cd.get('perm_can_edit', True)
+                profile.perm_inventory_view   = cd.get('perm_inventory_view', False)
+                profile.perm_inventory_add    = cd.get('perm_inventory_add', False)
+                profile.perm_inventory_edit   = cd.get('perm_inventory_edit', False)
+                profile.perm_inventory_delete = cd.get('perm_inventory_delete', False)
+                profile.perm_personnel_view   = cd.get('perm_personnel_view', False)
+                profile.perm_personnel_add    = cd.get('perm_personnel_add', False)
+                profile.perm_personnel_edit   = cd.get('perm_personnel_edit', False)
+                profile.perm_personnel_delete = cd.get('perm_personnel_delete', False)
+                profile.perm_transaction_view   = cd.get('perm_transaction_view', False)
+                profile.perm_transaction_create = cd.get('perm_transaction_create', False)
+                profile.perm_reports       = cd.get('perm_reports', False)
+                profile.perm_users_manage  = cd.get('perm_users_manage', False)
             profile.save()
             # Update personnel link: clear old link, set new one
             old_linked = getattr(self.object, 'personnel', None)
@@ -320,7 +358,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
 class UserDeleteView(LoginRequiredMixin, UserPassesTestMixin, View):
     def test_func(self):
-        return _can_delete_user(self.request.user)
+        return _can_manage_users(self.request.user)
 
     def post(self, request, pk, *args, **kwargs):
         from django.shortcuts import get_object_or_404

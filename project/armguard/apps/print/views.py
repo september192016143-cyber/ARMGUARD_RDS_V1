@@ -22,21 +22,20 @@ from .pdf_filler.form_filler import TransactionFormFiller
 from django.utils import timezone
 from datetime import timedelta
 from django.core.paginator import Paginator
-# H1 FIX: Import shared permission helper instead of duplicating it here.
-from armguard.utils.permissions import can_manage_inventory as _can_manage_armorer
+# H1 FIX: Import per-module permission helpers.
+from armguard.utils.permissions import can_view_reports as _can_view_reports
+from armguard.utils.permissions import can_delete_inventory as _can_delete
 from armguard.utils.permissions import is_admin as _is_admin
-from armguard.utils.permissions import can_delete as _can_delete
-from armguard.utils.permissions import can_edit as _can_edit
 
 
 def is_admin_or_armorer(user):
-    """Check if user is admin, superuser, or armorer.
+    """Check if user may access print/reports pages.
 
-    H1 FIX: Delegates to centralized armguard.utils.permissions.can_manage_inventory
-    which has the same Armorer/Administrator/System Administrator/superuser logic.
-    Previously used a local copy that diverged from the other apps.
+    H1 FIX: Delegates to centralised can_view_reports which checks
+    UserProfile.perm_reports for Administrators, and grants Armorers
+    access by default (since perm_reports armorer_default=True).
     """
-    return _can_manage_armorer(user)
+    return _can_view_reports(user)
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +128,7 @@ def generate_item_tags(request):
     force=1 → regenerate ALL (even those that exist).
     Returns JSON {generated, skipped, errors}
     """
-    if not _can_edit(request.user):
+    if not _can_view_reports(request.user):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     from utils.item_tag_generator import generate_item_tag
 
@@ -162,7 +161,7 @@ def generate_item_tags(request):
 @require_POST
 def regenerate_item_tag(request, item_id):
     """Regenerate the tag PNG for a single item (AJAX POST)."""
-    if not _can_edit(request.user):
+    if not _can_view_reports(request.user):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     try:
         item = Pistol.objects.get(item_id=item_id)

@@ -1,31 +1,112 @@
 """
 H1 FIX: Centralised permission helpers for ArmGuard RDS.
 
-Previously each app defined its own copy of the same role-check function,
-creating divergence risk (a change in one copy not propagated to others).
-All view modules now import from here.
-
-Roles (from UserProfile.role):
-  System Administrator — full admin access
-  Administrator        — create/edit records; delete restricted by perm flags
-  Armorer              — create and view transactions; view inventory and personnel
+Per-module granular permissions replace the old global perm_can_add/perm_can_edit.
+All checks follow this priority order:
+  1. is_superuser          → always True (emergency/recovery account)
+  2. role='System Administrator' → always True
+  3. role='Administrator'  → read per-module flag from UserProfile
+  4. role='Armorer'        → fixed access defined per helper below
+  5. anything else         → False
 
 Django built-ins:
-  is_superuser — always full access (emergency/recovery superuser only)
-  is_staff     — controls Django admin panel access only; has NO effect on
-                 ArmGuard app permissions. Use UserProfile.role instead.
+  is_superuser — always full access (recovery only)
+  is_staff     — controls Django admin panel access only; NO effect on web app
 """
 from __future__ import annotations
 
 
 def _get_role(user) -> str:
-    """Return the UserProfile role string, or '' if the profile is absent."""
     try:
         return user.profile.role
     except AttributeError:
         return ''
 
 
+def _perm(user, flag: str, *, armorer_default: bool = False) -> bool:
+    """
+    Generic per-module flag reader.
+    - Superuser / System Administrator → always True
+    - Administrator → read UserProfile.<flag>
+    - Armorer → armorer_default
+    - Other / no profile → False
+    """
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    role = _get_role(user)
+    if role == 'System Administrator':
+        return True
+    if role == 'Administrator':
+        try:
+            return bool(getattr(user.profile, flag))
+        except AttributeError:
+            return False
+    if role == 'Armorer':
+        return armorer_default
+    return False
+
+
+# ── Inventory module ──────────────────────────────────────────────────────────
+def can_view_inventory(user) -> bool:
+    """May view inventory lists (pistols, rifles, ammo, magazines, accessories)."""
+    return _perm(user, 'perm_inventory_view', armorer_default=True)
+
+def can_add_inventory(user) -> bool:
+    """May create new inventory records."""
+    return _perm(user, 'perm_inventory_add', armorer_default=False)
+
+def can_edit_inventory(user) -> bool:
+    """May edit existing inventory records."""
+    return _perm(user, 'perm_inventory_edit', armorer_default=False)
+
+def can_delete_inventory(user) -> bool:
+    """May delete inventory records."""
+    return _perm(user, 'perm_inventory_delete', armorer_default=False)
+
+
+# ── Personnel module ──────────────────────────────────────────────────────────
+def can_view_personnel(user) -> bool:
+    """May view personnel list and detail pages."""
+    return _perm(user, 'perm_personnel_view', armorer_default=True)
+
+def can_add_personnel(user) -> bool:
+    """May create new personnel records."""
+    return _perm(user, 'perm_personnel_add', armorer_default=False)
+
+def can_edit_personnel(user) -> bool:
+    """May edit personnel records and assign weapons."""
+    return _perm(user, 'perm_personnel_edit', armorer_default=False)
+
+def can_delete_personnel(user) -> bool:
+    """May delete personnel records."""
+    return _perm(user, 'perm_personnel_delete', armorer_default=False)
+
+
+# ── Transactions module ───────────────────────────────────────────────────────
+def can_view_transactions(user) -> bool:
+    """May view transaction list and detail pages."""
+    return _perm(user, 'perm_transaction_view', armorer_default=True)
+
+def can_create_transaction(user) -> bool:
+    """May create new withdrawal/return transactions."""
+    return _perm(user, 'perm_transaction_create', armorer_default=True)
+
+
+# ── Reports & Print module ────────────────────────────────────────────────────
+def can_view_reports(user) -> bool:
+    """May access print pages, generate/regenerate ID cards, item tags, download reports."""
+    return _perm(user, 'perm_reports', armorer_default=True)
+
+
+# ── User management module ────────────────────────────────────────────────────
+def can_manage_users(user) -> bool:
+    """May view, create, edit, and delete user accounts."""
+    return _perm(user, 'perm_users_manage', armorer_default=False)
+
+
+# ── Convenience / backward-compat helpers ────────────────────────────────────
 def is_admin(user) -> bool:
     """True for System Administrators, Administrators, and superusers."""
     if not user.is_authenticated:
@@ -34,84 +115,9 @@ def is_admin(user) -> bool:
         return True
     return _get_role(user) in ('System Administrator', 'Administrator')
 
-
-def can_manage_inventory(user) -> bool:
-    """True for Armorers, Administrators, System Administrators, and superusers."""
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser:
-        return True
-    return _get_role(user) in ('System Administrator', 'Administrator', 'Armorer')
-
-
-def can_edit_delete_inventory(user) -> bool:
-    """System Administrators, Administrators, and superusers may edit inventory.
-    Use can_delete() to check delete permission — Administrators cannot delete."""
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser:
-        return True
-    return _get_role(user) in ('System Administrator', 'Administrator')
-
-
-def can_create_transaction(user) -> bool:
-    """Superusers and named management/armorer roles may create transactions."""
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser:
-        return True
-    return _get_role(user) in ('System Administrator', 'Administrator', 'Armorer')
-
-
-def can_delete(user) -> bool:
-    """Only superusers and System Administrators may delete records.
-    Administrators (role='Administrator') are restricted to add/edit only."""
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser:
-        return True
-    return _get_role(user) == 'System Administrator'
-
-
-def can_add(user) -> bool:
-    """True if the user may create new records.
-
-    - Superuser / System Administrator: always True.
-    - Administrator: True only when UserProfile.perm_can_add is checked.
-    - Armorer and others: False (transactions only, no CRUD on records).
-    """
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser:
-        return True
-    role = _get_role(user)
-    if role == 'System Administrator':
-        return True
-    if role == 'Administrator':
-        try:
-            return bool(user.profile.perm_can_add)
-        except AttributeError:
-            return True
-    return False
-
-
-def can_edit(user) -> bool:
-    """True if the user may edit / update existing records.
-
-    - Superuser / System Administrator: always True.
-    - Administrator: True only when UserProfile.perm_can_edit is checked.
-    - Armorer and others: False.
-    """
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser:
-        return True
-    role = _get_role(user)
-    if role == 'System Administrator':
-        return True
-    if role == 'Administrator':
-        try:
-            return bool(user.profile.perm_can_edit)
-        except AttributeError:
-            return True
-    return False
+# Legacy aliases kept so any template tags or third-party code still resolve.
+can_add    = can_add_inventory
+can_edit   = can_edit_inventory
+can_delete = can_delete_inventory
+can_manage_inventory       = can_view_inventory
+can_edit_delete_inventory  = can_edit_inventory

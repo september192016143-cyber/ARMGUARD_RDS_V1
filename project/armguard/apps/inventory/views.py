@@ -12,16 +12,18 @@ from django.contrib.auth.decorators import login_required
 from .models import Pistol, Rifle, Magazine, Ammunition, Accessory, AMMUNITION_TYPES
 from .forms import (PistolForm, RifleForm, MagazineForm,
                     AmmunitionForm, AccessoryForm)
-# H1 FIX: Import shared permission helpers instead of duplicating them here.
-# F11 FIX: Compatibility shims removed — all call sites now use the imported
-# helpers directly (can_manage_inventory / can_edit_delete_inventory).
-from armguard.utils.permissions import can_manage_inventory, can_edit_delete_inventory, can_delete, can_add, can_edit
+# H1 FIX: Import per-module permission helpers.
+from armguard.utils.permissions import (
+    can_view_inventory, can_add_inventory, can_edit_inventory, can_delete_inventory,
+    # Legacy aliases used in context-data dicts; these resolve to the per-module helpers.
+    can_manage_inventory, can_edit_delete_inventory, can_add, can_edit, can_delete,
+)
 
 
 class _InventoryPermMixin(LoginRequiredMixin, UserPassesTestMixin):
     """Permission check shared by all inventory CRUD views."""
     def test_func(self):
-        return can_manage_inventory(self.request.user)
+        return can_view_inventory(self.request.user)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -99,7 +101,7 @@ class PistolCreateView(_InventorySaveMixin, CreateView):
     item_type = 'pistol'
 
     def test_func(self):
-        return can_add(self.request.user)
+        return can_add_inventory(self.request.user)
 
 
 class PistolUpdateView(_InventorySaveMixin, UpdateView):
@@ -111,7 +113,7 @@ class PistolUpdateView(_InventorySaveMixin, UpdateView):
     item_type = 'pistol'
 
     def test_func(self):
-        return can_edit(self.request.user)
+        return can_edit_inventory(self.request.user)
 
 
 class PistolDeleteView(_InventoryPermMixin, DeleteView):
@@ -122,7 +124,7 @@ class PistolDeleteView(_InventoryPermMixin, DeleteView):
     item_type = 'pistol'
 
     def test_func(self):
-        return can_delete(self.request.user)
+        return can_delete_inventory(self.request.user)
 
     def form_valid(self, form):
         messages.success(self.request, 'Pistol deleted.')
@@ -181,7 +183,7 @@ class RifleCreateView(_InventorySaveMixin, CreateView):
     item_type = 'rifle'
 
     def test_func(self):
-        return can_add(self.request.user)
+        return can_add_inventory(self.request.user)
 
 
 class RifleUpdateView(_InventorySaveMixin, UpdateView):
@@ -193,7 +195,7 @@ class RifleUpdateView(_InventorySaveMixin, UpdateView):
     item_type = 'rifle'
 
     def test_func(self):
-        return can_edit(self.request.user)
+        return can_edit_inventory(self.request.user)
 
 
 class RifleDeleteView(_InventoryPermMixin, DeleteView):
@@ -204,7 +206,7 @@ class RifleDeleteView(_InventoryPermMixin, DeleteView):
     item_type = 'rifle'
 
     def test_func(self):
-        return can_delete(self.request.user)
+        return can_delete_inventory(self.request.user)
 
     def form_valid(self, form):
         messages.success(self.request, 'Rifle deleted.')
@@ -248,7 +250,7 @@ class MagazineCreateView(_InventorySaveMixin, CreateView):
     item_type = 'magazine'
 
     def test_func(self):
-        return can_add(self.request.user)
+        return can_add_inventory(self.request.user)
 
 
 class MagazineUpdateView(_InventorySaveMixin, UpdateView):
@@ -260,7 +262,7 @@ class MagazineUpdateView(_InventorySaveMixin, UpdateView):
     item_type = 'magazine'
 
     def test_func(self):
-        return can_edit(self.request.user)
+        return can_edit_inventory(self.request.user)
 
 
 class MagazineDeleteView(_InventoryPermMixin, DeleteView):
@@ -271,7 +273,7 @@ class MagazineDeleteView(_InventoryPermMixin, DeleteView):
     item_type = 'magazine'
 
     def test_func(self):
-        return can_delete(self.request.user)
+        return can_delete_inventory(self.request.user)
 
     def form_valid(self, form):
         messages.success(self.request, 'Magazine pool deleted.')
@@ -524,7 +526,7 @@ class AmmunitionCreateView(_InventorySaveMixin, CreateView):
     item_type = 'ammunition'
 
     def test_func(self):
-        return can_add(self.request.user)
+        return can_add_inventory(self.request.user)
 
 
 class AmmunitionUpdateView(_InventorySaveMixin, UpdateView):
@@ -536,7 +538,7 @@ class AmmunitionUpdateView(_InventorySaveMixin, UpdateView):
     item_type = 'ammunition'
 
     def test_func(self):
-        return can_edit(self.request.user)
+        return can_edit_inventory(self.request.user)
 
 
 class AmmunitionDeleteView(_InventoryPermMixin, DeleteView):
@@ -547,7 +549,7 @@ class AmmunitionDeleteView(_InventoryPermMixin, DeleteView):
     item_type = 'ammunition'
 
     def test_func(self):
-        return can_delete(self.request.user)
+        return can_delete_inventory(self.request.user)
 
     def form_valid(self, form):
         messages.success(self.request, 'Ammunition lot deleted.')
@@ -588,7 +590,7 @@ class AccessoryCreateView(_InventorySaveMixin, CreateView):
     item_type = 'accessory'
 
     def test_func(self):
-        return can_add(self.request.user)
+        return can_add_inventory(self.request.user)
 
 
 class AccessoryUpdateView(_InventorySaveMixin, UpdateView):
@@ -600,7 +602,7 @@ class AccessoryUpdateView(_InventorySaveMixin, UpdateView):
     item_type = 'accessory'
 
     def test_func(self):
-        return can_edit(self.request.user)
+        return can_edit_inventory(self.request.user)
 
 
 class AccessoryDeleteView(_InventoryPermMixin, DeleteView):
@@ -611,7 +613,7 @@ class AccessoryDeleteView(_InventoryPermMixin, DeleteView):
     item_type = 'accessory'
 
     def test_func(self):
-        return can_delete(self.request.user)
+        return can_delete_inventory(self.request.user)
 
     def form_valid(self, form):
         messages.success(self.request, 'Accessory pool deleted.')
