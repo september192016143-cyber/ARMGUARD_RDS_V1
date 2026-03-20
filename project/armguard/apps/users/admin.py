@@ -171,9 +171,29 @@ class CustomUserAdmin(BaseUserAdmin):
             if change else set()
         )
         super().save_related(request, form, formsets, change)
-        new_groups = set(form.instance.groups.values_list('name', flat=True))
+
+        user = form.instance
+
+        # If is_superuser is set, ArmGuard groups are irrelevant and contradictory.
+        # Auto-remove them so the DB state is clean and unambiguous.
+        if user.is_superuser:
+            armguard_groups = user.groups.filter(name__in=[
+                'Armorer',
+                'Administrator \u2014 View Only',
+                'Administrator \u2014 Edit & Add',
+            ])
+            if armguard_groups.exists():
+                user.groups.remove(*armguard_groups)
+                self.message_user(
+                    request,
+                    "ArmGuard role group removed automatically — superuser status "
+                    "already grants full System Administrator access.",
+                    level='warning',
+                )
+
+        new_groups = set(user.groups.values_list('name', flat=True))
         if old_groups != new_groups:
-            _sync_profile_from_groups(form.instance)
+            _sync_profile_from_groups(user)
 
     def save_formset(self, request, form, formset, change):
         """Pass request into personnel formset so created_by/updated_by are captured."""
