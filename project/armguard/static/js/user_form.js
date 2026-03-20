@@ -19,7 +19,7 @@
     el.classList.add('form-control');
   });
 
-  // ── Administrator permission checklist — show/hide based on role ─────────────
+  // ── Administrator permission flags — show/hidden based on role ──────────────
   var roleSelect   = document.getElementById('id_role');
   var adminPerms   = document.getElementById('admin-perm-section');
   if (roleSelect && adminPerms) {

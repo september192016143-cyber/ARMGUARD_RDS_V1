@@ -71,8 +71,8 @@
         {% if form.role.errors %}<div class="form-error">{{ form.role.errors|join:", " }}</div>{% endif %}
         <div class="form-hint">
           <strong>System Administrator</strong> — full admin access. &nbsp;
-          <strong>Administrator</strong> — view &amp; print by default; add/edit rights configurable below. &nbsp;
-          <strong>Armorer</strong> — transactions and inventory only.
+          <strong>Administrator</strong> — configurable per-module access (set flags below). &nbsp;
+          <strong>Armorer</strong> — view inventory &amp; personnel, create transactions, print only.
         </div>
       </div>
 
@@ -87,22 +87,96 @@
       </div>
       {% endif %}
 
-      <!-- Administrator permission checklist — shown/hidden by JS based on role selection -->
+      <!-- Administrator permission flags — shown/hidden by JS based on role selection -->
       <div id="admin-perm-section" style="display:none">
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:.85rem 1rem;margin-bottom:.75rem">
-          <div style="font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.6rem">
-            <i class="fa-solid fa-sliders" style="margin-right:.4rem"></i>Administrator Capabilities
+          <div style="font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">
+            <i class="fa-solid fa-sliders" style="margin-right:.4rem"></i>Administrator Permission Flags
           </div>
-          <div class="form-hint" style="margin-bottom:.75rem">Leave both unchecked for view &amp; print only access.</div>
-          <div style="display:flex;flex-direction:column;gap:.5rem">
-            <label for="{{ form.perm_can_add.id_for_label }}" style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.9rem">
-              {{ form.perm_can_add }}
-              <span><strong>{{ form.perm_can_add.label }}</strong> — may create new records (inventory, personnel, users)</span>
-            </label>
-            <label for="{{ form.perm_can_edit.id_for_label }}" style="display:flex;align-items:center;gap:.6rem;cursor:pointer;font-size:.9rem">
-              {{ form.perm_can_edit }}
-              <span><strong>{{ form.perm_can_edit.label }}</strong> — may edit existing records</span>
-            </label>
+          <div class="form-hint" style="margin-bottom:1rem">Fine-tune access per module. Flags are set automatically when a Role Group is assigned — you can override them here.</div>
+
+          {# ── Inventory ── #}
+          <div style="margin-bottom:1rem">
+            <div style="font-size:.75rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.45rem">
+              <i class="fa-solid fa-boxes-stacked" style="margin-right:.35rem"></i>Inventory
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem .75rem">
+              <label for="{{ form.perm_inventory_view.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem">
+                {{ form.perm_inventory_view }}<span>View inventory</span>
+              </label>
+              <label for="{{ form.perm_inventory_add.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem">
+                {{ form.perm_inventory_add }}<span>Add records</span>
+              </label>
+              <label for="{{ form.perm_inventory_edit.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem">
+                {{ form.perm_inventory_edit }}<span>Edit records</span>
+              </label>
+              <label for="{{ form.perm_inventory_delete.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem">
+                {{ form.perm_inventory_delete }}<span>Delete records</span>
+              </label>
+            </div>
+          </div>
+
+          {# ── Personnel ── #}
+          <div style="margin-bottom:1rem">
+            <div style="font-size:.75rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.45rem">
+              <i class="fa-solid fa-users" style="margin-right:.35rem"></i>Personnel
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem .75rem">
+              <label for="{{ form.perm_personnel_view.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem">
+                {{ form.perm_personnel_view }}<span>View personnel</span>
+              </label>
+              <label for="{{ form.perm_personnel_add.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem">
+                {{ form.perm_personnel_add }}<span>Add records</span>
+              </label>
+              <label for="{{ form.perm_personnel_edit.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem">
+                {{ form.perm_personnel_edit }}<span>Edit records</span>
+              </label>
+              <label for="{{ form.perm_personnel_delete.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem">
+                {{ form.perm_personnel_delete }}<span>Delete records</span>
+              </label>
+            </div>
+          </div>
+
+          {# ── Transactions ── #}
+          <div style="margin-bottom:1rem">
+            <div style="font-size:.75rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.45rem">
+              <i class="fa-solid fa-right-left" style="margin-right:.35rem"></i>Transactions
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem .75rem">
+              <label for="{{ form.perm_transaction_view.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem">
+                {{ form.perm_transaction_view }}<span>View transactions</span>
+              </label>
+              <label for="{{ form.perm_transaction_create.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem">
+                {{ form.perm_transaction_create }}<span>Create transactions</span>
+              </label>
+            </div>
+          </div>
+
+          {# ── Reports & Print ── #}
+          <div style="margin-bottom:1rem">
+            <div style="font-size:.75rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.45rem">
+              <i class="fa-solid fa-print" style="margin-right:.35rem"></i>Reports &amp; Print
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem .75rem">
+              <label for="{{ form.perm_reports.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem">
+                {{ form.perm_reports }}<span>View reports</span>
+              </label>
+              <label for="{{ form.perm_print.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem">
+                {{ form.perm_print }}<span>Print (ID cards, item tags, PDFs)</span>
+              </label>
+            </div>
+          </div>
+
+          {# ── Users ── #}
+          <div>
+            <div style="font-size:.75rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.45rem">
+              <i class="fa-solid fa-user-gear" style="margin-right:.35rem"></i>User Management
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:.35rem .75rem">
+              <label for="{{ form.perm_users_manage.id_for_label }}" style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.875rem">
+                {{ form.perm_users_manage }}<span>Manage user accounts</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
