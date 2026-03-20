@@ -53,27 +53,27 @@
         <div class="nav-item-row {% if request.resolver_match.url_name == 'pistol-list' %}active{% endif %}">
           <i class="fa-solid fa-gun nav-icon"></i>
           <a href="{% url 'pistol-list' %}" class="nav-item-main">Pistols</a>
-          {% if user.is_superuser or user.is_staff %}<a href="{% url 'pistol-add' %}" class="nav-item-add">+ Add</a>{% endif %}
+          {% if can_add_inventory %}<a href="{% url 'pistol-add' %}" class="nav-item-add">+ Add</a>{% endif %}
         </div>
         <div class="nav-item-row {% if request.resolver_match.url_name == 'rifle-list' %}active{% endif %}">
           <i class="fa-solid fa-crosshairs nav-icon"></i>
           <a href="{% url 'rifle-list' %}" class="nav-item-main">Rifles</a>
-          {% if user.is_superuser or user.is_staff %}<a href="{% url 'rifle-add' %}" class="nav-item-add">+ Add</a>{% endif %}
+          {% if can_add_inventory %}<a href="{% url 'rifle-add' %}" class="nav-item-add">+ Add</a>{% endif %}
         </div>
         <div class="nav-item-row {% if request.resolver_match.url_name == 'magazine-list' %}active{% endif %}">
           <i class="fa-solid fa-bars nav-icon"></i>
           <a href="{% url 'magazine-list' %}" class="nav-item-main">Magazines</a>
-          {% if user.is_superuser or user.is_staff %}<a href="{% url 'magazine-add' %}" class="nav-item-add">+ Add</a>{% endif %}
+          {% if can_add_inventory %}<a href="{% url 'magazine-add' %}" class="nav-item-add">+ Add</a>{% endif %}
         </div>
         <div class="nav-item-row {% if request.resolver_match.url_name == 'ammunition-list' %}active{% endif %}">
           <i class="fa-solid fa-circle nav-icon" style="font-size:.55rem"></i>
           <a href="{% url 'ammunition-list' %}" class="nav-item-main">Ammunition</a>
-          {% if user.is_superuser or user.is_staff %}<a href="{% url 'ammunition-add' %}" class="nav-item-add">+ Add</a>{% endif %}
+          {% if can_add_inventory %}<a href="{% url 'ammunition-add' %}" class="nav-item-add">+ Add</a>{% endif %}
         </div>
         <div class="nav-item-row {% if request.resolver_match.url_name == 'accessory-list' %}active{% endif %}">
           <i class="fa-solid fa-toolbox nav-icon"></i>
           <a href="{% url 'accessory-list' %}" class="nav-item-main">Accessories</a>
-          {% if user.is_superuser or user.is_staff %}<a href="{% url 'accessory-add' %}" class="nav-item-add">+ Add</a>{% endif %}
+          {% if can_add_inventory %}<a href="{% url 'accessory-add' %}" class="nav-item-add">+ Add</a>{% endif %}
         </div>
       </div>
     </div>
@@ -97,7 +97,7 @@
     <a href="{% url 'print_handler:print_transactions' %}" class="nav-item {% if request.resolver_match.url_name == 'print_transactions' %}active{% endif %}" title="Print Reports">
       <i class="fa-solid fa-print nav-icon"></i><span class="nav-label">Print Reports</span>
     </a>
-    {% if user.is_superuser or user.is_staff or user.profile.role == 'System Administrator' or user.profile.role == 'Administrator' %}
+    {% if user.is_superuser or user.profile.role == 'System Administrator' or user.profile.role == 'Administrator' %}
     <div class="nav-section">Admin</div>
     <a href="{% url 'user-list' %}" class="nav-item {% if request.resolver_match.url_name == 'user-list' %}active{% endif %}" title="User Management">
       <i class="fa-solid fa-users-gear nav-icon"></i><span class="nav-label">User Management</span>

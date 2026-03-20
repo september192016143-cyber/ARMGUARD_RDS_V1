@@ -6,13 +6,14 @@ creating divergence risk (a change in one copy not propagated to others).
 All view modules now import from here.
 
 Roles (from UserProfile.role):
-  System Administrator — full admin access (same as is_staff/is_superuser)
-  Administrator        — full access (create/edit/delete all records)
+  System Administrator — full admin access
+  Administrator        — create/edit records; delete restricted by perm flags
   Armorer              — create and view transactions; view inventory and personnel
 
-Django built-ins override are also respected:
-  is_superuser          — always admin (full access)
-  is_staff              — admin-level access (Django admin panel)
+Django built-ins:
+  is_superuser — always full access (emergency/recovery superuser only)
+  is_staff     — controls Django admin panel access only; has NO effect on
+                 ArmGuard app permissions. Use UserProfile.role instead.
 """
 from __future__ import annotations
 
@@ -26,19 +27,19 @@ def _get_role(user) -> str:
 
 
 def is_admin(user) -> bool:
-    """True for System Administrators, Administrators, superusers, and staff."""
+    """True for System Administrators, Administrators, and superusers."""
     if not user.is_authenticated:
         return False
-    if user.is_superuser or user.is_staff:
+    if user.is_superuser:
         return True
     return _get_role(user) in ('System Administrator', 'Administrator')
 
 
 def can_manage_inventory(user) -> bool:
-    """True for Armorers, Administrators, System Administrators, superusers, staff."""
+    """True for Armorers, Administrators, System Administrators, and superusers."""
     if not user.is_authenticated:
         return False
-    if user.is_superuser or user.is_staff:
+    if user.is_superuser:
         return True
     return _get_role(user) in ('System Administrator', 'Administrator', 'Armorer')
 
@@ -54,10 +55,10 @@ def can_edit_delete_inventory(user) -> bool:
 
 
 def can_create_transaction(user) -> bool:
-    """Superusers, staff, and named management/armorer roles may create transactions."""
+    """Superusers and named management/armorer roles may create transactions."""
     if not user.is_authenticated:
         return False
-    if user.is_superuser or user.is_staff:
+    if user.is_superuser:
         return True
     return _get_role(user) in ('System Administrator', 'Administrator', 'Armorer')
 
