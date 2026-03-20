@@ -22,7 +22,7 @@
 #   5. Creates Python virtual environment and installs requirements
 #   6. Generates a production .env file
 #   7. Downloads Font Awesome 6.5.0 locally (no CDN tracking warnings)
-#   8. Runs Django migrations and collectstatic
+#   8. Runs Django migrations, setup_groups, and collectstatic
 #   9. Creates and enables systemd service for Gunicorn
 #  10. Installs Nginx configuration
 #  11. Configures UFW firewall
@@ -407,9 +407,10 @@ sudo -u "$DEPLOY_USER" bash -c "
     cd '$PROJECT_DIR'
     '$VENV_PYTHON' manage.py collectstatic --noinput --clear
     '$VENV_PYTHON' manage.py migrate --noinput
+    '$VENV_PYTHON' manage.py setup_groups
 "
 
-success "Migrations applied and static files collected."
+success "Migrations applied, groups created, and static files collected."
 
 # ---------------------------------------------------------------------------
 # 8. Systemd service

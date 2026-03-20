@@ -16,7 +16,7 @@
 #   1. Creates a pre-update database backup
 #   2. Pulls latest code from git
 #   3. Updates pip dependencies
-#   4. Runs database migrations
+#   4. Runs database migrations and setup_groups
 #   5. Downloads Font Awesome 6.5.0 locally (no CDN tracking warnings)
 #   6. Collects static files
 #   7. Gracefully reloads Gunicorn (zero-downtime)
@@ -261,8 +261,9 @@ if [[ "$SKIP_MIGRATE" == "false" ]]; then
         [[ -f '$ENV_FILE' ]] && set -a && source <(grep -v '^\s*#' '$ENV_FILE' | grep '=') && set +a
         cd '$PROJECT_DIR'
         '$VENV_PYTHON' manage.py migrate --noinput
+        '$VENV_PYTHON' manage.py setup_groups
     "
-    success "Migrations complete."
+    success "Migrations and group setup complete."
 else
     info "Skipping migrations (--skip-migrate)."
 fi
