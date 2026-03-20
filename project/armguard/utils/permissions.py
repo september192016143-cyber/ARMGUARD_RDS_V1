@@ -94,10 +94,14 @@ def can_create_transaction(user) -> bool:
     return _perm(user, 'perm_transaction_create', armorer_default=True)
 
 
-# ── Reports & Print module ────────────────────────────────────────────────────
+# ── Reports & Print module (separate flags) ───────────────────────────────────
 def can_view_reports(user) -> bool:
-    """May access print pages, generate/regenerate ID cards, item tags, download reports."""
+    """May view and download analytical reports."""
     return _perm(user, 'perm_reports', armorer_default=True)
+
+def can_print(user) -> bool:
+    """May access the Print module: generate/print ID cards, item tags, and PDF transaction forms."""
+    return _perm(user, 'perm_print', armorer_default=True)
 
 
 # ── User management module ────────────────────────────────────────────────────

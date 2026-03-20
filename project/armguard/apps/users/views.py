@@ -73,7 +73,8 @@ class UserCreateForm(forms.Form):
     perm_personnel_delete = forms.BooleanField(required=False, label='Can delete personnel records', initial=False)
     perm_transaction_view   = forms.BooleanField(required=False, label='Can view transactions', initial=False)
     perm_transaction_create = forms.BooleanField(required=False, label='Can create transactions', initial=False)
-    perm_reports       = forms.BooleanField(required=False, label='Can access reports & print', initial=False)
+    perm_reports       = forms.BooleanField(required=False, label='Can view reports', initial=False)
+    perm_print         = forms.BooleanField(required=False, label='Can access Print module (ID cards, item tags, PDFs)', initial=False)
     perm_users_manage  = forms.BooleanField(required=False, label='Can manage user accounts', initial=False)
     password1   = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), label='Password')
     password2   = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), label='Confirm password')
@@ -124,7 +125,8 @@ class UserUpdateForm(forms.Form):
     perm_personnel_delete = forms.BooleanField(required=False, label='Can delete personnel records')
     perm_transaction_view   = forms.BooleanField(required=False, label='Can view transactions')
     perm_transaction_create = forms.BooleanField(required=False, label='Can create transactions')
-    perm_reports       = forms.BooleanField(required=False, label='Can access reports & print')
+    perm_reports       = forms.BooleanField(required=False, label='Can view reports')
+    perm_print         = forms.BooleanField(required=False, label='Can access Print module (ID cards, item tags, PDFs)')
     perm_users_manage  = forms.BooleanField(required=False, label='Can manage user accounts')
     new_password1 = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), required=False,
                                     label='New password',
@@ -229,6 +231,7 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
                 profile.perm_transaction_view   = cd.get('perm_transaction_view', False)
                 profile.perm_transaction_create = cd.get('perm_transaction_create', False)
                 profile.perm_reports       = cd.get('perm_reports', False)
+                profile.perm_print         = cd.get('perm_print', False)
                 profile.perm_users_manage  = cd.get('perm_users_manage', False)
             profile.save()
             # G16-EXT: Record initial password in history to prevent immediate reuse.
@@ -277,6 +280,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             'perm_transaction_view':   getattr(profile, 'perm_transaction_view', False),
             'perm_transaction_create': getattr(profile, 'perm_transaction_create', False),
             'perm_reports':      getattr(profile, 'perm_reports', False),
+            'perm_print':        getattr(profile, 'perm_print', False),
             'perm_users_manage': getattr(profile, 'perm_users_manage', False),
         }
         if data:
@@ -338,6 +342,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 profile.perm_transaction_view   = cd.get('perm_transaction_view', False)
                 profile.perm_transaction_create = cd.get('perm_transaction_create', False)
                 profile.perm_reports       = cd.get('perm_reports', False)
+                profile.perm_print         = cd.get('perm_print', False)
                 profile.perm_users_manage  = cd.get('perm_users_manage', False)
             profile.save()
             # Update personnel link: clear old link, set new one

@@ -85,8 +85,9 @@ class UserProfile(models.Model):
     perm_transaction_view   = models.BooleanField(default=False, help_text="May view transaction list and detail pages.")
     perm_transaction_create = models.BooleanField(default=False, help_text="May create new withdrawal/return transactions.")
 
-    # Reports & Print module
-    perm_reports = models.BooleanField(default=False, help_text="May access print pages, generate/regenerate ID cards and item tags, and download reports.")
+    # Reports & Print module (separate flags)
+    perm_reports = models.BooleanField(default=False, help_text="May view and download analytical reports.")
+    perm_print   = models.BooleanField(default=False, help_text="May access the Print module: generate/print ID cards, item tags, and PDF transaction forms.")
 
     # User management module
     perm_users_manage = models.BooleanField(default=False, help_text="May view, create, edit, and delete user accounts.")
@@ -250,28 +251,28 @@ class PasswordHistory(models.Model):
 _T = True
 _F = False
 
-#                                role,              inv_v  inv_a  inv_e  inv_d  per_v  per_a  per_e  per_d  txn_v  txn_c  rep    usr
+#                                role,              inv_v  inv_a  inv_e  inv_d  per_v  per_a  per_e  per_d  txn_v  txn_c  rep    prt    usr
 _GROUP_ROLE_MAP = {
     'Armorer': (
         'Armorer',
         dict(perm_inventory_view=_T, perm_inventory_add=_F, perm_inventory_edit=_F, perm_inventory_delete=_F,
              perm_personnel_view=_T, perm_personnel_add=_F, perm_personnel_edit=_F, perm_personnel_delete=_F,
              perm_transaction_view=_T, perm_transaction_create=_T,
-             perm_reports=_T, perm_users_manage=_F),
+             perm_reports=_T, perm_print=_T, perm_users_manage=_F),
     ),
     'Administrator \u2014 View Only': (
         'Administrator',
         dict(perm_inventory_view=_T, perm_inventory_add=_F, perm_inventory_edit=_F, perm_inventory_delete=_F,
              perm_personnel_view=_T, perm_personnel_add=_F, perm_personnel_edit=_F, perm_personnel_delete=_F,
              perm_transaction_view=_T, perm_transaction_create=_F,
-             perm_reports=_T, perm_users_manage=_F),
+             perm_reports=_T, perm_print=_T, perm_users_manage=_F),
     ),
     'Administrator \u2014 Edit & Add': (
         'Administrator',
         dict(perm_inventory_view=_T, perm_inventory_add=_T, perm_inventory_edit=_T, perm_inventory_delete=_F,
              perm_personnel_view=_T, perm_personnel_add=_T, perm_personnel_edit=_T, perm_personnel_delete=_F,
              perm_transaction_view=_T, perm_transaction_create=_T,
-             perm_reports=_T, perm_users_manage=_T),
+             perm_reports=_T, perm_print=_T, perm_users_manage=_T),
     ),
 }
 
@@ -279,7 +280,7 @@ _ALL_PERM_FIELDS = [
     'perm_inventory_view', 'perm_inventory_add', 'perm_inventory_edit', 'perm_inventory_delete',
     'perm_personnel_view', 'perm_personnel_add', 'perm_personnel_edit', 'perm_personnel_delete',
     'perm_transaction_view', 'perm_transaction_create',
-    'perm_reports', 'perm_users_manage',
+    'perm_reports', 'perm_print', 'perm_users_manage',
 ]
 
 
