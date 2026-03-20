@@ -123,6 +123,10 @@ class CustomUserAdmin(BaseUserAdmin):
         ('Account status', {
             'fields': ('is_active',),
         }),
+        ('User permissions', {
+            'classes': ('collapse',),
+            'fields': ('user_permissions',),
+        }),
         ('Important dates', {
             'fields': ('last_login', 'date_joined'),
         }),
