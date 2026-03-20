@@ -81,9 +81,11 @@
     <a href="{% url 'transaction-list' %}" class="nav-item {% if 'transaction' in request.resolver_match.url_name and request.resolver_match.url_name != 'transaction-create' %}active{% endif %}" title="Transactions">
       <i class="fa-solid fa-receipt nav-icon"></i><span class="nav-label">Transactions</span>
     </a>
+    {% if can_create_transaction %}
     <a href="{% url 'transaction-create' %}" class="nav-item {% if request.resolver_match.url_name == 'transaction-create' %}active{% endif %}" title="New Transaction">
       <i class="fa-solid fa-circle-plus nav-icon"></i><span class="nav-label">New Transaction</span>
     </a>
+    {% endif %}
     <div class="nav-section">Print</div>
     <a href="{% url 'print_handler:print_id_cards' %}" class="nav-item {% if request.resolver_match.url_name == 'print_id_cards' %}active{% endif %}" title="Personnel ID Cards">
       <i class="fa-solid fa-id-card nav-icon"></i><span class="nav-label">Personnel ID Cards</span>
