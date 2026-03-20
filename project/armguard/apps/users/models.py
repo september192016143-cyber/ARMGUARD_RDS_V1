@@ -10,7 +10,7 @@ import hashlib
 import json
 from django.db import models
 from django.conf import settings
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, m2m_changed
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.dispatch import receiver
 
@@ -225,6 +225,55 @@ class PasswordHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.username} password set at {self.created_at:%Y-%m-%d %H:%M:%S}"
+
+
+# ── Group → UserProfile sync ─────────────────────────────────────────────────
+# Maps ArmGuard role Group names to (role, perm_can_add, perm_can_edit).
+# Assigning a user to one of these Groups automatically sets their profile.
+# System Administrator is set directly on UserProfile.role — no Group needed.
+
+_GROUP_ROLE_MAP = {
+    'Armorer':                     ('Armorer',       False, False),
+    'Administrator \u2014 View Only':  ('Administrator', False, False),
+    'Administrator \u2014 Edit & Add': ('Administrator', True,  True),
+}
+
+
+def _sync_profile_from_groups(user):
+    """
+    Called after a user's group membership changes.
+    If the user belongs to one of the ArmGuard role Groups, update their
+    UserProfile to match. If none match, leave the profile unchanged.
+    """
+    try:
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+    except Exception:
+        return
+
+    group_names = set(user.groups.values_list('name', flat=True))
+
+    for group_name, (role, can_add, can_edit) in _GROUP_ROLE_MAP.items():
+        if group_name in group_names:
+            profile.role        = role
+            profile.perm_can_add  = can_add
+            profile.perm_can_edit = can_edit
+            profile.save(update_fields=['role', 'perm_can_add', 'perm_can_edit'])
+            return  # first matching group wins
+
+
+# on_user_groups_changed is connected lazily in UsersConfig.ready() below
+# so that the User model is fully loaded before we reference its M2M through table.
+def on_user_groups_changed(sender, instance, action, **kwargs):
+    """Sync UserProfile whenever a User's group membership is modified."""
+    if action in ('post_add', 'post_remove', 'post_clear'):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        if isinstance(instance, User):
+            _sync_profile_from_groups(instance)
+        else:
+            # instance is a Group — sync all affected users
+            for user in instance.user_set.all():
+                _sync_profile_from_groups(user)
 
 
 # ── signal handlers ───────────────────────────────────────────────────────────

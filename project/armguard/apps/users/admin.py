@@ -34,12 +34,13 @@ except admin.sites.NotRegistered:
 
 
 class UserProfileInline(admin.StackedInline):
-    """Role selection inline — always shown on the User form."""
+    """Shows the effective role + granular flags (driven by Group assignment)."""
     model = UserProfile
     can_delete = False
-    verbose_name = "Role"
-    verbose_name_plural = "Role"
-    fields = ('role',)
+    verbose_name = "ArmGuard Role (set via Group above)"
+    verbose_name_plural = "ArmGuard Role (set via Group above)"
+    fields = ('role', 'perm_can_add', 'perm_can_edit')
+    readonly_fields = ('role',)   # role is synced from Group — not edited directly
     extra = 1
     max_num = 1
 
@@ -84,15 +85,58 @@ class PersonnelInline(admin.StackedInline):
 class CustomUserAdmin(BaseUserAdmin):
     """
     Extends the default UserAdmin to include:
-      - Role (UserProfile) inline at the top of the change/add form
-      - Personnel Record inline below
-      - Role and OTP columns in the list view
+      - ArmGuard Role Group assignment at the top
+      - UserProfile inline showing effective role + permission flags
+      - Personnel Record inline
+      - Role column in the list view
     """
     inlines = [UserProfileInline, PersonnelInline]
 
     # ── List view ─────────────────────────────────────────────────────────────
     list_display = ('username', 'email', 'get_full_name', 'get_role', 'is_active', 'last_login')
     list_filter   = ('is_superuser', 'is_active', 'profile__role')
+
+    # ── Change form fieldsets ─────────────────────────────────────────────────
+    # Puts the Group (role) assignment first; hides the unused Django permission
+    # widget (user_permissions) since ArmGuard uses UserProfile.role instead.
+    fieldsets = (
+        (None, {
+            'fields': ('username', 'password'),
+        }),
+        ('Personal info', {
+            'fields': ('first_name', 'last_name', 'email'),
+        }),
+        ('ArmGuard Role', {
+            'description': (
+                'Assign the user to exactly one role Group below. '
+                'The ArmGuard Role inline will update automatically on save. '
+                '<br><strong>Armorer</strong> — view transactions, view inventory '
+                '<br><strong>Administrator — View Only</strong> — view all records '
+                '<br><strong>Administrator — Edit &amp; Add</strong> — create and edit records '
+                '<br><strong>Superuser status</strong> — full system access (recovery only)'
+            ),
+            'fields': ('groups', 'is_superuser'),
+        }),
+        ('Account status', {
+            'fields': ('is_active', 'is_staff'),
+        }),
+        ('Important dates', {
+            'fields': ('last_login', 'date_joined'),
+        }),
+    )
+
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'password1', 'password2'),
+        }),
+        ('ArmGuard Role', {
+            'fields': ('groups', 'is_superuser'),
+        }),
+        ('Personal info', {
+            'fields': ('first_name', 'last_name', 'email'),
+        }),
+    )
 
     @admin.display(description='Role', ordering='profile__role')
     def get_role(self, obj):
