@@ -34,14 +34,17 @@ except admin.sites.NotRegistered:
 
 
 class UserProfileInline(admin.StackedInline):
-    """Shows the effective role + granular flags (driven by Group assignment)."""
+    """
+    Read-only display of the role + granular flags synced from the Group above.
+    All fields are readonly — change the Group assignment to update them.
+    """
     model = UserProfile
     can_delete = False
-    verbose_name = "ArmGuard Role (set via Group above)"
-    verbose_name_plural = "ArmGuard Role (set via Group above)"
+    verbose_name = "Effective ArmGuard Permissions (synced from Group)"
+    verbose_name_plural = "Effective ArmGuard Permissions (synced from Group)"
     fields = ('role', 'perm_can_add', 'perm_can_edit')
-    readonly_fields = ('role',)   # role is synced from Group — not edited directly
-    extra = 1
+    readonly_fields = ('role', 'perm_can_add', 'perm_can_edit')
+    extra = 0
     max_num = 1
 
 
