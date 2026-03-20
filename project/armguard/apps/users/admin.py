@@ -121,7 +121,7 @@ class CustomUserAdmin(BaseUserAdmin):
             'fields': ('groups', 'is_superuser'),
         }),
         ('Account status', {
-            'fields': ('is_active', 'is_staff'),
+            'fields': ('is_active',),
         }),
         ('Important dates', {
             'fields': ('last_login', 'date_joined'),
