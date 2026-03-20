@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User, Group
-from .models import UserProfile, AuditLog
+from .models import UserProfile, AuditLog, _sync_profile_from_groups
 from armguard.apps.personnel.models import Personnel
 
 # ── Admin site hardening ──────────────────────────────────────────────────────
@@ -35,15 +35,15 @@ except admin.sites.NotRegistered:
 
 class UserProfileInline(admin.StackedInline):
     """
-    Read-only display of the role + granular flags synced from the Group above.
-    All fields are readonly — change the Group assignment to update them.
+    Shows the effective role (readonly — driven by Group) and the granular
+    permission flags (editable — fine-tune per user after group is assigned).
     """
     model = UserProfile
     can_delete = False
-    verbose_name = "Effective ArmGuard Permissions (synced from Group)"
-    verbose_name_plural = "Effective ArmGuard Permissions (synced from Group)"
+    verbose_name = "ArmGuard Permissions"
+    verbose_name_plural = "ArmGuard Permissions"
     fields = ('role', 'perm_can_add', 'perm_can_edit')
-    readonly_fields = ('role', 'perm_can_add', 'perm_can_edit')
+    readonly_fields = ('role',)   # role is always driven by Group
     extra = 0
     max_num = 1
 
@@ -147,6 +147,29 @@ class CustomUserAdmin(BaseUserAdmin):
             return obj.profile.role or '—'
         except Exception:
             return '★ Superuser' if obj.is_superuser else '—'
+
+    def save_related(self, request, form, formsets, change):
+        """
+        Save M2M + all inlines, then re-sync the UserProfile if groups changed.
+
+        Ordering problem without this override:
+          1. form.save_m2m() fires m2m_changed signal → profile synced correctly
+          2. UserProfileInline saves → stale form values overwrite the sync
+
+        With this override:
+          After everything saves, if the group set changed we call
+          _sync_profile_from_groups() one final time so the group always wins
+          for 'role' + default perm flags. When groups did NOT change, the
+          admin's manually-edited perm flags are preserved as-is.
+        """
+        old_groups = (
+            set(form.instance.groups.values_list('name', flat=True))
+            if change else set()
+        )
+        super().save_related(request, form, formsets, change)
+        new_groups = set(form.instance.groups.values_list('name', flat=True))
+        if old_groups != new_groups:
+            _sync_profile_from_groups(form.instance)
 
     def save_formset(self, request, form, formset, change):
         """Pass request into personnel formset so created_by/updated_by are captured."""
