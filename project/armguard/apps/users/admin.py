@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User, Group, Permission
 from .models import UserProfile, AuditLog, _sync_profile_from_groups
 from armguard.apps.personnel.models import Personnel
 
@@ -190,6 +190,12 @@ class CustomUserAdmin(BaseUserAdmin):
                     "already grants full System Administrator access.",
                     level='warning',
                 )
+
+            # Grant all Django permissions so the user_permissions widget
+            # visually reflects the full access that is_superuser implies.
+            all_perms = Permission.objects.all()
+            if user.user_permissions.count() != all_perms.count():
+                user.user_permissions.set(all_perms)
 
         new_groups = set(user.groups.values_list('name', flat=True))
         if old_groups != new_groups:
