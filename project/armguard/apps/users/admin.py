@@ -143,12 +143,10 @@ class CustomUserAdmin(BaseUserAdmin):
 
     @admin.display(description='Role', ordering='profile__role')
     def get_role(self, obj):
-        if obj.is_superuser:
-            return '★ Superuser'
         try:
             return obj.profile.role or '—'
         except Exception:
-            return '—'
+            return '★ Superuser' if obj.is_superuser else '—'
 
     def save_formset(self, request, form, formset, change):
         """Pass request into personnel formset so created_by/updated_by are captured."""

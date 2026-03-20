@@ -241,20 +241,32 @@ _GROUP_ROLE_MAP = {
 
 def _sync_profile_from_groups(user):
     """
-    Called after a user's group membership changes.
-    If the user belongs to one of the ArmGuard role Groups, update their
-    UserProfile to match. If none match, leave the profile unchanged.
+    Sync UserProfile.role + perm flags from the user's Group membership
+    (or superuser status).
+
+    Priority order:
+      1. is_superuser  → System Administrator (full access)
+      2. ArmGuard role Group → matching role + perm flags
+      If neither applies, leave the profile unchanged.
     """
     try:
         profile, _ = UserProfile.objects.get_or_create(user=user)
     except Exception:
         return
 
+    # Superuser always maps to System Administrator regardless of Groups
+    if user.is_superuser:
+        profile.role          = 'System Administrator'
+        profile.perm_can_add  = True
+        profile.perm_can_edit = True
+        profile.save(update_fields=['role', 'perm_can_add', 'perm_can_edit'])
+        return
+
     group_names = set(user.groups.values_list('name', flat=True))
 
     for group_name, (role, can_add, can_edit) in _GROUP_ROLE_MAP.items():
         if group_name in group_names:
-            profile.role        = role
+            profile.role          = role
             profile.perm_can_add  = can_add
             profile.perm_can_edit = can_edit
             profile.save(update_fields=['role', 'perm_can_add', 'perm_can_edit'])
@@ -279,10 +291,18 @@ def on_user_groups_changed(sender, instance, action, **kwargs):
 # ── signal handlers ───────────────────────────────────────────────────────────
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def create_user_profile(sender, instance, created, **kwargs):
-    """Auto-create a UserProfile whenever a new User is created."""
+def create_user_profile(sender, instance, created, update_fields=None, **kwargs):
+    """
+    Auto-create a UserProfile whenever a new User is created.
+    Also re-sync role when is_superuser is changed so that toggling superuser
+    status in Django admin immediately reflects 'System Administrator' role.
+    """
     if created:
         UserProfile.objects.get_or_create(user=instance)
+        _sync_profile_from_groups(instance)
+    elif update_fields is None or 'is_superuser' in update_fields:
+        # is_superuser was (potentially) changed — re-sync role
+        _sync_profile_from_groups(instance)
 
 
 @receiver(user_logged_in)
