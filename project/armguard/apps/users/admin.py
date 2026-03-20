@@ -91,8 +91,8 @@ class CustomUserAdmin(BaseUserAdmin):
     inlines = [UserProfileInline, PersonnelInline]
 
     # ── List view ─────────────────────────────────────────────────────────────
-    list_display = ('username', 'email', 'get_full_name', 'get_role', 'is_staff', 'is_active', 'last_login')
-    list_filter   = BaseUserAdmin.list_filter + ('profile__role',)
+    list_display = ('username', 'email', 'get_full_name', 'get_role', 'is_active', 'last_login')
+    list_filter   = ('is_superuser', 'is_active', 'profile__role')
 
     @admin.display(description='Role', ordering='profile__role')
     def get_role(self, obj):
