@@ -11,7 +11,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 import logging
 from django.contrib import messages
-from armguard.utils.permissions import can_delete as _can_delete_personnel, can_add as _can_add_personnel, can_edit as _can_edit_personnel
+from armguard.utils.permissions import can_delete as _can_delete_personnel, can_add as _can_add_personnel, can_edit as _can_edit_personnel, can_manage_inventory as _can_manage_inventory
 
 logger = logging.getLogger(__name__)
 
@@ -117,13 +117,7 @@ class PersonnelListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 		return ctx
 
 	def test_func(self):
-		user = self.request.user
-		if user.is_superuser or user.is_staff:
-			return True
-		try:
-			return user.profile.role in ('System Administrator', 'Administrator', 'Armorer')
-		except AttributeError:
-			return False
+		return _can_manage_inventory(self.request.user)
 
 class PersonnelDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 	model = Personnel
@@ -165,13 +159,7 @@ class PersonnelDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 		return context
 
 	def test_func(self):
-		user = self.request.user
-		if user.is_superuser or user.is_staff:
-			return True
-		try:
-			return user.profile.role in ('System Administrator', 'Administrator', 'Armorer')
-		except AttributeError:
-			return False
+		return _can_manage_inventory(self.request.user)
 
 class PersonnelCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 	model = Personnel

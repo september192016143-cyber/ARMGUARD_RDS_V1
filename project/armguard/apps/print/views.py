@@ -26,6 +26,7 @@ from django.core.paginator import Paginator
 from armguard.utils.permissions import can_manage_inventory as _can_manage_armorer
 from armguard.utils.permissions import is_admin as _is_admin
 from armguard.utils.permissions import can_delete as _can_delete
+from armguard.utils.permissions import can_edit as _can_edit
 
 
 def is_admin_or_armorer(user):
@@ -128,6 +129,8 @@ def generate_item_tags(request):
     force=1 → regenerate ALL (even those that exist).
     Returns JSON {generated, skipped, errors}
     """
+    if not _can_edit(request.user):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     from utils.item_tag_generator import generate_item_tag
 
     force     = request.POST.get('force', '0') == '1'
@@ -159,6 +162,8 @@ def generate_item_tags(request):
 @require_POST
 def regenerate_item_tag(request, item_id):
     """Regenerate the tag PNG for a single item (AJAX POST)."""
+    if not _can_edit(request.user):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     try:
         item = Pistol.objects.get(item_id=item_id)
     except Pistol.DoesNotExist:
@@ -767,6 +772,8 @@ def generate_missing_cards(request):
     Default (force=0) → generate only personnel who have no card file yet.
     Returns JSON {generated, skipped, errors}
     """
+    if not _can_edit(request.user):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     from utils.personnel_id_card_generator import generate_personnel_id_card
 
     force = request.POST.get('force', '0') == '1'
@@ -798,6 +805,8 @@ def generate_missing_cards(request):
 @require_POST
 def regenerate_id_card(request, personnel_id):
     """Regenerate the ID card PNG for a single personnel (AJAX POST)."""
+    if not _can_edit(request.user):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     try:
         personnel = Personnel.objects.get(Personnel_ID=personnel_id)
     except Personnel.DoesNotExist:
@@ -819,6 +828,9 @@ def print_id_cards_view(request):
     Print-ready page for selected (or all) personnel ID cards.
     Accepts ?ids=PO-xxx,PE-xxx,... or ?all=1
     """
+    if not _can_manage_armorer(request.user):
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied
     ids_param = request.GET.get('ids', '')
     show_all  = request.GET.get('all', '')
 

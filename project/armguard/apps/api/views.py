@@ -40,7 +40,7 @@ class _ReadOnlyModelViewSet(
     viewsets.GenericViewSet,
 ):
     """Base class: list + retrieve only, no create/update/delete."""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]
 
 
 class PistolViewSet(_ReadOnlyModelViewSet):

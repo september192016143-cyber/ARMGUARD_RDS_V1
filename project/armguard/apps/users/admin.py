@@ -1,8 +1,36 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from .models import UserProfile, AuditLog
 from armguard.apps.personnel.models import Personnel
+
+# ── Admin site hardening ──────────────────────────────────────────────────────
+# Restrict Django admin to superusers only. Armorers, Administrators, and
+# System Administrators manage everything through the main ArmGuard interface;
+# the Django admin is a superuser-level emergency/recovery tool only.
+def _superuser_only(self, request):
+    return request.user.is_active and request.user.is_superuser
+
+admin.site.__class__.has_permission = _superuser_only
+
+# ── Branding ──────────────────────────────────────────────────────────────────
+admin.site.site_header = "ArmGuard RDS Administration"
+admin.site.site_title  = "ArmGuard RDS"
+admin.site.index_title = "Database Administration"
+
+# ── Remove unused / sensitive built-in models ─────────────────────────────────
+# Groups: ArmGuard uses UserProfile.role for RBAC — Django's built-in Group /
+# Permission system is not used. Hiding it prevents confusion and misuse.
+admin.site.unregister(Group)
+
+# Auth Tokens: DRF tokens are issued programmatically (ThrottledObtainAuthToken).
+# Exposing raw token values in the Django admin is a security risk — a superuser
+# account compromise would immediately reveal all API bearer tokens.
+from rest_framework.authtoken.models import Token as _AuthToken
+try:
+    admin.site.unregister(_AuthToken)
+except admin.sites.NotRegistered:
+    pass  # authtoken app may not have registered yet in some startup orders
 
 
 class UserProfileInline(admin.StackedInline):
@@ -58,8 +86,22 @@ class CustomUserAdmin(BaseUserAdmin):
     Extends the default UserAdmin to include:
       - Role (UserProfile) inline at the top of the change/add form
       - Personnel Record inline below
+      - Role and OTP columns in the list view
     """
     inlines = [UserProfileInline, PersonnelInline]
+
+    # ── List view ─────────────────────────────────────────────────────────────
+    list_display = ('username', 'email', 'get_full_name', 'get_role', 'is_staff', 'is_active', 'last_login')
+    list_filter   = BaseUserAdmin.list_filter + ('profile__role',)
+
+    @admin.display(description='Role', ordering='profile__role')
+    def get_role(self, obj):
+        if obj.is_superuser:
+            return '★ Superuser'
+        try:
+            return obj.profile.role or '—'
+        except Exception:
+            return '—'
 
     def save_formset(self, request, form, formset, change):
         """Pass request into personnel formset so created_by/updated_by are captured."""

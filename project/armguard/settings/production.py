@@ -38,12 +38,12 @@ SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False') == 'True'
 SECURE_HSTS_SECONDS = 31536000          # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
-# SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE must be False during the initial
-# HTTP-only deployment phase (before SSL is installed) — browsers will not send
-# Secure cookies over plain HTTP, blocking all login attempts.
-# Set both to True in .env AFTER SSL is confirmed working.
-SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False') == 'True'
-CSRF_COOKIE_SECURE    = os.environ.get('CSRF_COOKIE_SECURE',    'False') == 'True'
+# SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE are tied to SECURE_SSL_REDIRECT so
+# enabling SSL (one env var) automatically secures all cookies. During the initial
+# HTTP-only deployment phase both are False; after SSL is confirmed set
+# SECURE_SSL_REDIRECT=True in .env and all three settings engage together.
+SESSION_COOKIE_SECURE = SECURE_SSL_REDIRECT
+CSRF_COOKIE_SECURE    = SECURE_SSL_REDIRECT
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # CSRF_TRUSTED_ORIGINS — required when Django runs behind a reverse proxy.
