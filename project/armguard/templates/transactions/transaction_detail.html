@@ -10,17 +10,19 @@
 {% endblock %}
 
 {% block topbar_actions %}
-{% if transaction.transaction_type == 'Withdrawal' and transaction.issuance_type and 'TR' in transaction.issuance_type %}
-  <a href="{% url 'print_handler:download_transaction_pdf' transaction.transaction_id %}" class="btn btn-primary btn-sm" target="_blank">
-    <i class="fa-solid fa-file-pdf"></i> Download TR PDF
-  </a>
-  <a href="{% url 'print_handler:print_transaction_pdf' transaction.transaction_id %}" class="btn btn-secondary btn-sm" target="_blank">
-    <i class="fa-solid fa-print"></i> Print TR
-  </a>
-{% elif transaction.issuance_type and 'PAR' in transaction.issuance_type and transaction.par_document %}
-  <a href="{{ transaction.par_document.url }}" class="btn btn-primary btn-sm" target="_blank">
-    <i class="fa-solid fa-file-pdf"></i> Open PAR Document
-  </a>
+{% if can_print %}
+  {% if transaction.transaction_type == 'Withdrawal' and transaction.issuance_type and 'TR' in transaction.issuance_type %}
+    <a href="{% url 'print_handler:download_transaction_pdf' transaction.transaction_id %}" class="btn btn-primary btn-sm" target="_blank">
+      <i class="fa-solid fa-file-pdf"></i> Download TR PDF
+    </a>
+    <a href="{% url 'print_handler:print_transaction_pdf' transaction.transaction_id %}" class="btn btn-secondary btn-sm" target="_blank">
+      <i class="fa-solid fa-print"></i> Print TR
+    </a>
+  {% elif transaction.issuance_type and 'PAR' in transaction.issuance_type and transaction.par_document %}
+    <a href="{{ transaction.par_document.url }}" class="btn btn-primary btn-sm" target="_blank">
+      <i class="fa-solid fa-file-pdf"></i> Open PAR Document
+    </a>
+  {% endif %}
 {% endif %}
 <a href="{% url 'transaction-list' %}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Back</a>
 {% endblock %}

@@ -11,7 +11,7 @@
   <i class="fa-solid fa-pen"></i> Edit
 </a>
 {% endif %}
-{% if request.user.is_superuser or request.user.profile.role == 'System Administrator' %}
+{% if can_delete_personnel %}
 <a href="{% url 'personnel-delete' personnel.Personnel_ID %}" class="btn btn-secondary btn-sm" style="color:var(--red)">
   <i class="fa-solid fa-trash"></i> Delete
 </a>

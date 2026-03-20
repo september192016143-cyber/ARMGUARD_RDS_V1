@@ -1,6 +1,6 @@
 from armguard.utils.permissions import (
     can_view_inventory, can_add_inventory, can_edit_inventory, can_delete_inventory,
-    can_view_personnel, can_add_personnel, can_edit_personnel,
+    can_view_personnel, can_add_personnel, can_edit_personnel, can_delete_personnel,
     can_view_transactions, can_create_transaction,
     can_view_reports, can_print,
     can_manage_users,
@@ -22,6 +22,7 @@ def nav_permissions(request):
             'can_view_personnel': False,
             'can_add_personnel': False,
             'can_edit_personnel': False,
+            'can_delete_personnel': False,
             'can_view_transactions': False,
             'can_create_transaction': False,
             'can_view_reports': False,
@@ -36,6 +37,7 @@ def nav_permissions(request):
         'can_view_personnel':    can_view_personnel(user),
         'can_add_personnel':     can_add_personnel(user),
         'can_edit_personnel':    can_edit_personnel(user),
+        'can_delete_personnel':  can_delete_personnel(user),
         'can_view_transactions': can_view_transactions(user),
         'can_create_transaction': can_create_transaction(user),
         'can_view_reports':      can_view_reports(user),
