@@ -99,12 +99,12 @@
     <a href="{% url 'print_handler:print_transactions' %}" class="nav-item {% if request.resolver_match.url_name == 'print_transactions' %}active{% endif %}" title="Print Reports">
       <i class="fa-solid fa-print nav-icon"></i><span class="nav-label">Print Reports</span>
     </a>
-    {% if user.is_superuser or user.profile.role == 'System Administrator' or user.profile.role == 'Administrator' %}
+    {% if can_manage_users %}
     <div class="nav-section">Admin</div>
     <a href="{% url 'user-list' %}" class="nav-item {% if request.resolver_match.url_name == 'user-list' %}active{% endif %}" title="User Management">
       <i class="fa-solid fa-users-gear nav-icon"></i><span class="nav-label">User Management</span>
     </a>
-    {% if user.is_superuser or user.profile.role == 'System Administrator' or user.profile.role == 'Administrator' and user.profile.perm_can_add %}
+    {% if can_manage_users %}
     <a href="{% url 'user-add' %}" class="nav-item {% if request.resolver_match.url_name == 'user-add' %}active{% endif %}" title="Add User">
       <i class="fa-solid fa-user-plus nav-icon"></i><span class="nav-label">Add User</span>
     </a>
