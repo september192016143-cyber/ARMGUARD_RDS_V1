@@ -3,9 +3,13 @@
 
 {% block title %}System Settings — ArmGuard RDS{% endblock %}
 {% block page_title %}System Settings{% endblock %}
-{% block page_sub %}Site-wide configuration — superuser only{% endblock %}
+{% block page_sub %}Site-wide configuration{% endblock %}
 
-{% block topbar_actions %}{% endblock %}
+{% block topbar_actions %}
+<button type="submit" form="settings-form" class="btn btn-primary btn-sm">
+  <i class="fa-solid fa-floppy-disk"></i> Save Settings
+</button>
+{% endblock %}
 
 {% block content %}
 {% if messages %}
@@ -16,7 +20,7 @@
   {% endfor %}
 {% endif %}
 
-<form method="post" style="max-width:680px">
+<form method="post" id="settings-form" style="max-width:680px">
   {% csrf_token %}
 
   <!-- ── Unit Info ──────────────────────────────────────────────────────── -->
@@ -187,12 +191,7 @@
     </div>
   </div>
 
-  <div style="display:flex;gap:.75rem;margin-top:.5rem;align-items:center">
-    <button type="submit" class="btn btn-primary">
-      <i class="fa-solid fa-floppy-disk"></i> Save Settings
-    </button>
-    <span style="font-size:.8rem;color:var(--muted)">Changes apply immediately.</span>
-  </div>
+  <div style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Changes apply immediately.</div>
 </form>
 
 <!-- ── Per-User 2FA Exemptions ─────────────────────────────────────────── -->
