@@ -479,6 +479,10 @@ def print_transactions(request):
         _mi = f' {_p.middle_initial}.' if _p.middle_initial else ''
         _armorer_name = f'{_p.first_name}{_mi} {_p.last_name}'.upper()
         _armorer_rank = _p.rank
+        try:
+            _armorer_designation = request.user.profile.role or 'Armorer'
+        except Exception:
+            pass
     except _Personnel.DoesNotExist:
         # Fall back to the Django User's own name and role
         _full = request.user.get_full_name().strip()
@@ -1003,6 +1007,10 @@ def download_daily_report_pdf(request):
         _mi = f' {_p.middle_initial}.' if _p.middle_initial else ''
         _armorer_name = f'{_p.first_name}{_mi} {_p.last_name}'.upper()
         _armorer_rank = _p.rank
+        try:
+            _armorer_designation = request.user.profile.role or 'Armorer'
+        except Exception:
+            pass
     except _Personnel.DoesNotExist:
         _full = request.user.get_full_name().strip()
         _armorer_name = _full.upper() if _full else request.user.username.upper()
