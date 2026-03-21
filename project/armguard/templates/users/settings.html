@@ -195,25 +195,82 @@
   </div>
 </form>
 
-<script>
-document.getElementById('id_mfa_required').addEventListener('change', function () {
-  const card = this.closest('.form-group');
-  const badge = document.getElementById('mfa-badge');
-  const note  = card.querySelector('span[style*="f59e0b"]');
-  if (this.checked) {
-    card.style.background  = 'rgba(34,197,94,.07)';
-    card.style.borderColor = 'rgba(34,197,94,.25)';
-    badge.style.background = 'rgba(34,197,94,.15)';
-    badge.style.color      = '#22c55e';
-    badge.textContent      = 'ON';
-    if (note) note.remove();
-  } else {
-    card.style.background  = 'rgba(239,68,68,.07)';
-    card.style.borderColor = 'rgba(239,68,68,.25)';
-    badge.style.background = 'rgba(239,68,68,.15)';
-    badge.style.color      = '#ef4444';
-    badge.textContent      = 'OFF';
-  }
-});
-</script>
+<!-- ── Per-User 2FA Exemptions ─────────────────────────────────────────── -->
+<div class="card mb-2" style="max-width:680px;margin-top:1.5rem">
+  <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+    <span class="card-title"><i class="fa-solid fa-user-shield"></i> Per-User 2FA Control</span>
+    <span style="font-size:.78rem;color:var(--muted)">Superuser accounts are always exempt</span>
+  </div>
+  <div style="font-size:.82rem;color:var(--muted);margin-bottom:.75rem">
+    <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+    Toggle 2FA on or off for individual users. Only takes effect when site-wide 2FA enforcement is also <strong>ON</strong>.
+  </div>
+  <table class="data-table" style="font-size:.85rem">
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Role</th>
+        <th style="text-align:center">Device</th>
+        <th style="text-align:center">Require 2FA</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in non_super_users %}
+      <tr>
+        <td><strong>{{ u.username }}</strong>{% if u.get_full_name %} <span style="color:var(--muted);font-weight:400">— {{ u.get_full_name }}</span>{% endif %}</td>
+        <td>
+          {% with role=u.profile.role %}
+            {% if role == 'Administrator — View Only' or role == 'Administrator — Edit & Add' or role == 'Administrator' %}
+              <span class="badge badge-orange" style="font-size:.72rem">{{ role }}</span>
+            {% elif role == 'Armorer' %}
+              <span class="badge badge-blue" style="font-size:.72rem">{{ role }}</span>
+            {% else %}
+              <span class="badge" style="background:var(--surface3);font-size:.72rem">{{ role|default:"—" }}</span>
+            {% endif %}
+          {% endwith %}
+        </td>
+        <td style="text-align:center">
+          {% if u.pk in enrolled_2fa_ids %}
+            <span style="color:#22c55e" title="TOTP device enrolled"><i class="fa-solid fa-shield-check"></i> Enrolled</span>
+          {% else %}
+            <span style="color:var(--muted)" title="No TOTP device"><i class="fa-solid fa-shield-slash"></i> None</span>
+          {% endif %}
+        </td>
+        <td style="text-align:center">
+          {% if u.profile.require_2fa %}
+            <span style="color:#22c55e;font-weight:600"><i class="fa-solid fa-toggle-on"></i> Required</span>
+          {% else %}
+            <span style="color:#f59e0b;font-weight:600"><i class="fa-solid fa-toggle-off"></i> Exempt</span>
+          {% endif %}
+        </td>
+        <td style="text-align:right">
+          <form method="post" action="{% url 'user-toggle-2fa' u.pk %}">
+            {% csrf_token %}
+            {% if u.profile.require_2fa %}
+              <button type="submit" class="btn btn-secondary btn-sm" title="Click to exempt {{ u.username }} from 2FA"
+                      style="color:var(--danger);font-size:.78rem">
+                <i class="fa-solid fa-ban"></i> Exempt
+              </button>
+            {% else %}
+              <button type="submit" class="btn btn-secondary btn-sm" title="Click to require 2FA for {{ u.username }}"
+                      style="color:#22c55e;font-size:.78rem">
+                <i class="fa-solid fa-shield-check"></i> Require
+              </button>
+            {% endif %}
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:1.5rem">No non-superuser accounts found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/settings.js' %}"></script>
 {% endblock %}

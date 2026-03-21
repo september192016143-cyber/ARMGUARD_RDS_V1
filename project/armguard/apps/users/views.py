@@ -664,14 +664,21 @@ class SystemSettingsView(LoginRequiredMixin, View):
         from .models import SystemSettings
         from django_otp.plugins.otp_totp.models import TOTPDevice
         total_users   = User.objects.filter(is_active=True).count()
-        mfa_user_pks  = TOTPDevice.objects.filter(confirmed=True).values_list('user_id', flat=True).distinct()
-        users_with_2fa    = mfa_user_pks.count()
+        enrolled_pks  = set(TOTPDevice.objects.filter(confirmed=True).values_list('user_id', flat=True))
+        users_with_2fa    = len(enrolled_pks)
         users_without_2fa = max(0, total_users - users_with_2fa)
+        non_super_users = (
+            User.objects.filter(is_active=True, is_superuser=False)
+            .select_related('profile')
+            .order_by('username')
+        )
         return render(request, self.template_name, {
             's':                  SystemSettings.get(),
             'total_users':        total_users,
             'users_with_2fa':     users_with_2fa,
             'users_without_2fa':  users_without_2fa,
+            'non_super_users':    non_super_users,
+            'enrolled_2fa_ids':   enrolled_pks,
         })
 
     def post(self, request):
