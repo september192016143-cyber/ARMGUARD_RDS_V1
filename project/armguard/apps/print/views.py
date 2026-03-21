@@ -480,16 +480,16 @@ def print_transactions(request):
         _armorer_name = f'{_p.first_name}{_mi} {_p.last_name}'.upper()
         _armorer_rank = _p.rank
         try:
-            _armorer_designation = request.user.profile.role or 'Armorer'
+            _armorer_designation = request.user.profile.role or ('System Administrator' if request.user.is_superuser else 'Armorer')
         except Exception:
-            pass
+            _armorer_designation = 'System Administrator' if request.user.is_superuser else 'Armorer'
     except _Personnel.DoesNotExist:
         # Fall back to the Django User's own name and role
         _full = request.user.get_full_name().strip()
         _armorer_name = _full.upper() if _full else request.user.username.upper()
         _armorer_rank = ''  # no military rank — role goes into designation below
         try:
-            _armorer_designation = request.user.profile.role or 'Armorer'
+            _armorer_designation = request.user.profile.role or ('System Administrator' if request.user.is_superuser else 'Armorer')
         except Exception:
             _armorer_designation = 'System Administrator' if request.user.is_superuser else 'Armorer'
 
@@ -1008,15 +1008,15 @@ def download_daily_report_pdf(request):
         _armorer_name = f'{_p.first_name}{_mi} {_p.last_name}'.upper()
         _armorer_rank = _p.rank
         try:
-            _armorer_designation = request.user.profile.role or 'Armorer'
+            _armorer_designation = request.user.profile.role or ('System Administrator' if request.user.is_superuser else 'Armorer')
         except Exception:
-            pass
+            _armorer_designation = 'System Administrator' if request.user.is_superuser else 'Armorer'
     except _Personnel.DoesNotExist:
         _full = request.user.get_full_name().strip()
         _armorer_name = _full.upper() if _full else request.user.username.upper()
         _armorer_rank = ''
         try:
-            _armorer_designation = request.user.profile.role or 'Armorer'
+            _armorer_designation = request.user.profile.role or ('System Administrator' if request.user.is_superuser else 'Armorer')
         except Exception:
             _armorer_designation = 'System Administrator' if request.user.is_superuser else 'Armorer'
     _commander_name = getattr(settings, 'ARMGUARD_COMMANDER_NAME', '')
