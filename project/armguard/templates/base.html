@@ -31,10 +31,13 @@
     <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" title="Dashboard">
       <i class="fa-solid fa-gauge nav-icon"></i><span class="nav-label">Dashboard</span>
     </a>
+    {% if can_view_personnel %}
     <div class="nav-section">Personnel Management</div>
     <a href="{% url 'personnel-list' %}" class="nav-item {% if request.resolver_match.url_name|slice:':9' == 'personnel' %}active{% endif %}" title="Personnels">
       <i class="fa-solid fa-users nav-icon"></i><span class="nav-label">Personnels</span>
     </a>
+    {% endif %}
+    {% if can_view_inventory %}
     <div class="nav-group {% if 'inventory' in request.path %}open{% endif %}">
       <div class="nav-group-header">
         <i class="fa-solid fa-box-archive nav-icon"></i>
@@ -77,10 +80,13 @@
         </div>
       </div>
     </div>
+    {% endif %}
     <div class="nav-section">Operations</div>
+    {% if can_view_transactions %}
     <a href="{% url 'transaction-list' %}" class="nav-item {% if 'transaction' in request.resolver_match.url_name and request.resolver_match.url_name != 'transaction-create' %}active{% endif %}" title="Transactions">
       <i class="fa-solid fa-receipt nav-icon"></i><span class="nav-label">Transactions</span>
     </a>
+    {% endif %}
     {% if can_create_transaction %}
     <a href="{% url 'transaction-create' %}" class="nav-item {% if request.resolver_match.url_name == 'transaction-create' %}active{% endif %}" title="New Transaction">
       <i class="fa-solid fa-circle-plus nav-icon"></i><span class="nav-label">New Transaction</span>
