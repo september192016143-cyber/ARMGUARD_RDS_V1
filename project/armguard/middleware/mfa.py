@@ -47,6 +47,15 @@ class OTPRequiredMiddleware:
             and not self._is_otp_verified(request)
             and not self._is_bypass(request.path, request)
         ):
+            # Respect the site-wide 2FA toggle (editable via Settings page).
+            # Fail-CLOSED: if DB is unavailable we still enforce 2FA.
+            try:
+                from armguard.apps.users.models import SystemSettings
+                if not SystemSettings.get().mfa_required:
+                    return self.get_response(request)
+            except Exception:
+                pass
+
             verify_url = reverse('otp-verify')
             next_param = request.get_full_path()
             return redirect(f'{verify_url}?next={next_param}')

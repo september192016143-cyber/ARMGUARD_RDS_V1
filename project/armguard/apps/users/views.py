@@ -608,7 +608,17 @@ class SystemSettingsView(LoginRequiredMixin, View):
         if resp:
             return resp
         from .models import SystemSettings
-        return render(request, self.template_name, {'s': SystemSettings.get()})
+        from django_otp.plugins.otp_totp.models import TOTPDevice
+        total_users   = User.objects.filter(is_active=True).count()
+        mfa_user_pks  = TOTPDevice.objects.filter(confirmed=True).values_list('user_id', flat=True).distinct()
+        users_with_2fa    = mfa_user_pks.count()
+        users_without_2fa = max(0, total_users - users_with_2fa)
+        return render(request, self.template_name, {
+            's':                  SystemSettings.get(),
+            'total_users':        total_users,
+            'users_with_2fa':     users_with_2fa,
+            'users_without_2fa':  users_without_2fa,
+        })
 
     def post(self, request):
         resp = self._guard(request)
@@ -628,6 +638,18 @@ class SystemSettingsView(LoginRequiredMixin, View):
             obj.pistol_magazine_max_qty = 4
         rifle_val = request.POST.get('rifle_magazine_max_qty', '').strip()
         obj.rifle_magazine_max_qty = int(rifle_val) if rifle_val.isdigit() else None
+        # Security fields
+        obj.mfa_required = 'mfa_required' in request.POST
+        try:
+            min_len = int(request.POST.get('password_min_length', 8))
+            obj.password_min_length = max(1, min(128, min_len))
+        except (ValueError, TypeError):
+            obj.password_min_length = 8
+        try:
+            hist = int(request.POST.get('password_history_count', 5))
+            obj.password_history_count = max(0, min(20, hist))
+        except (ValueError, TypeError):
+            obj.password_history_count = 5
         obj.save()
         messages.success(request, 'System settings saved.')
         return redirect('system-settings')

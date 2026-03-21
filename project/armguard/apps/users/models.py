@@ -268,6 +268,20 @@ class SystemSettings(models.Model):
     # Unit display name (used in report headers etc.)
     unit_name = models.CharField(max_length=150, blank=True, default='950th CEWW')
 
+    # ── Security & Authentication policy ─────────────────────────────────────
+    mfa_required = models.BooleanField(
+        default=True,
+        help_text='Require two-factor authentication (2FA/TOTP) for all users.'
+    )
+    password_min_length = models.PositiveSmallIntegerField(
+        default=8,
+        help_text='Minimum number of characters required for user passwords (1–128).'
+    )
+    password_history_count = models.PositiveSmallIntegerField(
+        default=5,
+        help_text='Number of previous passwords a user may not reuse (0 = no restriction).'
+    )
+
     class Meta:
         verbose_name        = "System Settings"
         verbose_name_plural = "System Settings"
@@ -286,6 +300,9 @@ class SystemSettings(models.Model):
             'armorer_branch':          getattr(settings, 'ARMGUARD_ARMORER_BRANCH',        'PAF'),
             'pistol_magazine_max_qty': getattr(settings, 'ARMGUARD_PISTOL_MAGAZINE_MAX_QTY', 4) or 4,
             'rifle_magazine_max_qty':  getattr(settings, 'ARMGUARD_RIFLE_MAGAZINE_MAX_QTY', None),
+            'mfa_required':            True,
+            'password_min_length':     8,
+            'password_history_count':  5,
         })
         return obj
 

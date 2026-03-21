@@ -16,7 +16,7 @@
   {% endfor %}
 {% endif %}
 
-<form method="post" style="max-width:640px">
+<form method="post" style="max-width:680px">
   {% csrf_token %}
 
   <!-- ── Unit Info ──────────────────────────────────────────────────────── -->
@@ -54,7 +54,7 @@
 
     <div class="form-row cols-2">
       <div class="form-group">
-        <label class="form-label" for="id_commander_branch">Branch</label>
+        <label class="form-label" for="id_commander_branch">Branch / Service</label>
         <input type="text" id="id_commander_branch" name="commander_branch" class="form-control"
                value="{{ s.commander_branch }}" maxlength="20" placeholder="e.g. PAF">
       </div>
@@ -73,10 +73,10 @@
     </div>
 
     <div class="form-group">
-      <label class="form-label" for="id_armorer_branch">Armorer Branch Label</label>
+      <label class="form-label" for="id_armorer_branch">Armorer Branch / Service Label</label>
       <input type="text" id="id_armorer_branch" name="armorer_branch" class="form-control"
              value="{{ s.armorer_branch }}" maxlength="20" placeholder="e.g. PAF">
-      <div class="form-hint">Branch/service label displayed under the armorer's signature block on printed reports. The armorer's name and rank are taken from their Personnel record.</div>
+      <div class="form-hint">Branch label shown under the armorer's signature block on printed reports. The armorer's name and rank are read from their linked Personnel record.</div>
     </div>
   </div>
 
@@ -88,24 +88,132 @@
 
     <div class="form-row cols-2">
       <div class="form-group">
-        <label class="form-label" for="id_pistol_mag">Pistol Magazine — Max Qty</label>
+        <label class="form-label" for="id_pistol_mag">Pistol Magazine — Max Qty per Transaction</label>
         <input type="number" id="id_pistol_mag" name="pistol_magazine_max_qty" class="form-control"
                value="{{ s.pistol_magazine_max_qty }}" min="1" max="9999">
-        <div class="form-hint">Maximum magazines per pistol transaction.</div>
       </div>
       <div class="form-group">
-        <label class="form-label" for="id_rifle_mag">Rifle Magazine — Max Qty</label>
+        <label class="form-label" for="id_rifle_mag">Rifle Magazine — Max Qty per Transaction</label>
         <input type="number" id="id_rifle_mag" name="rifle_magazine_max_qty" class="form-control"
-               value="{{ s.rifle_magazine_max_qty|default:'' }}" min="1" max="9999" placeholder="Leave blank for no limit">
-        <div class="form-hint">Leave blank for no limit.</div>
+               value="{{ s.rifle_magazine_max_qty|default:'' }}" min="1" max="9999" placeholder="Blank = no limit">
       </div>
     </div>
   </div>
 
-  <div style="display:flex;gap:.75rem;margin-top:.5rem">
+  <!-- ── Two-Factor Authentication ─────────────────────────────────────── -->
+  <div class="card mb-2">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-mobile-screen-button"></i> Two-Factor Authentication (2FA)</span>
+    </div>
+
+    <!-- 2FA Coverage stats -->
+    <div style="display:flex;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap">
+      <div style="flex:1;min-width:140px;background:var(--surface2,#1e2330);border-radius:8px;padding:.85rem 1rem;border:1px solid var(--border,#2d3347)">
+        <div style="font-size:1.6rem;font-weight:700;color:var(--primary,#4f8ef7)">{{ total_users }}</div>
+        <div style="font-size:.78rem;color:var(--muted)">Active Users</div>
+      </div>
+      <div style="flex:1;min-width:140px;background:var(--surface2,#1e2330);border-radius:8px;padding:.85rem 1rem;border:1px solid var(--border,#2d3347)">
+        <div style="font-size:1.6rem;font-weight:700;color:#22c55e">{{ users_with_2fa }}</div>
+        <div style="font-size:.78rem;color:var(--muted)">Have 2FA Enabled</div>
+      </div>
+      <div style="flex:1;min-width:140px;background:var(--surface2,#1e2330);border-radius:8px;padding:.85rem 1rem;border:1px solid {% if users_without_2fa > 0 %}#f59e0b33{% else %}var(--border,#2d3347){% endif %}">
+        <div style="font-size:1.6rem;font-weight:700;color:{% if users_without_2fa > 0 %}#f59e0b{% else %}var(--muted){% endif %}">{{ users_without_2fa }}</div>
+        <div style="font-size:.78rem;color:var(--muted)">Without 2FA</div>
+      </div>
+    </div>
+
+    <!-- 2FA progress bar -->
+    {% if total_users > 0 %}
+    {% with pct=users_with_2fa|floatformat:0 %}
+    <div style="margin-bottom:1.25rem">
+      <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:.3rem">
+        <span>2FA Coverage</span>
+        <span>{{ users_with_2fa }} / {{ total_users }}</span>
+      </div>
+      <div style="height:6px;background:var(--surface2,#1e2330);border-radius:3px;overflow:hidden">
+        {% if total_users %}
+        <div style="height:100%;width:{{ users_with_2fa|default:0 }}00%;max-width:100%;background:{% if users_without_2fa == 0 %}#22c55e{% elif users_with_2fa == 0 %}#ef4444{% else %}#f59e0b{% endif %};border-radius:3px;transition:width .4s"></div>
+        {% endif %}
+      </div>
+    </div>
+    {% endwith %}
+    {% endif %}
+
+    <!-- 2FA enforcement toggle -->
+    <div class="form-group" style="background:{% if s.mfa_required %}rgba(34,197,94,.07){% else %}rgba(239,68,68,.07){% endif %};border:1px solid {% if s.mfa_required %}rgba(34,197,94,.25){% else %}rgba(239,68,68,.25){% endif %};border-radius:8px;padding:.9rem 1rem;display:flex;align-items:flex-start;gap:.85rem">
+      <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;flex:1">
+        <input type="checkbox" name="mfa_required" id="id_mfa_required"
+               {% if s.mfa_required %}checked{% endif %}
+               style="width:18px;height:18px;accent-color:var(--primary,#4f8ef7);cursor:pointer;flex-shrink:0">
+        <span>
+          <strong>Enforce 2FA for all users</strong><br>
+          <span style="font-size:.8rem;color:var(--muted)">
+            When enabled, every user must complete a TOTP verification step after login. Users without a configured authenticator app are redirected to the 2FA setup page.
+            {% if not s.mfa_required %}
+            <span style="color:#f59e0b;font-weight:600"> — Currently DISABLED. Users can log in without a second factor.</span>
+            {% endif %}
+          </span>
+        </span>
+      </label>
+      <span id="mfa-badge" style="flex-shrink:0;padding:.2rem .65rem;border-radius:12px;font-size:.75rem;font-weight:700;{% if s.mfa_required %}background:rgba(34,197,94,.15);color:#22c55e{% else %}background:rgba(239,68,68,.15);color:#ef4444{% endif %}">
+        {% if s.mfa_required %}ON{% else %}OFF{% endif %}
+      </span>
+    </div>
+    <div class="form-hint" style="margin-top:.5rem">
+      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+      The 2FA toggle takes effect immediately on the next login — no server restart required. Existing authenticated sessions are not interrupted; the setting applies at the next authentication.
+    </div>
+  </div>
+
+  <!-- ── Password Policy ────────────────────────────────────────────────── -->
+  <div class="card mb-2">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-key"></i> Password Policy</span>
+    </div>
+
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_pw_min">Minimum Password Length</label>
+        <input type="number" id="id_pw_min" name="password_min_length" class="form-control"
+               value="{{ s.password_min_length }}" min="1" max="128">
+        <div class="form-hint">Minimum characters required. Enforced when a user sets or changes their password.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_pw_history">Password History Count</label>
+        <input type="number" id="id_pw_history" name="password_history_count" class="form-control"
+               value="{{ s.password_history_count }}" min="0" max="20">
+        <div class="form-hint">Number of previous passwords a user cannot reuse (0 = no restriction, max 20).</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:.75rem;margin-top:.5rem;align-items:center">
     <button type="submit" class="btn btn-primary">
       <i class="fa-solid fa-floppy-disk"></i> Save Settings
     </button>
+    <span style="font-size:.8rem;color:var(--muted)">Changes apply immediately.</span>
   </div>
 </form>
+
+<script>
+document.getElementById('id_mfa_required').addEventListener('change', function () {
+  const card = this.closest('.form-group');
+  const badge = document.getElementById('mfa-badge');
+  const note  = card.querySelector('span[style*="f59e0b"]');
+  if (this.checked) {
+    card.style.background  = 'rgba(34,197,94,.07)';
+    card.style.borderColor = 'rgba(34,197,94,.25)';
+    badge.style.background = 'rgba(34,197,94,.15)';
+    badge.style.color      = '#22c55e';
+    badge.textContent      = 'ON';
+    if (note) note.remove();
+  } else {
+    card.style.background  = 'rgba(239,68,68,.07)';
+    card.style.borderColor = 'rgba(239,68,68,.25)';
+    badge.style.background = 'rgba(239,68,68,.15)';
+    badge.style.color      = '#ef4444';
+    badge.textContent      = 'OFF';
+  }
+});
+</script>
 {% endblock %}

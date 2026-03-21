@@ -63,6 +63,10 @@ INSTALLED_APPS = [
     'armguard.apps.transactions',
     'armguard.apps.users',
     'armguard.apps.print',
+    # G15: django-otp — TOTP models & OTPMiddleware (is_verified() on request.user)
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'django_otp.plugins.otp_static',
     # M4/M5 FIX: Removed empty skeleton apps (armguard.apps.registration,
     # armguard.apps.core, armguard.apps.utils) — no models, no migrations,
     # not referenced in URLs. Keeping them registered wastes app-registry
@@ -78,6 +82,11 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # G15: django-otp sets request.user.is_verified() from session (must follow AuthenticationMiddleware).
+    'django_otp.middleware.OTPMiddleware',
+    # G15: ArmGuard custom enforcement — redirects unverified sessions to /accounts/otp/verify/.
+    #      Controlled by SystemSettings.mfa_required (superuser can toggle via UI Settings page).
+    'armguard.middleware.mfa.OTPRequiredMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     # XFrameOptionsMiddleware removed — CSP frame-ancestors 'self' in SecurityHeadersMiddleware
     # already handles clickjacking. Keeping the Django middleware caused duplicate/conflicting
