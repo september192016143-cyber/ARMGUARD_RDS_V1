@@ -996,13 +996,26 @@ def download_daily_report_pdf(request):
     y += 38
 
     # ── signature block ───────────────────────────────────────────────────────
-    _armorer_name   = getattr(settings, 'ARMGUARD_ARMORER_NAME', '')
-    _armorer_rank   = getattr(settings, 'ARMGUARD_ARMORER_RANK', '')
+    from armguard.apps.personnel.models import Personnel as _Personnel
+    _armorer_designation = 'Armorer'
+    try:
+        _p = _Personnel.objects.get(user=request.user)
+        _mi = f' {_p.middle_initial}.' if _p.middle_initial else ''
+        _armorer_name = f'{_p.first_name}{_mi} {_p.last_name}'.upper()
+        _armorer_rank = _p.rank
+    except _Personnel.DoesNotExist:
+        _full = request.user.get_full_name().strip()
+        _armorer_name = _full.upper() if _full else request.user.username.upper()
+        _armorer_rank = ''
+        try:
+            _armorer_designation = request.user.profile.role or 'Armorer'
+        except Exception:
+            _armorer_designation = 'System Administrator' if request.user.is_superuser else 'Armorer'
     _commander_name = getattr(settings, 'ARMGUARD_COMMANDER_NAME', '')
     _commander_rank = getattr(settings, 'ARMGUARD_COMMANDER_RANK', '')
 
     _text((60, y + 20),  f'{_armorer_rank} {_armorer_name}'.strip() or 'ARMORER',       size=9, bold=True)
-    _text((60, y + 32),  'Armorer',                                                       size=8)
+    _text((60, y + 32),  _armorer_designation,                                            size=8)
     _text((350, y + 20), f'{_commander_rank} {_commander_name}'.strip() or 'COMMANDER',  size=9, bold=True)
     _text((350, y + 32), getattr(settings, 'ARMGUARD_COMMANDER_DESIGNATION', 'Commander'), size=8)
 
