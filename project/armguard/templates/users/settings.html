@@ -31,18 +31,31 @@
 
     <div class="form-group">
       <label class="form-label">Sidebar Icon / Logo</label>
+
       {% if s.app_logo %}
-      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.75rem">
-        <img src="{{ s.app_logo.url }}" alt="Current logo"
-             style="width:56px;height:56px;object-fit:contain;border-radius:8px;border:1px solid var(--border,#2d3347);background:var(--surface2)">
-        <div>
-          <div style="font-size:.82rem;color:var(--muted)">Current logo</div>
-          <label style="display:flex;align-items:center;gap:.4rem;margin-top:.35rem;cursor:pointer;font-size:.82rem">
+      <!-- Current logo preview -->
+      <div style="background:var(--surface2,#1a2035);border:1px solid var(--border,#2d3347);border-radius:10px;padding:1rem 1.25rem;margin-bottom:.85rem;display:flex;align-items:center;gap:1.25rem">
+        <a href="{{ s.app_logo.url }}" target="_blank" title="View full size" style="flex-shrink:0;display:block">
+          <img src="{{ s.app_logo.url }}" alt="Current logo"
+               style="width:80px;height:80px;object-fit:contain;border-radius:10px;border:1px solid var(--border,#2d3347);display:block">
+        </a>
+        <div style="min-width:0">
+          <div style="font-weight:600;font-size:.88rem;margin-bottom:.2rem">Current logo</div>
+          <div style="font-size:.78rem;color:var(--muted);word-break:break-all;margin-bottom:.5rem">{{ s.app_logo.name }}</div>
+          <a href="{{ s.app_logo.url }}" target="_blank" style="font-size:.78rem;color:var(--primary,#f59e0b);text-decoration:none">
+            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:.7rem"></i> View full size
+          </a>
+          <label style="display:flex;align-items:center;gap:.4rem;margin-top:.55rem;cursor:pointer;font-size:.82rem">
             <input type="checkbox" name="clear_app_logo" value="1"> Remove current logo
           </label>
         </div>
       </div>
+      {% else %}
+      <div style="background:var(--surface2,#1a2035);border:1px dashed var(--border,#2d3347);border-radius:10px;padding:.85rem 1.25rem;margin-bottom:.85rem;display:flex;align-items:center;gap:.75rem;font-size:.82rem;color:var(--muted)">
+        <i class="fa-solid fa-image" style="font-size:1.25rem"></i> No custom logo set — the default shield icon is shown.
+      </div>
       {% endif %}
+
       <input type="file" name="app_logo" id="id_app_logo" class="form-control"
              accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp">
       <div class="form-hint">Displayed in the sidebar next to "ArmGuard". Square PNG recommended, at least 80×80 px. Leave blank to keep the current logo. If no logo is set, a default shield icon is shown.</div>
