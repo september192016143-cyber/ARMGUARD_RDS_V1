@@ -46,7 +46,7 @@
       </td>
       <td>
         {% if t.pistol %}<span class="badge badge-gray" style="margin-right:.2rem"><i class="fa-solid fa-circle-dot"></i> {{ t.pistol.model|default:"Pistol" }}</span>{% endif %}
-        {% if t.rifle  %}<span class="badge badge-gray"><i class="fa-solid fa-staff-snake"></i> {{ t.rifle.model|default:"Rifle" }}</span>{% endif %}
+        {% if t.rifle  %}<span class="badge badge-gray"><i class="fa-solid fa-crosshairs"></i> {{ t.rifle.model|default:"Rifle" }}</span>{% endif %}
         {% if not t.pistol and not t.rifle %}
           <span class="text-muted">Accessories</span>
           <div style="margin-top:2px">
