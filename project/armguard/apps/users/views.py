@@ -719,6 +719,10 @@ class SystemSettingsView(LoginRequiredMixin, View):
             if obj.app_logo:
                 obj.app_logo.delete(save=False)
             obj.app_logo = request.FILES['app_logo']
+        # Branding — icon selection (validate: empty or "fa-XXX fa-YYY" pattern)
+        import re as _re
+        raw_icon = request.POST.get('app_icon', '').strip()
+        obj.app_icon = raw_icon if _re.fullmatch(r'fa-[a-z]+ fa-[a-z][a-z0-9-]*', raw_icon) else ''
         obj.save()
         messages.success(request, 'System settings saved.')
         return redirect('system-settings')

@@ -60,6 +60,30 @@
              accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp">
       <div class="form-hint">Displayed in the sidebar next to "ArmGuard". Square PNG recommended, at least 80×80 px. Leave blank to keep the current logo. If no logo is set, a default shield icon is shown.</div>
     </div>
+
+    <!-- ── Icon picker (used when no image logo is set) ───────────────────── -->
+    <div class="form-group" style="border-top:1px solid var(--border,#2d3347);padding-top:1rem;margin-top:.25rem">
+      <label class="form-label">Or choose a built-in icon <span style="font-size:.75rem;font-weight:400;color:var(--muted)">(used when no image is uploaded)</span></label>
+
+      <!-- hidden input carries the selected FA class to the server -->
+      <input type="hidden" name="app_icon" id="id_app_icon" value="{{ s.app_icon }}">
+
+      <!-- search -->
+      <input type="text" id="icon-search" class="form-control"
+             placeholder="&#xf002;  Search icons…"
+             style="margin-bottom:.65rem;font-family:inherit"
+             autocomplete="off">
+
+      <!-- icon grid — rendered by settings.js -->
+      <div id="icon-grid"
+           style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:.4rem;max-height:264px;overflow-y:auto;padding:2px"></div>
+
+      <!-- currently selected label -->
+      <div id="icon-selected-label" style="margin-top:.5rem;font-size:.78rem;color:var(--muted)">
+        {% if s.app_icon %}Selected: <code style="color:var(--primary,#f59e0b)">{{ s.app_icon }}</code>{% else %}No icon selected — default shield will be shown.{% endif %}
+      </div>
+      <div class="form-hint">Click any icon to select it. Click the selected icon again to deselect. If you upload an image logo above, it takes priority over this icon.</div>
+    </div>
   </div>
 
   <!-- ── Unit Info ──────────────────────────────────────────────────────── -->
@@ -310,5 +334,52 @@
 
 {% block extra_js %}
 {% load static %}
+<script type="application/json" id="icon-picker-data">[
+  {"cls":"fa-solid fa-shield-halved",      "label":"Shield Half"},
+  {"cls":"fa-solid fa-shield",             "label":"Shield"},
+  {"cls":"fa-solid fa-shield-heart",       "label":"Shield Heart"},
+  {"cls":"fa-solid fa-shield-virus",       "label":"Shield Virus"},
+  {"cls":"fa-solid fa-user-shield",        "label":"User Shield"},
+  {"cls":"fa-solid fa-building-shield",    "label":"Building Shield"},
+  {"cls":"fa-solid fa-gun",                "label":"Gun"},
+  {"cls":"fa-solid fa-crosshairs",         "label":"Crosshairs"},
+  {"cls":"fa-solid fa-bullseye",           "label":"Bullseye"},
+  {"cls":"fa-solid fa-bomb",               "label":"Bomb"},
+  {"cls":"fa-solid fa-person-military-rifle",   "label":"Military Rifle"},
+  {"cls":"fa-solid fa-person-military-pointing","label":"Military Pointing"},
+  {"cls":"fa-solid fa-lock",               "label":"Lock"},
+  {"cls":"fa-solid fa-lock-open",          "label":"Lock Open"},
+  {"cls":"fa-solid fa-key",                "label":"Key"},
+  {"cls":"fa-solid fa-fingerprint",        "label":"Fingerprint"},
+  {"cls":"fa-solid fa-id-badge",           "label":"ID Badge"},
+  {"cls":"fa-solid fa-id-card",            "label":"ID Card"},
+  {"cls":"fa-solid fa-warehouse",          "label":"Warehouse"},
+  {"cls":"fa-solid fa-vault",              "label":"Vault"},
+  {"cls":"fa-solid fa-box-archive",        "label":"Box Archive"},
+  {"cls":"fa-solid fa-boxes-stacked",      "label":"Boxes Stacked"},
+  {"cls":"fa-solid fa-star",               "label":"Star"},
+  {"cls":"fa-solid fa-medal",              "label":"Medal"},
+  {"cls":"fa-solid fa-award",              "label":"Award"},
+  {"cls":"fa-solid fa-certificate",        "label":"Certificate"},
+  {"cls":"fa-solid fa-gavel",              "label":"Gavel"},
+  {"cls":"fa-solid fa-flag",               "label":"Flag"},
+  {"cls":"fa-solid fa-anchor",             "label":"Anchor"},
+  {"cls":"fa-solid fa-bolt",               "label":"Bolt"},
+  {"cls":"fa-solid fa-fire",               "label":"Fire"},
+  {"cls":"fa-solid fa-globe",              "label":"Globe"},
+  {"cls":"fa-solid fa-building",           "label":"Building"},
+  {"cls":"fa-solid fa-city",               "label":"City"},
+  {"cls":"fa-solid fa-chess-knight",       "label":"Chess Knight"},
+  {"cls":"fa-solid fa-user-secret",        "label":"Agent"},
+  {"cls":"fa-solid fa-eye",                "label":"Eye"},
+  {"cls":"fa-solid fa-skull-crossbones",   "label":"Skull & Bones"},
+  {"cls":"fa-solid fa-biohazard",          "label":"Biohazard"},
+  {"cls":"fa-solid fa-radiation",          "label":"Radiation"},
+  {"cls":"fa-solid fa-helicopter",         "label":"Helicopter"},
+  {"cls":"fa-solid fa-plane",              "label":"Plane"},
+  {"cls":"fa-solid fa-tower-observation",  "label":"Watchtower"},
+  {"cls":"fa-solid fa-map-location-dot",   "label":"Map Location"},
+  {"cls":"fa-solid fa-satellite",          "label":"Satellite"}
+]</script>
 <script src="{% static 'js/settings.js' %}"></script>
 {% endblock %}

@@ -39,6 +39,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
     <div class="logo">
       {% if site_settings and site_settings.app_logo %}
         <img src="{{ site_settings.app_logo.url }}" alt="Logo" style="width:80px;height:80px;object-fit:contain;border-radius:10px">
+      {% elif site_settings and site_settings.app_icon %}
+        <i class="{{ site_settings.app_icon }}" style="font-size:2.5rem;color:var(--primary,#4f8ef7)"></i>
       {% else %}
         <i class="fa-solid fa-shield-halved" style="font-size:2.5rem;color:var(--primary,#4f8ef7)"></i>
       {% endif %}
