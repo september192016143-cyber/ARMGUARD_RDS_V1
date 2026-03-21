@@ -285,12 +285,7 @@ class SystemSettings(models.Model):
         null=True,
         help_text='Custom logo displayed in the sidebar. Recommended: square PNG, at least 80×80 px.',
     )
-    app_icon = models.CharField(
-        max_length=100,
-        blank=True,
-        default='',
-        help_text='Font Awesome icon class (e.g. "fa-solid fa-shield-halved"). Used in the sidebar when no logo image is set.',
-    )
+
 
     # ── Security & Authentication policy ─────────────────────────────────────
     mfa_required = models.BooleanField(
