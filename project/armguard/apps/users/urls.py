@@ -7,6 +7,7 @@ urlpatterns = [
     path('<int:pk>/edit/', views.UserUpdateView.as_view(),        name='user-edit'),
     path('<int:pk>/delete/', views.UserDeleteView.as_view(),      name='user-delete'),
     path('<int:pk>/revoke-2fa/', views.UserRevoke2FAView.as_view(), name='user-revoke-2fa'),
+    path('<int:pk>/toggle-2fa/', views.UserToggle2FAView.as_view(), name='user-toggle-2fa'),
     path('settings/',      views.SystemSettingsView.as_view(),    name='system-settings'),
     path('storage/',       views.storage_status_json,             name='storage-status'),
 ]

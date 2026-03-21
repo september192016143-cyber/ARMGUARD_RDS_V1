@@ -392,6 +392,27 @@ class UserDeleteView(LoginRequiredMixin, UserPassesTestMixin, View):
         return redirect('user-list')
 
 
+class UserToggle2FAView(LoginRequiredMixin, View):
+    """Toggle the per-user require_2fa flag. Requires edit permission."""
+
+    def post(self, request, pk, *args, **kwargs):
+        req_profile = getattr(request.user, 'profile', None)
+        if not request.user.is_superuser and not (req_profile and req_profile.perm_users_manage):
+            messages.error(request, 'You do not have permission to change 2FA settings.')
+            return redirect('user-list')
+        from django.shortcuts import get_object_or_404
+        target = get_object_or_404(User, pk=pk)
+        if target.is_superuser:
+            messages.error(request, 'Cannot change 2FA requirements for a superuser account.')
+            return redirect('user-list')
+        target_profile, _ = UserProfile.objects.get_or_create(user=target)
+        target_profile.require_2fa = not target_profile.require_2fa
+        target_profile.save(update_fields=['require_2fa'])
+        state = 'required' if target_profile.require_2fa else 'exempted'
+        messages.success(request, f"2FA is now {state} for \u2018{target.username}\u2019.")
+        return redirect('user-list')
+
+
 class UserRevoke2FAView(LoginRequiredMixin, View):
     """Superuser-only: delete all confirmed TOTP devices for a target user."""
 

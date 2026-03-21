@@ -54,21 +54,35 @@
               {% endif %}
             {% endwith %}
           {% endif %}
-        </td>        <td>
+        </td>        <td style="white-space:nowrap">
           {% if u.pk in enrolled_2fa_ids %}
-            <span title="2FA enrolled" style="color:#22c55e;font-size:.8rem;white-space:nowrap">
+            <span title="2FA enrolled" style="color:#22c55e;font-size:.8rem">
               <i class="fa-solid fa-shield-check"></i> On
             </span>
           {% else %}
             {% if u.is_superuser or u.profile.require_2fa %}
-              <span title="2FA required but not enrolled" style="color:#f59e0b;font-size:.8rem;white-space:nowrap">
-                <i class="fa-solid fa-shield-exclamation"></i> None
+              <span title="2FA required but not enrolled" style="color:#f59e0b;font-size:.8rem">
+                <i class="fa-solid fa-shield-exclamation"></i> Required
               </span>
             {% else %}
-              <span title="2FA exempt" style="color:var(--muted);font-size:.8rem;white-space:nowrap">
+              <span title="2FA exempt" style="color:var(--muted);font-size:.8rem">
                 <i class="fa-solid fa-shield-slash"></i> Exempt
               </span>
             {% endif %}
+          {% endif %}
+          {% if can_edit and not u.is_superuser %}
+          <form method="post" action="{% url 'user-toggle-2fa' u.pk %}" style="display:inline;margin-left:.35rem">
+            {% csrf_token %}
+            {% if u.profile.require_2fa %}
+              <button type="submit" class="btn btn-secondary btn-sm" style="padding:.15rem .45rem;font-size:.72rem" title="Click to exempt this user from 2FA">
+                <i class="fa-solid fa-toggle-on" style="color:#22c55e"></i> Exempt
+              </button>
+            {% else %}
+              <button type="submit" class="btn btn-secondary btn-sm" style="padding:.15rem .45rem;font-size:.72rem" title="Click to require 2FA for this user">
+                <i class="fa-solid fa-toggle-off" style="color:var(--muted)"></i> Require
+              </button>
+            {% endif %}
+          </form>
           {% endif %}
         </td>        <td>{% if u.is_staff %}<i class="fa-solid fa-check" style="color:var(--success)"></i>{% else %}—{% endif %}</td>
         <td>{% if u.is_active %}<i class="fa-solid fa-check" style="color:var(--success)"></i>{% else %}<i class="fa-solid fa-xmark" style="color:var(--danger)"></i>{% endif %}</td>
