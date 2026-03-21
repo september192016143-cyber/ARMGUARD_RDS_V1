@@ -15,6 +15,13 @@ Django built-ins:
 """
 from __future__ import annotations
 
+# All Administrator sub-type role strings (including legacy 'Administrator' for backward compat)
+_ADMIN_ROLES = frozenset({
+    'Administrator',
+    'Administrator \u2014 View Only',
+    'Administrator \u2014 Edit & Add',
+})
+
 
 def _get_role(user) -> str:
     try:
@@ -27,7 +34,7 @@ def _perm(user, flag: str, *, armorer_default: bool = False) -> bool:
     """
     Generic per-module flag reader.
     - Superuser / System Administrator → always True
-    - Administrator → read UserProfile.<flag>
+    - Administrator (any sub-type) → read UserProfile.<flag>
     - Armorer → armorer_default
     - Other / no profile → False
     """
@@ -38,7 +45,7 @@ def _perm(user, flag: str, *, armorer_default: bool = False) -> bool:
     role = _get_role(user)
     if role == 'System Administrator':
         return True
-    if role == 'Administrator':
+    if role in _ADMIN_ROLES:
         try:
             return bool(getattr(user.profile, flag))
         except AttributeError:
@@ -112,12 +119,12 @@ def can_manage_users(user) -> bool:
 
 # ── Convenience / backward-compat helpers ────────────────────────────────────
 def is_admin(user) -> bool:
-    """True for System Administrators, Administrators, and superusers."""
+    """True for System Administrators, all Administrator sub-types, and superusers."""
     if not user.is_authenticated:
         return False
     if user.is_superuser:
         return True
-    return _get_role(user) in ('System Administrator', 'Administrator')
+    return _get_role(user) in (_ADMIN_ROLES | {'System Administrator'})
 
 # Legacy aliases kept so any template tags or third-party code still resolve.
 can_add    = can_add_inventory

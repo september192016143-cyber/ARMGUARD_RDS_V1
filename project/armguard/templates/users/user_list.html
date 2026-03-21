@@ -44,7 +44,7 @@
             {% with role=u.profile.role %}
               {% if role == 'System Administrator' %}
                 <span class="badge badge-red">{{ role }}</span>
-              {% elif role == 'Administrator' %}
+              {% elif role == 'Administrator — View Only' or role == 'Administrator — Edit & Add' or role == 'Administrator' %}
                 <span class="badge badge-orange">{{ role }}</span>
               {% elif role == 'Armorer' %}
                 <span class="badge badge-blue">{{ role }}</span>

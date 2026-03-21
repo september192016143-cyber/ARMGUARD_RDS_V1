@@ -17,7 +17,8 @@ from django.dispatch import receiver
 
 ROLE_CHOICES = [
     ('System Administrator', 'System Administrator'),
-    ('Administrator', 'Administrator'),
+    ('Administrator — View Only', 'Administrator — View Only'),
+    ('Administrator — Edit & Add', 'Administrator — Edit & Add'),
     ('Armorer', 'Armorer'),
 ]
 
@@ -261,14 +262,14 @@ _GROUP_ROLE_MAP = {
              perm_reports=_T, perm_print=_T, perm_users_manage=_F),
     ),
     'Administrator \u2014 View Only': (
-        'Administrator',
+        'Administrator — View Only',
         dict(perm_inventory_view=_T, perm_inventory_add=_F, perm_inventory_edit=_F, perm_inventory_delete=_F,
              perm_personnel_view=_T, perm_personnel_add=_F, perm_personnel_edit=_F, perm_personnel_delete=_F,
              perm_transaction_view=_T, perm_transaction_create=_F,
              perm_reports=_T, perm_print=_T, perm_users_manage=_F),
     ),
-    'Administrator \u2014 Edit & Add': (
-        'Administrator',
+    'Administrator — Edit & Add': (
+        'Administrator — Edit & Add',
         dict(perm_inventory_view=_T, perm_inventory_add=_T, perm_inventory_edit=_T, perm_inventory_delete=_F,
              perm_personnel_view=_T, perm_personnel_add=_T, perm_personnel_edit=_T, perm_personnel_delete=_F,
              perm_transaction_view=_T, perm_transaction_create=_T,

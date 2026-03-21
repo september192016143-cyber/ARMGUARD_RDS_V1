@@ -71,8 +71,10 @@
         {% if form.role.errors %}<div class="form-error">{{ form.role.errors|join:", " }}</div>{% endif %}
         <div class="form-hint">
           <strong>System Administrator</strong> — full admin access. &nbsp;
-          <strong>Administrator</strong> — configurable per-module access (set flags below). &nbsp;
+          <strong>Administrator &mdash; View Only</strong> — view all records, no edits. &nbsp;
+          <strong>Administrator &mdash; Edit &amp; Add</strong> — create and edit records. &nbsp;
           <strong>Armorer</strong> — view inventory &amp; personnel, create transactions, print only.
+          Flags below are set automatically when a sub-type is selected and can be overridden.
         </div>
       </div>
 

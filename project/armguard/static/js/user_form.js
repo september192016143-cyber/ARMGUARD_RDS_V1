@@ -22,12 +22,45 @@
   // ── Administrator permission flags — show/hidden based on role ──────────────
   var roleSelect   = document.getElementById('id_role');
   var adminPerms   = document.getElementById('admin-perm-section');
+
+  var ADMIN_ROLES = ['Administrator', 'Administrator \u2014 View Only', 'Administrator \u2014 Edit & Add'];
+
+  // Default flag sets matching _GROUP_ROLE_MAP
+  var ROLE_DEFAULTS = {
+    'Administrator \u2014 View Only': {
+      id_perm_inventory_view: true,  id_perm_inventory_add: false,
+      id_perm_inventory_edit: false, id_perm_inventory_delete: false,
+      id_perm_personnel_view: true,  id_perm_personnel_add: false,
+      id_perm_personnel_edit: false, id_perm_personnel_delete: false,
+      id_perm_transaction_view: true, id_perm_transaction_create: false,
+      id_perm_reports: true, id_perm_print: true, id_perm_users_manage: false,
+    },
+    'Administrator \u2014 Edit & Add': {
+      id_perm_inventory_view: true,  id_perm_inventory_add: true,
+      id_perm_inventory_edit: true,  id_perm_inventory_delete: false,
+      id_perm_personnel_view: true,  id_perm_personnel_add: true,
+      id_perm_personnel_edit: true,  id_perm_personnel_delete: false,
+      id_perm_transaction_view: true, id_perm_transaction_create: true,
+      id_perm_reports: true, id_perm_print: true, id_perm_users_manage: true,
+    },
+  };
+
   if (roleSelect && adminPerms) {
     function toggleAdminPerms() {
-      adminPerms.style.display = roleSelect.value === 'Administrator' ? '' : 'none';
+      adminPerms.style.display = ADMIN_ROLES.indexOf(roleSelect.value) !== -1 ? '' : 'none';
     }
     toggleAdminPerms();  // run on page load
-    roleSelect.addEventListener('change', toggleAdminPerms);
+    roleSelect.addEventListener('change', function () {
+      toggleAdminPerms();
+      // Auto-apply flag defaults when switching to a specific sub-type
+      var defaults = ROLE_DEFAULTS[roleSelect.value];
+      if (defaults) {
+        Object.keys(defaults).forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.checked = defaults[id];
+        });
+      }
+    });
   }
 
   // ── Personnel auto-fill ─────────────────────────────────────────────────────
