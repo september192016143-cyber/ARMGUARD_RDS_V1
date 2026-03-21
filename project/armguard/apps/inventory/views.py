@@ -50,11 +50,14 @@ class _InventorySaveMixin(_InventoryPermMixin):
 
 
 # --- Pistol ------------------------------------------------------------------
-class PistolListView(LoginRequiredMixin, ListView):
+class PistolListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Pistol
     template_name = 'inventory/pistol_list.html'
     context_object_name = 'pistols'
     paginate_by = 10
+
+    def test_func(self):
+        return can_view_inventory(self.request.user)
 
     def get_queryset(self):
         qs = Pistol.objects.select_related('item_issued_to', 'item_assigned_to').order_by('model', 'serial_number')
@@ -132,11 +135,14 @@ class PistolDeleteView(_InventoryPermMixin, DeleteView):
 
 
 # --- Rifle -------------------------------------------------------------------
-class RifleListView(LoginRequiredMixin, ListView):
+class RifleListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Rifle
     template_name = 'inventory/rifle_list.html'
     context_object_name = 'rifles'
     paginate_by = 10
+
+    def test_func(self):
+        return can_view_inventory(self.request.user)
 
     def get_queryset(self):
         qs = Rifle.objects.select_related('item_issued_to', 'item_assigned_to').order_by('model', 'serial_number')
@@ -214,11 +220,14 @@ class RifleDeleteView(_InventoryPermMixin, DeleteView):
 
 
 # --- Magazine ----------------------------------------------------------------
-class MagazineListView(LoginRequiredMixin, ListView):
+class MagazineListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Magazine
     template_name = 'inventory/magazine_list.html'
     context_object_name = 'magazines'
     paginate_by = 25
+
+    def test_func(self):
+        return can_view_inventory(self.request.user)
 
     def get_queryset(self):
         qs = Magazine.objects.order_by('weapon_type', 'type')
@@ -327,11 +336,14 @@ def _ammo_issued_subqueries():
     return pistol_sub, rifle_sub, pistol_par, rifle_par, pistol_tr, rifle_tr
 
 
-class AmmunitionListView(LoginRequiredMixin, ListView):
+class AmmunitionListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Ammunition
     template_name = 'inventory/ammunition_list.html'
     context_object_name = 'ammunition'
     paginate_by = 25
+
+    def test_func(self):
+        return can_view_inventory(self.request.user)
 
     def get_queryset(self):
         pistol_sub, rifle_sub, pistol_par, rifle_par, pistol_tr, rifle_tr = _ammo_issued_subqueries()
@@ -452,11 +464,14 @@ def ammunition_stock_json(request):
     return JsonResponse({'items': list(groups.values())})
 
 
-class AmmunitionLotsByTypeView(LoginRequiredMixin, ListView):
+class AmmunitionLotsByTypeView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Ammunition
     template_name = 'inventory/ammunition_lots_by_type.html'
     context_object_name = 'lots'
     paginate_by = 25
+
+    def test_func(self):
+        return can_view_inventory(self.request.user)
 
     def get_queryset(self):
         pistol_sub, rifle_sub, pistol_par, rifle_par, pistol_tr, rifle_tr = _ammo_issued_subqueries()
@@ -557,11 +572,14 @@ class AmmunitionDeleteView(_InventoryPermMixin, DeleteView):
 
 
 # --- Accessory ---------------------------------------------------------------
-class AccessoryListView(LoginRequiredMixin, ListView):
+class AccessoryListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Accessory
     template_name = 'inventory/accessory_list.html'
     context_object_name = 'accessories'
     paginate_by = 25
+
+    def test_func(self):
+        return can_view_inventory(self.request.user)
 
     def get_queryset(self):
         qs = Accessory.objects.order_by('type')

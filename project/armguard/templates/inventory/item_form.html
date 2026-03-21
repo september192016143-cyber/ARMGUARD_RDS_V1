@@ -395,5 +395,4 @@
 <script type="application/json" id="item-form-config">{"itemType": "{{ item_type }}", "modelFieldId": "{{ form.model.id_for_label }}", "factoryQrFieldId": "{% if item_type == 'rifle' %}{{ form.factory_qr.id_for_label }}{% endif %}", "serialFieldId": "{{ form.serial_number.id_for_label }}", "descFieldId": "{{ form.description.id_for_label }}", "serialImageFieldId": "{{ form.serial_image.id_for_label }}", "tagPreviewUrl": "{% if item_type == 'pistol' or item_type == 'rifle' %}{% url 'item-tag-preview' %}{% endif %}"}</script>
 <script src="{% static 'js/item_form.js' %}"></script>
 {% endif %}
-{% endif %}
 {% endblock %}
