@@ -472,7 +472,9 @@ def print_transactions(request):
 
     # ── Armorer: use linked Personnel record; fall back to User profile ──────
     from armguard.apps.personnel.models import Personnel as _Personnel
-    _armorer_branch      = getattr(settings, 'ARMGUARD_ARMORER_BRANCH', 'PAF')
+    from armguard.apps.users.models import SystemSettings as _SysSettings
+    _sys = _SysSettings.get()
+    _armorer_branch      = _sys.armorer_branch or 'PAF'
     _armorer_designation = 'Armorer'
     try:
         _p = _Personnel.objects.get(user=request.user)
@@ -507,10 +509,10 @@ def print_transactions(request):
         'armorer_rank':              _armorer_rank,
         'armorer_branch':            _armorer_branch,
         'armorer_designation':       _armorer_designation,
-        'commander_name':            getattr(settings, 'ARMGUARD_COMMANDER_NAME', ''),
-        'commander_rank':            getattr(settings, 'ARMGUARD_COMMANDER_RANK', ''),
-        'commander_branch':          getattr(settings, 'ARMGUARD_COMMANDER_BRANCH', ''),
-        'commander_designation':     getattr(settings, 'ARMGUARD_COMMANDER_DESIGNATION', 'Squadron Commander'),
+        'commander_name':            _sys.commander_name,
+        'commander_rank':            _sys.commander_rank,
+        'commander_branch':          _sys.commander_branch,
+        'commander_designation':     _sys.commander_designation or 'Squadron Commander',
     }
     return render(request, 'print/print_transactions_bare.html' if request.GET.get('bare') else 'print/print_transactions.html', context)
 
@@ -1019,13 +1021,15 @@ def download_daily_report_pdf(request):
             _armorer_designation = request.user.profile.role or ('System Administrator' if request.user.is_superuser else 'Armorer')
         except Exception:
             _armorer_designation = 'System Administrator' if request.user.is_superuser else 'Armorer'
-    _commander_name = getattr(settings, 'ARMGUARD_COMMANDER_NAME', '')
-    _commander_rank = getattr(settings, 'ARMGUARD_COMMANDER_RANK', '')
+    from armguard.apps.users.models import SystemSettings as _SysSettings2
+    _sys2 = _SysSettings2.get()
+    _commander_name = _sys2.commander_name
+    _commander_rank = _sys2.commander_rank
 
     _text((60, y + 20),  f'{_armorer_rank} {_armorer_name}'.strip() or 'ARMORER',       size=9, bold=True)
     _text((60, y + 32),  _armorer_designation,                                            size=8)
     _text((350, y + 20), f'{_commander_rank} {_commander_name}'.strip() or 'COMMANDER',  size=9, bold=True)
-    _text((350, y + 32), getattr(settings, 'ARMGUARD_COMMANDER_DESIGNATION', 'Commander'), size=8)
+    _text((350, y + 32), _sys2.commander_designation or 'Commander',                      size=8)
 
     pdf_bytes = doc.tobytes(deflate=True)
     doc.close()

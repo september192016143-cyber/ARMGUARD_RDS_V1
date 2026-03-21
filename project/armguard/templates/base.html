@@ -119,6 +119,9 @@
     <a href="{% url 'admin:index' %}" class="nav-item" target="_blank" title="Django Admin">
       <i class="fa-solid fa-screwdriver-wrench nav-icon"></i><span class="nav-label">Django Admin</span>
     </a>
+    <a href="{% url 'system-settings' %}" class="nav-item {% if request.resolver_match.url_name == 'system-settings' %}active{% endif %}" title="Settings">
+      <i class="fa-solid fa-gear nav-icon"></i><span class="nav-label">Settings</span>
+    </a>
     {% endif %}
     {% endif %}
   </nav>

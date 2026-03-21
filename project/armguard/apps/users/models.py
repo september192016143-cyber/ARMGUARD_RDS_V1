@@ -245,6 +245,51 @@ class PasswordHistory(models.Model):
         return f"{self.user.username} password set at {self.created_at:%Y-%m-%d %H:%M:%S}"
 
 
+# ── System Settings (singleton) ───────────────────────────────────────────────
+
+class SystemSettings(models.Model):
+    """
+    Singleton model for site-wide configurable settings editable by superusers
+    through the web UI — no .env file edit or server restart required.
+
+    Always access via SystemSettings.get() which auto-seeds from settings.py defaults.
+    """
+    # Report signature block — Commander
+    commander_name        = models.CharField(max_length=100, blank=True, default='')
+    commander_rank        = models.CharField(max_length=50,  blank=True, default='')
+    commander_branch      = models.CharField(max_length=20,  blank=True, default='PAF')
+    commander_designation = models.CharField(max_length=100, blank=True, default='Squadron Commander')
+    # Armorer branch label shown on reports
+    armorer_branch        = models.CharField(max_length=20,  blank=True, default='PAF')
+    # Inventory limits
+    pistol_magazine_max_qty = models.PositiveSmallIntegerField(default=4)
+    rifle_magazine_max_qty  = models.PositiveSmallIntegerField(null=True, blank=True,
+                                  help_text='Leave blank for no limit.')
+    # Unit display name (used in report headers etc.)
+    unit_name = models.CharField(max_length=150, blank=True, default='950th CEWW')
+
+    class Meta:
+        verbose_name        = "System Settings"
+        verbose_name_plural = "System Settings"
+
+    def __str__(self):
+        return "System Settings"
+
+    @classmethod
+    def get(cls):
+        """Return the singleton instance, seeding defaults from settings.py on first use."""
+        obj, _ = cls.objects.get_or_create(pk=1, defaults={
+            'commander_name':          getattr(settings, 'ARMGUARD_COMMANDER_NAME',        ''),
+            'commander_rank':          getattr(settings, 'ARMGUARD_COMMANDER_RANK',        ''),
+            'commander_branch':        getattr(settings, 'ARMGUARD_COMMANDER_BRANCH',      'PAF'),
+            'commander_designation':   getattr(settings, 'ARMGUARD_COMMANDER_DESIGNATION', 'Squadron Commander'),
+            'armorer_branch':          getattr(settings, 'ARMGUARD_ARMORER_BRANCH',        'PAF'),
+            'pistol_magazine_max_qty': getattr(settings, 'ARMGUARD_PISTOL_MAGAZINE_MAX_QTY', 4) or 4,
+            'rifle_magazine_max_qty':  getattr(settings, 'ARMGUARD_RIFLE_MAGAZINE_MAX_QTY', None),
+        })
+        return obj
+
+
 # ── Group → UserProfile sync ─────────────────────────────────────────────────
 # Maps ArmGuard role Group names to (role, per-module perm flags dict).
 # System Administrator is set via is_superuser — no Group needed.

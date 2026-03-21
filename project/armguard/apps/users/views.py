@@ -593,6 +593,46 @@ def _per_record_storage(media_root):
     }
 
 
+# ── System Settings (superuser-only) ──────────────────────────────────────────
+
+class SystemSettingsView(LoginRequiredMixin, View):
+    template_name = 'users/settings.html'
+
+    def _guard(self, request):
+        if not request.user.is_superuser:
+            messages.error(request, 'Access denied.')
+            return redirect('dashboard')
+
+    def get(self, request):
+        resp = self._guard(request)
+        if resp:
+            return resp
+        from .models import SystemSettings
+        return render(request, self.template_name, {'s': SystemSettings.get()})
+
+    def post(self, request):
+        resp = self._guard(request)
+        if resp:
+            return resp
+        from .models import SystemSettings
+        obj = SystemSettings.get()
+        obj.commander_name        = request.POST.get('commander_name', '').strip()
+        obj.commander_rank        = request.POST.get('commander_rank', '').strip()
+        obj.commander_branch      = request.POST.get('commander_branch', 'PAF').strip()
+        obj.commander_designation = request.POST.get('commander_designation', 'Squadron Commander').strip()
+        obj.armorer_branch        = request.POST.get('armorer_branch', 'PAF').strip()
+        obj.unit_name             = request.POST.get('unit_name', '').strip()
+        try:
+            obj.pistol_magazine_max_qty = int(request.POST.get('pistol_magazine_max_qty', 4))
+        except (ValueError, TypeError):
+            obj.pistol_magazine_max_qty = 4
+        rifle_val = request.POST.get('rifle_magazine_max_qty', '').strip()
+        obj.rifle_magazine_max_qty = int(rifle_val) if rifle_val.isdigit() else None
+        obj.save()
+        messages.success(request, 'System settings saved.')
+        return redirect('system-settings')
+
+
 @login_required
 def storage_status_json(request):
     if not _is_admin(request.user):
