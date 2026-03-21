@@ -161,6 +161,7 @@
     </label>
 
     <div class="toolbar-right">
+      {% if can_print %}
       <button id="btn-print-selected" class="btn btn-primary btn-sm" disabled>
         <i class="fas fa-print"></i> Print Selected
       </button>
@@ -174,6 +175,7 @@
               title="Regenerate every card — use when photos changed">
         <i class="fas fa-redo"></i> Regenerate All
       </button>
+      {% endif %}
     </div>
   </div>
 </div>
@@ -231,6 +233,7 @@
         </div>
 
         <div class="id-card-actions">
+          {% if can_print %}
           <button class="btn btn-secondary"
                   title="Regenerate Card"
                   data-action="regen"
@@ -251,6 +254,7 @@
           <button id="print-card-disabled-btn" class="btn btn-primary" disabled title="Generate card first">
             <i class="fas fa-print"></i>
           </button>
+          {% endif %}
           {% endif %}
         </div>
       </div>

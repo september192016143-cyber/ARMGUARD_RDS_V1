@@ -64,6 +64,7 @@
 
       <td>
         <div class="flex gap-2">
+          {% if can_print %}
           <a href="{% url 'print_handler:print_transaction_pdf' t.transaction_id %}"
              class="btn btn-secondary btn-sm btn-icon" title="Print TR"
              style="color:var(--primary)">
@@ -73,6 +74,7 @@
              class="btn btn-secondary btn-sm btn-icon" title="Download PDF" target="_blank">
             <i class="fa-solid fa-file-pdf"></i>
           </a>
+          {% endif %}
           <a href="{% url 'transaction-detail' t.transaction_id %}"
              class="btn btn-secondary btn-sm btn-icon" title="View transaction">
             <i class="fa-solid fa-eye"></i>

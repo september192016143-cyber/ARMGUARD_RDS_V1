@@ -7,6 +7,7 @@
 <div class="container">
     <div class="page-header no-print">
         <h1 class="page-title">Transaction Form</h1>
+        {% if can_print %}
         <button id="print-transaction-btn" data-action="print" class="btn btn-primary">🖨️ Print</button>
         {% if transaction and transaction.issuance_type %}
             {% if transaction.issuance_type|slice:":2" == "TR" %}
@@ -14,6 +15,7 @@
                 📄 Open TR PDF (Legal)
             </a>
             {% endif %}
+        {% endif %}
         {% endif %}
     </div>
 

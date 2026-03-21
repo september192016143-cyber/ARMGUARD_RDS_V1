@@ -116,12 +116,14 @@
   </div>
 
   <div class="toolbar">
+    {% if can_print %}
     <button id="print-selected-btn" class="btn btn-primary btn-sm" data-action="print-selected">
       <i class="fas fa-print"></i> Print Selected
     </button>
     <button id="print-all-btn" class="btn btn-secondary btn-sm" data-action="print-all">
       <i class="fas fa-print"></i> Print All
     </button>
+    {% endif %}
     <select id="stackCount" class="btn btn-secondary btn-sm"
             style="cursor:pointer; font-weight:600; padding:.35rem .6rem; color:var(--text); background:var(--card);" title="Copies per item">
       <option value="1" style="background:#1e293b; color:#e2e8f0;">Stacks 1×</option>
@@ -129,6 +131,7 @@
       <option value="3" style="background:#1e293b; color:#e2e8f0;">Stacks 3×</option>
     </select>
     <div class="toolbar-right">
+      {% if can_print %}
       <button id="gen-missing-btn" class="btn btn-sm btn-amber" data-action="gen-missing">
         <i class="fas fa-magic regen-icon"></i>
         <i class="fas fa-spinner fa-spin regen-spinner"></i> Generate Missing
@@ -137,6 +140,7 @@
         <i class="fas fa-sync-alt regen-icon"></i>
         <i class="fas fa-spinner fa-spin regen-spinner"></i> Regenerate All
       </button>
+      {% endif %}
     </div>
   </div>
 
@@ -178,6 +182,7 @@
         <span class="tag-sub">{{ entry.item.item_status }}</span>
       </div>
       <div class="tag-actions">
+        {% if can_print %}
         <button class="btn btn-secondary btn-sm" data-item-action="regen" data-item-id="{{ entry.item.id }}" title="Regenerate">
           <i class="fas fa-sync-alt regen-icon"></i>
           <i class="fas fa-spinner fa-spin regen-spinner"></i> Regen
@@ -192,6 +197,7 @@
           <i class="fas fa-trash regen-icon"></i>
           <i class="fas fa-spinner fa-spin regen-spinner"></i>
         </button>
+        {% endif %}
         {% endif %}
         {% endif %}
       </div>
