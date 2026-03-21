@@ -238,6 +238,43 @@
       {% endif %}
     </div>
 
+    <!-- Two-Factor Authentication -->
+    <div class="card mb-2">
+      <div class="card-header"><span class="card-title"><i class="fa-solid fa-mobile-screen-button"></i> Two-Factor Authentication (2FA)</span></div>
+
+      {% if action == 'Edit' %}
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;margin-bottom:.9rem;font-size:.85rem;display:flex;align-items:center;gap:.75rem">
+        <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+        <span>
+          {% if edit_user.pk in enrolled_2fa_ids %}
+            <span style="color:#22c55e;font-weight:600"><i class="fa-solid fa-shield-check"></i> 2FA device enrolled</span> &mdash; this user has a TOTP authenticator app configured.
+          {% else %}
+            <span style="color:#f59e0b;font-weight:600"><i class="fa-solid fa-shield-exclamation"></i> No 2FA device enrolled</span> &mdash; this user has not yet set up an authenticator app.
+          {% endif %}
+        </span>
+        {% if edit_user.pk in enrolled_2fa_ids %}
+        <form method="post" action="{% url 'user-revoke-2fa' edit_user.pk %}" style="margin-left:auto" onsubmit="return confirm('Remove the 2FA device for {{ edit_user.username }}? They will need to re-enroll on next login.')">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary btn-sm" style="color:var(--danger)">
+            <i class="fa-solid fa-trash"></i> Revoke 2FA Device
+          </button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer">
+          {{ form.require_2fa }}
+          <span><strong>Require 2FA for this user</strong></span>
+        </label>
+        <div class="form-hint">
+          When checked, this user must complete a TOTP verification step after every login (subject to the site-wide 2FA setting).
+          Uncheck to exempt this specific account &mdash; useful for kiosk or service accounts that cannot use an authenticator app.
+        </div>
+      </div>
+    </div>
+
     <!-- Password -->
     <div class="card mb-2">
       <div class="card-header">

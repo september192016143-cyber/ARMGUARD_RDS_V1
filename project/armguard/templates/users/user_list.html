@@ -25,6 +25,7 @@
         <th>Full Name</th>
         <th>Email</th>
         <th>Role</th>
+        <th>2FA</th>
         <th>Staff</th>
         <th>Active</th>
         <th>Last Login</th>
@@ -53,8 +54,23 @@
               {% endif %}
             {% endwith %}
           {% endif %}
-        </td>
-        <td>{% if u.is_staff %}<i class="fa-solid fa-check" style="color:var(--success)"></i>{% else %}—{% endif %}</td>
+        </td>        <td>
+          {% if u.pk in enrolled_2fa_ids %}
+            <span title="2FA enrolled" style="color:#22c55e;font-size:.8rem;white-space:nowrap">
+              <i class="fa-solid fa-shield-check"></i> On
+            </span>
+          {% else %}
+            {% if u.is_superuser or u.profile.require_2fa %}
+              <span title="2FA required but not enrolled" style="color:#f59e0b;font-size:.8rem;white-space:nowrap">
+                <i class="fa-solid fa-shield-exclamation"></i> None
+              </span>
+            {% else %}
+              <span title="2FA exempt" style="color:var(--muted);font-size:.8rem;white-space:nowrap">
+                <i class="fa-solid fa-shield-slash"></i> Exempt
+              </span>
+            {% endif %}
+          {% endif %}
+        </td>        <td>{% if u.is_staff %}<i class="fa-solid fa-check" style="color:var(--success)"></i>{% else %}—{% endif %}</td>
         <td>{% if u.is_active %}<i class="fa-solid fa-check" style="color:var(--success)"></i>{% else %}<i class="fa-solid fa-xmark" style="color:var(--danger)"></i>{% endif %}</td>
         <td style="font-size:.8rem;color:var(--muted)">{{ u.last_login|date:"d M Y H:i"|default:"Never" }}</td>
         <td>
@@ -75,7 +91,7 @@
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">No users found.</td></tr>
+      <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:2rem">No users found.</td></tr>
       {% endfor %}
     </tbody>
   </table>

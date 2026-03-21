@@ -76,6 +76,7 @@ class UserCreateForm(forms.Form):
     perm_reports       = forms.BooleanField(required=False, label='Can view reports', initial=False)
     perm_print         = forms.BooleanField(required=False, label='Can access Print module (ID cards, item tags, PDFs)', initial=False)
     perm_users_manage  = forms.BooleanField(required=False, label='Can manage user accounts', initial=False)
+    require_2fa        = forms.BooleanField(required=False, label='Require 2FA for this user', initial=True)
     password1   = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), label='Password')
     password2   = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), label='Confirm password')
     linked_personnel = _PersonnelChoiceField(
@@ -128,6 +129,7 @@ class UserUpdateForm(forms.Form):
     perm_reports       = forms.BooleanField(required=False, label='Can view reports')
     perm_print         = forms.BooleanField(required=False, label='Can access Print module (ID cards, item tags, PDFs)')
     perm_users_manage  = forms.BooleanField(required=False, label='Can manage user accounts')
+    require_2fa        = forms.BooleanField(required=False, label='Require 2FA for this user')
     new_password1 = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), required=False,
                                     label='New password',
                                     help_text='Leave blank to keep current password.')
@@ -187,6 +189,13 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         ctx = super().get_context_data(**kwargs)
         ctx['can_add'] = _can_manage_users(self.request.user)
         ctx['can_edit'] = _can_manage_users(self.request.user)
+        try:
+            from django_otp.plugins.otp_totp.models import TOTPDevice
+            ctx['enrolled_2fa_ids'] = set(
+                TOTPDevice.objects.filter(confirmed=True).values_list('user_id', flat=True)
+            )
+        except Exception:
+            ctx['enrolled_2fa_ids'] = set()
         return ctx
 
 
@@ -233,6 +242,7 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
                 profile.perm_reports       = cd.get('perm_reports', False)
                 profile.perm_print         = cd.get('perm_print', False)
                 profile.perm_users_manage  = cd.get('perm_users_manage', False)
+            profile.require_2fa = cd.get('require_2fa', True)
             profile.save()
             # G16-EXT: Record initial password in history to prevent immediate reuse.
             PasswordHistory.objects.create(user=user, password_hash=user.password)
@@ -282,6 +292,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             'perm_reports':      getattr(profile, 'perm_reports', False),
             'perm_print':        getattr(profile, 'perm_print', False),
             'perm_users_manage': getattr(profile, 'perm_users_manage', False),
+            'require_2fa':       getattr(profile, 'require_2fa', True),
         }
         if data:
             return UserUpdateForm(data, initial=initial, current_role=current_role,
@@ -344,6 +355,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 profile.perm_reports       = cd.get('perm_reports', False)
                 profile.perm_print         = cd.get('perm_print', False)
                 profile.perm_users_manage  = cd.get('perm_users_manage', False)
+            profile.require_2fa = cd.get('require_2fa', True)
             profile.save()
             # Update personnel link: clear old link, set new one
             old_linked = getattr(self.object, 'personnel', None)
@@ -377,6 +389,27 @@ class UserDeleteView(LoginRequiredMixin, UserPassesTestMixin, View):
         username = user.username
         user.delete()
         messages.success(request, f"User '{username}' deleted.")
+        return redirect('user-list')
+
+
+class UserRevoke2FAView(LoginRequiredMixin, View):
+    """Superuser-only: delete all confirmed TOTP devices for a target user."""
+
+    def post(self, request, pk, *args, **kwargs):
+        if not request.user.is_superuser:
+            messages.error(request, 'Only superusers can revoke 2FA devices.')
+            return redirect('user-list')
+        from django.shortcuts import get_object_or_404
+        from django_otp.plugins.otp_totp.models import TOTPDevice
+        from django_otp.plugins.otp_static.models import StaticDevice
+        target = get_object_or_404(User, pk=pk)
+        deleted_totp, _ = TOTPDevice.objects.filter(user=target).delete()
+        deleted_static, _ = StaticDevice.objects.filter(user=target).delete()
+        total = deleted_totp + deleted_static
+        if total:
+            messages.success(request, f"2FA device(s) revoked for '{target.username}'. They will be prompted to re-enroll on next login.")
+        else:
+            messages.info(request, f"No 2FA devices were enrolled for '{target.username}'.")
         return redirect('user-list')
 
 

@@ -56,6 +56,15 @@ class OTPRequiredMiddleware:
             except Exception:
                 pass
 
+            # Per-user override: an individual account can be exempted from 2FA
+            # even when the global setting is on (e.g. service accounts, kiosk users).
+            try:
+                profile = getattr(request.user, 'profile', None)
+                if profile is not None and not profile.require_2fa:
+                    return self.get_response(request)
+            except Exception:
+                pass
+
             verify_url = reverse('otp-verify')
             next_param = request.get_full_path()
             return redirect(f'{verify_url}?next={next_param}')

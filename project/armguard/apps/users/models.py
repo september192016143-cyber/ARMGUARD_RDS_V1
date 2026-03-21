@@ -93,6 +93,16 @@ class UserProfile(models.Model):
     # User management module
     perm_users_manage = models.BooleanField(default=False, help_text="May view, create, edit, and delete user accounts.")
 
+    # ── Per-user two-factor authentication control ─────────────────────────────
+    require_2fa = models.BooleanField(
+        default=True,
+        help_text=(
+            'Require TOTP two-factor authentication for this specific user. '
+            'Only takes effect when the site-wide 2FA setting is also ON. '
+            'Uncheck to exempt this account from 2FA enforcement.'
+        ),
+    )
+
     class Meta:
         verbose_name = "User Profile"
         verbose_name_plural = "User Profiles"
