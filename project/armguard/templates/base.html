@@ -86,6 +86,7 @@
       <i class="fa-solid fa-circle-plus nav-icon"></i><span class="nav-label">New Transaction</span>
     </a>
     {% endif %}
+    {% if can_print %}
     <div class="nav-section">Print</div>
     <a href="{% url 'print_handler:print_id_cards' %}" class="nav-item {% if request.resolver_match.url_name == 'print_id_cards' %}active{% endif %}" title="Personnel ID Cards">
       <i class="fa-solid fa-id-card nav-icon"></i><span class="nav-label">Personnel ID Cards</span>
@@ -99,6 +100,7 @@
     <a href="{% url 'print_handler:print_transactions' %}" class="nav-item {% if request.resolver_match.url_name == 'print_transactions' %}active{% endif %}" title="Print Reports">
       <i class="fa-solid fa-print nav-icon"></i><span class="nav-label">Print Reports</span>
     </a>
+    {% endif %}
     {% if can_manage_users %}
     <div class="nav-section">Admin</div>
     <a href="{% url 'user-list' %}" class="nav-item {% if request.resolver_match.url_name == 'user-list' %}active{% endif %}" title="User Management">

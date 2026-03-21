@@ -147,9 +147,11 @@
           <span>No ID card generated</span>
         </div>
         <div class="flip-hint">
+          {% if can_print %}
           <a href="{% url 'print_handler:print_id_cards' %}" style="color:var(--primary);">
             <i class="fas fa-plus-circle"></i> Generate ID Card
           </a>
+          {% endif %}
         </div>
       {% endif %}
     </div>

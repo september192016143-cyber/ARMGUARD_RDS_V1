@@ -128,10 +128,12 @@
 <div class="card" style="margin:0">
   <div class="card-header" style="padding:.55rem .8rem">
     <span class="card-title" style="font-size:.78rem"><i class="fa-solid fa-file-pdf" style="color:#ef4444"></i> Temporary Receipt (TR)</span>
+    {% if can_print %}
     <div style="display:flex;gap:.4rem">
       <a href="{% url 'print_handler:download_transaction_pdf' transaction.transaction_id %}" class="btn btn-primary btn-sm" style="font-size:.72rem" target="_blank"><i class="fa-solid fa-download"></i> Download</a>
       <a href="{% url 'print_handler:print_transaction_pdf' transaction.transaction_id %}" class="btn btn-secondary btn-sm" style="font-size:.72rem" target="_blank"><i class="fa-solid fa-print"></i> Print</a>
     </div>
+    {% endif %}
   </div>
   <div id="tr-pdf-container"
        data-pdf-url="{% url 'print_handler:download_transaction_pdf' transaction.transaction_id %}"
