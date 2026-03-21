@@ -472,7 +472,8 @@ def print_transactions(request):
 
     # ── Armorer: use linked Personnel record; fall back to User profile ──────
     from armguard.apps.personnel.models import Personnel as _Personnel
-    _armorer_branch = getattr(settings, 'ARMGUARD_ARMORER_BRANCH', 'PAF')
+    _armorer_branch      = getattr(settings, 'ARMGUARD_ARMORER_BRANCH', 'PAF')
+    _armorer_designation = 'Armorer'
     try:
         _p = _Personnel.objects.get(user=request.user)
         _mi = f' {_p.middle_initial}.' if _p.middle_initial else ''
@@ -480,11 +481,13 @@ def print_transactions(request):
         _armorer_rank = _p.rank
     except _Personnel.DoesNotExist:
         # Fall back to the Django User's own name and role
-        _armorer_name = request.user.get_full_name().upper() or request.user.username.upper()
+        _full = request.user.get_full_name().strip()
+        _armorer_name = _full.upper() if _full else request.user.username.upper()
+        _armorer_rank = ''  # no military rank — role goes into designation below
         try:
-            _armorer_rank = request.user.profile.role
+            _armorer_designation = request.user.profile.role or 'Armorer'
         except Exception:
-            _armorer_rank = getattr(settings, 'ARMGUARD_ARMORER_RANK', '')
+            _armorer_designation = 'System Administrator' if request.user.is_superuser else 'Armorer'
 
     context = {
         'transactions': transactions,
@@ -499,6 +502,7 @@ def print_transactions(request):
         'armorer_name':              _armorer_name,
         'armorer_rank':              _armorer_rank,
         'armorer_branch':            _armorer_branch,
+        'armorer_designation':       _armorer_designation,
         'commander_name':            getattr(settings, 'ARMGUARD_COMMANDER_NAME', ''),
         'commander_rank':            getattr(settings, 'ARMGUARD_COMMANDER_RANK', ''),
         'commander_branch':          getattr(settings, 'ARMGUARD_COMMANDER_BRANCH', ''),
