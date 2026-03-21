@@ -273,6 +273,9 @@ def print_transaction_form(request, transaction_id=None):
 @login_required
 def reprint_tr(request):
     """Searchable list of TR transactions for reprinting"""
+    if not _can_print(request.user):
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('dashboard')
     q           = (request.GET.get('q') or '').strip()
     txn_type    = (request.GET.get('txn_type') or '').strip()
     range_filter = (request.GET.get('range') or '').strip().lower()
@@ -403,6 +406,9 @@ def _firearms_evaluation():
 
 @login_required
 def print_transactions(request):
+    if not _can_print(request.user):
+        messages.error(request, 'You do not have permission to access Print Reports.')
+        return redirect('dashboard')
     personnel_id    = request.GET.get('personnel_id')
     txn_type_filter = (request.GET.get('txn_type') or '').strip()     # 'Withdrawal' | 'Return'
     issuance_filter = (request.GET.get('issuance') or '').strip()     # 'TR' | 'PAR'
