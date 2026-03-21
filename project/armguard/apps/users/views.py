@@ -228,7 +228,7 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             )
             profile, _ = UserProfile.objects.get_or_create(user=user)
             profile.role = cd['role']
-            if cd['role'] in ('Administrator', 'Administrator — View Only', 'Administrator — Edit & Add'):
+            if cd['role'] in ('Administrator', 'Administrator — View Only', 'Administrator — Edit & Add', 'Armorer'):
                 profile.perm_inventory_view   = cd.get('perm_inventory_view', False)
                 profile.perm_inventory_add    = cd.get('perm_inventory_add', False)
                 profile.perm_inventory_edit   = cd.get('perm_inventory_edit', False)
@@ -341,7 +341,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 )
             profile, _ = UserProfile.objects.get_or_create(user=self.object)
             profile.role = cd['role']
-            if cd['role'] in ('Administrator', 'Administrator — View Only', 'Administrator — Edit & Add'):
+            if cd['role'] in ('Administrator', 'Administrator — View Only', 'Administrator — Edit & Add', 'Armorer'):
                 profile.perm_inventory_view   = cd.get('perm_inventory_view', False)
                 profile.perm_inventory_add    = cd.get('perm_inventory_add', False)
                 profile.perm_inventory_edit   = cd.get('perm_inventory_edit', False)

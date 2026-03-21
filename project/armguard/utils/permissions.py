@@ -51,7 +51,10 @@ def _perm(user, flag: str, *, armorer_default: bool = False) -> bool:
         except AttributeError:
             return False
     if role == 'Armorer':
-        return armorer_default
+        try:
+            return bool(getattr(user.profile, flag))
+        except AttributeError:
+            return armorer_default
     return False
 
 

@@ -74,7 +74,7 @@
           <strong>Administrator &mdash; View Only</strong> — view all records, no edits. &nbsp;
           <strong>Administrator &mdash; Edit &amp; Add</strong> — create and edit records. &nbsp;
           <strong>Armorer</strong> — view inventory &amp; personnel, create transactions, print only.
-          Flags below are set automatically when a sub-type is selected and can be overridden.
+          Flags below are set automatically when a role is selected and can be overridden.
         </div>
       </div>
 
@@ -89,13 +89,13 @@
       </div>
       {% endif %}
 
-      <!-- Administrator permission flags — shown/hidden by JS based on role selection -->
+      <!-- Permission flags — shown for Administrator sub-types AND Armorer -->
       <div id="admin-perm-section" style="display:none">
         <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:.85rem 1rem;margin-bottom:.75rem">
           <div style="font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">
-            <i class="fa-solid fa-sliders" style="margin-right:.4rem"></i>Administrator Permission Flags
+            <i class="fa-solid fa-sliders" style="margin-right:.4rem"></i>Permission Flags
           </div>
-          <div class="form-hint" style="margin-bottom:1rem">Fine-tune access per module. Flags are set automatically when a Role Group is assigned — you can override them here.</div>
+          <div class="form-hint" style="margin-bottom:1rem">Fine-tune access per module. Flags are set automatically when a Role is assigned — you can override them here.</div>
 
           {# ── Inventory ── #}
           <div style="margin-bottom:1rem">
