@@ -20,8 +20,34 @@
   {% endfor %}
 {% endif %}
 
-<form method="post" id="settings-form" style="max-width:680px">
+<form method="post" id="settings-form" enctype="multipart/form-data" style="max-width:680px">
   {% csrf_token %}
+
+  <!-- ── Branding ────────────────────────────────────────────────────────── -->
+  <div class="card mb-2">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-image"></i> Branding</span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Sidebar Icon / Logo</label>
+      {% if s.app_logo %}
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.75rem">
+        <img src="{{ s.app_logo.url }}" alt="Current logo"
+             style="width:56px;height:56px;object-fit:contain;border-radius:8px;border:1px solid var(--border,#2d3347);background:var(--surface2)">
+        <div>
+          <div style="font-size:.82rem;color:var(--muted)">Current logo</div>
+          <label style="display:flex;align-items:center;gap:.4rem;margin-top:.35rem;cursor:pointer;font-size:.82rem">
+            <input type="checkbox" name="clear_app_logo" value="1"> Remove current logo
+          </label>
+        </div>
+      </div>
+      {% endif %}
+      <input type="file" name="app_logo" id="id_app_logo" class="form-control"
+             accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp">
+      <div class="form-hint">Displayed in the sidebar next to "ArmGuard". Square PNG recommended, at least 80×80 px. Leave blank to keep the current logo. If no logo is set, a default shield icon is shown.</div>
+    </div>
+  </div>
 
   <!-- ── Unit Info ──────────────────────────────────────────────────────── -->
   <div class="card mb-2">

@@ -711,6 +711,14 @@ class SystemSettingsView(LoginRequiredMixin, View):
             obj.password_history_count = max(0, min(20, hist))
         except (ValueError, TypeError):
             obj.password_history_count = 5
+        # Branding — logo upload / clear
+        if request.POST.get('clear_app_logo') and obj.app_logo:
+            obj.app_logo.delete(save=False)
+            obj.app_logo = None
+        elif request.FILES.get('app_logo'):
+            if obj.app_logo:
+                obj.app_logo.delete(save=False)
+            obj.app_logo = request.FILES['app_logo']
         obj.save()
         messages.success(request, 'System settings saved.')
         return redirect('system-settings')

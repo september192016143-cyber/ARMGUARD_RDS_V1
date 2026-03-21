@@ -278,6 +278,14 @@ class SystemSettings(models.Model):
     # Unit display name (used in report headers etc.)
     unit_name = models.CharField(max_length=150, blank=True, default='950th CEWW')
 
+    # ── Branding ──────────────────────────────────────────────────────────────
+    app_logo = models.ImageField(
+        upload_to='site/',
+        blank=True,
+        null=True,
+        help_text='Custom logo displayed in the sidebar. Recommended: square PNG, at least 80×80 px.',
+    )
+
     # ── Security & Authentication policy ─────────────────────────────────────
     mfa_required = models.BooleanField(
         default=True,

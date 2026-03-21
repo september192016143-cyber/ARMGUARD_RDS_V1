@@ -9,7 +9,7 @@ from armguard.utils.permissions import (
 
 def nav_permissions(request):
     """
-    Injects per-module permission flags into every template context.
+    Injects per-module permission flags and site settings into every template context.
     Templates use these to show/hide sidebar links and action buttons.
     """
     user = request.user
@@ -28,7 +28,9 @@ def nav_permissions(request):
             'can_view_reports': False,
             'can_print': False,
             'can_manage_users': False,
+            'site_settings': None,
         }
+    from armguard.apps.users.models import SystemSettings
     return {
         'can_view_inventory':    can_view_inventory(user),
         'can_add_inventory':     can_add_inventory(user),
@@ -43,4 +45,5 @@ def nav_permissions(request):
         'can_view_reports':      can_view_reports(user),
         'can_print':             can_print(user),
         'can_manage_users':      can_manage_users(user),
+        'site_settings':         SystemSettings.get(),
     }
