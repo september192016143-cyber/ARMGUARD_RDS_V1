@@ -470,18 +470,21 @@ def print_transactions(request):
     # ── Daily Firearms Evaluation ──────────────────────────────────────────────
     eval_rows, eval_totals = _firearms_evaluation()
 
-    # ── Armorer: use linked Personnel record; fall back to settings ──────────
+    # ── Armorer: use linked Personnel record; fall back to User profile ──────
     from armguard.apps.personnel.models import Personnel as _Personnel
-    _armorer_name   = getattr(settings, 'ARMGUARD_ARMORER_NAME', '')
-    _armorer_rank   = getattr(settings, 'ARMGUARD_ARMORER_RANK', '')
     _armorer_branch = getattr(settings, 'ARMGUARD_ARMORER_BRANCH', 'PAF')
     try:
         _p = _Personnel.objects.get(user=request.user)
         _mi = f' {_p.middle_initial}.' if _p.middle_initial else ''
-        _armorer_name   = f'{_p.first_name}{_mi} {_p.last_name}'.upper()
-        _armorer_rank   = _p.rank
+        _armorer_name = f'{_p.first_name}{_mi} {_p.last_name}'.upper()
+        _armorer_rank = _p.rank
     except _Personnel.DoesNotExist:
-        pass
+        # Fall back to the Django User's own name and role
+        _armorer_name = request.user.get_full_name().upper() or request.user.username.upper()
+        try:
+            _armorer_rank = request.user.profile.role
+        except Exception:
+            _armorer_rank = getattr(settings, 'ARMGUARD_ARMORER_RANK', '')
 
     context = {
         'transactions': transactions,
