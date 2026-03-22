@@ -161,7 +161,24 @@ _git_pull_repo() {
 
     sudo -u "$DEPLOY_USER" git -C "$repo_dir" fetch --all
     sudo -u "$DEPLOY_USER" git -C "$repo_dir" checkout "$BRANCH"
-    sudo -u "$DEPLOY_USER" git -C "$repo_dir" pull origin "$BRANCH"
+
+    # Retry git pull up to 3 times with backoff (guards against transient
+    # GitHub HTTP 500 / connection errors that abort the script under pipefail).
+    local _pull_ok=false
+    for _attempt in 1 2 3; do
+        if sudo -u "$DEPLOY_USER" git -C "$repo_dir" pull origin "$BRANCH"; then
+            _pull_ok=true
+            break
+        fi
+        warn "git pull attempt $_attempt failed. Retrying in $(( _attempt * 5 ))s..."
+        sleep $(( _attempt * 5 ))
+    done
+    if [[ "$_pull_ok" == "false" ]]; then
+        # All retries failed — fall back to hard reset to origin so the script
+        # can continue with whatever fetch already downloaded.
+        warn "git pull failed after 3 attempts. Resetting to origin/$BRANCH (fetched objects are local)."
+        sudo -u "$DEPLOY_USER" git -C "$repo_dir" reset --hard "origin/$BRANCH"
+    fi
 
     # Restore local changes (e.g. production settings overrides)
     if [[ "$stashed" == "true" ]]; then
