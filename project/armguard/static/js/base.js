@@ -27,6 +27,12 @@ if (localStorage.getItem('sidebarCollapsed') === 'true') {
   if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
 })();
 
+// ── 1c. PJAX: AbortController for page-script event listener lifecycle ────────
+// Page scripts that add document-level listeners (QR scanner keydown, etc.)
+// should register them with { signal: window.pjaxController.signal } so they
+// are automatically removed when PJAX navigates to the next page.
+window.pjaxController = new AbortController();
+
 // ── 2 & 3. Sidebar + Notifications (after DOM is ready) ──────────────────────
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -644,3 +650,211 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
 }); // end DOMContentLoaded
+
+// ── 5. PJAX — smooth client-side navigation ──────────────────────────────────
+// Intercepts same-origin link clicks, fetches the target page, and swaps only
+// the changing parts of the DOM so the sidebar/notifications never reload.
+// Page-specific scripts are removed and re-added on each navigation so they
+// always initialise against fresh DOM nodes.
+(function () {
+  if (!window.fetch || !window.history || !window.DOMParser) return;
+
+  var ORIGIN = window.location.origin;
+
+  // ── Progress bar ────────────────────────────────────────────────────────
+  var _bar = null, _barTimer = null;
+
+  function _barEl() {
+    if (_bar) return _bar;
+    _bar = document.createElement('div');
+    _bar.style.cssText =
+      'position:fixed;top:0;left:0;height:3px;width:0;z-index:10000;pointer-events:none;' +
+      'background:var(--primary,#4f8ef7);opacity:0;';
+    document.body.appendChild(_bar);
+    return _bar;
+  }
+
+  function showBar() {
+    var b = _barEl();
+    clearTimeout(_barTimer);
+    b.style.transition = 'none';
+    b.style.width = '0';
+    b.style.opacity = '1';
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        b.style.transition = 'width 1.5s cubic-bezier(0.1,0.7,0.1,1)';
+        b.style.width = '70%';
+      });
+    });
+  }
+
+  function doneBar() {
+    var b = _barEl();
+    clearTimeout(_barTimer);
+    b.style.transition = 'width .1s ease-out';
+    b.style.width = '100%';
+    _barTimer = setTimeout(function () {
+      b.style.transition = 'opacity .3s';
+      b.style.opacity = '0';
+      setTimeout(function () { b.style.width = '0'; b.style.transition = 'none'; }, 350);
+    }, 100);
+  }
+
+  // ── Helpers ─────────────────────────────────────────────────────────────
+  function isSameOrigin(url) {
+    try { return new URL(url, ORIGIN).origin === ORIGIN; } catch (e) { return false; }
+  }
+
+  function shouldSkip(a) {
+    var href = a.getAttribute('href') || '';
+    if (!href || /^(#|javascript:|mailto:|tel:)/i.test(href)) return true;
+    if (a.hasAttribute('download')) return true;
+    var tgt = (a.getAttribute('target') || '').toLowerCase();
+    if (tgt && tgt !== '_self') return true;
+    if (!isSameOrigin(a.href)) return true;
+    var path = new URL(a.href, ORIGIN).pathname;
+    // Skip admin, media, static, API, auth, cert-download paths
+    if (/^\/(admin|media|static|api)\//i.test(path)) return true;
+    if (/^\/(logout|accounts|download)\//i.test(path)) return true;
+    // Skip direct file downloads
+    if (/\.(pdf|png|jpg|jpeg|gif|csv|zip|xlsx|docx|crt|pem|cer)$/i.test(path)) return true;
+    return false;
+  }
+
+  // ── Slot swap ────────────────────────────────────────────────────────────
+  // Replaces innerHTML of element #id in the live document with the matching
+  // element from the freshly-parsed document (or clears it if absent).
+  function swapSlot(id, newDoc) {
+    var cur = document.getElementById(id);
+    var nxt = newDoc.getElementById(id);
+    if (!cur) return;
+    cur.innerHTML = nxt ? nxt.innerHTML : '';
+  }
+
+  // ── Script management ───────────────────────────────────────────────────
+  function reloadBodyScripts(newDoc) {
+    // Remove every <script> that lives as a direct child of <body>.
+    // These are page-specific scripts injected by {% block extra_js %}.
+    document.querySelectorAll('body > script').forEach(function (s) { s.remove(); });
+
+    // Inject the new page's body scripts. They are IIFEs and execute
+    // immediately when appended, re-initialising against the fresh DOM.
+    newDoc.querySelectorAll('body > script').forEach(function (orig) {
+      var s = document.createElement('script');
+      var src = orig.getAttribute('src');
+      if (src) {
+        s.src = src;   // browser resolves relative src against current document
+        s.async = false;
+      } else {
+        s.textContent = orig.textContent;
+      }
+      document.body.appendChild(s);
+    });
+  }
+
+  // ── Sidebar active-state sync ───────────────────────────────────────────
+  function updateSidebarActive(pathname) {
+    document.querySelectorAll('.sidebar .nav-item[href], .sidebar .nav-flyout a[href]').forEach(function (a) {
+      var aPath;
+      try { aPath = new URL(a.href, ORIGIN).pathname; } catch (e) { return; }
+      a.classList.toggle('active', aPath === pathname);
+    });
+    // Open nav-groups whose flyout contains the active link; leave others as-is.
+    document.querySelectorAll('.nav-group').forEach(function (g) {
+      if (g.querySelector('a.active')) g.classList.add('open');
+    });
+  }
+
+  // ── Navigate ─────────────────────────────────────────────────────────────
+  var _busy = false;
+
+  function navigate(url, pushState) {
+    if (_busy) return;
+    _busy = true;
+    showBar();
+
+    // Abort listeners from the current page's scripts, then arm a fresh signal
+    // for the incoming page's scripts.
+    var oldCtl = window.pjaxController;
+    window.pjaxController = new AbortController();
+    oldCtl.abort();
+
+    fetch(url, {
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(function (res) {
+      // Redirect to a different origin (e.g. login) → full navigation
+      if (res.redirected && !res.url.startsWith(ORIGIN)) {
+        window.location.href = res.url;
+        return null;
+      }
+      var ct = res.headers.get('Content-Type') || '';
+      if (!res.ok || ct.indexOf('text/html') === -1) {
+        window.location.href = url;
+        return null;
+      }
+      return res.text();
+    })
+    .then(function (html) {
+      if (!html) { doneBar(); _busy = false; return; }
+
+      var doc;
+      try { doc = new DOMParser().parseFromString(html, 'text/html'); }
+      catch (e) { window.location.href = url; doneBar(); _busy = false; return; }
+
+      // Update page title
+      document.title = doc.title;
+
+      // Swap the four topbar dynamic slots + the main content area
+      swapSlot('pjax-title',   doc);
+      swapSlot('pjax-sub',     doc);
+      swapSlot('pjax-actions', doc);
+      swapSlot('pjax-submit',  doc);
+      swapSlot('main-content', doc);
+
+      // Sync body data attributes (e.g. data-collapse-sidebar for txn form)
+      document.body.dataset.collapseSidebar = doc.body.dataset.collapseSidebar || '';
+      if (doc.body.dataset.collapseSidebar === '1' &&
+          !document.body.classList.contains('sidebar-collapsed')) {
+        document.body.classList.add('sidebar-collapsed');
+      }
+
+      // Sync sidebar active state
+      try { updateSidebarActive(new URL(url, ORIGIN).pathname); } catch (e) {}
+
+      // Re-initialise page-specific scripts for the new content
+      reloadBodyScripts(doc);
+
+      if (pushState) history.pushState({ pjax: url }, doc.title, url);
+      window.scrollTo(0, 0);
+      doneBar();
+      _busy = false;
+    })
+    .catch(function () {
+      window.location.href = url;
+      doneBar();
+      _busy = false;
+    });
+  }
+
+  // ── Intercept link clicks ───────────────────────────────────────────────
+  document.addEventListener('click', function (e) {
+    // Let modifier-key clicks open in new tab/window normally
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest('a[href]');
+    if (!a || shouldSkip(a)) return;
+    e.preventDefault();
+    var url = a.href;
+    if (url === window.location.href) { window.scrollTo(0, 0); return; }
+    navigate(url, true);
+  });
+
+  // ── Back / Forward ───────────────────────────────────────────────────────
+  window.addEventListener('popstate', function (e) {
+    if (e.state && e.state.pjax) navigate(window.location.href, false);
+  });
+
+  // Save initial state so popstate fires correctly on first back-navigation
+  history.replaceState({ pjax: window.location.href }, document.title, window.location.href);
+})();

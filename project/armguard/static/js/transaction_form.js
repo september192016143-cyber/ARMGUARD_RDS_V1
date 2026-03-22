@@ -190,7 +190,9 @@ function openTrPreview() {
 
 // ── TR Preview Modal ───────────────────────────────────────────────────────────
 function closeTrPreview() {
-  document.getElementById('tr-preview-modal').style.display = 'none';
+  var modal = document.getElementById('tr-preview-modal');
+  if (!modal) return; // safety: element may not exist after PJAX navigation
+  modal.style.display = 'none';
   document.body.style.overflow = '';
   // Clear the PDF.js canvas nodes.
   var previewContainer = document.getElementById('tr-preview-container');
@@ -500,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var closeBtn = document.getElementById('btn-tr-preview-close');
   if (closeBtn) closeBtn.addEventListener('click', closeTrPreview);
   if (modal)    modal.addEventListener('click', function (e) { if (e.target === this) closeTrPreview(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeTrPreview(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeTrPreview(); }, window.pjaxController ? { signal: window.pjaxController.signal } : undefined);
 
   // Initial state
   toggleReturnMode();
@@ -748,7 +750,7 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
       scanning = false;
     }
     lastKey = now;
-  }, true); // capture phase
+  }, window.pjaxController ? { capture: true, signal: window.pjaxController.signal } : true); // capture phase
 })();
 
 // ── Duty Sentinel + weapon -> auto-fill ammo quantities ───────────────────────

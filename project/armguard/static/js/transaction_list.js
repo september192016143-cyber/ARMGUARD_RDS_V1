@@ -127,6 +127,6 @@
         scanning = false;
       }
       lastKey = now;
-    }, true);
+    }, window.pjaxController ? { capture: true, signal: window.pjaxController.signal } : true);
   })();
 })();

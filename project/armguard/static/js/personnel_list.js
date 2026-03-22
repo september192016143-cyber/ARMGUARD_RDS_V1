@@ -122,6 +122,6 @@
         scanning = false;
       }
       lastKey = now;
-    }, true); // capture phase
+    }, window.pjaxController ? { capture: true, signal: window.pjaxController.signal } : true);
   })();
 })();

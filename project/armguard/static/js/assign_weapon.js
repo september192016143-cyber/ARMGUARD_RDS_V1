@@ -139,5 +139,5 @@
       scanning = false;
     }
     lastKey = now;
-  }, true); // capture phase — fires before focus target
+  }, window.pjaxController ? { capture: true, signal: window.pjaxController.signal } : true); // capture phase — fires before focus target
 }());
