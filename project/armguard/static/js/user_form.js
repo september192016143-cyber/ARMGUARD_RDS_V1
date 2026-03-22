@@ -103,58 +103,112 @@
   // Auto-fill on page load from pre-selected dropdown value
   if (sel.value) applyByPk(sel.value);
 
-  // ── Scan / type Personnel ID ────────────────────────────────────────────────
+  // ── Scan / type Personnel ID (supports ID, surname, first name, AFSN) ───────
   if (!scanEl) return;
   scanEl.classList.add('form-control');
   var _scanTimer = null;
+  var resultsEl  = document.getElementById('personnelScanResults');
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function closeScanResults() {
+    if (resultsEl) { resultsEl.style.display = 'none'; resultsEl.innerHTML = ''; }
+  }
+
+  function selectPersonnel(pk) {
+    applyByPk(pk);
+    var p = MAP[String(pk)];
+    statusEl.textContent = '\u2713';
+    statusEl.style.color = 'var(--success, #22c55e)';
+    statusEl.style.display = '';
+    scanEl.value = p ? p.last + ', ' + p.first : '';
+    closeScanResults();
+  }
+
+  function doSearch(val) {
+    if (!resultsEl) return;
+    var q = val.toLowerCase();
+    var hits = Object.keys(MAP).filter(function (pk) {
+      var p = MAP[pk];
+      return p.first.toLowerCase().indexOf(q) !== -1
+          || p.last.toLowerCase().indexOf(q) !== -1
+          || p.afsn.toLowerCase().indexOf(q) !== -1
+          || p.pid.toLowerCase().indexOf(q) !== -1;
+    }).slice(0, 10);
+
+    if (!hits.length) {
+      resultsEl.innerHTML = '<div style="padding:.4rem .75rem;font-size:.78rem;color:var(--muted,#64748b)">No results</div>';
+      resultsEl.style.display = 'block';
+      statusEl.textContent = '\u2717';
+      statusEl.style.color = 'var(--red, #ef4444)';
+      statusEl.style.display = '';
+      return;
+    }
+
+    statusEl.style.display = 'none';
+    resultsEl.innerHTML = hits.map(function (pk) {
+      var p = MAP[pk];
+      return '<div class="uf-scan-item" data-pk="' + escHtml(pk) + '"'
+        + ' style="padding:.38rem .75rem;font-size:.78rem;cursor:pointer;border-bottom:1px solid var(--border,#334155)">'
+        + '<span style="font-weight:600">' + escHtml(p.last) + ', ' + escHtml(p.first) + '</span>'
+        + ' &mdash; <span style="color:var(--muted,#64748b)">' + escHtml(p.pid) + '</span>'
+        + (p.afsn ? ' <span style="font-size:.7rem;color:var(--muted,#64748b)">(AFSN: ' + escHtml(p.afsn) + ')</span>' : '')
+        + '</div>';
+    }).join('');
+    resultsEl.style.display = 'block';
+  }
+
+  if (resultsEl) {
+    resultsEl.addEventListener('mouseover', function (e) {
+      var item = e.target.closest('.uf-scan-item');
+      if (item) item.style.background = 'var(--hover-bg,#334155)';
+    });
+    resultsEl.addEventListener('mouseout', function (e) {
+      var item = e.target.closest('.uf-scan-item');
+      if (item) item.style.background = '';
+    });
+    resultsEl.addEventListener('click', function (e) {
+      var item = e.target.closest('.uf-scan-item');
+      if (item) selectPersonnel(item.dataset.pk);
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    if (!scanEl.contains(e.target) && !(resultsEl && resultsEl.contains(e.target))) closeScanResults();
+  }, window.pjaxController ? { signal: window.pjaxController.signal } : {});
 
   scanEl.addEventListener('input', function () {
     clearTimeout(_scanTimer);
     var val = this.value.trim();
-    if (!val) { statusEl.style.display = 'none'; return; }
+    if (!val) { statusEl.style.display = 'none'; closeScanResults(); return; }
 
-    // Immediate match — QR scanner typically pastes the full ID at once
+    // Immediate exact Personnel_ID match (QR scanner burst)
     var pk = PID_MAP[val];
-    if (pk) {
-      applyByPk(pk);
-      statusEl.textContent = '\u2713';   // ✓
-      statusEl.style.color = 'var(--success, #22c55e)';
-      statusEl.style.display = '';
-      scanEl.value = '';
-      return;
-    }
+    if (pk) { selectPersonnel(pk); scanEl.value = ''; return; }
 
-    // Debounce for hand-typed partial input
+    // Debounce for hand-typed input — search by name / AFSN / ID
     _scanTimer = setTimeout(function () {
       var pk2 = PID_MAP[val];
-      if (pk2) {
-        applyByPk(pk2);
-        statusEl.textContent = '\u2713';
-        statusEl.style.color = 'var(--success, #22c55e)';
-        scanEl.value = '';
-      } else {
-        statusEl.textContent = '\u2717';   // ✗
-        statusEl.style.color = 'var(--red, #ef4444)';
-      }
-      statusEl.style.display = '';
-    }, 600);
+      if (pk2) { selectPersonnel(pk2); scanEl.value = ''; return; }
+      doSearch(val);
+    }, 400);
   });
 
-  // Enter key triggers immediate lookup
+  // Enter key: confirm single result or trigger immediate search
   scanEl.addEventListener('keydown', function (e) {
     if (e.key !== 'Enter') return;
     e.preventDefault();
     clearTimeout(_scanTimer);
-    var pk = PID_MAP[this.value.trim()];
-    if (pk) {
-      applyByPk(pk);
-      statusEl.textContent = '\u2713';
-      statusEl.style.color = 'var(--success, #22c55e)';
-      scanEl.value = '';
-    } else {
-      statusEl.textContent = '\u2717';
-      statusEl.style.color = 'var(--red, #ef4444)';
-    }
-    statusEl.style.display = '';
+    var val = this.value.trim();
+    var pk = PID_MAP[val];
+    if (pk) { selectPersonnel(pk); scanEl.value = ''; return; }
+    doSearch(val);
+    // If exactly one result, auto-select it
+    var items = resultsEl ? resultsEl.querySelectorAll('.uf-scan-item') : [];
+    if (items.length === 1) selectPersonnel(items[0].dataset.pk);
   });
 }());

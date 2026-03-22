@@ -213,12 +213,13 @@
         </label>
         <div style="position:relative">
           <input type="text" id="personnelIdScan" name="personnel_id_scan" autocomplete="off"
-            placeholder="Scan QR / type ID e.g. PEP-994360-…"
+            placeholder="Scan QR / type ID, surname, or AFSN…"
             style="width:100%;padding-right:2.5rem">
           <span id="personnelIdScanStatus"
             style="position:absolute;right:.65rem;top:50%;transform:translateY(-50%);font-size:1rem;display:none"></span>
+          <div id="personnelScanResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card,#1e293b);border:1px solid var(--border,#334155);border-radius:.35rem;z-index:9999;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.5)"></div>
         </div>
-        <div class="form-hint">Scan the QR code on an ID card, or type the Personnel ID — the record will be selected automatically.</div>
+        <div class="form-hint">Scan the QR code on an ID card, or type a Personnel ID, surname, first name, or AFSN.</div>
       </div>
 
       {% if action == 'Edit' and edit_user.personnel %}
