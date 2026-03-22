@@ -20,11 +20,16 @@
   document.addEventListener('keydown', function (e) {
     if (!e.altKey || e.key.toLowerCase() !== 'n') return;
     e.preventDefault();
+    // Already on the target page — nothing to do.
+    if (window.location.pathname === NEW_TXN_URL) return;
     var now = Date.now();
     if (now - _lastNavAt < NAV_COOLDOWN) return;
     _lastNavAt = now;
     if (typeof window.pjaxNavigate === 'function') {
-      window.pjaxNavigate(NEW_TXN_URL);
+      // Pass pushState=true so the browser URL updates to NEW_TXN_URL.
+      // Without it the URL stays unchanged and sidebar same-URL guards
+      // swallow every subsequent click to the previously-current page.
+      window.pjaxNavigate(NEW_TXN_URL, true);
     } else {
       window.location.href = NEW_TXN_URL;
     }
