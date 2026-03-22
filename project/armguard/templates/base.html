@@ -276,7 +276,7 @@
 {# ===== End Notification Detail Modal ===== #}
 
 <div id="pjax-extra-css">{% block extra_css %}{% endblock %}</div>
-<script src="{% static 'js/hot_key.js' %}" defer></script>
+<script src="{% static 'js/hot_key.js' %}" defer data-pjax-permanent></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

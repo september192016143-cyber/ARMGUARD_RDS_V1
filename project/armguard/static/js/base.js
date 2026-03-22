@@ -748,13 +748,16 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   // ── Script management ───────────────────────────────────────────────────
   function reloadBodyScripts(newDoc) {
-    // Remove every <script> that lives as a direct child of <body>.
-    // These are page-specific scripts injected by {% block extra_js %}.
-    document.querySelectorAll('body > script').forEach(function (s) { s.remove(); });
+    // Remove every <script> that lives as a direct child of <body>,
+    // EXCEPT scripts marked data-pjax-permanent (e.g. hot_key.js) — those
+    // must only ever execute once; re-executing them accumulates duplicate
+    // event listeners that can never be cleaned up.
+    document.querySelectorAll('body > script:not([data-pjax-permanent])').forEach(function (s) { s.remove(); });
 
     // Inject the new page's body scripts. They are IIFEs and execute
     // immediately when appended, re-initialising against the fresh DOM.
-    newDoc.querySelectorAll('body > script').forEach(function (orig) {
+    // Skip permanent scripts — they were already executed on first load.
+    newDoc.querySelectorAll('body > script:not([data-pjax-permanent])').forEach(function (orig) {
       var s = document.createElement('script');
       var src = orig.getAttribute('src');
       if (src) {
