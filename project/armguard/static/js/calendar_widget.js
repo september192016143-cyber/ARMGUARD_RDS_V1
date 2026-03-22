@@ -93,7 +93,8 @@
     url.searchParams.set('date_to',   to);
     document.getElementById('calendar-toggle').style.boxShadow = '0 0 16px rgba(245,158,11,.6)';
     document.getElementById('calendar-dropdown').style.display = 'none';
-    window.location.href = url.toString();
+    if (window.pjaxNavigate) { window.pjaxNavigate(url.toString(), true); }
+    else { window.location.href = url.toString(); }
   }
 
   function clearCalendar() {
@@ -104,7 +105,8 @@
     url.searchParams.delete('date_from');
     url.searchParams.delete('date_to');
     document.getElementById('calendar-dropdown').style.display = 'none';
-    window.location.href = url.toString();
+    if (window.pjaxNavigate) { window.pjaxNavigate(url.toString(), true); }
+    else { window.location.href = url.toString(); }
   }
 
   // ── Wire nav / action buttons ── ─────────────────────────────────────────────

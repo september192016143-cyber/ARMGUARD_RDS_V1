@@ -853,6 +853,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Expose navigate so other scripts (e.g. calendar_widget.js) can trigger
+  // PJAX navigation without a full reload.
+  window.pjaxNavigate = navigate;
+
   // ── Intercept link clicks ───────────────────────────────────────────────
   document.addEventListener('click', function (e) {
     // Let modifier-key clicks open in new tab/window normally

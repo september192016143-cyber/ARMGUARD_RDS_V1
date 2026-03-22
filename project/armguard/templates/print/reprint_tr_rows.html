@@ -67,7 +67,7 @@
           {% if can_print %}
           <a href="{% url 'print_handler:print_transaction_pdf' t.transaction_id %}"
              class="btn btn-secondary btn-sm btn-icon" title="Print TR"
-             style="color:var(--primary)">
+             style="color:var(--primary)" target="_blank">
             <i class="fa-solid fa-print"></i>
           </a>
           <a href="{% url 'print_handler:download_transaction_pdf' t.transaction_id %}"

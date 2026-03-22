@@ -47,6 +47,13 @@
     });
   }
 
+  // Prevent Enter-key form submission from causing a full page reload.
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearTimeout(debounceTimer);
+    doFetch(buildParams(1));
+  });
+
   // ── Input listeners ───────────────────────────────────────────────────────
   qInput.addEventListener('input', function () {
     clearTimeout(debounceTimer);
