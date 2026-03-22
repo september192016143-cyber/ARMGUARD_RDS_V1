@@ -79,7 +79,7 @@
       data-tr-preview-url="{% url 'transaction-tr-preview' %}"
       data-pdfjs-url="{% static 'js/pdfjs/pdf.min.mjs' %}"
       data-pdfjs-worker="{% static 'js/pdfjs/pdf.worker.min.mjs' %}"
-      data-purpose-config="{{ purpose_config|escapejs }}">
+      data-purpose-config="{{ purpose_config|escape }}">
   {% csrf_token %}
 
   {% if form.non_field_errors %}
