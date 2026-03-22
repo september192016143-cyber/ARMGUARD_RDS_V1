@@ -7,24 +7,23 @@
  * (Per-page shortcuts like Alt+W / Alt+R live in transaction_form.js)
  */
 (function () {
-  // URL is on <body data-new-txn-url="..."> — always available, never undefined.
   var NEW_TXN_URL = document.body.dataset.newTxnUrl || '/transactions/new/';
 
-  // Guard: ignore rapid repeated presses while navigation is in flight.
-  var _navigating = false;
+  // Timestamp debounce: ignore repeated Alt+N within 800 ms.
+  // Using a timestamp instead of a boolean flag means it can never get stuck —
+  // it resets automatically regardless of whether pjax:end fires.
+  var _lastNavAt = 0;
+  var NAV_COOLDOWN = 800;
 
   function navigate() {
-    if (_navigating) return;
-    _navigating = true;
+    var now = Date.now();
+    if (now - _lastNavAt < NAV_COOLDOWN) return;
+    _lastNavAt = now;
     if (typeof window.pjaxNavigate === 'function') {
       window.pjaxNavigate(NEW_TXN_URL);
     } else {
       window.location.href = NEW_TXN_URL;
     }
-    // Reset the guard once the navigation completes (or after 2 s fallback).
-    var reset = function () { _navigating = false; };
-    document.addEventListener('pjax:end', reset, { once: true });
-    setTimeout(reset, 2000);
   }
 
   function handleGlobal(e) {
