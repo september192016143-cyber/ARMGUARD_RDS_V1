@@ -38,6 +38,7 @@ PURPOSE_CHOICES = [
     ('Duty Vigil', 'Duty Vigil'),
     ('Honor Guard', 'Honor Guard'),
     ('Others', 'Others'),
+    ('OREX', 'OREX'),
 ]
 
 def _sanitize_par_upload(instance, filename):
