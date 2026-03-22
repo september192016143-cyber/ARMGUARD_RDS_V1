@@ -643,8 +643,7 @@ function _attachSelectStyles(el) {
         var inp = document.createElement('input');
         inp.type = 'hidden'; inp.name = name;
         if (isReturn && name === 'issuance_type') inp.value = '';
-        else if (isReturn && name === 'purpose')  inp.value = 'Duty Sentinel';
-        else                                        inp.value = sel.value;
+        else                                       inp.value = sel.value;
         form.appendChild(inp);
       });
     });
