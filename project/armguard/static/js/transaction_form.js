@@ -489,6 +489,11 @@ function _attachSelectStyles(el) {
   if (tbIssuance) tbIssuance.addEventListener('change', toggleTrPreview);
   if (tbPurpose)  tbPurpose.addEventListener('change',  toggleDutyOther);
 
+  // Persist type selection across refresh / PJAX navigation
+  if (tbType) tbType.addEventListener('change', function () {
+    sessionStorage.setItem('txn_form_type', this.value);
+  });
+
   // Buttons (replaces inline onclick=)
   var previewBtn = document.getElementById('btn-tr-preview');
   var submitBtn  = document.getElementById('btn-tr-submit');
@@ -503,6 +508,12 @@ function _attachSelectStyles(el) {
   if (closeBtn) closeBtn.addEventListener('click', closeTrPreview);
   if (modal)    modal.addEventListener('click', function (e) { if (e.target === this) closeTrPreview(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeTrPreview(); }, window.pjaxController ? { signal: window.pjaxController.signal } : undefined);
+
+  // Restore persisted type (survives page refresh and PJAX navigation)
+  var _savedType = sessionStorage.getItem('txn_form_type');
+  if (_savedType && tbType && (_savedType === 'Withdrawal' || _savedType === 'Return')) {
+    tbType.value = _savedType;
+  }
 
   // Initial state
   toggleReturnMode();
@@ -575,9 +586,10 @@ function _attachSelectStyles(el) {
   if (tbType)    tbType.addEventListener('change',    autoCheckDutySentinelAccessories);
   autoCheckDutySentinelAccessories();
 
-  // Form submit — sync topbar selects into hidden inputs
+  // Form submit — sync topbar selects into hidden inputs; clear persisted type
   if (form) {
     form.addEventListener('submit', function () {
+      sessionStorage.removeItem('txn_form_type');
       var isReturn = tbType && tbType.value === 'Return';
       ['transaction_type', 'issuance_type', 'purpose', 'purpose_other'].forEach(function (name) {
         var sel = document.getElementById('tb_' + name);
