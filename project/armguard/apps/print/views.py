@@ -845,7 +845,7 @@ def print_id_cards_view(request):
     Print-ready page for selected (or all) personnel ID cards.
     Accepts ?ids=PO-xxx,PE-xxx,... or ?all=1
     """
-    if not _can_manage_armorer(request.user):
+    if not _can_print(request.user):
         from django.core.exceptions import PermissionDenied
         raise PermissionDenied
     ids_param = request.GET.get('ids', '')
