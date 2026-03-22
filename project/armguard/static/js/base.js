@@ -730,7 +730,22 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!cur) return;
     cur.innerHTML = nxt ? nxt.innerHTML : '';
   }
-
+  // Special swap for the extra-css slot: explicitly create <style> elements so
+  // the browser reliably applies them (innerHTML style injection can be skipped
+  // by some engines when the content is set synchronously alongside a DOM swap).
+  function swapExtraCSS(newDoc) {
+    var cur = document.getElementById('pjax-extra-css');
+    if (!cur) return;
+    // Remove existing injected styles
+    cur.innerHTML = '';
+    var nxt = newDoc.getElementById('pjax-extra-css');
+    if (!nxt) return;
+    nxt.querySelectorAll('style').forEach(function (orig) {
+      var s = document.createElement('style');
+      s.textContent = orig.textContent;
+      cur.appendChild(s);
+    });
+  }
   // ── Script management ───────────────────────────────────────────────────
   function reloadBodyScripts(newDoc) {
     // Remove every <script> that lives as a direct child of <body>.
@@ -754,14 +769,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ── Sidebar active-state sync ───────────────────────────────────────────
   function updateSidebarActive(pathname) {
-    document.querySelectorAll('.sidebar .nav-item[href], .sidebar .nav-flyout a[href]').forEach(function (a) {
+    // Top-level nav-item anchors (dashboard, personnel, transactions, print, etc.)
+    document.querySelectorAll('.sidebar .nav-item[href]').forEach(function (a) {
       var aPath;
       try { aPath = new URL(a.href, ORIGIN).pathname; } catch (e) { return; }
       a.classList.toggle('active', aPath === pathname);
     });
-    // Open nav-groups whose flyout contains the active link; leave others as-is.
+    // Flyout pop-out links (shown on hover when sidebar is collapsed)
+    document.querySelectorAll('.sidebar .nav-flyout a[href]').forEach(function (a) {
+      var aPath;
+      try { aPath = new URL(a.href, ORIGIN).pathname; } catch (e) { return; }
+      a.classList.toggle('active', aPath === pathname);
+    });
+    // Inventory nav-sub rows — active class lives on the wrapper div, not the anchor
+    document.querySelectorAll('.sidebar .nav-sub .nav-item-row').forEach(function (row) {
+      var link = row.querySelector('a.nav-item-main[href]');
+      if (!link) return;
+      var linkPath;
+      try { linkPath = new URL(link.href, ORIGIN).pathname; } catch (e) { return; }
+      row.classList.toggle('active', linkPath === pathname);
+    });
+    // Open nav-groups whose sub/flyout contains the active link.
     document.querySelectorAll('.nav-group').forEach(function (g) {
-      if (g.querySelector('a.active')) g.classList.add('open');
+      if (g.querySelector('a.active') || g.querySelector('.nav-item-row.active')) {
+        g.classList.add('open');
+      }
     });
   }
 
@@ -818,7 +850,7 @@ document.addEventListener('DOMContentLoaded', function () {
       swapSlot('pjax-sub',       doc);
       swapSlot('pjax-actions',   doc);
       swapSlot('pjax-submit',    doc);
-      swapSlot('pjax-extra-css', doc);
+      swapExtraCSS(doc);
       swapSlot('main-content',   doc);
 
       // Sync body data attributes (e.g. data-collapse-sidebar for txn form)
