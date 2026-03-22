@@ -509,7 +509,7 @@ function _attachSelectStyles(el) {
   if (modal)    modal.addEventListener('click', function (e) { if (e.target === this) closeTrPreview(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeTrPreview(); }, window.pjaxController ? { signal: window.pjaxController.signal } : undefined);
 
-  // Alt+W → Withdrawal  |  Alt+R → Return  |  Alt+T → TR  |  Alt+A → PAR
+  // Alt+W → Withdrawal  |  Alt+R → Return  |  Alt+T → TR  |  Alt+A → PAR  |  Alt+V → TR Preview
   document.addEventListener('keydown', function (e) {
     if (!e.altKey) return;
     var key = e.key.toLowerCase();
@@ -530,6 +530,10 @@ function _attachSelectStyles(el) {
         tbIssuance.value = newIssuance;
         tbIssuance.dispatchEvent(new Event('change'));
       }
+    } else if (key === 'v') {
+      e.preventDefault();
+      var btn = document.getElementById('btn-tr-preview');
+      if (btn && btn.style.display !== 'none') openTrPreview();
     }
   }, window.pjaxController ? { signal: window.pjaxController.signal } : {});
 
