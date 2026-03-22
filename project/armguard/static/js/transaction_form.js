@@ -55,17 +55,44 @@ function toggleDutyOther() {
   if (other) other.style.display = sel && sel.value === 'Others' ? '' : 'none';
 }
 
-function toggleRifleSection() {
+function toggleWeaponSections() {
+  var form    = document.getElementById('txn-form');
   var purpose = document.getElementById('tb_purpose');
-  var hide = purpose && purpose.value === 'Duty Sentinel';
-  var d = hide ? 'none' : '';
-  var rifleCol    = document.getElementById('rifle-col');
-  var slingRow    = document.getElementById('rifle-sling-row');
-  var bandRow     = document.getElementById('bandoleer-row');
-  if (rifleCol)  rifleCol.style.display  = d;
-  if (slingRow)  slingRow.style.display  = d;
-  if (bandRow)   bandRow.style.display   = d;
-  if (hide) {
+  var val     = purpose ? purpose.value : '';
+  var cfg     = {};
+  try { cfg = JSON.parse((form && form.dataset.purposeConfig) || '{}'); } catch (e) {}
+  var pcfg       = cfg[val] || {pistol: true, rifle: true};
+  var showPistol = pcfg.pistol !== false;
+  var showRifle  = pcfg.rifle  !== false;
+
+  // Pistol column + related accessories
+  var pistolCol  = document.getElementById('pistol-col');
+  var holsterRow = document.getElementById('pistol-holster-row');
+  var pouchRow   = document.getElementById('magazine-pouch-row');
+  if (pistolCol)  pistolCol.style.display  = showPistol ? '' : 'none';
+  if (holsterRow) holsterRow.style.display = showPistol ? '' : 'none';
+  if (pouchRow)   pouchRow.style.display   = showPistol ? '' : 'none';
+  if (!showPistol) {
+    var pistolSel = document.getElementById('id_pistol') || document.querySelector('[name="pistol"]');
+    if (pistolSel && pistolSel.value) { pistolSel.value = ''; pistolSel.dispatchEvent(new Event('change')); }
+    var pmq = document.querySelector('[name="pistol_magazine_quantity"]');
+    if (pmq) pmq.value = '';
+    var paq = document.querySelector('[name="pistol_ammunition_quantity"]');
+    if (paq) paq.value = '';
+    var h = document.querySelector('[name="include_pistol_holster"]');
+    if (h) h.checked = false;
+    var mp = document.querySelector('[name="include_magazine_pouch"]');
+    if (mp) mp.checked = false;
+  }
+
+  // Rifle column + related accessories
+  var rifleCol = document.getElementById('rifle-col');
+  var slingRow = document.getElementById('rifle-sling-row');
+  var bandRow  = document.getElementById('bandoleer-row');
+  if (rifleCol)  rifleCol.style.display  = showRifle ? '' : 'none';
+  if (slingRow)  slingRow.style.display  = showRifle ? '' : 'none';
+  if (bandRow)   bandRow.style.display   = showRifle ? '' : 'none';
+  if (!showRifle) {
     var rifleSel = document.getElementById('id_rifle') || document.querySelector('[name="rifle"]');
     if (rifleSel && rifleSel.value) { rifleSel.value = ''; rifleSel.dispatchEvent(new Event('change')); }
     var rmSel = document.getElementById('id_rifle_magazine') || document.querySelector('[name="rifle_magazine"]');
@@ -78,30 +105,6 @@ function toggleRifleSection() {
     if (rs) rs.checked = false;
     var bd = document.querySelector('[name="include_bandoleer"]');
     if (bd) bd.checked = false;
-  }
-}
-
-function togglePistolSection() {
-  var purpose = document.getElementById('tb_purpose');
-  var hide = purpose && (purpose.value === 'Honor Guard' || purpose.value === 'Duty Vigil');
-  var d = hide ? 'none' : '';
-  var pistolCol  = document.getElementById('pistol-col');
-  var holsterRow = document.getElementById('pistol-holster-row');
-  var pouchRow   = document.getElementById('magazine-pouch-row');
-  if (pistolCol)  pistolCol.style.display  = d;
-  if (holsterRow) holsterRow.style.display = d;
-  if (pouchRow)   pouchRow.style.display   = d;
-  if (hide) {
-    var pistolSel = document.getElementById('id_pistol') || document.querySelector('[name="pistol"]');
-    if (pistolSel && pistolSel.value) { pistolSel.value = ''; pistolSel.dispatchEvent(new Event('change')); }
-    var pmq = document.querySelector('[name="pistol_magazine_quantity"]');
-    if (pmq) pmq.value = '';
-    var paq = document.querySelector('[name="pistol_ammunition_quantity"]');
-    if (paq) paq.value = '';
-    var h = document.querySelector('[name="include_pistol_holster"]');
-    if (h) h.checked = false;
-    var mp = document.querySelector('[name="include_magazine_pouch"]');
-    if (mp) mp.checked = false;
   }
 }
 
@@ -539,8 +542,7 @@ function _attachSelectStyles(el) {
   if (tbIssuance) tbIssuance.addEventListener('change', toggleTrPreview);
   if (tbPurpose) {
     tbPurpose.addEventListener('change', toggleDutyOther);
-    tbPurpose.addEventListener('change', togglePistolSection);
-    tbPurpose.addEventListener('change', toggleRifleSection);
+    tbPurpose.addEventListener('change', toggleWeaponSections);
   }
 
   // Persist type selection across refresh / PJAX navigation
@@ -618,8 +620,7 @@ function _attachSelectStyles(el) {
   // Initial state
   toggleReturnMode();
   toggleDutyOther();
-  togglePistolSection();
-  toggleRifleSection();
+  toggleWeaponSections();
 
   // Personnel select — with 300ms debounce (F7 FIX)
   var personnelSel = document.querySelector('[name="personnel"]');

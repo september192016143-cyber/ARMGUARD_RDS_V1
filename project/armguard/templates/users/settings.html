@@ -231,6 +231,43 @@
     </div>
   </div>
 
+  <!-- ── Transaction Form — Purpose Field Visibility ─────────────────────── -->
+  <div class="card mb-2">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-sliders"></i> Transaction Form — Purpose Field Visibility</span>
+    </div>
+    <div class="form-hint" style="margin-bottom:.85rem">
+      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+      Choose which weapon fields (Pistol / Rifle) are shown when each Purpose is selected on the New Transaction form.
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Purpose</th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-gun" style="font-size:.8rem;margin-right:.3rem"></i>Pistol</th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-rifle" style="font-size:.8rem;margin-right:.3rem"></i>Rifle</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in purpose_visibility_rows %}
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:.5rem .6rem;font-weight:500">{{ row.label }}</td>
+            <td style="text-align:center;padding:.5rem .6rem">
+              <input type="checkbox" name="{{ row.pistol_field }}" {% if row.pistol_value %}checked{% endif %}
+                     style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
+            </td>
+            <td style="text-align:center;padding:.5rem .6rem">
+              <input type="checkbox" name="{{ row.rifle_field }}" {% if row.rifle_value %}checked{% endif %}
+                     style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <div style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Changes apply immediately.</div>
 </form>
 

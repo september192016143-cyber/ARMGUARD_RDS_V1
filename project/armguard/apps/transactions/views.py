@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+import json
 from django.contrib import messages
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -225,6 +226,16 @@ class TransactionDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView)
 def create_transaction(request):
     if not _can_create_transaction(request.user):
         return HttpResponseForbidden("You do not have permission to create transactions.")
+    from armguard.apps.users.models import SystemSettings
+    _s = SystemSettings.get()
+    _purpose_config = json.dumps({
+        'Duty Sentinel': {'pistol': _s.purpose_duty_sentinel_show_pistol,  'rifle': _s.purpose_duty_sentinel_show_rifle},
+        'Duty Vigil':    {'pistol': _s.purpose_duty_vigil_show_pistol,     'rifle': _s.purpose_duty_vigil_show_rifle},
+        'Duty Security': {'pistol': _s.purpose_duty_security_show_pistol,  'rifle': _s.purpose_duty_security_show_rifle},
+        'Honor Guard':   {'pistol': _s.purpose_honor_guard_show_pistol,    'rifle': _s.purpose_honor_guard_show_rifle},
+        'Others':        {'pistol': _s.purpose_others_show_pistol,         'rifle': _s.purpose_others_show_rifle},
+        'OREX':          {'pistol': _s.purpose_orex_show_pistol,           'rifle': _s.purpose_orex_show_rifle},
+    })
     if request.method == 'POST':
         form = WithdrawalReturnTransactionForm(request.POST, request.FILES)
         if form.is_valid():
@@ -237,7 +248,7 @@ def create_transaction(request):
                 err_msgs = ve.messages if hasattr(ve, 'messages') else [str(ve)]
                 for msg in err_msgs:
                     form.add_error(None, msg)
-                return render(request, 'transactions/transaction_form.html', {'form': form})
+                return render(request, 'transactions/transaction_form.html', {'form': form, 'purpose_config': _purpose_config})
             # Invalidate dashboard caches so counts and table reflect the new transaction immediately.
             from django.utils import timezone as _tz
             cache.delete(f'dashboard_stats_{_tz.localdate()}')
@@ -246,7 +257,7 @@ def create_transaction(request):
             return redirect('transaction-detail', transaction_id=txn.transaction_id)
     else:
         form = WithdrawalReturnTransactionForm()
-    return render(request, 'transactions/transaction_form.html', {'form': form})
+    return render(request, 'transactions/transaction_form.html', {'form': form, 'purpose_config': _purpose_config})
 
 
 # Legacy stub kept for import compatibility

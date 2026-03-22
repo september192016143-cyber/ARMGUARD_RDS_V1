@@ -663,6 +663,7 @@ class SystemSettingsView(LoginRequiredMixin, View):
             return resp
         from .models import SystemSettings
         from django_otp.plugins.otp_totp.models import TOTPDevice
+        s = SystemSettings.get()
         total_users   = User.objects.filter(is_active=True).count()
         enrolled_pks  = set(TOTPDevice.objects.filter(confirmed=True).values_list('user_id', flat=True))
         users_with_2fa    = len(enrolled_pks)
@@ -672,13 +673,22 @@ class SystemSettingsView(LoginRequiredMixin, View):
             .select_related('profile')
             .order_by('username')
         )
+        purpose_visibility_rows = [
+            {'label': 'Duty Sentinel',  'pistol_field': 'purpose_duty_sentinel_show_pistol',  'pistol_value': s.purpose_duty_sentinel_show_pistol,  'rifle_field': 'purpose_duty_sentinel_show_rifle',  'rifle_value': s.purpose_duty_sentinel_show_rifle},
+            {'label': 'Duty Vigil',     'pistol_field': 'purpose_duty_vigil_show_pistol',     'pistol_value': s.purpose_duty_vigil_show_pistol,     'rifle_field': 'purpose_duty_vigil_show_rifle',     'rifle_value': s.purpose_duty_vigil_show_rifle},
+            {'label': 'Duty Security',  'pistol_field': 'purpose_duty_security_show_pistol',  'pistol_value': s.purpose_duty_security_show_pistol,  'rifle_field': 'purpose_duty_security_show_rifle',  'rifle_value': s.purpose_duty_security_show_rifle},
+            {'label': 'Honor Guard',    'pistol_field': 'purpose_honor_guard_show_pistol',    'pistol_value': s.purpose_honor_guard_show_pistol,    'rifle_field': 'purpose_honor_guard_show_rifle',    'rifle_value': s.purpose_honor_guard_show_rifle},
+            {'label': 'Others',         'pistol_field': 'purpose_others_show_pistol',         'pistol_value': s.purpose_others_show_pistol,         'rifle_field': 'purpose_others_show_rifle',         'rifle_value': s.purpose_others_show_rifle},
+            {'label': 'OREX',           'pistol_field': 'purpose_orex_show_pistol',           'pistol_value': s.purpose_orex_show_pistol,           'rifle_field': 'purpose_orex_show_rifle',           'rifle_value': s.purpose_orex_show_rifle},
+        ]
         return render(request, self.template_name, {
-            's':                  SystemSettings.get(),
-            'total_users':        total_users,
-            'users_with_2fa':     users_with_2fa,
-            'users_without_2fa':  users_without_2fa,
-            'non_super_users':    non_super_users,
-            'enrolled_2fa_ids':   enrolled_pks,
+            's':                       s,
+            'total_users':             total_users,
+            'users_with_2fa':          users_with_2fa,
+            'users_without_2fa':       users_without_2fa,
+            'non_super_users':         non_super_users,
+            'enrolled_2fa_ids':        enrolled_pks,
+            'purpose_visibility_rows': purpose_visibility_rows,
         })
 
     def post(self, request):
@@ -719,6 +729,16 @@ class SystemSettingsView(LoginRequiredMixin, View):
             if obj.app_logo:
                 obj.app_logo.delete(save=False)
             obj.app_logo = request.FILES['app_logo']
+        # Per-purpose weapon field visibility
+        for field in [
+            'purpose_duty_sentinel_show_pistol',  'purpose_duty_sentinel_show_rifle',
+            'purpose_duty_vigil_show_pistol',     'purpose_duty_vigil_show_rifle',
+            'purpose_duty_security_show_pistol',  'purpose_duty_security_show_rifle',
+            'purpose_honor_guard_show_pistol',    'purpose_honor_guard_show_rifle',
+            'purpose_others_show_pistol',         'purpose_others_show_rifle',
+            'purpose_orex_show_pistol',           'purpose_orex_show_rifle',
+        ]:
+            setattr(obj, field, field in request.POST)
         obj.save()
         messages.success(request, 'System settings saved.')
         return redirect('system-settings')

@@ -301,6 +301,22 @@ class SystemSettings(models.Model):
         help_text='Number of previous passwords a user may not reuse (0 = no restriction).'
     )
 
+    # ── Per-purpose weapon field visibility ───────────────────────────────────
+    # Controls which weapon columns (pistol / rifle) are shown on the
+    # New Transaction form for each purpose.  Editable via System Settings.
+    purpose_duty_sentinel_show_pistol  = models.BooleanField(default=True)
+    purpose_duty_sentinel_show_rifle   = models.BooleanField(default=False)
+    purpose_duty_vigil_show_pistol     = models.BooleanField(default=False)
+    purpose_duty_vigil_show_rifle      = models.BooleanField(default=True)
+    purpose_duty_security_show_pistol  = models.BooleanField(default=True)
+    purpose_duty_security_show_rifle   = models.BooleanField(default=True)
+    purpose_honor_guard_show_pistol    = models.BooleanField(default=False)
+    purpose_honor_guard_show_rifle     = models.BooleanField(default=True)
+    purpose_others_show_pistol         = models.BooleanField(default=True)
+    purpose_others_show_rifle          = models.BooleanField(default=True)
+    purpose_orex_show_pistol           = models.BooleanField(default=True)
+    purpose_orex_show_rifle            = models.BooleanField(default=True)
+
     class Meta:
         verbose_name        = "System Settings"
         verbose_name_plural = "System Settings"
