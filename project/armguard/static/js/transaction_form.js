@@ -509,6 +509,21 @@ function _attachSelectStyles(el) {
   if (modal)    modal.addEventListener('click', function (e) { if (e.target === this) closeTrPreview(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeTrPreview(); }, window.pjaxController ? { signal: window.pjaxController.signal } : undefined);
 
+  // Alt+W → Withdrawal  |  Alt+R → Return
+  document.addEventListener('keydown', function (e) {
+    if (!e.altKey) return;
+    var key = e.key.toLowerCase();
+    if (key === 'w' || key === 'r') {
+      e.preventDefault();
+      var newType = key === 'w' ? 'Withdrawal' : 'Return';
+      if (tbType && tbType.value !== newType) {
+        tbType.value = newType;
+        sessionStorage.setItem('txn_form_type', newType);
+        tbType.dispatchEvent(new Event('change'));
+      }
+    }
+  }, window.pjaxController ? { signal: window.pjaxController.signal } : {});
+
   // Restore persisted type (survives page refresh and PJAX navigation)
   var _savedType = sessionStorage.getItem('txn_form_type');
   if (_savedType && tbType && (_savedType === 'Withdrawal' || _savedType === 'Return')) {

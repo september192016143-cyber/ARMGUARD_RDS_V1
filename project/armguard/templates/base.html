@@ -276,6 +276,7 @@
 {# ===== End Notification Detail Modal ===== #}
 
 <div id="pjax-extra-css">{% block extra_css %}{% endblock %}</div>
+<script src="{% static 'js/hot_key.js' %}" defer data-new-txn-url="{% url 'transaction-create' %}"></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>
