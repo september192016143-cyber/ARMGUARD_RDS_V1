@@ -509,6 +509,15 @@ function _attachSelectStyles(el) {
   if (modal)    modal.addEventListener('click', function (e) { if (e.target === this) closeTrPreview(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeTrPreview(); }, window.pjaxController ? { signal: window.pjaxController.signal } : undefined);
 
+  // Enter (not inside a text field) → submit form
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' || e.altKey || e.ctrlKey || e.metaKey) return;
+    var tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (/^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(tag)) return;
+    e.preventDefault();
+    if (form) form.requestSubmit();
+  }, window.pjaxController ? { signal: window.pjaxController.signal } : {});
+
   // Alt+W → Withdrawal  |  Alt+R → Return  |  Alt+T → TR  |  Alt+A → PAR  |  Alt+V → TR Preview
   document.addEventListener('keydown', function (e) {
     if (!e.altKey) return;
