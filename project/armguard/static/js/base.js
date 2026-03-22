@@ -758,14 +758,26 @@ document.addEventListener('DOMContentLoaded', function () {
     // immediately when appended, re-initialising against the fresh DOM.
     // Skip permanent scripts — they were already executed on first load.
     newDoc.querySelectorAll('body > script:not([data-pjax-permanent])').forEach(function (orig) {
-      var s = document.createElement('script');
-      var src = orig.getAttribute('src');
-      if (src) {
-        s.src = src;   // browser resolves relative src against current document
-        s.async = false;
-      } else {
-        s.textContent = orig.textContent;
+      var src  = orig.getAttribute('src');
+      var type = orig.getAttribute('type') || '';
+
+      if (!src) {
+        // Inline executable scripts (no type / type=text/javascript) violate
+        // CSP script-src 'self' — skip them entirely.
+        // Data blocks (type=application/json etc.) are safe: re-inject with
+        // their original type so the browser never tries to execute them.
+        if (!type || /^(text\/javascript|module)$/i.test(type)) return;
+        var d = document.createElement('script');
+        d.type = type;
+        if (orig.id) d.id = orig.id;
+        d.textContent = orig.textContent;
+        document.body.appendChild(d);
+        return;
       }
+
+      var s = document.createElement('script');
+      s.src = src;   // browser resolves relative src against current document
+      s.async = false;
       document.body.appendChild(s);
     });
   }
