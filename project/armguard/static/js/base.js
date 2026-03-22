@@ -814,11 +814,12 @@ document.addEventListener('DOMContentLoaded', function () {
       document.title = doc.title;
 
       // Swap the four topbar dynamic slots + the main content area
-      swapSlot('pjax-title',   doc);
-      swapSlot('pjax-sub',     doc);
-      swapSlot('pjax-actions', doc);
-      swapSlot('pjax-submit',  doc);
-      swapSlot('main-content', doc);
+      swapSlot('pjax-title',     doc);
+      swapSlot('pjax-sub',       doc);
+      swapSlot('pjax-actions',   doc);
+      swapSlot('pjax-submit',    doc);
+      swapSlot('pjax-extra-css', doc);
+      swapSlot('main-content',   doc);
 
       // Sync body data attributes (e.g. data-collapse-sidebar for txn form)
       var wasAutoCollapsed = document.body.dataset.collapseSidebar === '1';

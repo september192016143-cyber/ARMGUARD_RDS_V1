@@ -10,7 +10,6 @@
 <link rel="shortcut icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
 {# C2 FIX: base.js loaded blocking (no defer/async) so sidebar anti-FOUC runs before body paints. #}
 <script src="{% static 'js/base.js' %}"></script>
-{% block extra_css %}{% endblock %}
 </head>
 {# C2 FIX: data-poll activates G13 inventory polling for authenticated users only (replaces inline auth-block script). #}
 {# F6 FIX: data-last-modified-url passes the API endpoint URL so base.js doesn't need to hardcode it. #}
@@ -276,6 +275,7 @@
 </div>
 {# ===== End Notification Detail Modal ===== #}
 
+<div id="pjax-extra-css">{% block extra_css %}{% endblock %}</div>
 {% block extra_js %}{% endblock %}
 </body>
 </html>
