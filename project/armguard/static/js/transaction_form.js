@@ -55,6 +55,32 @@ function toggleDutyOther() {
   if (other) other.style.display = sel && sel.value === 'Others' ? '' : 'none';
 }
 
+function toggleRifleSection() {
+  var purpose = document.getElementById('tb_purpose');
+  var hide = purpose && purpose.value === 'Duty Sentinel';
+  var d = hide ? 'none' : '';
+  var rifleCol    = document.getElementById('rifle-col');
+  var slingRow    = document.getElementById('rifle-sling-row');
+  var bandRow     = document.getElementById('bandoleer-row');
+  if (rifleCol)  rifleCol.style.display  = d;
+  if (slingRow)  slingRow.style.display  = d;
+  if (bandRow)   bandRow.style.display   = d;
+  if (hide) {
+    var rifleSel = document.getElementById('id_rifle') || document.querySelector('[name="rifle"]');
+    if (rifleSel && rifleSel.value) { rifleSel.value = ''; rifleSel.dispatchEvent(new Event('change')); }
+    var rmSel = document.getElementById('id_rifle_magazine') || document.querySelector('[name="rifle_magazine"]');
+    if (rmSel) rmSel.value = '';
+    var rmq = document.querySelector('[name="rifle_magazine_quantity"]');
+    if (rmq) rmq.value = '';
+    var raq = document.querySelector('[name="rifle_ammunition_quantity"]');
+    if (raq) raq.value = '';
+    var rs = document.querySelector('[name="include_rifle_sling"]');
+    if (rs) rs.checked = false;
+    var bd = document.querySelector('[name="include_bandoleer"]');
+    if (bd) bd.checked = false;
+  }
+}
+
 function togglePistolSection() {
   var purpose = document.getElementById('tb_purpose');
   var hide = purpose && (purpose.value === 'Honor Guard' || purpose.value === 'Duty Vigil');
@@ -514,6 +540,7 @@ function _attachSelectStyles(el) {
   if (tbPurpose) {
     tbPurpose.addEventListener('change', toggleDutyOther);
     tbPurpose.addEventListener('change', togglePistolSection);
+    tbPurpose.addEventListener('change', toggleRifleSection);
   }
 
   // Persist type selection across refresh / PJAX navigation
@@ -592,6 +619,7 @@ function _attachSelectStyles(el) {
   toggleReturnMode();
   toggleDutyOther();
   togglePistolSection();
+  toggleRifleSection();
 
   // Personnel select — with 300ms debounce (F7 FIX)
   var personnelSel = document.querySelector('[name="personnel"]');

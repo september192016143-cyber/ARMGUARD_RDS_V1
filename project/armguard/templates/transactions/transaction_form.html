@@ -144,7 +144,7 @@
           </div>
         </div>
         <!-- Right: Rifle + Rifle Magazine + Qty + Rifle Ammo -->
-        <div style="display:flex;flex-direction:column;gap:.5rem;">
+        <div id="rifle-col" style="display:flex;flex-direction:column;gap:.5rem;">
           <div class="form-group" style="margin-bottom:0;">
             <label for="id_rifle" class="form-label">Rifle</label>
             {{ form.rifle }}
@@ -188,11 +188,11 @@
           {{ form.include_magazine_pouch }}
           <span style="font-size:.8rem;font-weight:500;color:var(--text)">Magazine Pouch<span style="color:var(--muted);font-weight:400;"> &mdash; 3 units</span></span>
         </label>
-        <label style="display:flex;align-items:center;gap:.75rem;cursor:pointer;">
+        <label id="rifle-sling-row" style="display:flex;align-items:center;gap:.75rem;cursor:pointer;">
           {{ form.include_rifle_sling }}
           <span style="font-size:.8rem;font-weight:500;color:var(--text)">Rifle Sling<span style="color:var(--muted);font-weight:400;"> &mdash; 1 unit</span></span>
         </label>
-        <label style="display:flex;align-items:center;gap:.75rem;cursor:pointer;">
+        <label id="bandoleer-row" style="display:flex;align-items:center;gap:.75rem;cursor:pointer;">
           {{ form.include_bandoleer }}
           <span style="font-size:.8rem;font-weight:500;color:var(--text)">Bandoleer<span style="color:var(--muted);font-weight:400;"> &mdash; 1 unit</span></span>
         </label>
