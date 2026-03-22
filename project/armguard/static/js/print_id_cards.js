@@ -24,14 +24,13 @@
   var REGEN_URL_TEMPLATE = cfg.regenUrlTemplate;   // contains __PID__
   var PRINT_VIEW_URL     = cfg.printViewUrl;
   var GEN_MISSING_URL    = cfg.genMissingUrl;
-  var CSRF_TOKEN         = cfg.csrfToken;
-
+  var CSRF_TOKEN         = cfg.csrfToken;  var _sig               = window.pjaxController ? { signal: window.pjaxController.signal } : undefined;
   // ── Flip ─────────────────────────────────────────────────────────────────
   document.addEventListener('click', function (e) {
     var scene = e.target.closest('[data-action="flip"]');
     if (!scene) return;
     scene.querySelector('.flip-inner').classList.toggle('flipped');
-  });
+  }, _sig);
 
   // ── Select All ───────────────────────────────────────────────────────────
   var selectAllCb = document.getElementById('select-all');
@@ -52,7 +51,7 @@
         .classList.toggle('selected', e.target.checked);
       updatePrintBtn();
     }
-  });
+  }, _sig);
 
   function updatePrintBtn() {
     var count = document.querySelectorAll('.card-checkbox:checked').length;
@@ -78,7 +77,7 @@
     var btn = e.target.closest('[data-action="regen"]');
     if (!btn) return;
     regenCard(btn.dataset.pid, btn.dataset.slug);
-  });
+  }, _sig);
 
   function regenCard(pid, slug) {
     var btn    = document.getElementById('regen-btn-' + slug);

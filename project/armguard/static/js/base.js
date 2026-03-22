@@ -803,6 +803,13 @@ document.addEventListener('DOMContentLoaded', function () {
       try { doc = new DOMParser().parseFromString(html, 'text/html'); }
       catch (e) { window.location.href = url; doneBar(); _busy = false; return; }
 
+      // If the new page is a standalone (no #main-content — e.g. print preview, PDF viewer),
+      // fall back to full navigation so it renders correctly.
+      if (!doc.getElementById('main-content')) {
+        window.location.href = url;
+        doneBar(); _busy = false; return;
+      }
+
       // Update page title
       document.title = doc.title;
 

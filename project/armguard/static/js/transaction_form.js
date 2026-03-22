@@ -474,7 +474,7 @@ function _attachSelectStyles(el) {
 }
 
 // ── DOMContentLoaded setup ────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function () {
+(function () {
   var form = document.getElementById('txn-form');
 
   // Topbar selects — styles and change handlers (replaces inline onfocus/onblur/onchange)
@@ -609,7 +609,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var dismissBtn = errorToast.querySelector('[data-dismiss]');
     if (dismissBtn) dismissBtn.addEventListener('click', dismissErrorToast);
   }
-});
+})();
 
 // ── Widget initialization ─────────────────────────────────────────────────────
 // Runs after DOM is parsed (script has 'defer'). Adds form-control class to widgets.
@@ -912,7 +912,7 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
       .catch(function() { hideEl(blockId); });
   }
 
-  document.addEventListener('DOMContentLoaded', function() {
+  (function() {
     var personnelSel = document.querySelector('[name="personnel"]');
     var pistolSel    = document.getElementById('id_pistol') || document.querySelector('[name="pistol"]');
     var rifleSel     = document.getElementById('id_rifle')  || document.querySelector('[name="rifle"]');
@@ -928,5 +928,5 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
       rifleSel.addEventListener('change', function() { updateItemSidebar('rifle', this.value); });
       if (rifleSel.value) updateItemSidebar('rifle', rifleSel.value);
     }
-  });
+  })();
 })();

@@ -135,7 +135,7 @@
   /* ── Event delegation ── */
   document.addEventListener('change', function (e) {
     if (e.target && e.target.classList.contains('tag-checkbox')) updateCount();
-  });
+  }, window.pjaxController ? { signal: window.pjaxController.signal } : undefined);
 
   document.addEventListener('click', function (e) {
     var t = e.target.closest ? e.target.closest('[data-action]') : null;
@@ -158,5 +158,5 @@
       t.href = PRINT_URL + '?ids=' + itemId + '&stack=' + getStack();
       return;
     }
-  });
+  }, window.pjaxController ? { signal: window.pjaxController.signal } : undefined);
 })();

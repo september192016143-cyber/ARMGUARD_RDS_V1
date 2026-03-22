@@ -122,9 +122,9 @@
       });
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
+  (function () {
     loadStorage();
     const btn = document.getElementById('storage-refresh-btn');
     if (btn) btn.addEventListener('click', loadStorage);
-  });
+  })();
 })();
