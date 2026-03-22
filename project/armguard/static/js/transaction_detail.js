@@ -84,3 +84,139 @@
     })
     .catch(function (err) { showError(err ? err.message : ''); });
 })();
+
+// ── Personnel typeahead + QR/barcode scanner ──────────────────────────────────
+(function () {
+  var card     = document.getElementById('td-personnel-card');
+  var input    = document.getElementById('td-personnel-search');
+  var dropdown = document.getElementById('td-personnel-results');
+  if (!card || !input || !dropdown) return;
+
+  var SEARCH_URL  = card.dataset.searchUrl;
+  var DETAIL_BASE = card.dataset.detailBase; // e.g. /personnel/
+  var debounceTimer;
+  var DEBOUNCE = 300;
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderResults(results) {
+    if (!results.length) {
+      dropdown.innerHTML = '<div style="padding:.45rem .7rem;font-size:.72rem;color:var(--muted,#64748b)">No results</div>';
+      dropdown.style.display = 'block';
+      return;
+    }
+    dropdown.innerHTML = results.map(function (r) {
+      return '<div class="td-ps-item" data-id="' + escHtml(r.id) + '"'
+        + ' style="padding:.4rem .7rem;font-size:.72rem;cursor:pointer;border-bottom:1px solid var(--border,#334155)">'
+        + '<span style="font-weight:600">' + escHtml(r.last_name) + ', ' + escHtml(r.first_name) + '</span>'
+        + ' <span style="color:var(--muted,#64748b)">' + escHtml(r.rank) + '</span>'
+        + '<br><span style="font-size:.67rem;color:var(--muted,#64748b)">AFSN: ' + escHtml(r.AFSN)
+        + ' \u00b7 ID: ' + escHtml(r.id) + '</span>'
+        + '</div>';
+    }).join('');
+    dropdown.style.display = 'block';
+  }
+
+  function closeDropdown() {
+    dropdown.style.display = 'none';
+    dropdown.innerHTML = '';
+  }
+
+  function doSearch(q) {
+    q = q.trim();
+    if (q.length < 2) { closeDropdown(); return; }
+    fetch(SEARCH_URL + '?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { renderResults(d.results || []); })
+      .catch(function () { closeDropdown(); });
+  }
+
+  function navigateTo(personnelId) {
+    var url = DETAIL_BASE + encodeURIComponent(personnelId) + '/';
+    closeDropdown();
+    input.value = '';
+    if (typeof window.pjaxNavigate === 'function') {
+      window.pjaxNavigate(url);
+    } else {
+      window.location.href = url;
+    }
+  }
+
+  // Hover highlight
+  dropdown.addEventListener('mouseover', function (e) {
+    var item = e.target.closest('.td-ps-item');
+    if (item) item.style.background = 'var(--hover-bg,#334155)';
+  });
+  dropdown.addEventListener('mouseout', function (e) {
+    var item = e.target.closest('.td-ps-item');
+    if (item) item.style.background = '';
+  });
+  dropdown.addEventListener('click', function (e) {
+    var item = e.target.closest('.td-ps-item');
+    if (item) navigateTo(item.dataset.id);
+  });
+
+  input.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function () { doSearch(input.value); }, DEBOUNCE);
+  });
+
+  // Close dropdown on outside click
+  document.addEventListener('click', function (e) {
+    if (!input.contains(e.target) && !dropdown.contains(e.target)) closeDropdown();
+  }, window.pjaxController ? { signal: window.pjaxController.signal } : {});
+
+  // ── QR / barcode scanner (keyboard-wedge) ─────────────────────────────────
+  // Same pattern as personnel_list.js: fast keystrokes (≤50 ms) ending with
+  // Enter are treated as a scanner burst and routed to the search field.
+  (function () {
+    var buf          = '';
+    var lastKey      = 0;
+    var scanning     = false;
+    var SCANNER_SPEED = 50;
+    var MIN_LEN      = 3;
+
+    function handleScan(val) {
+      input.value = val;
+      closeDropdown();
+      doSearch(val);
+    }
+
+    document.addEventListener('keydown', function (e) {
+      var now = Date.now();
+      var gap = now - lastKey;
+
+      if (e.key === 'Enter') {
+        if (scanning && buf.length >= MIN_LEN) {
+          e.preventDefault();
+          e.stopPropagation();
+          handleScan(buf);
+        }
+        buf = '';
+        scanning = false;
+        lastKey = 0;
+        return;
+      }
+
+      if (e.key.length !== 1) return;
+
+      if (buf.length === 0) {
+        buf = e.key;
+        scanning = false;
+      } else if (gap <= SCANNER_SPEED) {
+        buf += e.key;
+        scanning = true;
+        e.preventDefault();
+        e.stopPropagation();
+      } else {
+        buf = e.key;
+        scanning = false;
+      }
+      lastKey = now;
+    }, window.pjaxController ? { capture: true, signal: window.pjaxController.signal } : true);
+  })();
+})();

@@ -414,6 +414,36 @@ def personnel_status(request):
 
 @login_required
 @require_GET
+@ratelimit(rate='30/m')
+def personnel_search(request):
+    """
+    Typeahead search: match personnel by first_name, last_name, or AFSN.
+    GET ?q=<text>  — returns up to 10 results.
+    """
+    from armguard.apps.personnel.models import Personnel
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({'results': []})
+    qs = Personnel.objects.filter(
+        Q(first_name__icontains=q) |
+        Q(last_name__icontains=q) |
+        Q(AFSN__icontains=q)
+    ).order_by('last_name', 'first_name')[:10]
+    results = [
+        {
+            'id': p.Personnel_ID,
+            'rank': p.rank or '',
+            'first_name': p.first_name,
+            'last_name': p.last_name,
+            'AFSN': p.AFSN or '',
+        }
+        for p in qs
+    ]
+    return JsonResponse({'results': results})
+
+
+@login_required
+@require_GET
 @ratelimit(rate='60/m')
 def item_status_check(request):
     """
