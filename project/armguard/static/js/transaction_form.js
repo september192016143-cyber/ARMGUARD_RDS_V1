@@ -519,6 +519,7 @@ function _attachSelectStyles(el) {
   }, window.pjaxController ? { signal: window.pjaxController.signal } : {});
 
   // Alt+W → Withdrawal  |  Alt+R → Return  |  Alt+T → TR  |  Alt+A → PAR  |  Alt+V → TR Preview
+  // Alt+1…5 → Purpose (Duty Sentinel, Duty Vigil, Duty Security, Honor Guard, Others)
   document.addEventListener('keydown', function (e) {
     if (!e.altKey) return;
     var key = e.key.toLowerCase();
@@ -543,6 +544,14 @@ function _attachSelectStyles(el) {
       e.preventDefault();
       var btn = document.getElementById('btn-tr-preview');
       if (btn && btn.style.display !== 'none') openTrPreview();
+    } else if (e.key >= '1' && e.key <= '5') {
+      e.preventDefault();
+      var purposes = ['Duty Sentinel', 'Duty Vigil', 'Duty Security', 'Honor Guard', 'Others'];
+      var newPurpose = purposes[parseInt(e.key, 10) - 1];
+      if (tbPurpose && tbPurpose.value !== newPurpose) {
+        tbPurpose.value = newPurpose;
+        tbPurpose.dispatchEvent(new Event('change'));
+      }
     }
   }, window.pjaxController ? { signal: window.pjaxController.signal } : {});
 
