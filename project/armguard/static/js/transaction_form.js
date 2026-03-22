@@ -55,6 +55,30 @@ function toggleDutyOther() {
   if (other) other.style.display = sel && sel.value === 'Others' ? '' : 'none';
 }
 
+function togglePistolSection() {
+  var purpose = document.getElementById('tb_purpose');
+  var hide = purpose && (purpose.value === 'Honor Guard' || purpose.value === 'Duty Vigil');
+  var d = hide ? 'none' : '';
+  var pistolCol  = document.getElementById('pistol-col');
+  var holsterRow = document.getElementById('pistol-holster-row');
+  var pouchRow   = document.getElementById('magazine-pouch-row');
+  if (pistolCol)  pistolCol.style.display  = d;
+  if (holsterRow) holsterRow.style.display = d;
+  if (pouchRow)   pouchRow.style.display   = d;
+  if (hide) {
+    var pistolSel = document.getElementById('id_pistol') || document.querySelector('[name="pistol"]');
+    if (pistolSel && pistolSel.value) { pistolSel.value = ''; pistolSel.dispatchEvent(new Event('change')); }
+    var pmq = document.querySelector('[name="pistol_magazine_quantity"]');
+    if (pmq) pmq.value = '';
+    var paq = document.querySelector('[name="pistol_ammunition_quantity"]');
+    if (paq) paq.value = '';
+    var h = document.querySelector('[name="include_pistol_holster"]');
+    if (h) h.checked = false;
+    var mp = document.querySelector('[name="include_magazine_pouch"]');
+    if (mp) mp.checked = false;
+  }
+}
+
 function toggleTrPreview() {
   var isSel = document.getElementById('tb_issuance_type');
   var btn = document.getElementById('btn-tr-preview');
@@ -487,7 +511,10 @@ function _attachSelectStyles(el) {
 
   if (tbType)     tbType.addEventListener('change',     toggleReturnMode);
   if (tbIssuance) tbIssuance.addEventListener('change', toggleTrPreview);
-  if (tbPurpose)  tbPurpose.addEventListener('change',  toggleDutyOther);
+  if (tbPurpose) {
+    tbPurpose.addEventListener('change', toggleDutyOther);
+    tbPurpose.addEventListener('change', togglePistolSection);
+  }
 
   // Persist type selection across refresh / PJAX navigation
   if (tbType) tbType.addEventListener('change', function () {
@@ -564,6 +591,7 @@ function _attachSelectStyles(el) {
   // Initial state
   toggleReturnMode();
   toggleDutyOther();
+  togglePistolSection();
 
   // Personnel select — with 300ms debounce (F7 FIX)
   var personnelSel = document.querySelector('[name="personnel"]');

@@ -120,7 +120,7 @@
       {{ form.rifle_ammunition.as_hidden }}
       <div class="form-row">
         <!-- Left: Pistol + Pistol Magazine Qty + Pistol Ammo -->
-        <div style="display:flex;flex-direction:column;gap:.5rem;">
+        <div id="pistol-col" style="display:flex;flex-direction:column;gap:.5rem;">
           <div class="form-group" style="margin-bottom:0;">
             <label for="id_pistol" class="form-label">Pistol</label>
             {{ form.pistol }}
@@ -180,11 +180,11 @@
     <!-- Accessories -->
     <div style="padding-bottom:.75rem;margin-bottom:.75rem;border-bottom:1px solid var(--border);">
       <div style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(2,auto);grid-auto-flow:column;gap:.5rem .75rem;">
-        <label style="display:flex;align-items:center;gap:.75rem;cursor:pointer;">
+        <label id="pistol-holster-row" style="display:flex;align-items:center;gap:.75rem;cursor:pointer;">
           {{ form.include_pistol_holster }}
           <span style="font-size:.8rem;font-weight:500;color:var(--text)">Pistol Holster<span style="color:var(--muted);font-weight:400;"> &mdash; 1 unit</span></span>
         </label>
-        <label style="display:flex;align-items:center;gap:.75rem;cursor:pointer;">
+        <label id="magazine-pouch-row" style="display:flex;align-items:center;gap:.75rem;cursor:pointer;">
           {{ form.include_magazine_pouch }}
           <span style="font-size:.8rem;font-weight:500;color:var(--text)">Magazine Pouch<span style="color:var(--muted);font-weight:400;"> &mdash; 3 units</span></span>
         </label>
