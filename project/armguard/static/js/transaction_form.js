@@ -795,13 +795,19 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
         return o.value && (o.text.indexOf(val) !== -1 || o.value === val);
       });
       if (piOpt) {
-        pistolSel.value = piOpt.value;
-        if (rifleSel) { rifleSel.value = ''; rifleSel.dispatchEvent(new Event('change')); }
-        pistolSel.dispatchEvent(new Event('change'));
-        var qrIEl = document.getElementById('fe_qr_item_id');
-        if (qrIEl) qrIEl.value = val;
-        showQrToast('\u2713 Pistol: ' + piOpt.text.trim(), true);
-        matched = true;
+        var pistolCol = document.getElementById('pistol-col');
+        if (pistolCol && pistolCol.style.display === 'none') {
+          showQrToast('\u26A0 Pistol is not used for this purpose', false);
+          matched = true;
+        } else {
+          pistolSel.value = piOpt.value;
+          if (rifleSel) { rifleSel.value = ''; rifleSel.dispatchEvent(new Event('change')); }
+          pistolSel.dispatchEvent(new Event('change'));
+          var qrIEl = document.getElementById('fe_qr_item_id');
+          if (qrIEl) qrIEl.value = val;
+          showQrToast('\u2713 Pistol: ' + piOpt.text.trim(), true);
+          matched = true;
+        }
       }
     }
 
@@ -810,13 +816,19 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
         return o.value && (o.text.indexOf(val) !== -1 || o.value === val);
       });
       if (riOpt) {
-        rifleSel.value = riOpt.value;
-        if (pistolSel) { pistolSel.value = ''; pistolSel.dispatchEvent(new Event('change')); }
-        rifleSel.dispatchEvent(new Event('change'));
-        var qrIEl2 = document.getElementById('fe_qr_item_id');
-        if (qrIEl2) qrIEl2.value = val;
-        showQrToast('\u2713 Rifle: ' + riOpt.text.trim(), true);
-        matched = true;
+        var rifleCol = document.getElementById('rifle-col');
+        if (rifleCol && rifleCol.style.display === 'none') {
+          showQrToast('\u26A0 Rifle is not used for this purpose', false);
+          matched = true;
+        } else {
+          rifleSel.value = riOpt.value;
+          if (pistolSel) { pistolSel.value = ''; pistolSel.dispatchEvent(new Event('change')); }
+          rifleSel.dispatchEvent(new Event('change'));
+          var qrIEl2 = document.getElementById('fe_qr_item_id');
+          if (qrIEl2) qrIEl2.value = val;
+          showQrToast('\u2713 Rifle: ' + riOpt.text.trim(), true);
+          matched = true;
+        }
       }
     }
 
