@@ -821,10 +821,18 @@ document.addEventListener('DOMContentLoaded', function () {
       swapSlot('main-content', doc);
 
       // Sync body data attributes (e.g. data-collapse-sidebar for txn form)
+      var wasAutoCollapsed = document.body.dataset.collapseSidebar === '1';
       document.body.dataset.collapseSidebar = doc.body.dataset.collapseSidebar || '';
-      if (doc.body.dataset.collapseSidebar === '1' &&
-          !document.body.classList.contains('sidebar-collapsed')) {
-        document.body.classList.add('sidebar-collapsed');
+      if (doc.body.dataset.collapseSidebar === '1') {
+        // Entering transaction form — auto-collapse sidebar
+        if (!document.body.classList.contains('sidebar-collapsed')) {
+          document.body.classList.add('sidebar-collapsed');
+        }
+      } else if (wasAutoCollapsed) {
+        // Leaving transaction form — restore user's own saved preference
+        if (localStorage.getItem('sidebarCollapsed') !== 'true') {
+          document.body.classList.remove('sidebar-collapsed');
+        }
       }
 
       // Sync sidebar active state
