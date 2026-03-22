@@ -509,7 +509,7 @@ function _attachSelectStyles(el) {
   if (modal)    modal.addEventListener('click', function (e) { if (e.target === this) closeTrPreview(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeTrPreview(); }, window.pjaxController ? { signal: window.pjaxController.signal } : undefined);
 
-  // Alt+W → Withdrawal  |  Alt+R → Return
+  // Alt+W → Withdrawal  |  Alt+R → Return  |  Alt+T → TR  |  Alt+A → PAR
   document.addEventListener('keydown', function (e) {
     if (!e.altKey) return;
     var key = e.key.toLowerCase();
@@ -520,6 +520,15 @@ function _attachSelectStyles(el) {
         tbType.value = newType;
         sessionStorage.setItem('txn_form_type', newType);
         tbType.dispatchEvent(new Event('change'));
+      }
+    } else if (key === 't' || key === 'a') {
+      e.preventDefault();
+      var newIssuance = key === 't'
+        ? 'TR (Temporary Receipt)'
+        : 'PAR (Property Acknowledgement Receipt)';
+      if (tbIssuance && tbIssuance.value !== newIssuance) {
+        tbIssuance.value = newIssuance;
+        tbIssuance.dispatchEvent(new Event('change'));
       }
     }
   }, window.pjaxController ? { signal: window.pjaxController.signal } : {});
