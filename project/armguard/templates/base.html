@@ -121,6 +121,9 @@
     <a href="{% url 'user-add' %}" class="nav-item {% if request.resolver_match.url_name == 'user-add' %}active{% endif %}" title="Add User">
       <i class="fa-solid fa-user-plus nav-icon"></i><span class="nav-label">Add User</span>
     </a>
+    <a href="{% url 'camera:device_list' %}" class="nav-item {% if 'camera' in request.resolver_match.url_name %}active{% endif %}" title="Camera Devices">
+      <i class="fa-solid fa-camera nav-icon"></i><span class="nav-label">Camera Devices</span>
+    </a>
     {% endif %}
     {% if user.is_superuser %}
     <a href="{% url 'admin:index' %}" class="nav-item" target="_blank" title="Django Admin">
