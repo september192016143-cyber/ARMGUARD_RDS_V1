@@ -526,7 +526,7 @@ class WithdrawalReturnTransactionForm(TransactionAdminForm):
             'notes',
         ]
         widgets = {
-            'notes': forms.Textarea(attrs={'rows': 3}),
+            'notes': forms.Textarea(attrs={'rows': 3, 'style': 'color:#ffffff;'}),
         }
 
     def clean(self):

@@ -25,6 +25,7 @@ from django.core.paginator import Paginator
 # H1 FIX: Import per-module permission helpers.
 from armguard.utils.permissions import can_print as _can_print
 from armguard.utils.permissions import can_delete_inventory as _can_delete
+from armguard.utils.permissions import can_edit_personnel as _can_edit
 from armguard.utils.permissions import is_admin as _is_admin
 
 
@@ -246,10 +247,10 @@ def print_item_tags_view(request):
 
     tags = []
     for item in items_qs:
-        if f"{item.id}.png" not in existing_tags:
+        if f"{item.item_id}.png" not in existing_tags:
             continue
         if stack == 1:
-            tag_src = _item_tag_img_url(request, item.id)
+            tag_src = _item_tag_img_url(request, item.item_id)
         else:
             tag_src = get_stacked_tag_b64(item, stack)
         tags.append({'item': item, 'tag_url': tag_src, 'stack': stack})
