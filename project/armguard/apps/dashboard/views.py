@@ -480,17 +480,16 @@ def dashboard_view(request):
     return render(request, 'dashboard/dashboard.html', context)
 
 
-@login_required
 def download_ssl_cert(request):
     """Serve the self-signed SSL certificate as a download.
+    
+    PUBLIC ENDPOINT (no login required) — the certificate is public information
+    anyway (transmitted in TLS handshake), so making it easy to download helps
+    users install it without fighting the browser's security warning.
 
-    Windows users can open the downloaded .crt file and click
-    "Install Certificate → Local Machine → Trusted Root Certification Authorities"
-    to eliminate the browser "Not secure" warning on the LAN.
-
-    Windows users can open the downloaded .crt file and click
-    "Install Certificate → Local Machine → Trusted Root Certification Authorities"
-    to eliminate the browser "Not secure" warning on the LAN.
+    Android: Settings → Security → Install from storage → CA certificate
+    Windows: Open .crt file → Install Certificate → Trusted Root CA
+    iOS: Download → Settings → Profile Downloaded → Install
     """
     cert_path = settings.SSL_CERT_PATH
     if not os.path.isfile(cert_path):
@@ -503,11 +502,12 @@ def download_ssl_cert(request):
     return response
 
 
-@login_required
 def ssl_cert_status(request):
     """Return the current SSL cert mtime so the frontend can compare against its
     localStorage ack. The ack is stored client-side so it persists across logins.
     Response: {"cert_mtime": float}  (0.0 when no cert file exists)
+    
+    PUBLIC ENDPOINT — metadata only, no sensitive data.
     """
     from django.http import JsonResponse
     cert_path = settings.SSL_CERT_PATH

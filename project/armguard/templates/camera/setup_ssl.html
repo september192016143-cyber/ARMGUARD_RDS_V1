@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>ArmGuard — Secure Setup</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .card {
+      background: #1e293b;
+      border-radius: 1rem;
+      padding: 2rem 1.5rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+    }
+    .icon-success {
+      font-size: 3.5rem;
+      text-align: center;
+      margin-bottom: .5rem;
+      color: #4ade80;
+    }
+    h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: .25rem;
+      color: #f8fafc;
+      text-align: center;
+    }
+    .device-label {
+      font-size: .85rem;
+      color: #64748b;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .device-label strong { color: #4ade80; }
+    .alert {
+      background: #1c1917;
+      border-left: 4px solid #f97316;
+      border-radius: .6rem;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-size: .88rem;
+      line-height: 1.6;
+    }
+    .alert strong { color: #f97316; }
+    .steps {
+      background: #0f172a;
+      border-radius: .6rem;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .steps li {
+      font-size: .85rem;
+      color: #94a3b8;
+      margin-bottom: .6rem;
+      padding-left: .5rem;
+      line-height: 1.5;
+    }
+    .steps li::marker { color: #f97316; font-weight: 700; }
+    .steps code {
+      background: #1e293b;
+      color: #fbbf24;
+      padding: .15rem .4rem;
+      border-radius: .3rem;
+      font-size: .82rem;
+    }
+    .steps em {
+      color: #64748b;
+      font-size: .8rem;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      margin-bottom: .75rem;
+      background: #f97316;
+      color: #fff;
+      border: none;
+      border-radius: .6rem;
+      padding: .9rem;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      text-align: center;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .btn:hover { background: #ea6f10; }
+    .btn-secondary {
+      background: #1e3a5f;
+      color: #93c5fd;
+    }
+    .btn-secondary:hover { background: #2a4975; }
+    .note {
+      font-size: .75rem;
+      color: #475569;
+      text-align: center;
+      margin-top: .5rem;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="icon-success">&#9989;</div>
+  <h1>Device Paired Successfully</h1>
+  <div class="device-label">
+    <strong>{{ device.device_name|default:"Phone" }}</strong>
+    &bull; {{ device.user.username }}
+  </div>
+
+  <div class="alert">
+    <strong>&#9888; One more step:</strong> Install the security certificate to enable encrypted uploads.
+  </div>
+
+  <ol class="steps">
+    <li>Tap <strong>Download Certificate</strong> below.<br>
+        <em>File: <code>armguard-selfsigned.crt</code></em></li>
+    <li>Open <strong>Settings &rarr; Security &rarr; Install from storage</strong>.</li>
+    <li>Choose <strong>CA certificate</strong> (not "VPN & apps").</li>
+    <li>Navigate to <strong>Downloads</strong> &rarr; tap <code>armguard-selfsigned.crt</code>.</li>
+    <li>Confirm (may ask for PIN/fingerprint).</li>
+    <li>Tap <strong>Continue to Camera</strong> below.</li>
+  </ol>
+
+  <a href="{{ cert_url }}" class="btn" download>
+    &#128190; Download Certificate
+  </a>
+
+  <a href="{{ https_url }}" class="btn btn-secondary">
+    &#128274; Continue to Camera
+  </a>
+
+  <p class="note">
+    Only needed once per device. Future visits will skip this step.
+  </p>
+</div>
+</body>
+</html>

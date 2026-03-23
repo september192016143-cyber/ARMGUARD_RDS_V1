@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'armguard.apps.transactions',
     'armguard.apps.users',
     'armguard.apps.print',
+    'armguard.apps.camera',
     # G15: django-otp — TOTP models & OTPMiddleware (is_verified() on request.user)
     'django_otp',
     'django_otp.plugins.otp_totp',

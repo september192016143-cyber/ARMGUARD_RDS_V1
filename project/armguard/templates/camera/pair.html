@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Camera Device Pairing — ArmGuard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">
+    <a href="{% url 'camera:device_list' %}" style="color:inherit;text-decoration:none;">&#128247; Camera Devices</a>
+    &rsaquo; Pair Device
+  </h1>
+</div>
+
+{% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div style="display:flex;gap:2rem;flex-wrap:wrap;align-items:flex-start;">
+
+  <!-- ── QR Code card ──────────────────────────────────────────────────── -->
+  <div style="background:var(--surface,#1e293b);border-radius:1rem;padding:2rem;min-width:260px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.3);">
+    <p style="font-size:.8rem;color:var(--text-muted,#94a3b8);margin-bottom:1rem;">
+      Armorer: <strong style="color:var(--text,#f8fafc);">{{ armorer.username }}</strong>
+      {% if armorer.get_full_name %}&ndash; {{ armorer.get_full_name }}{% endif %}
+    </p>
+
+    {% if device %}
+      {% if device.revoked_at %}
+        <div style="background:#450a0a;border-radius:.6rem;padding:.8rem;margin-bottom:1rem;font-size:.82rem;color:#f87171;">
+          &#9888; Device revoked
+          {% if device.revoked_by %}by {{ device.revoked_by.username }}{% endif %}
+        </div>
+      {% elif not device.is_active %}
+        <div style="background:#1c1917;border-radius:.6rem;padding:.6rem;margin-bottom:1rem;font-size:.82rem;color:#fbbf24;">
+          &#9203; Awaiting first scan
+        </div>
+      {% else %}
+        <div style="background:#052e16;border-radius:.6rem;padding:.6rem;margin-bottom:1rem;font-size:.82rem;color:#4ade80;">
+          &#9679; Active &mdash; last seen
+          {% if device.last_seen_at %}{{ device.last_seen_at|date:"d M Y H:i" }}{% else %}never{% endif %}
+        </div>
+      {% endif %}
+
+      <!-- QR PNG -->
+      <img src="data:image/png;base64,{{ qr_b64 }}"
+           alt="Pairing QR code"
+           style="width:220px;height:220px;border-radius:.5rem;border:4px solid #fff;">
+
+      <p style="font-size:.7rem;color:#64748b;margin-top:.75rem;">
+        Have the armorer scan this code with their phone camera while logged in to ArmGuard.
+      </p>
+    {% endif %}
+  </div>
+
+  <!-- ── Device info & actions ─────────────────────────────────────────── -->
+  {% if device %}
+  <div style="flex:1;min-width:280px;">
+
+    <!-- Device name form -->
+    <div style="background:var(--surface,#1e293b);border-radius:.75rem;padding:1.5rem;margin-bottom:1rem;">
+      <h3 style="font-size:.95rem;margin-bottom:1rem;color:var(--text,#f8fafc);">Device Label</h3>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="set_name">
+        <div style="display:flex;gap:.5rem;">
+          <input type="text" name="device_name"
+                 value="{{ device.device_name }}"
+                 placeholder="e.g. Sgt. Santos — Samsung A54"
+                 maxlength="100"
+                 style="flex:1;background:#0f172a;border:1px solid #334155;border-radius:.4rem;padding:.55rem .75rem;color:#f8fafc;font-size:.9rem;">
+          <button type="submit"
+                  style="background:#f97316;color:#fff;border:none;border-radius:.4rem;padding:.55rem 1rem;font-size:.9rem;cursor:pointer;">
+            Save
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Device details -->
+    <div style="background:var(--surface,#1e293b);border-radius:.75rem;padding:1.5rem;margin-bottom:1rem;font-size:.82rem;color:#94a3b8;">
+      <h3 style="font-size:.95rem;margin-bottom:.75rem;color:var(--text,#f8fafc);">Device Info</h3>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:.3rem 0;width:40%;">Status</td>
+            <td style="color:{% if device.revoked_at %}#f87171{% elif device.is_active %}#4ade80{% else %}#fbbf24{% endif %};">
+              {% if device.revoked_at %}Revoked{% elif device.is_active %}Active{% else %}Pending activation{% endif %}
+            </td></tr>
+        <tr><td style="padding:.3rem 0;">Paired</td>
+            <td>{{ device.paired_at|date:"d M Y H:i" }}</td></tr>
+        <tr><td style="padding:.3rem 0;">Activated</td>
+            <td>{% if device.activated_at %}{{ device.activated_at|date:"d M Y H:i" }}{% else %}&mdash;{% endif %}</td></tr>
+        <tr><td style="padding:.3rem 0;">Last seen</td>
+            <td>{% if device.last_seen_at %}{{ device.last_seen_at|date:"d M Y H:i" }}{% else %}&mdash;{% endif %}</td></tr>
+        <tr><td style="padding:.3rem 0;">Fingerprint</td>
+            <td style="word-break:break-all;font-size:.72rem;">{{ device.device_fingerprint|default:"—"|truncatechars:80 }}</td></tr>
+        {% if device.is_locked %}
+        <tr><td style="padding:.3rem 0;color:#f87171;">Locked until</td>
+            <td style="color:#f87171;">{{ device.locked_until|date:"H:i" }}</td></tr>
+        {% endif %}
+      </table>
+    </div>
+
+    <!-- Danger actions -->
+    <div style="background:#1e293b;border:1px solid #450a0a;border-radius:.75rem;padding:1.25rem;">
+      <h3 style="font-size:.9rem;color:#f87171;margin-bottom:.75rem;">&#9888; Danger Zone</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:.5rem;">
+
+        {% if device.revoked_at %}
+          <form method="post" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="unrevoke">
+            <button type="submit"
+                    style="background:#14532d;color:#4ade80;border:none;border-radius:.4rem;padding:.5rem .9rem;font-size:.82rem;cursor:pointer;">
+              Re-activate Device
+            </button>
+          </form>
+        {% else %}
+          <form method="post" style="display:inline;"
+                onsubmit="return confirm('Revoke this device? The armorer will lose camera access immediately.');">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="revoke">
+            <button type="submit"
+                    style="background:#450a0a;color:#f87171;border:none;border-radius:.4rem;padding:.5rem .9rem;font-size:.82rem;cursor:pointer;">
+              Revoke Device
+            </button>
+          </form>
+        {% endif %}
+
+        <form method="post" style="display:inline;"
+              onsubmit="return confirm('Regenerate token? The current QR code becomes invalid and a new one will be shown.');">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="regenerate">
+          <button type="submit"
+                  style="background:#1e3a5f;color:#93c5fd;border:none;border-radius:.4rem;padding:.5rem .9rem;font-size:.82rem;cursor:pointer;">
+            &#8635; Regenerate Token
+          </button>
+        </form>
+
+      </div>
+      <p style="font-size:.7rem;color:#64748b;margin-top:.6rem;">
+        Regenerating issues a new token and immediately invalidates the old QR code and any active phone session.
+      </p>
+    </div>
+
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -49,6 +49,7 @@ urlpatterns = [
     path('inventory/', include('armguard.apps.inventory.urls')),
     path('transactions/', include('armguard.apps.transactions.urls')),
     path('print/', include('armguard.apps.print.urls')),
+    path('camera/', include('armguard.apps.camera.urls')),
     path('users/', include('armguard.apps.users.urls')),
     path('accounts/login/', _RateLimitedLoginView.as_view(), name='login'),
     path('accounts/logout/', logout_view, name='logout'),
