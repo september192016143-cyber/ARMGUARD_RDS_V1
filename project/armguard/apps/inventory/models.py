@@ -432,6 +432,14 @@ class Pistol(SmallArm):
 
     updated_by = models.CharField(max_length=50, blank=True, null=True)
 
+    # -- Remarks ---------------------------------------------------------------
+
+    remarks = models.TextField(blank=True, null=True)
+
+    remarks_timestamp = models.DateTimeField(blank=True, null=True)
+
+    remarks_updated_by = models.CharField(max_length=100, blank=True, null=True)
+
 
 
     # -- Condition and operational status -------------------------------------
@@ -838,6 +846,14 @@ class Rifle(SmallArm):
     updated = models.DateTimeField(blank=True, null=True)
 
     updated_by = models.CharField(max_length=50, blank=True, null=True)
+
+    # -- Remarks ---------------------------------------------------------------
+
+    remarks = models.TextField(blank=True, null=True)
+
+    remarks_timestamp = models.DateTimeField(blank=True, null=True)
+
+    remarks_updated_by = models.CharField(max_length=100, blank=True, null=True)
 
 
 
