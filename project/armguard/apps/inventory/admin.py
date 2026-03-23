@@ -61,13 +61,20 @@ class PistolAdmin(admin.ModelAdmin):
     ]
     list_filter = ['item_status', 'item_condition', 'model']
     search_fields = ['item_id', 'serial_number', 'item_issued_to__Personnel_ID', 'item_assigned_to']
-    readonly_fields = ['item_id', 'qr_code', 'item_number']
+    readonly_fields = ['item_id', 'qr_code', 'item_number', 'remarks_timestamp', 'remarks_updated_by']
     actions = [_compact_item_numbers]
 
     def save_model(self, request, obj, form, change):
         if not obj.created_by:
             obj.created_by = request.user.username
         obj.updated_by = request.user.username
+        # Stamp remarks audit fields when remarks changes via admin
+        if change and 'remarks' in form.changed_data:
+            obj.remarks_timestamp = timezone.now()
+            obj.remarks_updated_by = request.user.username
+        elif not change and obj.remarks:
+            obj.remarks_timestamp = timezone.now()
+            obj.remarks_updated_by = request.user.username
         super().save_model(request, obj, form, change)
 
 class RifleAdmin(admin.ModelAdmin):
@@ -80,13 +87,20 @@ class RifleAdmin(admin.ModelAdmin):
     ]
     list_filter = ['item_status', 'item_condition', 'model']
     search_fields = ['item_id', 'serial_number', 'item_issued_to__Personnel_ID', 'item_assigned_to']
-    readonly_fields = ['item_id', 'qr_code', 'item_number']
+    readonly_fields = ['item_id', 'qr_code', 'item_number', 'remarks_timestamp', 'remarks_updated_by']
     actions = [_compact_item_numbers]
 
     def save_model(self, request, obj, form, change):
         if not obj.created_by:
             obj.created_by = request.user.username
         obj.updated_by = request.user.username
+        # Stamp remarks audit fields when remarks changes via admin
+        if change and 'remarks' in form.changed_data:
+            obj.remarks_timestamp = timezone.now()
+            obj.remarks_updated_by = request.user.username
+        elif not change and obj.remarks:
+            obj.remarks_timestamp = timezone.now()
+            obj.remarks_updated_by = request.user.username
         super().save_model(request, obj, form, change)
 
 class MagazineAdminForm(forms.ModelForm):
