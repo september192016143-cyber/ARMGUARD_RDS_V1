@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'armguard.apps.users',
     'armguard.apps.print',
     'armguard.apps.camera',
+    'armguard.apps.profile',
     # G12 FIX: Django REST Framework + read-only API app.
     'rest_framework',
     'rest_framework.authtoken',
