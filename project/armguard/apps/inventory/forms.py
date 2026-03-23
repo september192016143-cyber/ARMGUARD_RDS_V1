@@ -11,8 +11,11 @@ class PistolForm(forms.ModelForm):
     class Meta:
         model = Pistol
         fields = ['model', 'serial_number', 'item_condition', 'item_status',
-                  'description', 'serial_image']
-        widgets = {'description': forms.Textarea(attrs={'rows': 3})}
+                  'description', 'serial_image', 'remarks']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'remarks': forms.Textarea(attrs={'rows': 3}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -61,8 +64,11 @@ class RifleForm(forms.ModelForm):
     class Meta:
         model = Rifle
         fields = ['model', 'factory_qr', 'serial_number', 'item_condition',
-                  'item_status', 'description', 'serial_image']
-        widgets = {'description': forms.Textarea(attrs={'rows': 3})}
+                  'item_status', 'description', 'serial_image', 'remarks']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'remarks': forms.Textarea(attrs={'rows': 3}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

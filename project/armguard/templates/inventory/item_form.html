@@ -136,11 +136,19 @@
       {% if form.description.errors %}<div class="form-error">{{ form.description.errors|join:", " }}</div>{% endif %}
     </div>
     <div class="form-group">
+      <label class="form-label" for="{{ form.remarks.id_for_label }}">Remarks</label>
+      {{ form.remarks }}
+      {% if object and object.remarks_timestamp %}
+        <div class="form-hint">Last updated {{ object.remarks_timestamp|date:"Y-m-d H:i" }}{% if object.remarks_updated_by %} by {{ object.remarks_updated_by }}{% endif %}</div>
+      {% endif %}
+      {% if form.remarks.errors %}<div class="form-error">{{ form.remarks.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="form-group">
       <label class="form-label" for="{{ form.serial_image.id_for_label }}">Serial Image</label>
       {% if object and object.serial_image %}
         <div style="margin-bottom:.5rem">
           <img src="{{ object.serial_image.url }}" alt="Current serial image" style="max-height:80px;border-radius:.375rem;border:1px solid var(--border)">
-          <div class="form-hint">Current image � upload a new one to replace it.</div>
+          <div class="form-hint">Current image — upload a new one to replace it.</div>
         </div>
       {% endif %}
       {{ form.serial_image }}
@@ -197,11 +205,19 @@
       {% if form.description.errors %}<div class="form-error">{{ form.description.errors|join:", " }}</div>{% endif %}
     </div>
     <div class="form-group">
+      <label class="form-label" for="{{ form.remarks.id_for_label }}">Remarks</label>
+      {{ form.remarks }}
+      {% if object and object.remarks_timestamp %}
+        <div class="form-hint">Last updated {{ object.remarks_timestamp|date:"Y-m-d H:i" }}{% if object.remarks_updated_by %} by {{ object.remarks_updated_by }}{% endif %}</div>
+      {% endif %}
+      {% if form.remarks.errors %}<div class="form-error">{{ form.remarks.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="form-group">
       <label class="form-label" for="{{ form.serial_image.id_for_label }}">Serial Image</label>
       {% if object and object.serial_image %}
         <div style="margin-bottom:.5rem">
           <img src="{{ object.serial_image.url }}" alt="Current serial image" style="max-height:80px;border-radius:.375rem;border:1px solid var(--border)">
-          <div class="form-hint">Current image � upload a new one to replace it.</div>
+          <div class="form-hint">Current image — upload a new one to replace it.</div>
         </div>
       {% endif %}
       {{ form.serial_image }}

@@ -598,6 +598,14 @@ class Pistol(SmallArm):
 
                 pass
 
+        # Track previous remarks to detect changes
+        _prev_remarks = None
+        if self.pk:
+            try:
+                _prev_remarks = Pistol.objects.values_list('remarks', flat=True).get(pk=self.pk)
+            except Pistol.DoesNotExist:
+                pass
+
         max_retries = 5
 
         for attempt in range(max_retries):
@@ -665,6 +673,12 @@ class Pistol(SmallArm):
             if user:
 
                 self.updated_by = user.username if hasattr(user, 'username') else str(user)
+
+            # Auto-track remarks changes
+            if self.remarks and self.remarks != _prev_remarks:
+                self.remarks_timestamp = timezone.now()
+                if user:
+                    self.remarks_updated_by = user.username if hasattr(user, 'username') else str(user)
 
             # Regenerate QR code image if item_id changed or image is missing
 
@@ -1047,6 +1061,14 @@ class Rifle(SmallArm):
 
                 pass
 
+        # Track previous remarks to detect changes
+        _prev_remarks = None
+        if self.pk:
+            try:
+                _prev_remarks = Rifle.objects.values_list('remarks', flat=True).get(pk=self.pk)
+            except Rifle.DoesNotExist:
+                pass
+
         # Auto-extract serial_number and description from factory_qr for M4 rifles
 
         if self.factory_qr and (not self.serial_number or not self.description):
@@ -1143,6 +1165,12 @@ class Rifle(SmallArm):
             if user:
 
                 self.updated_by = user.username if hasattr(user, 'username') else str(user)
+
+            # Auto-track remarks changes
+            if self.remarks and self.remarks != _prev_remarks:
+                self.remarks_timestamp = timezone.now()
+                if user:
+                    self.remarks_updated_by = user.username if hasattr(user, 'username') else str(user)
 
             # Regenerate QR code image if qr_code changed or image is missing
 
