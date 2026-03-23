@@ -59,9 +59,11 @@ function toggleWeaponSections() {
   var form    = document.getElementById('txn-form');
   var purpose = document.getElementById('tb_purpose');
   var val     = purpose ? purpose.value : '';
+  var isReturn = (document.getElementById('tb_transaction_type') || {}).value === 'Return';
   var cfg     = {};
   try { cfg = JSON.parse((form && form.dataset.purposeConfig) || '{}'); } catch (e) {}
-  var pcfg       = cfg[val] || {pistol: true, rifle: true};
+  // On Return, always show both pistol and rifle regardless of purpose config.
+  var pcfg       = isReturn ? {pistol: true, rifle: true} : (cfg[val] || {pistol: true, rifle: true});
   var showPistol = pcfg.pistol !== false;
   var showRifle  = pcfg.rifle  !== false;
 
