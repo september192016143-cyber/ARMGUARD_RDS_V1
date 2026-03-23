@@ -212,6 +212,24 @@ _git_pull_repo() {
     sudo -u "$DEPLOY_USER" git -C "$repo_dir" fetch --all
     sudo -u "$DEPLOY_USER" git -C "$repo_dir" checkout "$BRANCH"
 
+    # Remove any untracked files whose paths are being introduced by the incoming
+    # commits (git refuses to pull if it would overwrite them).
+    local incoming_files
+    incoming_files=$(sudo -u "$DEPLOY_USER" git -C "$repo_dir" \
+        diff --name-only HEAD "origin/$BRANCH" 2>/dev/null || true)
+    if [[ -n "$incoming_files" ]]; then
+        while IFS= read -r f; do
+            local full_path="$repo_dir/$f"
+            # Only remove if untracked (not already in the index)
+            if [[ -f "$full_path" ]] && \
+               ! sudo -u "$DEPLOY_USER" git -C "$repo_dir" \
+                   ls-files --error-unmatch "$f" &>/dev/null 2>&1; then
+                rm -f "$full_path"
+                warn "Removed untracked file that would block pull: $f"
+            fi
+        done <<< "$incoming_files"
+    fi
+
     # Retry git pull up to 3 times with backoff (guards against transient
     # GitHub HTTP 500 / connection errors that abort the script under pipefail).
     local _pull_ok=false
