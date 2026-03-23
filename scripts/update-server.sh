@@ -19,8 +19,9 @@
 #   4. Runs database migrations and setup_groups
 #   5. Downloads Font Awesome 6.5.0 locally (no CDN tracking warnings)
 #   6. Collects static files
-#   7. Gracefully reloads Gunicorn (zero-downtime)
-#   8. Verifies the service is healthy
+#   7. Cleans up test QR code files (P-TEST-*.png) to prevent git conflicts
+#   8. Gracefully reloads Gunicorn (zero-downtime)
+#   9. Verifies the service is healthy
 # =============================================================================
 
 set -Eeo pipefail
@@ -129,11 +130,60 @@ sudo -u "$DEPLOY_USER" git -C "$_REPO_DIR" rm --cached -f \
     project/armguard/static/css/fontawesome/all.min.css 2>/dev/null || true
 unset _REPO_DIR
 
+# ---------------------------------------------------------------------------
+# Helper: delete all test-generated QR code PNG files.
+# Must be called BEFORE git stash so these files are never stashed and
+# re-applied on stash pop (which would recreate the modify/delete conflict).
+# Also called as step 5b after deployment as a second safety pass.
+# ---------------------------------------------------------------------------
+_clean_test_media_files() {
+    local media_dir="$1/media"
+    [[ -d "$media_dir" ]] || return 0
+
+    # All file-name patterns produced when Django tests create Personnel/Pistol/Rifle
+    # records.  Extend this list if new test IDs are added to the test suite.
+    local count
+    count=$(find "$media_dir" \( \
+        -name "P-TEST-*.png"   -o -name "P-MAG-*.png"  \
+        -o -name "P-INT-*.png"  -o -name "P-ATOM-*.png" \
+        -o -name "P-SVC-*.png"  -o -name "P-PERS-*.png" \
+        -o -name "P-AUDIT-*.png" \
+        -o -name "IP-*-TEST-*.png"  -o -name "IP-*-AUDIT-*.png" \
+        -o -name "IP-*-INT-*.png"   -o -name "IP-*-ATOM-*.png"  \
+        -o -name "IP-*-SVC-*.png"   -o -name "IP-*-MAG-*.png"   \
+        -o -name "IP-*-AVAIL-*.png" \
+        -o -name "IR-*-TEST-*.png"  -o -name "IR-*-AUDIT-*.png" \
+    \) -type f 2>/dev/null | wc -l)
+
+    if [[ "$count" -gt 0 ]]; then
+        find "$media_dir" \( \
+            -name "P-TEST-*.png"   -o -name "P-MAG-*.png"  \
+            -o -name "P-INT-*.png"  -o -name "P-ATOM-*.png" \
+            -o -name "P-SVC-*.png"  -o -name "P-PERS-*.png" \
+            -o -name "P-AUDIT-*.png" \
+            -o -name "IP-*-TEST-*.png"  -o -name "IP-*-AUDIT-*.png" \
+            -o -name "IP-*-INT-*.png"   -o -name "IP-*-ATOM-*.png"  \
+            -o -name "IP-*-SVC-*.png"   -o -name "IP-*-MAG-*.png"   \
+            -o -name "IP-*-AVAIL-*.png" \
+            -o -name "IR-*-TEST-*.png"  -o -name "IR-*-AUDIT-*.png" \
+        \) -type f -delete 2>/dev/null
+        info "  Removed $count test QR code file(s) from media/"
+    fi
+}
+
 # Fix ownership so the armguard user can write to .git/objects
 # (Happens when root previously cloned the repo or ran git operations)
 _git_pull_repo() {
     local repo_dir="$1"
     chown -R "$DEPLOY_USER:$DEPLOY_USER" "$repo_dir/.git"
+
+    # ── KEY FIX: remove test-generated QR files BEFORE stash ─────────────────
+    # If Django tests ran on this server, they created P-TEST-*.png, P-MAG-*.png,
+    # etc. in media/. Git sees these as untracked/modified and stashes them.
+    # When stash pop runs after the pull, the files come back — recreating the
+    # exact modify/delete conflict we're trying to prevent. Deleting them here
+    # means the stash never captures them.
+    _clean_test_media_files "$repo_dir"
 
     # Clear any unmerged/conflicted index entries left by previous failed merges.
     # These block both 'git stash' and 'git pull'. Generated files (e.g. fontawesome
@@ -350,20 +400,31 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 5b. Clean up test QR code files (prevent git conflicts)
+# ---------------------------------------------------------------------------
+step "5b/8 Cleaning up test QR code files"
+
+# Second pass using the same comprehensive function used before git pull.
+# Catches any files created by tests between deployments that may have slipped
+# through (e.g. tests run as root after the pre-pull cleanup).
+_clean_test_media_files "$PROJECT_DIR"
+success "Test QR code cleanup complete."
+
+# ---------------------------------------------------------------------------
 # 6. Re-run Gunicorn auto-tuner (recomputes workers/threads after any change)
 # ---------------------------------------------------------------------------
 if [[ -f "/usr/local/bin/gunicorn-autoconf.sh" ]]; then
-    step "6a/8 Re-running Gunicorn auto-tuner"
+    step "6/8 Re-running Gunicorn auto-tuner"
     bash /usr/local/bin/gunicorn-autoconf.sh
     success "Worker count recomputed."
 elif [[ -f "$DEPLOY_DIR/scripts/gunicorn-autoconf.sh" ]]; then
-    step "6a/8 Re-running Gunicorn auto-tuner (from scripts/)"
+    step "6/8 Re-running Gunicorn auto-tuner (from scripts/)"
     bash "$DEPLOY_DIR/scripts/gunicorn-autoconf.sh"
     success "Worker count recomputed."
 fi
 
 # ---------------------------------------------------------------------------
-# 6b. Reload Gunicorn (graceful — zero downtime)
+# 7. Reload Gunicorn (graceful — zero downtime)
 # ---------------------------------------------------------------------------
 if [[ "$NO_RESTART" == "false" ]]; then
     step "7/8 Reloading Gunicorn service"
