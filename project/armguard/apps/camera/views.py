@@ -210,10 +210,19 @@ def activate_device_view(request, token: str):
     # activate_device_view over a secure connection, re-sets the session as a
     # Secure cookie, then proceeds to the upload page (is_first_activation=False).
     if is_first_activation and not settings.DEBUG:
+        # Force cert_url to HTTP so Android Chrome can download it before the
+        # self-signed certificate is trusted.  Chrome blocks downloads from
+        # HTTPS servers whose certificate it doesn't yet trust ("download
+        # paused"), which creates a chicken-and-egg problem.  The cert is
+        # public (sent in every TLS handshake) so HTTP delivery is fine.
+        # Nginx exempts /camera/activate/ and /download/ssl-cert/ from the
+        # HTTP→HTTPS redirect so this HTTP link won't be a mixed-content
+        # violation (the setup_ssl page itself will also be served over HTTP).
+        _host = request.get_host().split(':')[0]  # bare IP/hostname, no port
         return render(request, 'camera/setup_ssl.html', {
             'device':    device,
             'https_url': request.build_absolute_uri().replace('http://', 'https://'),
-            'cert_url':  request.build_absolute_uri('/download/ssl-cert/'),
+            'cert_url':  'http://{}/download/ssl-cert/'.format(_host),
         })
     
     return redirect('camera:upload_page')
