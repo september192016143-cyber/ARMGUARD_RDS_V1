@@ -273,10 +273,12 @@ def camera_task_api(request):
     """
     Phone polls this every 3 s to check for pending tasks from the admin.
     Returns JSON: {type: 'serial_capture', task_id: '...'} or {type: null}.
-    Authentication: device session (same as upload page).
+    Authentication: device session (same as upload page). PIN not required
+    here — the task notification must be visible even before PIN is entered
+    so the phone user is prompted. PIN is still enforced on upload_image.
     """
     device = _get_device_from_session(request)
-    if device is None or not request.session.get(_SESSION_PIN_KEY, False):
+    if device is None:
         return JsonResponse({'type': None})
     if device.pending_serial_task:
         return JsonResponse({

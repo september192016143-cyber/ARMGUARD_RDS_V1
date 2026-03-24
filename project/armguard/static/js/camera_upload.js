@@ -223,7 +223,7 @@
     if (_taskIdField) _taskIdField.value = taskId;
     _previewWrap.style.display = 'none';
     _previewImg.src = '';
-    _sendBtn.disabled = true;
+    if (_sendBtn) _sendBtn.style.display = 'none';
     if (_serialStatus) _serialStatus.textContent = '';
     _overlay.style.display = 'flex';
   }
@@ -235,15 +235,16 @@
     _captureInput.value = '';
     _previewWrap.style.display = 'none';
     _previewImg.src = '';
-    _sendBtn.disabled = true;
+    if (_sendBtn) { _sendBtn.style.display = 'none'; _sendBtn.disabled = false; }
     if (_serialStatus) _serialStatus.textContent = '';
   }
 
-  // Poll for a pending serial capture task every 3 s
+  // Poll for a pending serial capture task every 3 s.
+  // Fires regardless of PIN state so the notification appears immediately;
+  // the actual upload still requires the HMAC key (enforced server-side).
   if (_overlay && cfg.taskApiUrl) {
     setInterval(function () {
       if (_activeTask) return;           // already handling a task
-      if (!_isPinVerified()) return;     // PIN not yet verified
 
       fetch(cfg.taskApiUrl, { credentials: 'same-origin' })
         .then(function (r) { return r.json(); })
@@ -256,60 +257,63 @@
     }, 3000);
   }
 
-  // Preview photo after capture
+  // Auto-upload helper — called immediately after file is selected.
+  function _doSerialUpload(file) {
+    if (_serialStatus) _serialStatus.textContent = 'Sending\u2026';
+    if (_sendBtn) _sendBtn.style.display = 'none';
+
+    var fd = new FormData(form);   // includes csrfmiddlewaretoken + serial_task_id
+    fd.set('image', file);
+
+    fetch(cfg.uploadUrl, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-Api-Key': apiKey,
+      },
+      body: fd,
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (json.success) {
+          if (_serialStatus) _serialStatus.textContent = '\u2705 Photo sent!';
+          setTimeout(function () { _hideOverlay(); }, 1200);
+        } else {
+          if (_serialStatus) _serialStatus.textContent = '\u274c ' + (json.error || 'Upload failed. Try again.');
+          if (_sendBtn) { _sendBtn.style.display = ''; _sendBtn.disabled = false; }
+        }
+      })
+      .catch(function () {
+        if (_serialStatus) _serialStatus.textContent = 'Network error. Try again.';
+        if (_sendBtn) { _sendBtn.style.display = ''; _sendBtn.disabled = false; }
+      });
+  }
+
+  // Photo selected — preview + auto-upload immediately (no extra tap needed)
   if (_captureInput) {
     _captureInput.addEventListener('change', function () {
       if (!_captureInput.files || !_captureInput.files[0]) return;
+      var file = _captureInput.files[0];
       var reader = new FileReader();
       reader.onload = function (e) {
         _previewImg.src = e.target.result;
         _previewWrap.style.display = '';
-        _sendBtn.disabled = false;
       };
-      reader.readAsDataURL(_captureInput.files[0]);
+      reader.readAsDataURL(file);
+      _doSerialUpload(file);
     });
   }
 
-  // Send the captured photo back to the admin
+  // Retry button — shown only when upload fails
   if (_sendBtn) {
     _sendBtn.addEventListener('click', function () {
       if (!_captureInput || !_captureInput.files || !_captureInput.files[0]) return;
-      if (!_activeTask) return;
-
-      _sendBtn.disabled = true;
-      if (_serialStatus) _serialStatus.textContent = 'Uploading\u2026';
-
-      var fd = new FormData(form);           // includes csrfmiddlewaretoken
-      fd.set('image', _captureInput.files[0]);
-      // serial_task_id hidden field is already in the form via _taskIdField
-
-      fetch(cfg.uploadUrl, {
-        method: 'POST',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-Api-Key': apiKey,
-        },
-        body: fd,
-      })
-        .then(function (r) { return r.json(); })
-        .then(function (json) {
-          if (json.success) {
-            if (_serialStatus) _serialStatus.textContent = '\u2705 Sent to admin!';
-            setTimeout(function () { _hideOverlay(); }, 1500);
-          } else {
-            if (_serialStatus) _serialStatus.textContent = '\u274c ' + (json.error || 'Upload failed');
-            _sendBtn.disabled = false;
-          }
-        })
-        .catch(function () {
-          if (_serialStatus) _serialStatus.textContent = 'Network error. Try again.';
-          _sendBtn.disabled = false;
-        });
+      _doSerialUpload(_captureInput.files[0]);
     });
   }
 
-  // Cancel — clears the task on the server implicitly (server still holds it
-  // but the admin form will time-out and offer a retry)
+  // Cancel — pressing Cancel hides the overlay; the admin form will time out
+  // and can retry if needed
   if (_cancelBtn) {
     _cancelBtn.addEventListener('click', function () { _hideOverlay(); });
   }

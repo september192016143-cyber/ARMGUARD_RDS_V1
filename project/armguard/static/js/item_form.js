@@ -520,10 +520,10 @@
             if (phoneQr)  { phoneQr.style.display = 'none'; phoneQr.src = ''; }
             if (phoneLink) phoneLink.style.display = 'none';
             if (phoneStatus) phoneStatus.innerHTML =
-              '\uD83D\uDCF1 Photo requested on your paired phone (<strong>' +
+              '\uD83D\uDCF1 Capture request sent to <strong>' +
               (_escHtml(data.device_name) || 'unnamed') +
-              '</strong>).<br><span style="font-size:.75rem;color:#94a3b8;">' +
-              'Open the ArmGuard camera page on your phone to approve.</span>';
+              '</strong>.<br><span style="font-size:.75rem;color:#94a3b8;">' +
+              'The camera page on that phone will prompt for the photo automatically.</span>';
           } else {
             // QR mode (no paired device registered)
             if (phoneQr) {
