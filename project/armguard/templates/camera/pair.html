@@ -68,7 +68,7 @@
       <!-- ── 30-second rotating PIN — always present in DOM, hidden until active ──── -->
       <div id="pin-box" style="margin-top:1.5rem;background:#0f172a;border-radius:.75rem;padding:1.25rem;text-align:center;{% if not device.is_active %}display:none;{% endif %}">
         <p style="font-size:.72rem;color:#64748b;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em;">Session PIN</p>
-        <div id="pin-display" style="font-size:2.5rem;font-weight:800;letter-spacing:.35rem;color:#f97316;font-variant-numeric:tabular-nums;">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
+        <div id="pin-display" style="font-size:2.5rem;font-weight:800;letter-spacing:.35rem;color:#f97316;font-variant-numeric:tabular-nums;">{% if initial_pin %}{{ initial_pin }}{% else %}&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;{% endif %}</div>
         <div style="margin-top:.6rem;display:flex;align-items:center;justify-content:center;gap:.5rem;">
           <div id="pin-bar-wrap" style="width:120px;height:4px;background:#1e293b;border-radius:2px;overflow:hidden;">
             <div id="pin-bar" style="height:100%;background:#f97316;width:100%;transition:width .25s linear;border-radius:2px;"></div>
@@ -206,7 +206,7 @@
 </style>
 
 {# Page data for camera_pair.js — type=application/json is not executed by the browser (CSP-safe) #}
-<script type="application/json" id="pair-page-data">{"statusUrl":"{% url 'camera:device_status' armorer.pk %}","logsUrl":"{% url 'camera:logs_feed' %}?device={{ armorer.pk }}","pinUrl":"{% url 'camera:pair_pin' armorer.pk %}","pairUrl":"{% url 'camera:pair_device' armorer.pk %}","wasActive":{% if device.is_active %}true{% else %}false{% endif %}}</script>
+<script type="application/json" id="pair-page-data">{"statusUrl":"{% url 'camera:device_status' armorer.pk %}","logsUrl":"{% url 'camera:logs_feed' %}?device={{ armorer.pk }}","pinUrl":"{% url 'camera:pair_pin' armorer.pk %}","pairUrl":"{% url 'camera:pair_device' armorer.pk %}","wasActive":{% if device.is_active %}true{% else %}false{% endif %},"initialPinExpiresMs":{% if initial_pin_expires_ms %}{{ initial_pin_expires_ms }}{% else %}0{% endif %}}</script>
 <script src="{% static 'js/camera_pair.js' %}"></script>
 {% endif %}
 {% endblock %}

@@ -409,12 +409,20 @@ def pair_device_view(request, user_pk: int):
     if armorer.is_superuser and not armorer_role:
         armorer_role = 'System Administrator'
 
+    # Pre-compute PIN so the pair page shows it instantly (no async fetch needed on load)
+    initial_pin = None
+    initial_pin_expires_ms = None
+    if device.is_active and not device.revoked_at:
+        initial_pin, initial_pin_expires_ms = device.get_or_refresh_pin()
+
     return render(request, 'camera/pair.html', {
-        'armorer':       armorer,
-        'armorer_role':  armorer_role,
-        'device':        device,
-        'qr_b64':        qr_b64,
-        'activate_url':  activate_url,
+        'armorer':               armorer,
+        'armorer_role':          armorer_role,
+        'device':                device,
+        'qr_b64':                qr_b64,
+        'activate_url':          activate_url,
+        'initial_pin':           initial_pin,
+        'initial_pin_expires_ms': initial_pin_expires_ms,
     })
 
 

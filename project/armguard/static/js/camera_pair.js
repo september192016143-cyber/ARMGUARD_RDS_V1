@@ -38,10 +38,11 @@
   var pollTimer     = null;
 
   // ── PIN display ──────────────────────────────────────────────────────────
-  var pinDisplay  = document.getElementById('pin-display');
-  var pinBar      = document.getElementById('pin-bar');
-  var pinCountEl  = document.getElementById('pin-countdown');
-  var pinExpiresAt = 0;
+  var pinDisplay   = document.getElementById('pin-display');
+  var pinBar       = document.getElementById('pin-bar');
+  var pinCountEl   = document.getElementById('pin-countdown');
+  // Pre-seed expiry from server-rendered value — countdown starts immediately, no fetch needed on load
+  var pinExpiresAt = cfg.initialPinExpiresMs || 0;
 
   function refreshPin() {
     if (!pinDisplay) return;
@@ -82,7 +83,8 @@
   }
 
   if (pinDisplay) {
-    refreshPin();
+    // PIN is already rendered by the server — just start the countdown ticker.
+    // refreshPin() is only called by tickPin() when the PIN expires.
     setInterval(tickPin, 250);
   }
 
@@ -244,6 +246,11 @@
   setAdaptivePoll(wasActive);   // 2s if pending, 5s if already active
   setInterval(refreshLogs, 5000);
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') { pollStatus(); refreshLogs(); refreshPin(); }
+    if (document.visibilityState === 'visible') { pollStatus(); refreshLogs(); }
+  });
+  // bfcache restore: browser Back/Forward navigates back to the frozen page.
+  // Refresh PIN since it may have expired while the page was cached.
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) { pollStatus(); refreshLogs(); refreshPin(); }
   });
 })();
