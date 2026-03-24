@@ -810,6 +810,13 @@ document.addEventListener('DOMContentLoaded', function () {
         g.classList.add('open');
       }
     });
+    // User-block avatar link (profile pages)
+    var userBlock = document.querySelector('.sidebar-footer .user-block');
+    if (userBlock) {
+      var ubPath;
+      try { ubPath = new URL(userBlock.href, ORIGIN).pathname; } catch (e) { ubPath = ''; }
+      userBlock.classList.toggle('active', pathname.startsWith('/profile'));
+    }
   }
 
   // ── Navigate ─────────────────────────────────────────────────────────────
