@@ -205,6 +205,12 @@
 @keyframes cam-fadein { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
 </style>
 
+{# Page data and camera_pair.js are in {% block extra_js %} below so PJAX re-executes them on every navigation #}
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if device %}
 {# Page data for camera_pair.js — type=application/json is not executed by the browser (CSP-safe) #}
 <script type="application/json" id="pair-page-data">{"statusUrl":"{% url 'camera:device_status' armorer.pk %}","logsUrl":"{% url 'camera:logs_feed' %}?device={{ armorer.pk }}","pinUrl":"{% url 'camera:pair_pin' armorer.pk %}","pairUrl":"{% url 'camera:pair_device' armorer.pk %}","wasActive":{% if device.is_active %}true{% else %}false{% endif %},"initialPinExpiresMs":{% if initial_pin_expires_ms %}{{ initial_pin_expires_ms }}{% else %}0{% endif %}}</script>
 <script src="{% static 'js/camera_pair.js' %}"></script>
