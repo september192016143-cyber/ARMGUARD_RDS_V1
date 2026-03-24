@@ -91,13 +91,10 @@ def _get_device_from_session(request):
     if not token:
         return None
 
-    # IP binding — reject requests from a different IP than activation
-    bound_ip = request.session.get(_SESSION_IP_KEY)
-    if bound_ip and _client_ip(request) != bound_ip:
-        request.session.flush()
-        return None
-
-    # User-Agent binding — reject requests from a different browser/device
+    # User-Agent binding — reject requests from a different browser / device.
+    # IP binding is intentionally omitted: DHCP lease renewal on mobile networks
+    # can change the phone's IP mid-session, causing a spurious session flush.
+    # The 256-bit device token + UA hash already provide strong binding.
     bound_ua = request.session.get(_SESSION_UA_KEY)
     if bound_ua and _ua_hash(request) != bound_ua:
         request.session.flush()
@@ -196,9 +193,13 @@ def activate_device_view(request, token: str):
     # authentication. login() would update last_session_key and trigger
     # SingleSessionMiddleware to kill the administrator's active PC session.
     request.session[_SESSION_KEY]    = token
-    request.session[_SESSION_IP_KEY] = _client_ip(request)
+    request.session[_SESSION_IP_KEY] = _client_ip(request)  # stored for audit logs only
     request.session[_SESSION_UA_KEY] = _ua_hash(request)
-    request.session.set_expiry(0)   # session expires when browser closes
+    # 12-hour absolute expiry instead of set_expiry(0).
+    # A browser-session cookie (expiry=0) is discarded by mobile browsers when
+    # they background or hibernate browser tabs — the phone wakes up with no
+    # session and must re-scan the QR code. A 12-hour Max-Age cookie survives.
+    request.session.set_expiry(60 * 60 * 12)
     request.session.modified = True
 
     # Always show SSL setup on first activation so the user installs the cert.
@@ -409,6 +410,28 @@ def device_status_api(request, user_pk: int):
         'activated_at': device.activated_at.strftime('%d %b %Y %H:%M') if device.activated_at else None,
         'last_seen':    device.last_seen_at.strftime('%d %b %Y %H:%M') if device.last_seen_at else None,
         'fingerprint':  (device.device_fingerprint or '')[:80],
+    })
+
+
+@https_required
+def key_refresh_api(request):
+    """
+    Return a fresh HMAC API key for the active camera session.
+
+    Called via AJAX from the upload page when the phone resumes from background
+    and the 5-minute key window has expired.  This avoids a full page reload
+    (which would flash the screen and lose any selected-but-not-yet-uploaded photo).
+
+    Response (200):  { authenticated: true,  key: "...", expires_ms: 1234567890 }
+    Response (403):  { authenticated: false }
+    """
+    device = _get_device_from_session(request)
+    if device is None:
+        return JsonResponse({'authenticated': False}, status=403)
+    return JsonResponse({
+        'authenticated': True,
+        'key':           device.current_api_key(),
+        'expires_ms':    device.key_valid_until_ms(),
     })
 
 

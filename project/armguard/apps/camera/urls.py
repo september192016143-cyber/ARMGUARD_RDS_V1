@@ -9,6 +9,7 @@ urlpatterns = [
     path('upload/',                       views.upload_image,           name='upload_image'),
     path('activate/<str:token>/',         views.activate_device_view,   name='activate_device'),
     path('no-device/',                    views.no_device_view,         name='no_device'),
+    path('api/key/',                      views.key_refresh_api,        name='key_refresh'),
 
     # ── Admin (System Administrator only) ─────────────────────────────────────
     path('admin/devices/',                views.device_list_view,       name='device_list'),

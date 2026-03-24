@@ -113,22 +113,64 @@
   var form       = document.getElementById('upload-form');
 
   // ── Rotating API key ───────────────────────────────────────────────────────
-  // Read from <meta> tags injected server-side. The key is a 5-minute HMAC
-  // window — when it expires the page reloads to fetch a fresh one.
-  var apiKey     = document.querySelector('meta[name="x-camera-key"]').getAttribute('content');
-  var expiresAt  = parseInt(document.querySelector('meta[name="x-camera-key-expires"]').getAttribute('content'), 10);
-  var countdown  = document.getElementById('key-countdown');
+  // Read from <meta> tags injected server-side. The key rotates every 5 minutes.
+  //
+  // Background-safe strategy (vs. window.location.reload):
+  //   1. Phone goes background → setInterval is throttled / frozen by the OS.
+  //   2. Phone wakes up → visibilitychange fires before any setInterval ticks.
+  //   3. We check if the key has expired; if so, fetch a fresh one via AJAX.
+  //   4. No page reload → no flash, no state loss, no risk of session-not-found.
+  var apiKey    = document.querySelector('meta[name="x-camera-key"]').getAttribute('content');
+  var expiresAt = parseInt(document.querySelector('meta[name="x-camera-key-expires"]').getAttribute('content'), 10);
+  var countdown = document.getElementById('key-countdown');
+  var refreshing = false;
 
   function updateCountdown() {
     var remaining = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
     if (countdown) countdown.textContent = remaining;
-    if (remaining <= 0) {
-      // Key expired — reload page silently to get the new key
-      window.location.reload();
+    // Key expired and page is visible → silently fetch a new one.
+    if (remaining <= 0 && document.visibilityState === 'visible' && !refreshing) {
+      refreshKey();
     }
   }
+
+  function refreshKey() {
+    if (refreshing) return;
+    refreshing = true;
+    fetch('{% url "camera:key_refresh" %}', {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin',
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (json) {
+      refreshing = false;
+      if (json.authenticated) {
+        apiKey    = json.key;
+        expiresAt = json.expires_ms;
+        updateCountdown();
+      } else {
+        // Session is gone (cleared by server) — must re-scan QR.
+        setStatus('Session expired. Please scan the QR code again.', false);
+        submitBtn.disabled = true;
+      }
+    })
+    .catch(function () {
+      refreshing = false;
+      // Network hiccup — next tick or next visibility event will retry.
+    });
+  }
+
   updateCountdown();
   setInterval(updateCountdown, 1000);
+
+  // When the phone wakes up from background, check immediately.
+  // setInterval is frozen by the OS while backgrounded; visibilitychange
+  // fires reliably as soon as the screen is on and the browser tab is active.
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') {
+      updateCountdown();
+    }
+  });
 
   function setStatus(msg, ok) {
     statusEl.textContent = msg;
