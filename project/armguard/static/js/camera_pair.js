@@ -42,10 +42,14 @@
   var pinBar       = document.getElementById('pin-bar');
   var pinCountEl   = document.getElementById('pin-countdown');
   // Pre-seed expiry from server-rendered value — countdown starts immediately, no fetch needed on load
-  var pinExpiresAt = cfg.initialPinExpiresMs || 0;
+  var pinExpiresAt  = cfg.initialPinExpiresMs || 0;
+  var pinRefreshing = false;  // guard: only one in-flight fetch at a time
 
   function refreshPin() {
-    if (!pinDisplay) return;
+    if (!pinDisplay || pinRefreshing) return;
+    pinRefreshing = true;
+    // Optimistically push expiry forward so tickPin stops firing during the fetch
+    pinExpiresAt = Date.now() + 30000;
     fetch(pinUrl, { credentials: 'same-origin' })
       .then(function (r) {
         if (!r.ok) {
@@ -60,31 +64,25 @@
         if (!json || !json.pin) return;
         pinDisplay.textContent = json.pin;
         pinExpiresAt = json.expires_ms;
-        if (pinCountEl) pinCountEl.textContent = '30s';
       })
       .catch(function (err) {
         console.error('PIN fetch error:', err);
         if (pinDisplay) pinDisplay.textContent = 'err';
-        setTimeout(refreshPin, 3000);
-      });
+        pinExpiresAt = Date.now() + 3000;  // retry in 3s via tickPin
+      })
+      .finally(function () { pinRefreshing = false; });
   }
 
   function tickPin() {
     if (!pinDisplay) return;
-    if (!pinExpiresAt) {
-      if (pinBar) pinBar.style.width = '100%';
-      return;
-    }
     var now       = Date.now();
-    var remaining = Math.max(0, (pinExpiresAt - now) / 1000);
+    var remaining = pinExpiresAt ? Math.max(0, (pinExpiresAt - now) / 1000) : 30;
     if (pinCountEl) pinCountEl.textContent = Math.ceil(remaining) + 's';
-    if (pinBar)     pinBar.style.width = (remaining / 30 * 100).toFixed(1) + '%';
+    if (pinBar)     pinBar.style.width = (Math.min(remaining, 30) / 30 * 100).toFixed(1) + '%';
     if (remaining <= 0) refreshPin();
   }
 
   if (pinDisplay) {
-    // PIN is already rendered by the server — just start the countdown ticker.
-    // refreshPin() is only called by tickPin() when the PIN expires.
     setInterval(tickPin, 250);
   }
 
@@ -246,11 +244,23 @@
   setAdaptivePoll(wasActive);   // 2s if pending, 5s if already active
   setInterval(refreshLogs, 5000);
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') { pollStatus(); refreshLogs(); }
+    if (document.visibilityState === 'visible') {
+      pollStatus();
+      refreshLogs();
+      // Refresh PIN if it has expired or is about to while the tab was hidden
+      if (pinDisplay && pinExpiresAt && Date.now() >= pinExpiresAt - 500) {
+        pinExpiresAt = 0;  // force tickPin to call refreshPin immediately
+      }
+    }
   });
-  // bfcache restore: browser Back/Forward navigates back to the frozen page.
-  // Refresh PIN since it may have expired while the page was cached.
+  // bfcache restore (browser Back/Forward)
   window.addEventListener('pageshow', function (e) {
-    if (e.persisted) { pollStatus(); refreshLogs(); refreshPin(); }
+    if (e.persisted) {
+      pinExpiresAt = 0;  // force a fresh fetch — PIN may have expired while frozen
+      pinRefreshing = false;
+      pollStatus();
+      refreshLogs();
+      refreshPin();
+    }
   });
 })();
