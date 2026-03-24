@@ -47,6 +47,21 @@
       <p style="font-size:.7rem;color:#64748b;margin-top:.75rem;">
         Have the armorer scan this code with their phone camera while logged in to ArmGuard.
       </p>
+
+      {% if device and device.is_active and not device.revoked_at %}
+      <!-- ── 30-second rotating PIN ─────────────────────────────────────── -->
+      <div id="pin-box" style="margin-top:1.5rem;background:#0f172a;border-radius:.75rem;padding:1.25rem;text-align:center;">
+        <p style="font-size:.72rem;color:#64748b;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em;">Session PIN</p>
+        <div id="pin-display" style="font-size:2.5rem;font-weight:800;letter-spacing:.35rem;color:#f97316;font-variant-numeric:tabular-nums;">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
+        <div style="margin-top:.6rem;display:flex;align-items:center;justify-content:center;gap:.5rem;">
+          <div id="pin-bar-wrap" style="width:120px;height:4px;background:#1e293b;border-radius:2px;overflow:hidden;">
+            <div id="pin-bar" style="height:100%;background:#f97316;width:100%;transition:width .25s linear;border-radius:2px;"></div>
+          </div>
+          <span id="pin-countdown" style="font-size:.72rem;color:#64748b;">30s</span>
+        </div>
+        <p style="font-size:.65rem;color:#475569;margin-top:.5rem;">Show this to the armorer. Changes every 30 s.</p>
+      </div>
+      {% endif %}
     {% endif %}
   </div>
 
@@ -178,6 +193,7 @@
 (function () {
   var statusUrl = '{% url "camera:device_status" armorer.pk %}';
   var logsUrl   = '{% url "camera:logs_feed" %}?device={{ armorer.pk }}';
+  var pinUrl    = '{% url "camera:pair_pin" armorer.pk %}';
   var wasActive = {% if device.is_active %}true{% else %}false{% endif %};
   var reloaded  = false;
 
@@ -191,6 +207,38 @@
   var liveEl      = document.getElementById('pair-live');
   var logsEmpty   = document.getElementById('pair-logs-empty');
   var knownPks    = {};
+
+  // ── PIN display ──────────────────────────────────────────────────────────
+  var pinDisplay  = document.getElementById('pin-display');
+  var pinBar      = document.getElementById('pin-bar');
+  var pinCountEl  = document.getElementById('pin-countdown');
+  var pinExpiresAt = 0;
+
+  function refreshPin() {
+    if (!pinDisplay) return;
+    fetch(pinUrl, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (!json.pin) return;
+        pinDisplay.textContent = json.pin;
+        pinExpiresAt = json.expires_ms;
+      })
+      .catch(function () {});
+  }
+
+  function tickPin() {
+    if (!pinDisplay || !pinExpiresAt) return;
+    var now       = Date.now();
+    var remaining = Math.max(0, (pinExpiresAt - now) / 1000);
+    if (pinCountEl) pinCountEl.textContent = Math.ceil(remaining) + 's';
+    if (pinBar)     pinBar.style.width = (remaining / 30 * 100).toFixed(1) + '%';
+    if (remaining <= 0) refreshPin();
+  }
+
+  if (pinDisplay) {
+    refreshPin();
+    setInterval(tickPin, 250);
+  }
 
   function flash() {
     if (!liveEl) return;
@@ -263,7 +311,7 @@
   setInterval(pollStatus,   5000);
   setInterval(refreshLogs,  5000);
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') { pollStatus(); refreshLogs(); }
+    if (document.visibilityState === 'visible') { pollStatus(); refreshLogs(); refreshPin(); }
   });
 })();
 </script>

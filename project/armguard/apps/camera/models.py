@@ -102,6 +102,20 @@ class CameraDevice(models.Model):
         help_text="Administrator who revoked this device.",
     )
 
+    # ── 30-second rotating PIN gate ───────────────────────────────────────────
+    # Generated fresh by generate_pin(); shown on the PC pair page.
+    # Phone must submit it via /camera/api/pin/ before the upload form unlocks.
+    current_pin = models.CharField(
+        max_length=6,
+        blank=True,
+        help_text="Current 6-digit PIN (rotates every 30 s). Empty until first generated.",
+    )
+    pin_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When current_pin expires and must be regenerated.",
+    )
+
     # ── Brute-force protection ────────────────────────────────────────────────
     failed_attempts = models.PositiveSmallIntegerField(
         default=0,
@@ -159,6 +173,39 @@ class CameraDevice(models.Model):
 
     def check_api_key(self, provided: str) -> bool:
         return verify_api_key(self.device_token, provided)
+
+    # ── PIN helpers ───────────────────────────────────────────────────────────
+
+    def get_or_refresh_pin(self):
+        """
+        Return (pin, expires_at_ms).
+
+        If the current PIN is still valid, return it unchanged.
+        Otherwise generate a new 6-digit PIN valid for 30 seconds.
+        Saves to DB only when a new PIN is generated.
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+        now = timezone.now()
+        if self.current_pin and self.pin_expires_at and self.pin_expires_at > now:
+            return self.current_pin, int(self.pin_expires_at.timestamp() * 1000)
+        # Generate new PIN
+        new_pin = '{:06d}'.format(secrets.randbelow(1_000_000))
+        expires = now + timedelta(seconds=30)
+        self.current_pin   = new_pin
+        self.pin_expires_at = expires
+        self.save(update_fields=['current_pin', 'pin_expires_at'])
+        return new_pin, int(expires.timestamp() * 1000)
+
+    def verify_pin(self, provided: str) -> bool:
+        """Constant-time comparison against the current valid PIN."""
+        from django.utils import timezone
+        import hmac as _hmac_mod
+        if not self.current_pin or not provided:
+            return False
+        if self.pin_expires_at and self.pin_expires_at < timezone.now():
+            return False  # expired
+        return _hmac_mod.compare_digest(self.current_pin, provided.strip())
 
 
 class CameraUploadLog(models.Model):

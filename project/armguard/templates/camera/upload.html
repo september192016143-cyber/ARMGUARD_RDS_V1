@@ -71,10 +71,56 @@
     .device-badge { font-size: .72rem; color: #64748b; margin-bottom: 1rem; text-align: center; }
     .device-badge span { color: #4ade80; font-weight: 600; }
     .key-bar { font-size: .65rem; color: #475569; text-align: center; margin-top: .5rem; }
+
+    /* PIN gate overlay */
+    #pin-gate {
+      position: fixed; inset: 0; background: #0f172a;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1.5rem; z-index: 100;
+    }
+    #pin-gate.hidden { display: none; }
+    .pin-card {
+      background: #1e293b; border-radius: 1rem; padding: 2rem 1.5rem;
+      width: 100%; max-width: 360px; text-align: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+    }
+    .pin-card h2 { font-size: 1.1rem; font-weight: 700; color: #f8fafc; margin-bottom: .4rem; }
+    .pin-card p  { font-size: .82rem; color: #94a3b8; margin-bottom: 1.5rem; }
+    #pin-input {
+      width: 100%; text-align: center; letter-spacing: .4rem;
+      font-size: 2rem; font-weight: 700; color: #f8fafc;
+      background: #0f172a; border: 2px solid #334155; border-radius: .6rem;
+      padding: .6rem; margin-bottom: 1rem; outline: none;
+    }
+    #pin-input:focus { border-color: #f97316; }
+    #pin-input::placeholder { letter-spacing: 0; font-size: 1rem; color: #475569; font-weight: 400; }
+    #pin-err  { min-height: 1.2rem; font-size: .82rem; color: #f87171; margin-bottom: .8rem; }
+    #pin-submit {
+      display: block; width: 100%;
+      background: #f97316; color: #fff; border: none; border-radius: .6rem;
+      padding: .75rem; font-size: 1rem; font-weight: 600; cursor: pointer;
+    }
+    #pin-submit:disabled { background: #475569; cursor: not-allowed; }
+    .pin-note { font-size: .68rem; color: #475569; margin-top: .75rem; }
   </style>
 </head>
 <body>
-<div class="card">
+
+<!-- ── PIN gate ─────────────────────────────────────────────────────── -->
+<div id="pin-gate" class="{% if pin_verified %}hidden{% endif %}">
+  <div class="pin-card">
+    <h2>&#128274; Enter Session PIN</h2>
+    <p>Check the ArmGuard pair page on the admin’s screen for the current 6-digit PIN.
+It changes every 30 seconds.</p>
+    <input id="pin-input" type="tel" inputmode="numeric" maxlength="6"
+           pattern="[0-9]{6}" autocomplete="one-time-code" placeholder="••••••">
+    <div id="pin-err"></div>
+    <button id="pin-submit" disabled>Verify PIN</button>
+    <p class="pin-note">This PIN is required once per session.</p>
+  </div>
+</div>
+
+<div class="card" id="upload-card">
   <h1>&#128247; ArmGuard Camera Upload</h1>
   <p class="sub">Take or choose a photo — it will be saved to the armory server.</p>
 
@@ -106,6 +152,7 @@
 
 <script>
 (function () {
+  // ── DOM refs ───────────────────────────────────────────────────────────
   var input      = document.getElementById('image-input');
   var previewWrap= document.getElementById('preview-wrap');
   var preview    = document.getElementById('preview');
@@ -114,6 +161,10 @@
   var thumbList  = document.getElementById('thumb-list');
   var dropZone   = document.getElementById('drop-zone');
   var form       = document.getElementById('upload-form');
+  var pinGate    = document.getElementById('pin-gate');
+  var pinInput   = document.getElementById('pin-input');
+  var pinSubmit  = document.getElementById('pin-submit');
+  var pinErr     = document.getElementById('pin-err');
 
   // ── Rotating API key ───────────────────────────────────────────────────────
   // Read from <meta> tags injected server-side. The key rotates every 5 minutes.
@@ -194,6 +245,54 @@
       updateCountdown();
     }
   });
+
+  // ── PIN gate ───────────────────────────────────────────────────────────────
+  // The PIN gate overlay is shown on first visit (pin_verified=False in session).
+  // The admin sees the rotating 6-digit PIN on the pair page.
+  // After successful POST to /camera/api/pin/, the overlay hides permanently
+  // for this 12-hour session.
+  if (pinGate && !pinGate.classList.contains('hidden')) {
+    // Enable submit once 6 digits entered
+    pinInput.addEventListener('input', function () {
+      pinInput.value = pinInput.value.replace(/\D/g, '').slice(0, 6);
+      pinSubmit.disabled = pinInput.value.length < 6;
+      pinErr.textContent = '';
+    });
+    pinInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !pinSubmit.disabled) pinSubmit.click();
+    });
+
+    pinSubmit.addEventListener('click', function () {
+      pinSubmit.disabled = true;
+      pinErr.textContent = '';
+      var fd = new FormData();
+      fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+      fd.append('pin', pinInput.value);
+      fetch('{% url "camera:pin_api" %}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: fd,
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (json.success) {
+          pinGate.classList.add('hidden');
+        } else {
+          pinErr.textContent = json.error || 'Incorrect PIN.';
+          pinInput.value = '';
+          pinSubmit.disabled = true;
+          pinInput.focus();
+        }
+      })
+      .catch(function () {
+        pinErr.textContent = 'Network error. Try again.';
+        pinSubmit.disabled = false;
+      });
+    });
+
+    // Auto-focus the PIN field
+    setTimeout(function () { pinInput.focus(); }, 200);
+  }
 
   function setStatus(msg, ok) {
     statusEl.textContent = msg;

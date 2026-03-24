@@ -61,9 +61,10 @@ ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
 MAX_UPLOAD_BYTES   = 15 * 1024 * 1024  # 15 MB
 
 # Session key used to store the paired device_token server-side
-_SESSION_KEY    = 'camera_device_token'
-_SESSION_IP_KEY = 'camera_bound_ip'
-_SESSION_UA_KEY = 'camera_bound_ua'  # SHA-256 of User-Agent
+_SESSION_KEY     = 'camera_device_token'
+_SESSION_IP_KEY  = 'camera_bound_ip'
+_SESSION_UA_KEY  = 'camera_bound_ua'   # SHA-256 of User-Agent
+_SESSION_PIN_KEY = 'camera_pin_verified'  # True once correct PIN entered
 
 
 def _ua_hash(request) -> str:
@@ -193,9 +194,10 @@ def activate_device_view(request, token: str):
     # We deliberately do NOT call login() here — the token+IP+UA binding is the
     # authentication. login() would update last_session_key and trigger
     # SingleSessionMiddleware to kill the administrator's active PC session.
-    request.session[_SESSION_KEY]    = token
-    request.session[_SESSION_IP_KEY] = _client_ip(request)  # stored for audit logs only
-    request.session[_SESSION_UA_KEY] = _ua_hash(request)
+    request.session[_SESSION_KEY]     = token
+    request.session[_SESSION_IP_KEY]  = _client_ip(request)  # stored for audit logs only
+    request.session[_SESSION_UA_KEY]  = _ua_hash(request)
+    request.session[_SESSION_PIN_KEY] = False  # must re-enter PIN on every new/fresh session
     # 12-hour absolute expiry instead of set_expiry(0).
     # A browser-session cookie (expiry=0) is discarded by mobile browsers when
     # they background or hibernate browser tabs — the phone wakes up with no
@@ -240,6 +242,7 @@ def camera_upload_page(request):
         'device':          device,
         'current_api_key': device.current_api_key(),
         'key_expires_ms':  device.key_valid_until_ms(),
+        'pin_verified':    request.session.get(_SESSION_PIN_KEY, False),
         # Full HTTPS activate URL stored client-side for auto-reactivation when
         # the 12-hour session expires.  JS reads it from the <meta> tag, saves
         # it in localStorage, and navigates there silently when the session is
@@ -303,11 +306,16 @@ def upload_image(request):
             status=400,
         )
 
-    # Save with a UUID filename — no client-supplied name ever touches the disk
-    date_str  = timezone.localdate().strftime('%Y-%m-%d')
-    safe_name = uuid.uuid4().hex + ext
-    rel_path  = f'camera_uploads/{date_str}/{safe_name}'
-    abs_dir   = os.path.join(settings.MEDIA_ROOT, 'camera_uploads', date_str)
+    # Auto-named filename: <username>_YYYYMMDD_<NNN>.<ext>
+    # Never accept or trust client-supplied filenames on disk.
+    date_str   = timezone.localdate().strftime('%Y%m%d')
+    seq        = CameraUploadLog.objects.filter(
+        uploaded_by=device.user,
+        uploaded_at__date=timezone.localdate(),
+    ).count() + 1
+    safe_name  = f"{device.user.username}_{date_str}_{seq:03d}{ext}"
+    rel_path   = f'camera_uploads/{date_str}/{safe_name}'
+    abs_dir    = os.path.join(settings.MEDIA_ROOT, 'camera_uploads', date_str)
     os.makedirs(abs_dir, exist_ok=True)
 
     with open(os.path.join(abs_dir, safe_name), 'wb') as fh:
@@ -483,6 +491,60 @@ def logs_feed_api(request):
             'file_url':        request.build_absolute_uri(settings.MEDIA_URL + log.file_path),
         })
     return JsonResponse({'logs': logs, 'count': len(logs), 'ts': int(time.time())})
+
+
+@camera_admin_required
+def pair_pin_api(request, user_pk: int):
+    """
+    Returns the current 6-digit PIN for the pair page to display.
+    Only generated / shown to a System Administrator; the phone never calls this.
+    Rotates every 30 seconds (lazily generated on first request).
+
+    Response: { pin: "123456", expires_ms: 1234567890, pin_period_s: 30 }
+    """
+    device = CameraDevice.objects.filter(user_id=user_pk).first()
+    if not device:
+        return JsonResponse({'error': 'Device not found'}, status=404)
+    pin, expires_ms = device.get_or_refresh_pin()
+    return JsonResponse({'pin': pin, 'expires_ms': expires_ms, 'pin_period_s': 30})
+
+
+@https_required
+@require_http_methods(['GET', 'POST'])
+def pin_api(request):
+    """
+    Phone-facing PIN verification endpoint.
+
+    GET  → { verified: true|false }   (check if PIN already confirmed in session)
+    POST → submit { pin: "123456" }   (validate + mark session as PIN-verified)
+
+    The PIN is the 6-digit code shown on the admin pair page, rotating every 30 s.
+    Once verified it is stored in the camera session; the upload form unlocks.
+    Brute-force: 5 consecutive wrong PINs lock the device for 30 minutes
+    (shared with the HMAC API-key failure counter).
+    """
+    device = _get_device_from_session(request)
+    if device is None:
+        return JsonResponse({'error': 'Not authenticated.'}, status=403)
+
+    if request.method == 'GET':
+        return JsonResponse({'verified': bool(request.session.get(_SESSION_PIN_KEY, False))})
+
+    # POST: validate submitted PIN
+    if device.is_locked():
+        return JsonResponse({'success': False, 'error': 'Device locked. Try again in 30 minutes.'}, status=429)
+
+    provided = request.POST.get('pin', '').strip()
+    if device.verify_pin(provided):
+        request.session[_SESSION_PIN_KEY] = True
+        request.session.modified = True
+        return JsonResponse({'success': True})
+    else:
+        device.record_failure()
+        return JsonResponse({
+            'success': False,
+            'error': 'Incorrect PIN. Check the current code displayed on the pair page.',
+        }, status=403)
 
 
 @https_required
