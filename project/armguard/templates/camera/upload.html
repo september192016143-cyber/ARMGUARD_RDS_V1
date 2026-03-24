@@ -4,9 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>ArmGuard — Camera Upload</title>
-  <!-- HMAC rotating API key (5-minute window). JS reads this; page reloads when it expires. -->
-  <meta name="x-camera-key"         content="{{ current_api_key }}">
-  <meta name="x-camera-key-expires" content="{{ key_expires_ms }}">
+  <!-- HMAC rotating API key (5-minute window). JS reads this; refreshed via AJAX when expired. -->
+  <meta name="x-camera-key"          content="{{ current_api_key }}">
+  <meta name="x-camera-key-expires"  content="{{ key_expires_ms }}">
+  <!-- Activate URL stored in localStorage so the session can be silently
+       re-established when it expires, without requiring a QR re-scan. -->
+  <meta name="x-camera-reactivate"   content="{{ reactivate_url }}">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -120,10 +123,17 @@
   //   2. Phone wakes up → visibilitychange fires before any setInterval ticks.
   //   3. We check if the key has expired; if so, fetch a fresh one via AJAX.
   //   4. No page reload → no flash, no state loss, no risk of session-not-found.
-  var apiKey    = document.querySelector('meta[name="x-camera-key"]').getAttribute('content');
-  var expiresAt = parseInt(document.querySelector('meta[name="x-camera-key-expires"]').getAttribute('content'), 10);
-  var countdown = document.getElementById('key-countdown');
-  var refreshing = false;
+  var apiKey        = document.querySelector('meta[name="x-camera-key"]').getAttribute('content');
+  var expiresAt     = parseInt(document.querySelector('meta[name="x-camera-key-expires"]').getAttribute('content'), 10);
+  var reactivateUrl = document.querySelector('meta[name="x-camera-reactivate"]').getAttribute('content');
+  var countdown     = document.getElementById('key-countdown');
+  var refreshing    = false;
+
+  // Persist reactivate URL in localStorage so the session can be re-established
+  // even if this page is gone (e.g. browser history cleared meta tags).
+  // localStorage is same-origin protected; not materially riskier than the
+  // session cookie itself.
+  try { localStorage.setItem('armguard_cam_reactivate', reactivateUrl); } catch (e) {}
 
   function updateCountdown() {
     var remaining = Math.max(0, Math.round((expiresAt - Date.now()) / 1000));
@@ -149,9 +159,22 @@
         expiresAt = json.expires_ms;
         updateCountdown();
       } else {
-        // Session is gone (cleared by server) — must re-scan QR.
-        setStatus('Session expired. Please scan the QR code again.', false);
-        submitBtn.disabled = true;
+        // Session is gone — try to re-establish it automatically using the
+        // stored activate URL.  activate_device_view will re-issue a fresh
+        // 12-hour session and redirect back here.  No admin, no QR re-scan.
+        // If the device was revoked, activate_device_view returns 403 and
+        // the server renders the "contact admin" error page instead.
+        var savedUrl = reactivateUrl;
+        try {
+          savedUrl = localStorage.getItem('armguard_cam_reactivate') || reactivateUrl;
+        } catch (e) {}
+        if (savedUrl) {
+          window.location.replace(savedUrl);
+        } else {
+          // localStorage wiped + page reloaded with no meta tag — last resort.
+          setStatus('Session expired. Please scan the QR code again.', false);
+          submitBtn.disabled = true;
+        }
       }
     })
     .catch(function () {

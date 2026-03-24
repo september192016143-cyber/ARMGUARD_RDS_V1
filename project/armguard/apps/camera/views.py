@@ -239,6 +239,15 @@ def camera_upload_page(request):
         'device':          device,
         'current_api_key': device.current_api_key(),
         'key_expires_ms':  device.key_valid_until_ms(),
+        # Full HTTPS activate URL stored client-side for auto-reactivation when
+        # the 12-hour session expires.  JS reads it from the <meta> tag, saves
+        # it in localStorage, and navigates there silently when the session is
+        # gone.  activate_device_view re-issues the session; no admin needed.
+        # If the device is revoked, activate_device_view returns 403 and the
+        # user sees the "contact admin" page — the correct gate.
+        'reactivate_url':  request.build_absolute_uri(
+            reverse('camera:activate_device', kwargs={'token': device.device_token})
+        ),
     })
 
 
