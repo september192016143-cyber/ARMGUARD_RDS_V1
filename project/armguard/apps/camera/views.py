@@ -35,6 +35,7 @@ Security model
   6. Instant revoke — Regenerating token invalidates all existing sessions immediately.
 """
 import base64
+import hashlib
 import io
 import os
 import uuid
@@ -42,7 +43,7 @@ import uuid
 import qrcode
 import qrcode.constants
 
-from django.contrib.auth import get_user_model, login
+from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -59,7 +60,15 @@ ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
 MAX_UPLOAD_BYTES   = 15 * 1024 * 1024  # 15 MB
 
 # Session key used to store the paired device_token server-side
-_SESSION_KEY = 'camera_device_token'
+_SESSION_KEY    = 'camera_device_token'
+_SESSION_IP_KEY = 'camera_bound_ip'
+_SESSION_UA_KEY = 'camera_bound_ua'  # SHA-256 of User-Agent
+
+
+def _ua_hash(request) -> str:
+    """SHA-256 of the User-Agent, used to bind the session to one browser/device."""
+    ua = request.META.get('HTTP_USER_AGENT', '')
+    return hashlib.sha256(ua.encode()).hexdigest()
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -67,14 +76,33 @@ _SESSION_KEY = 'camera_device_token'
 def _get_device_from_session(request):
     """
     Return the CameraDevice bound to this session, or None.
-    Removes the session token if the device has been revoked or deleted.
-    
-    NOTE: Does NOT check request.user - the device token in session is the
-    sole authentication mechanism. This allows passwordless mobile access.
+
+    Security checks (in order):
+      1. Session must contain a valid device_token.
+      2. Client IP must match the IP recorded at activation.
+      3. User-Agent hash must match the one recorded at activation.
+      4. Device must be active and not revoked in the database.
+
+    This replaces Django's login() and provides equivalent binding:
+    even if the session cookie is stolen, it cannot be used from a
+    different device or network.
     """
     token = request.session.get(_SESSION_KEY)
     if not token:
         return None
+
+    # IP binding — reject requests from a different IP than activation
+    bound_ip = request.session.get(_SESSION_IP_KEY)
+    if bound_ip and _client_ip(request) != bound_ip:
+        request.session.flush()
+        return None
+
+    # User-Agent binding — reject requests from a different browser/device
+    bound_ua = request.session.get(_SESSION_UA_KEY)
+    if bound_ua and _ua_hash(request) != bound_ua:
+        request.session.flush()
+        return None
+
     try:
         return CameraDevice.objects.select_related('user').get(
             device_token=token,
@@ -152,11 +180,14 @@ def activate_device_view(request, token: str):
         device.device_fingerprint = request.META.get('HTTP_USER_AGENT', '')[:512]
         device.save(update_fields=['is_active', 'activated_at', 'device_fingerprint'])
 
-    # Auto-login the device owner (passwordless authentication via token)
-    login(request, owner, backend='django.contrib.auth.backends.ModelBackend')
-
-    # Store device token in session (server-side only, never in JS)
-    request.session[_SESSION_KEY] = token
+    # Store device token + IP + UA hash in session (server-side only, never in JS).
+    # We deliberately do NOT call login() here — the token+IP+UA binding is the
+    # authentication. login() would update last_session_key and trigger
+    # SingleSessionMiddleware to kill the administrator's active PC session.
+    request.session[_SESSION_KEY]    = token
+    request.session[_SESSION_IP_KEY] = _client_ip(request)
+    request.session[_SESSION_UA_KEY] = _ua_hash(request)
+    request.session.set_expiry(0)   # session expires when browser closes
     request.session.modified = True
 
     # Check if request came over HTTPS
@@ -266,7 +297,7 @@ def upload_image(request):
     file_url = request.build_absolute_uri(settings.MEDIA_URL + rel_path)
 
     CameraUploadLog.objects.create(
-        uploaded_by=request.user,
+        uploaded_by=device.user,
         device=device,
         original_name=original_name,
         stored_name=safe_name,

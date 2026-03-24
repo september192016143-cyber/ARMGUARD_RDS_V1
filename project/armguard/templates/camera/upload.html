@@ -77,7 +77,7 @@
 
   <div class="device-badge">
     Device: <span>{{ device.device_name|default:"unnamed" }}</span>
-    &bull; {{ request.user.username }}
+    &bull; {{ device.user.username }}
     <div class="key-bar" id="key-timer">Key valid for <span id="key-countdown">--</span>s</div>
   </div>
 
