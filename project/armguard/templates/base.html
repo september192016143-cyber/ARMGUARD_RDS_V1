@@ -136,16 +136,12 @@
     {% endif %}
   </nav>
   <div class="sidebar-footer">
-    <div class="user-block">
+    <a href="{% url 'profile:view' %}" class="user-block" title="View and edit your profile" style="text-decoration:none;display:flex;align-items:center;gap:.75rem;cursor:pointer;">
       <div class="user-avatar">{{ request.user.username|slice:":1"|upper }}</div>
       <div>
         <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
         <div class="user-role">{% if request.user.is_superuser %}System Administrator{% else %}{{ request.user.profile.role|default:"Armorer" }}{% endif %}</div>
       </div>
-    </div>
-    <a href="{% url 'profile:view' %}" class="logout-btn" title="View and edit your profile" style="text-decoration:none;display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem;">
-      <i class="fa-solid fa-user-circle" style="width:16px;text-align:center;flex-shrink:0;"></i>
-      <span class="logout-label">My Profile</span>
     </a>
     <a href="{% url 'download-ssl-cert' %}" id="ssl-cert-sidebar-btn" class="logout-btn" title="Install SSL Certificate on this device" style="text-decoration:none;display:flex;align-items:center;gap:.5rem;margin-bottom:.35rem;">
       <i class="fa-solid fa-certificate" style="width:16px;text-align:center;flex-shrink:0;"></i>
