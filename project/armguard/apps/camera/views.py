@@ -38,6 +38,7 @@ import base64
 import hashlib
 import io
 import os
+import time
 import uuid
 
 import qrcode
@@ -420,6 +421,68 @@ def device_status_api(request, user_pk: int):
         'last_seen':    device.last_seen_at.strftime('%d %b %Y %H:%M') if device.last_seen_at else None,
         'fingerprint':  (device.device_fingerprint or '')[:80],
     })
+
+
+@camera_admin_required
+def devices_feed_api(request):
+    """
+    JSON snapshot of every device's live status.
+    Polled every 5 s by device_list.html and pair.html to update status
+    badges, last-seen times and lock states without a page reload.
+    """
+    devices = (
+        CameraDevice.objects
+        .select_related('user')
+        .order_by('user__username')
+    )
+    data = []
+    for d in devices:
+        locked = d.is_locked()
+        data.append({
+            'pk':              d.pk,
+            'user_pk':         d.user.pk,
+            'username':        d.user.username,
+            'full_name':       d.user.get_full_name(),
+            'device_name':     d.device_name or '',
+            'is_active':       d.is_active,
+            'revoked':         bool(d.revoked_at),
+            'locked':          locked,
+            'locked_until':    d.locked_until.strftime('%H:%M') if locked and d.locked_until else None,
+            'activated_at':    d.activated_at.strftime('%d %b %Y %H:%M') if d.activated_at else None,
+            'last_seen':       d.last_seen_at.strftime('%d %b %Y %H:%M') if d.last_seen_at else None,
+            'failed_attempts': d.failed_attempts,
+        })
+    return JsonResponse({'devices': data, 'ts': int(time.time())})
+
+
+@camera_admin_required
+def logs_feed_api(request):
+    """
+    JSON list of the 50 most recent upload log entries.
+    Optional ?device=<user_pk> query param narrows to one device.
+    Polled by admin pages to render a live upload-log table without a reload.
+    """
+    device_user_pk = request.GET.get('device')
+    qs = (
+        CameraUploadLog.objects
+        .select_related('uploaded_by', 'device')
+        .order_by('-uploaded_at')
+    )
+    if device_user_pk:
+        qs = qs.filter(device__user__pk=device_user_pk)
+    logs = []
+    for log in qs[:50]:
+        logs.append({
+            'pk':              log.pk,
+            'uploaded_by':     log.uploaded_by.username if log.uploaded_by else '\u2014',
+            'device_name':     log.device.device_name if log.device else '\u2014',
+            'original_name':   log.original_name,
+            'file_size_bytes': log.file_size_bytes,
+            'uploaded_at':     log.uploaded_at.strftime('%d %b %Y %H:%M:%S'),
+            'ip_address':      log.ip_address or '\u2014',
+            'file_url':        request.build_absolute_uri(settings.MEDIA_URL + log.file_path),
+        })
+    return JsonResponse({'logs': logs, 'count': len(logs), 'ts': int(time.time())})
 
 
 @https_required

@@ -4,8 +4,9 @@
 {% block content %}
 <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
   <h1 class="page-title">&#128247; Camera Devices</h1>
-  <span style="font-size:.8rem;color:var(--text-muted,#94a3b8);">
+  <span style="font-size:.8rem;color:var(--text-muted,#94a3b8);display:flex;align-items:center;gap:.5rem;">
     System Administrator only &mdash; {{ devices|length }} device{{ devices|length|pluralize }}
+    <span id="cam-live" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;opacity:.4;transition:opacity .3s;" title="Live updates active"></span>
   </span>
 </div>
 
@@ -29,9 +30,9 @@
       <th style="padding:.6rem .75rem;">Actions</th>
     </tr>
   </thead>
-  <tbody>
+  <tbody id="devices-table-body">
   {% for dev in devices %}
-    <tr style="border-bottom:1px solid #1e293b;">
+    <tr data-dev-pk="{{ dev.pk }}" style="border-bottom:1px solid #1e293b;">
       <td style="padding:.6rem .75rem;color:var(--text,#f8fafc);font-weight:600;">
         {{ dev.user.username }}
         {% if dev.user.get_full_name %}
@@ -39,7 +40,7 @@
         {% endif %}
       </td>
       <td style="padding:.6rem .75rem;color:#94a3b8;">{{ dev.device_name|default:"—" }}</td>
-      <td style="padding:.6rem .75rem;">
+      <td style="padding:.6rem .75rem;" data-cell="status">
         {% if dev.revoked_at %}
           <span style="color:#f87171;">&#9632; Revoked</span>
         {% elif dev.is_active %}
@@ -53,11 +54,11 @@
         {% if dev.activated_at %}{{ dev.activated_at|date:"d M Y" }}<br><small>{{ dev.activated_at|date:"H:i" }}</small>
         {% else %}&mdash;{% endif %}
       </td>
-      <td style="padding:.6rem .75rem;color:#94a3b8;">
+      <td style="padding:.6rem .75rem;color:#94a3b8;" data-cell="seen">
         {% if dev.last_seen_at %}{{ dev.last_seen_at|date:"d M Y" }}<br><small>{{ dev.last_seen_at|date:"H:i" }}</small>
         {% else %}&mdash;{% endif %}
       </td>
-      <td style="padding:.6rem .75rem;text-align:center;">
+      <td style="padding:.6rem .75rem;text-align:center;" data-cell="failed">
         {% if dev.failed_attempts > 0 %}
           <span style="color:#f87171;">{{ dev.failed_attempts }}</span>
         {% else %}
@@ -87,4 +88,134 @@
 </table>
 </div>
 {% endif %}
+
+<!-- ── Live Upload Logs ─────────────────────────────────────────────────── -->
+<div style="margin-top:2rem;">
+  <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;">
+    <h2 style="font-size:1rem;font-weight:700;color:#f8fafc;">&#128443; Recent Upload Logs</h2>
+    <span id="logs-count" style="background:#1e3a5f;color:#93c5fd;border-radius:1rem;padding:.1rem .6rem;font-size:.72rem;">&#8212;</span>
+  </div>
+  <div style="overflow-x:auto;">
+  <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+    <thead>
+      <tr style="border-bottom:1px solid #334155;color:#64748b;text-align:left;">
+        <th style="padding:.5rem .75rem;">Time</th>
+        <th style="padding:.5rem .75rem;">User</th>
+        <th style="padding:.5rem .75rem;">Device</th>
+        <th style="padding:.5rem .75rem;">File</th>
+        <th style="padding:.5rem .75rem;">Size</th>
+        <th style="padding:.5rem .75rem;">View</th>
+        <th style="padding:.5rem .75rem;">IP</th>
+      </tr>
+    </thead>
+    <tbody id="logs-table-body">
+      <tr id="logs-empty-row">
+        <td colspan="7" style="padding:1.5rem;text-align:center;color:#475569;">Loading&#8230;</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<style>
+@keyframes cam-fadein { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+</style>
+
+<script>
+(function () {
+  var devFeedUrl  = '{% url "camera:devices_feed" %}';
+  var logsFeedUrl = '{% url "camera:logs_feed" %}';
+  var liveEl      = document.getElementById('cam-live');
+  var logsTbody   = document.getElementById('logs-table-body');
+  var logsCountEl = document.getElementById('logs-count');
+  var logsEmpty   = document.getElementById('logs-empty-row');
+  var knownPks    = {};
+
+  function flash() {
+    if (!liveEl) return;
+    liveEl.style.opacity = '1';
+    setTimeout(function () { liveEl.style.opacity = '.4'; }, 600);
+  }
+
+  function statusHtml(d) {
+    if (d.revoked)
+      return '<span style="color:#f87171;">&#9632; Revoked</span>';
+    if (d.is_active) {
+      var h = '<span style="color:#4ade80;">&#9679; Active</span>';
+      if (d.locked)
+        h += '<br><span style="color:#fbbf24;font-size:.75rem;">&#128274; Locked until ' + d.locked_until + '</span>';
+      return h;
+    }
+    return '<span style="color:#fbbf24;">&#9203; Pending</span>';
+  }
+
+  function refreshDevices() {
+    fetch(devFeedUrl, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        flash();
+        json.devices.forEach(function (d) {
+          var row = document.querySelector('tr[data-dev-pk="' + d.pk + '"]');
+          if (!row) return;
+          var stTd = row.querySelector('td[data-cell="status"]');
+          if (stTd) stTd.innerHTML = statusHtml(d);
+          var seenTd = row.querySelector('td[data-cell="seen"]');
+          if (seenTd) seenTd.innerHTML = d.last_seen
+            ? '<span style="color:#94a3b8;">' + d.last_seen + '</span>'
+            : '&mdash;';
+          var failTd = row.querySelector('td[data-cell="failed"]');
+          if (failTd) failTd.innerHTML = d.failed_attempts > 0
+            ? '<span style="color:#f87171;">' + d.failed_attempts + '</span>'
+            : '<span style="color:#4ade80;">0</span>';
+        });
+      })
+      .catch(function () {});
+  }
+
+  function formatBytes(b) {
+    return b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  function refreshLogs() {
+    if (!logsTbody) return;
+    fetch(logsFeedUrl, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (logsCountEl) logsCountEl.textContent = json.count;
+        if (json.count === 0) {
+          if (logsEmpty) logsEmpty.querySelector('td').textContent = 'No uploads yet.';
+          return;
+        }
+        var added = 0;
+        json.logs.forEach(function (log) {
+          if (knownPks[log.pk]) return;
+          knownPks[log.pk] = true;
+          added++;
+          if (logsEmpty) { logsEmpty.remove(); logsEmpty = null; }
+          var tr = document.createElement('tr');
+          tr.style.cssText = 'border-bottom:1px solid #1e293b;animation:cam-fadein .4s ease;';
+          tr.innerHTML =
+            '<td style="padding:.5rem .75rem;color:#94a3b8;font-size:.78rem;white-space:nowrap;">' + log.uploaded_at + '</td>' +
+            '<td style="padding:.5rem .75rem;color:#f8fafc;font-weight:600;">' + log.uploaded_by + '</td>' +
+            '<td style="padding:.5rem .75rem;color:#94a3b8;">' + (log.device_name || '\u2014') + '</td>' +
+            '<td style="padding:.5rem .75rem;color:#94a3b8;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + log.original_name + '">' + log.original_name + '</td>' +
+            '<td style="padding:.5rem .75rem;color:#94a3b8;white-space:nowrap;">' + formatBytes(log.file_size_bytes) + '</td>' +
+            '<td style="padding:.5rem .75rem;"><a href="' + log.file_url + '" target="_blank" rel="noopener" style="color:#93c5fd;font-size:.78rem;text-decoration:none;">View</a></td>' +
+            '<td style="padding:.5rem .75rem;color:#64748b;font-size:.72rem;">' + log.ip_address + '</td>';
+          logsTbody.insertBefore(tr, logsTbody.firstChild);
+        });
+        if (added > 0) flash();
+      })
+      .catch(function () {});
+  }
+
+  refreshDevices();
+  refreshLogs();
+  setInterval(refreshDevices, 5000);
+  setInterval(refreshLogs,   5000);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') { refreshDevices(); refreshLogs(); }
+  });
+})();
+</script>
 {% endblock %}
