@@ -136,7 +136,7 @@
     {% endif %}
   </nav>
   <div class="sidebar-footer">
-    <a href="{% url 'profile:view' %}" class="user-block" title="View and edit your profile" style="text-decoration:none;display:flex;align-items:center;gap:.75rem;cursor:pointer;">
+    <a href="{% url 'profile:view' %}" class="user-block{% if 'profile' in request.path %} active{% endif %}" title="View and edit your profile" style="text-decoration:none;display:flex;align-items:center;gap:.75rem;cursor:pointer;">
       <div class="user-avatar">{{ request.user.username|slice:":1"|upper }}</div>
       <div>
         <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
