@@ -82,8 +82,15 @@
     if (remaining <= 0) refreshPin();
   }
 
+  var pinIntervalId = null;
+
+  function startPinTicker() {
+    if (pinIntervalId) clearInterval(pinIntervalId);
+    pinIntervalId = setInterval(tickPin, 250);
+  }
+
   if (pinDisplay) {
-    setInterval(tickPin, 250);
+    startPinTicker();
   }
 
   // ── Toast notification ───────────────────────────────────────────────────
@@ -247,20 +254,29 @@
     if (document.visibilityState === 'visible') {
       pollStatus();
       refreshLogs();
-      // Refresh PIN if it has expired or is about to while the tab was hidden
-      if (pinDisplay && pinExpiresAt && Date.now() >= pinExpiresAt - 500) {
-        pinExpiresAt = 0;  // force tickPin to call refreshPin immediately
+      if (pinDisplay) {
+        // Restart interval — browser throttles existing setIntervals in background tabs.
+        // Clearing and recreating forces the browser to treat it as fresh (unthrottled).
+        if (pinExpiresAt && Date.now() >= pinExpiresAt - 500) {
+          pinExpiresAt = 0;  // expired while hidden — fetch new PIN
+        }
+        tickPin();        // immediate update, no waiting for next interval fire
+        startPinTicker(); // restart at full 250ms speed
       }
     }
   });
   // bfcache restore (browser Back/Forward)
   window.addEventListener('pageshow', function (e) {
     if (e.persisted) {
-      pinExpiresAt = 0;  // force a fresh fetch — PIN may have expired while frozen
+      pinExpiresAt  = 0;
       pinRefreshing = false;
       pollStatus();
       refreshLogs();
-      refreshPin();
+      if (pinDisplay) {
+        tickPin();
+        startPinTicker();
+        refreshPin();
+      }
     }
   });
 })();
