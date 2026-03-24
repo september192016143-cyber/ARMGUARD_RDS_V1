@@ -74,6 +74,8 @@
     })
     .catch(function () {
       refreshing = false;
+      // Network blip — reset expiresAt so the next tick retries immediately
+      expiresAt = 0;
     });
   }
 
@@ -226,6 +228,20 @@
     if (_sendBtn) _sendBtn.style.display = 'none';
     if (_serialStatus) _serialStatus.textContent = '';
     _overlay.style.display = 'flex';
+    // Eagerly refresh the API key when the overlay appears so it is always
+    // fresh when the user takes the photo (phone may have been backgrounded
+    // while the camera app was open, letting the 5-min window expire).
+    if (cfg.keyRefreshUrl && (expiresAt - Date.now() < 10000)) {
+      fetch(cfg.keyRefreshUrl, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (k) {
+        if (k.authenticated) { apiKey = k.key; expiresAt = k.expires_ms; }
+      })
+      .catch(function () {});
+    }
   }
 
   function _hideOverlay() {
