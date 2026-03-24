@@ -143,4 +143,22 @@
   {% endif %}
 
 </div>
+
+{% if device and not device.is_active and not device.revoked_at %}
+<script>
+(function(){
+  var pollUrl = '{% url "camera:device_status" armorer.pk %}';
+  function poll() {
+    fetch(pollUrl, {credentials:'same-origin'})
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.is_active) { window.location.reload(); }
+      })
+      .catch(function(){});
+  }
+  var timer = setInterval(poll, 3000);
+  setTimeout(function(){ clearInterval(timer); }, 600000);
+})();
+</script>
+{% endif %}
 {% endblock %}

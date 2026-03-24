@@ -13,5 +13,6 @@ urlpatterns = [
     # ── Admin (System Administrator only) ─────────────────────────────────────
     path('admin/devices/',                views.device_list_view,       name='device_list'),
     path('admin/pair/<int:user_pk>/',     views.pair_device_view,       name='pair_device'),
+    path('admin/pair/<int:user_pk>/status/', views.device_status_api,   name='device_status'),
     path('admin/revoke/<int:device_pk>/', views.revoke_device_view,     name='revoke_device'),
 ]

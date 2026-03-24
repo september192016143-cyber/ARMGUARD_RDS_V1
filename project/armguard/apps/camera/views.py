@@ -174,7 +174,8 @@ def activate_device_view(request, token: str):
         }, status=403)
 
     # First-time activation: record timestamp + fingerprint
-    if not device.is_active:
+    is_first_activation = not device.is_active
+    if is_first_activation:
         device.is_active = True
         device.activated_at = timezone.now()
         device.device_fingerprint = request.META.get('HTTP_USER_AGENT', '')[:512]
@@ -190,17 +191,13 @@ def activate_device_view(request, token: str):
     request.session.set_expiry(0)   # session expires when browser closes
     request.session.modified = True
 
-    # Check if request came over HTTPS
-    is_secure = request.is_secure() or request.META.get('HTTP_X_FORWARDED_PROTO') == 'https'
-    
-    # If HTTP: show SSL setup page (download cert + switch to HTTPS)
-    # If HTTPS: proceed to camera upload page
-    if not is_secure and not settings.DEBUG:
-        # Show transitional setup page with SSL cert download instructions
+    # Always show SSL setup on first activation so the user installs the cert.
+    # On re-scans (session expired, etc.) skip straight to upload.
+    if is_first_activation and not settings.DEBUG:
         return render(request, 'camera/setup_ssl.html', {
-            'device':       device,
-            'https_url':    request.build_absolute_uri().replace('http://', 'https://'),
-            'cert_url':     request.build_absolute_uri('/download/ssl-cert/'),
+            'device':    device,
+            'https_url': request.build_absolute_uri('/camera/').replace('http://', 'https://'),
+            'cert_url':  request.build_absolute_uri('/download/ssl-cert/'),
         })
     
     return redirect('camera:upload_page')
@@ -382,6 +379,24 @@ def pair_device_view(request, user_pk: int):
         'device':       device,
         'qr_b64':       qr_b64,
         'activate_url': activate_url,
+    })
+
+
+@camera_admin_required
+def device_status_api(request, user_pk: int):
+    """JSON poll endpoint for the pair page auto-refresh."""
+    from django.contrib.auth import get_user_model as _get_user_model
+    User = _get_user_model()
+    device = CameraDevice.objects.filter(user_id=user_pk).select_related('user').first()
+    if not device:
+        return JsonResponse({'found': False})
+    return JsonResponse({
+        'found':        True,
+        'is_active':    device.is_active,
+        'revoked':      bool(device.revoked_at),
+        'activated_at': device.activated_at.strftime('%d %b %Y %H:%M') if device.activated_at else None,
+        'last_seen':    device.last_seen_at.strftime('%d %b %Y %H:%M') if device.last_seen_at else None,
+        'fingerprint':  (device.device_fingerprint or '')[:80],
     })
 
 
