@@ -181,6 +181,16 @@ def activate_device_view(request, token: str):
         device.device_fingerprint = request.META.get('HTTP_USER_AGENT', '')[:512]
         device.save(update_fields=['is_active', 'activated_at', 'device_fingerprint'])
 
+    # If the phone carries a stale Django auth session (from when login() was
+    # still being called), SingleSessionMiddleware will see a key mismatch vs
+    # the PC session and immediately log the phone out → login redirect.
+    # Prevent this by explicitly clearing Django auth from the session first.
+    # logout() flushes the session and creates a new session key, so we set
+    # camera keys afterwards on the clean session.
+    from django.contrib.auth import logout as _auth_logout
+    if request.user.is_authenticated:
+        _auth_logout(request)  # clears Django auth only; new session key is issued
+
     # Store device token + IP + UA hash in session (server-side only, never in JS).
     # We deliberately do NOT call login() here — the token+IP+UA binding is the
     # authentication. login() would update last_session_key and trigger
@@ -192,11 +202,13 @@ def activate_device_view(request, token: str):
     request.session.modified = True
 
     # Always show SSL setup on first activation so the user installs the cert.
-    # On re-scans (session expired, etc.) skip straight to upload.
+    # https_url points back to THIS activate URL over HTTPS — that re-runs
+    # activate_device_view over a secure connection, re-sets the session as a
+    # Secure cookie, then proceeds to the upload page (is_first_activation=False).
     if is_first_activation and not settings.DEBUG:
         return render(request, 'camera/setup_ssl.html', {
             'device':    device,
-            'https_url': request.build_absolute_uri('/camera/').replace('http://', 'https://'),
+            'https_url': request.build_absolute_uri().replace('http://', 'https://'),
             'cert_url':  request.build_absolute_uri('/download/ssl-cert/'),
         })
     
