@@ -146,12 +146,45 @@ def profile_view(request):
                 'View transaction history'
             ]
 
+    # ID card images + weapons (same as PersonnelDetailView)
+    id_card_front_url = None
+    id_card_back_url = None
+    assigned_pistols = []
+    assigned_rifles = []
+    issued_pistols = []
+    issued_rifles = []
+    if personnel:
+        import os
+        from django.conf import settings
+        pid = personnel.pk
+        card_dir = os.path.join(settings.MEDIA_ROOT, 'personnel_id_cards')
+        front_file = os.path.join(card_dir, f"{pid}_front.png")
+        back_file  = os.path.join(card_dir, f"{pid}_back.png")
+        id_card_front_url = (
+            f"{settings.MEDIA_URL}personnel_id_cards/{pid}_front.png?v={int(os.path.getmtime(front_file))}"
+            if os.path.exists(front_file) else None
+        )
+        id_card_back_url = (
+            f"{settings.MEDIA_URL}personnel_id_cards/{pid}_back.png?v={int(os.path.getmtime(back_file))}"
+            if os.path.exists(back_file) else None
+        )
+        assigned_pistols = personnel.pistols_assigned.all()
+        assigned_rifles  = personnel.rifles_assigned.all()
+        issued_pistols   = personnel.pistols_issued.all()
+        issued_rifles    = personnel.rifles_issued.all()
+
     context = {
         'user': user,
         'profile': profile,
         'personnel': personnel,
         'permissions': permissions,
         'page_title': 'My Profile',
+        'id_card_front_url': id_card_front_url,
+        'id_card_back_url': id_card_back_url,
+        'assigned_pistols': assigned_pistols,
+        'assigned_rifles': assigned_rifles,
+        'issued_pistols': issued_pistols,
+        'issued_rifles': issued_rifles,
     }
     return render(request, 'profile/view.html', context)
 
