@@ -583,8 +583,13 @@
 
       if (phoneBtn)     phoneBtn.addEventListener('click', openPhoneCapture);
       if (phoneClose)   phoneClose.addEventListener('click', closePhoneCapture);
-      if (phoneOverlay) phoneOverlay.addEventListener('click', function (e) {
-        if (e.target === phoneOverlay) closePhoneCapture();
+      // Removed backdrop-click-to-close: stray bubbled events (keyboard focus
+      // changes, select dropdowns, touch events) were dismissing the modal
+      // unintentionally. Only the × button and Escape key close it now.
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && phoneOverlay && phoneOverlay.style.display !== 'none') {
+          closePhoneCapture();
+        }
       });
     }
   }
