@@ -143,7 +143,8 @@ class UserUpdateForm(forms.Form):
         help_text='Optionally link this account to a personnel record.',
     )
 
-    def __init__(self, *args, current_role=None, current_linked_pk=None, **kwargs):
+    def __init__(self, *args, current_role=None, current_linked_pk=None, current_user=None, **kwargs):
+        self._user = current_user
         super().__init__(*args, **kwargs)
         # Preserve unknown role values (e.g. legacy 'Viewer') so saving doesn't overwrite them
         if current_role:
@@ -166,7 +167,7 @@ class UserUpdateForm(forms.Form):
             self.add_error('new_password2', 'Passwords do not match.')
         elif p1:
             try:
-                validate_password(p1)
+                validate_password(p1, self._user)
             except DjangoValidationError as e:
                 self.add_error('new_password1', e)
         return cd
@@ -296,9 +297,9 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         }
         if data:
             return UserUpdateForm(data, initial=initial, current_role=current_role,
-                                  current_linked_pk=current_linked_pk)
+                                  current_linked_pk=current_linked_pk, current_user=user)
         return UserUpdateForm(initial=initial, current_role=current_role,
-                              current_linked_pk=current_linked_pk)
+                              current_linked_pk=current_linked_pk, current_user=user)
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()

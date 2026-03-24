@@ -14,6 +14,7 @@ from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.shortcuts import render, redirect
 from django import forms
+from armguard.apps.users.models import PasswordHistory
 
 User = get_user_model()
 
@@ -69,7 +70,7 @@ class PasswordChangeForm(forms.Form):
     new_password1 = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'New password'}),
         label='New Password',
-        help_text='At least 8 characters'
+        help_text='At least 12 characters'
     )
     new_password2 = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm new password'}),
@@ -248,7 +249,9 @@ def password_change(request):
             # Set new password
             user.set_password(form.cleaned_data['new_password1'])
             user.save()
-            
+            # Record in history so reuse validator can block it in future
+            PasswordHistory.objects.create(user=user, password_hash=user.password)
+
             # Update session to prevent logout
             update_session_auth_hash(request, user)
             
