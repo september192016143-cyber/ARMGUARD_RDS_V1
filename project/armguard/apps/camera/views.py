@@ -269,6 +269,24 @@ def no_device_view(request):
 
 
 @https_required
+def camera_task_api(request):
+    """
+    Phone polls this every 3 s to check for pending tasks from the admin.
+    Returns JSON: {type: 'serial_capture', task_id: '...'} or {type: null}.
+    Authentication: device session (same as upload page).
+    """
+    device = _get_device_from_session(request)
+    if device is None or not request.session.get(_SESSION_PIN_KEY, False):
+        return JsonResponse({'type': None})
+    if device.pending_serial_task:
+        return JsonResponse({
+            'type': 'serial_capture',
+            'task_id': str(device.pending_serial_task),
+        })
+    return JsonResponse({'type': None})
+
+
+@https_required
 @require_POST
 def upload_image(request):
     """
@@ -344,6 +362,24 @@ def upload_image(request):
     )
 
     device.record_success()
+
+    # ── Serial capture task linkage ───────────────────────────────────────────
+    # If the phone is responding to an admin "Via Phone" request, link the
+    # uploaded file to the SerialImageCapture session and clear the pending task.
+    serial_task_id = request.POST.get('serial_task_id', '').strip()
+    if serial_task_id:
+        import uuid as _uuid
+        from django.core.files.base import ContentFile
+        try:
+            from armguard.apps.inventory.models import SerialImageCapture
+            task_uuid = _uuid.UUID(serial_task_id)
+            capture_session = SerialImageCapture.objects.get(token=task_uuid)
+            abs_path = os.path.join(abs_dir, safe_name)
+            with open(abs_path, 'rb') as fh:
+                capture_session.image.save(safe_name, ContentFile(fh.read()), save=True)
+            CameraDevice.objects.filter(pk=device.pk).update(pending_serial_task=None)
+        except (ValueError, Exception):
+            pass  # Invalid task_id — upload still succeeds, just not linked
 
     return JsonResponse({'success': True, 'filename': safe_name, 'url': file_url})
 
@@ -504,6 +540,11 @@ def logs_feed_api(request):
         qs = qs.filter(device__user__pk=device_user_pk)
     logs = []
     for log in qs[:50]:
+        # file_path is cleared when the image is purged after 5 days
+        if log.file_path:
+            file_url = request.build_absolute_uri(settings.MEDIA_URL + log.file_path)
+        else:
+            file_url = None  # file has been purged; no URL to serve
         logs.append({
             'pk':              log.pk,
             'uploaded_by':     log.uploaded_by.username if log.uploaded_by else '\u2014',
@@ -512,7 +553,8 @@ def logs_feed_api(request):
             'file_size_bytes': log.file_size_bytes,
             'uploaded_at':     log.uploaded_at.strftime('%d %b %Y %H:%M:%S'),
             'ip_address':      log.ip_address or '\u2014',
-            'file_url':        request.build_absolute_uri(settings.MEDIA_URL + log.file_path),
+            'file_url':        file_url,
+            'file_purged':     log.file_purged_at is not None,
         })
     return JsonResponse({'logs': logs, 'count': len(logs), 'ts': int(time.time())})
 

@@ -521,6 +521,20 @@ if [[ -f "$BACKUP_SH_PATH" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Ensure camera upload purge cron is installed / up-to-date
+# Runs daily at 03:00 — deletes image files older than 5 days and DB records
+# older than 3 years (python manage.py purge_camera_uploads).
+# ---------------------------------------------------------------------------
+_PURGE_CMD="$VENV_PYTHON $PROJECT_DIR/manage.py purge_camera_uploads"
+_CRON_TMP2=$(mktemp)
+crontab -l 2>/dev/null | grep -v 'purge_camera_uploads' > "$_CRON_TMP2" || true
+printf '0 3 * * * %s >> %s/purge_camera_uploads.log 2>&1\n' \
+    "$_PURGE_CMD" "$LOG_DIR" >> "$_CRON_TMP2"
+crontab "$_CRON_TMP2"
+rm -f "$_CRON_TMP2"
+success "Camera purge cron verified: daily at 03:00."
+
+# ---------------------------------------------------------------------------
 # Post-update storage summary
 # ---------------------------------------------------------------------------
 echo

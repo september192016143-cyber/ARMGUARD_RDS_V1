@@ -145,14 +145,35 @@ It changes every 30 seconds.</p>
       <img id="preview" src="" alt="preview">
     </div>
 
+    <input type="hidden" id="serial-task-id" name="serial_task_id" value="">
     <button class="btn" id="submit-btn" type="submit" disabled>Upload Photo</button>
     <div id="status"></div>
     <div class="thumb-list" id="thumb-list"></div>
   </form>
 </div>
 
+<!-- ── Serial capture task overlay ──────────────────────────────────────── -->
+<div id="serial-task-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="background:#1e293b;border-radius:1rem;padding:2rem 1.5rem;width:100%;max-width:400px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+    <div style="font-size:2rem;margin-bottom:.75rem;">&#128247;</div>
+    <h2 style="font-size:1.1rem;font-weight:700;color:#f8fafc;margin-bottom:.4rem;">Serial Image Requested</h2>
+    <p style="font-size:.82rem;color:#94a3b8;margin-bottom:1.25rem;">The admin is waiting. Photograph the serial number stencil on the weapon.</p>
+    <label style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.5rem;border:2px dashed #334155;border-radius:.75rem;padding:1.5rem 1rem;cursor:pointer;position:relative;background:#0f172a;">
+      <strong style="color:#f8fafc;font-size:.95rem;">Tap to take photo</strong>
+      <span style="font-size:.75rem;color:#94a3b8;">Camera opens automatically</span>
+      <input type="file" id="serial-capture-input" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0;cursor:pointer;">
+    </label>
+    <div id="serial-preview-wrap" style="display:none;margin-top:1rem;">
+      <img id="serial-preview" src="" alt="preview" style="width:100%;border-radius:.5rem;max-height:240px;object-fit:contain;">
+    </div>
+    <button id="serial-send-btn" class="btn" style="margin-top:1.25rem;background:#22c55e;" disabled>Send to Admin</button>
+    <div id="serial-status" style="margin-top:.75rem;font-size:.82rem;min-height:1.2rem;"></div>
+    <button id="serial-cancel-btn" style="background:none;border:none;color:#64748b;font-size:.8rem;margin-top:.75rem;cursor:pointer;text-decoration:underline;">Cancel</button>
+  </div>
+</div>
+
 {# Page data for camera_upload.js — type=application/json is not executed by the browser (CSP-safe) #}
-<script type="application/json" id="camera-upload-data">{"keyRefreshUrl":"{% url 'camera:key_refresh' %}","pinApiUrl":"{% url 'camera:pin_api' %}","uploadUrl":"{% url 'camera:upload_image' %}"}</script>
+<script type="application/json" id="camera-upload-data">{"keyRefreshUrl":"{% url 'camera:key_refresh' %}","pinApiUrl":"{% url 'camera:pin_api' %}","uploadUrl":"{% url 'camera:upload_image' %}","taskApiUrl":"{% url 'camera:task_api' %}"}</script>
 <script src="{% static 'js/camera_upload.js' %}"></script>
 </body>
 </html>

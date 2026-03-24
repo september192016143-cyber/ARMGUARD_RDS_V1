@@ -679,7 +679,11 @@ from django.conf import settings as _settings               # noqa: E402
 def serial_capture_init(request):
     """
     Admin POSTs here to start a phone-capture session for a serial image.
-    Returns JSON: {token, qr_b64, phone_url}.
+
+    If the logged-in user has an active paired camera device (the phone already
+    open on /camera/), sets a pending task on that device — no QR needed.
+    Returns JSON: {token, mode: 'device', device_name} or {token, mode: 'qr', qr_b64, phone_url}.
+
     Purges stale sessions (> 30 min old) on every call.
     """
     import io, base64, qrcode
@@ -692,6 +696,27 @@ def serial_capture_init(request):
     ).delete()
 
     session = SerialImageCapture.objects.create()
+
+    # ── Paired camera device path (zero-QR) ───────────────────────────────────
+    try:
+        from armguard.apps.camera.models import CameraDevice
+        paired_device = CameraDevice.objects.get(
+            user=request.user,
+            is_active=True,
+            revoked_at__isnull=True,
+        )
+        CameraDevice.objects.filter(pk=paired_device.pk).update(
+            pending_serial_task=session.token
+        )
+        return JsonResponse({
+            'token':       str(session.token),
+            'mode':        'device',
+            'device_name': paired_device.device_name or 'unnamed',
+        })
+    except Exception:
+        pass  # No paired device — fall through to QR
+
+    # ── QR fallback ───────────────────────────────────────────────────────────
     phone_url = request.build_absolute_uri(
         reverse('serial-capture-phone', kwargs={'token': str(session.token)})
     )
@@ -707,6 +732,7 @@ def serial_capture_init(request):
 
     return JsonResponse({
         'token':     str(session.token),
+        'mode':      'qr',
         'qr_b64':    qr_b64,
         'phone_url': phone_url,
     })

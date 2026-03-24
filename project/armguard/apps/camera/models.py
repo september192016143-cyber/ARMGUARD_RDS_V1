@@ -102,6 +102,15 @@ class CameraDevice(models.Model):
         help_text="Administrator who revoked this device.",
     )
 
+    # ── Serial capture task (linked from inventory "Via Phone") ─────────────
+    pending_serial_task = models.UUIDField(
+        null=True,
+        blank=True,
+        editable=False,
+        help_text="Token of a pending SerialImageCapture session. Set when admin clicks "
+                  "'Via Phone' on the item form. Cleared after the phone uploads the photo.",
+    )
+
     # ── 30-second rotating PIN gate ───────────────────────────────────────────
     # Generated fresh by generate_pin(); shown on the PC pair page.
     # Phone must submit it via /camera/api/pin/ before the upload form unlocks.
@@ -241,11 +250,18 @@ class CameraUploadLog(models.Model):
     )
     original_name   = models.CharField(max_length=255, blank=True)
     stored_name     = models.CharField(max_length=255)
-    file_path       = models.CharField(max_length=512)
+    file_path       = models.CharField(max_length=512, blank=True)
     file_size_bytes = models.PositiveIntegerField(default=0)
     uploaded_at     = models.DateTimeField(auto_now_add=True)
     ip_address      = models.GenericIPAddressField(null=True, blank=True)
     notes           = models.TextField(blank=True)
+    # Retention: physical file is deleted after 5 days; this timestamp records when.
+    # The record itself is deleted after 3 years (purge_camera_uploads command).
+    file_purged_at  = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Set when the image file is deleted from disk (after 5 days). '
+                  'Null means the file still exists.',
+    )
 
     class Meta:
         app_label = 'camera'

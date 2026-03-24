@@ -495,6 +495,12 @@
         return el ? el.value : '';
       }
 
+      function _escHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+          return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+        });
+      }
+
       function openPhoneCapture() {
         if (phoneQr)     { phoneQr.style.display = 'none'; phoneQr.src = ''; }
         if (phoneLink)   phoneLink.style.display = 'none';
@@ -509,15 +515,27 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
           _captureToken = data.token;
-          if (phoneQr) {
-            phoneQr.src = 'data:image/png;base64,' + data.qr_b64;
-            phoneQr.style.display = 'block';
+          if (data.mode === 'device') {
+            // Paired phone already open — no QR needed
+            if (phoneQr)  { phoneQr.style.display = 'none'; phoneQr.src = ''; }
+            if (phoneLink) phoneLink.style.display = 'none';
+            if (phoneStatus) phoneStatus.innerHTML =
+              '\uD83D\uDCF1 Photo requested on your paired phone (<strong>' +
+              (_escHtml(data.device_name) || 'unnamed') +
+              '</strong>).<br><span style="font-size:.75rem;color:#94a3b8;">' +
+              'Open the ArmGuard camera page on your phone to approve.</span>';
+          } else {
+            // QR mode (no paired device registered)
+            if (phoneQr) {
+              phoneQr.src = 'data:image/png;base64,' + data.qr_b64;
+              phoneQr.style.display = 'block';
+            }
+            if (phoneLink) {
+              phoneLink.href = data.phone_url;
+              phoneLink.style.display = '';
+            }
+            if (phoneStatus) phoneStatus.textContent = 'Waiting for photo from phone\u2026';
           }
-          if (phoneLink) {
-            phoneLink.href = data.phone_url;
-            phoneLink.style.display = '';
-          }
-          if (phoneStatus) phoneStatus.textContent = 'Waiting for photo from phone\u2026';
           startCapturePoll();
         })
         .catch(function () {

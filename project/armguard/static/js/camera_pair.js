@@ -182,11 +182,14 @@
           if (logsEmpty) { logsEmpty.remove(); logsEmpty = null; }
           var tr = document.createElement('tr');
           tr.style.cssText = 'border-bottom:1px solid #1e293b;animation:cam-fadein .4s ease;';
+          var viewCell = log.file_purged
+            ? '<span style="color:#475569;font-size:.78rem;">Purged</span>'
+            : '<a href="' + log.file_url + '" target="_blank" rel="noopener" style="color:#93c5fd;font-size:.78rem;text-decoration:none;">View</a>';
           tr.innerHTML =
             '<td style="padding:.5rem .75rem;color:#94a3b8;font-size:.78rem;white-space:nowrap;">' + log.uploaded_at + '</td>' +
             '<td style="padding:.5rem .75rem;color:#94a3b8;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + log.original_name + '">' + log.original_name + '</td>' +
             '<td style="padding:.5rem .75rem;color:#94a3b8;white-space:nowrap;">' + formatBytes(log.file_size_bytes) + '</td>' +
-            '<td style="padding:.5rem .75rem;"><a href="' + log.file_url + '" target="_blank" rel="noopener" style="color:#93c5fd;font-size:.78rem;text-decoration:none;">View</a></td>' +
+            '<td style="padding:.5rem .75rem;">' + viewCell + '</td>' +
             '<td style="padding:.5rem .75rem;color:#64748b;font-size:.72rem;">' + log.ip_address + '</td>';
           logsTbody.insertBefore(tr, logsTbody.firstChild);
         });

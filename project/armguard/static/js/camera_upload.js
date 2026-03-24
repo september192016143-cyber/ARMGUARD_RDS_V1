@@ -197,4 +197,120 @@
       submitBtn.disabled = false;
     });
   });
+
+  // ── Serial capture task polling ───────────────────────────────────────────
+  // When the admin clicks "Via Phone" and a paired device is found the server
+  // sets CameraDevice.pending_serial_task.  We poll every 3 s; when a task
+  // arrives we show the overlay so the user can photograph the serial number
+  // and send it back to the admin without leaving this page.
+
+  var _overlay      = document.getElementById('serial-task-overlay');
+  var _captureInput = document.getElementById('serial-capture-input');
+  var _previewWrap  = document.getElementById('serial-preview-wrap');
+  var _previewImg   = document.getElementById('serial-preview');
+  var _sendBtn      = document.getElementById('serial-send-btn');
+  var _serialStatus = document.getElementById('serial-status');
+  var _cancelBtn    = document.getElementById('serial-cancel-btn');
+  var _taskIdField  = document.getElementById('serial-task-id');
+  var _activeTask   = null;
+
+  function _isPinVerified() {
+    return !pinGate || pinGate.classList.contains('hidden');
+  }
+
+  function _showOverlay(taskId) {
+    _activeTask = taskId;
+    if (_taskIdField) _taskIdField.value = taskId;
+    _previewWrap.style.display = 'none';
+    _previewImg.src = '';
+    _sendBtn.disabled = true;
+    if (_serialStatus) _serialStatus.textContent = '';
+    _overlay.style.display = 'flex';
+  }
+
+  function _hideOverlay() {
+    _activeTask = null;
+    if (_taskIdField) _taskIdField.value = '';
+    _overlay.style.display = 'none';
+    _captureInput.value = '';
+    _previewWrap.style.display = 'none';
+    _previewImg.src = '';
+    _sendBtn.disabled = true;
+    if (_serialStatus) _serialStatus.textContent = '';
+  }
+
+  // Poll for a pending serial capture task every 3 s
+  if (_overlay && cfg.taskApiUrl) {
+    setInterval(function () {
+      if (_activeTask) return;           // already handling a task
+      if (!_isPinVerified()) return;     // PIN not yet verified
+
+      fetch(cfg.taskApiUrl, { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.type === 'serial_capture' && data.task_id && !_activeTask) {
+            _showOverlay(data.task_id);
+          }
+        })
+        .catch(function () {});
+    }, 3000);
+  }
+
+  // Preview photo after capture
+  if (_captureInput) {
+    _captureInput.addEventListener('change', function () {
+      if (!_captureInput.files || !_captureInput.files[0]) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        _previewImg.src = e.target.result;
+        _previewWrap.style.display = '';
+        _sendBtn.disabled = false;
+      };
+      reader.readAsDataURL(_captureInput.files[0]);
+    });
+  }
+
+  // Send the captured photo back to the admin
+  if (_sendBtn) {
+    _sendBtn.addEventListener('click', function () {
+      if (!_captureInput || !_captureInput.files || !_captureInput.files[0]) return;
+      if (!_activeTask) return;
+
+      _sendBtn.disabled = true;
+      if (_serialStatus) _serialStatus.textContent = 'Uploading\u2026';
+
+      var fd = new FormData(form);           // includes csrfmiddlewaretoken
+      fd.set('image', _captureInput.files[0]);
+      // serial_task_id hidden field is already in the form via _taskIdField
+
+      fetch(cfg.uploadUrl, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-Api-Key': apiKey,
+        },
+        body: fd,
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (json) {
+          if (json.success) {
+            if (_serialStatus) _serialStatus.textContent = '\u2705 Sent to admin!';
+            setTimeout(function () { _hideOverlay(); }, 1500);
+          } else {
+            if (_serialStatus) _serialStatus.textContent = '\u274c ' + (json.error || 'Upload failed');
+            _sendBtn.disabled = false;
+          }
+        })
+        .catch(function () {
+          if (_serialStatus) _serialStatus.textContent = 'Network error. Try again.';
+          _sendBtn.disabled = false;
+        });
+    });
+  }
+
+  // Cancel — clears the task on the server implicitly (server still holds it
+  // but the admin form will time-out and offer a retry)
+  if (_cancelBtn) {
+    _cancelBtn.addEventListener('click', function () { _hideOverlay(); });
+  }
 })();
