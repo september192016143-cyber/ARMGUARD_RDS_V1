@@ -177,6 +177,14 @@ _git_pull_repo() {
     local repo_dir="$1"
     chown -R "$DEPLOY_USER:$DEPLOY_USER" "$repo_dir/.git"
 
+    # ── STEP 0: normalize CRLF BEFORE anything else ──────────────────────────
+    # Files committed from Windows have CRLF; Linux git sees them as modified.
+    # Setting autocrlf=false + resetting tracked files eliminates this noise
+    # BEFORE the dirty check below, so purely-CRLF "changes" are never stashed,
+    # never conflict on pop, and never appear in `git status` again.
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" config core.autocrlf false
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" checkout -- . 2>/dev/null || true
+
     # ── KEY FIX: remove test-generated QR files BEFORE stash ─────────────────
     # If Django tests ran on this server, they created P-TEST-*.png, P-MAG-*.png,
     # etc. in media/. Git sees these as untracked/modified and stashes them.
@@ -255,12 +263,6 @@ _git_pull_repo() {
             stash pop || \
             warn "Stash pop had conflicts — review manually: git -C $repo_dir stash show"
     fi
-
-    # Eliminate CRLF line-ending noise: files committed from Windows show as
-    # "modified" on Linux because of CR characters. Disable autocrlf and reset
-    # all tracked files to the LF copies stored in the repo.
-    sudo -u "$DEPLOY_USER" git -C "$repo_dir" config core.autocrlf false
-    sudo -u "$DEPLOY_USER" git -C "$repo_dir" checkout -- . 2>/dev/null || true
 
     COMMIT=$(git -C "$repo_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
     success "Code updated to commit: $COMMIT"
