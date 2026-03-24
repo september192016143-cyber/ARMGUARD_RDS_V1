@@ -258,12 +258,17 @@
   }
 
   // Auto-upload helper — called immediately after file is selected.
-  function _doSerialUpload(file) {
+  // Builds FormData manually (avoids mobile-browser quirks where new FormData(form)
+  // can pick up the wrong file reference or empty state from the main image-input).
+  function _doSerialUpload(file, isRetry) {
     if (_serialStatus) _serialStatus.textContent = 'Sending\u2026';
     if (_sendBtn) _sendBtn.style.display = 'none';
 
-    var fd = new FormData(form);   // includes csrfmiddlewaretoken + serial_task_id
-    fd.set('image', file);
+    var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+    var fd = new FormData();
+    if (csrf) fd.append('csrfmiddlewaretoken', csrf.value);
+    fd.append('serial_task_id', _activeTask || '');
+    fd.append('image', file, file.name || 'capture.jpg');
 
     fetch(cfg.uploadUrl, {
       method: 'POST',
@@ -278,6 +283,28 @@
         if (json.success) {
           if (_serialStatus) _serialStatus.textContent = '\u2705 Photo sent!';
           setTimeout(function () { _hideOverlay(); }, 1200);
+        } else if (!isRetry && json.error && json.error.indexOf('API key') !== -1) {
+          // Key expired — refresh once and retry automatically
+          if (_serialStatus) _serialStatus.textContent = 'Refreshing key\u2026';
+          fetch(cfg.keyRefreshUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+          })
+          .then(function (r) { return r.json(); })
+          .then(function (k) {
+            if (k.authenticated) {
+              apiKey    = k.key;
+              expiresAt = k.expires_ms;
+              _doSerialUpload(file, true);  // retry once with fresh key
+            } else {
+              if (_serialStatus) _serialStatus.textContent = '\u274c Session expired. Reload the page.';
+              if (_sendBtn) { _sendBtn.style.display = ''; _sendBtn.disabled = false; }
+            }
+          })
+          .catch(function () {
+            if (_serialStatus) _serialStatus.textContent = '\u274c Key refresh failed. Try again.';
+            if (_sendBtn) { _sendBtn.style.display = ''; _sendBtn.disabled = false; }
+          });
         } else {
           if (_serialStatus) _serialStatus.textContent = '\u274c ' + (json.error || 'Upload failed. Try again.');
           if (_sendBtn) { _sendBtn.style.display = ''; _sendBtn.disabled = false; }
