@@ -213,6 +213,54 @@
         </div>
         {% endif %}
 
+        {% if camera_eligible %}
+        <!-- Camera Device card -->
+        <div class="card">
+          <div class="card-header" style="display:flex;align-items:center;gap:.5rem">
+            <span class="card-title"><i class="fa-solid fa-camera" style="margin-right:.35rem"></i>Camera Device</span>
+            {% if camera_is_admin %}
+            <a href="{% url 'camera:pair_device' user.pk %}" class="btn btn-secondary btn-xs" style="margin-left:auto;font-size:.7rem;padding:.2rem .5rem">
+              <i class="fa-solid fa-qrcode"></i> Manage
+            </a>
+            {% endif %}
+          </div>
+          {% if camera_device %}
+          <dl style="display:grid;grid-template-columns:100px 1fr;gap:.45rem .75rem;font-size:.85rem">
+            <dt class="text-muted">Device</dt>
+            <dd>{{ camera_device.device_name|default:"Unnamed device" }}</dd>
+            <dt class="text-muted">Status</dt>
+            <dd>
+              {% if camera_device.revoked_at %}
+                <span class="badge badge-red"><i class="fa-solid fa-ban"></i> Revoked</span>
+              {% elif camera_device.is_locked %}
+                <span class="badge badge-amber"><i class="fa-solid fa-lock"></i> Locked</span>
+              {% elif camera_device.is_active %}
+                <span class="badge badge-green"><i class="fa-solid fa-circle-check"></i> Active</span>
+              {% else %}
+                <span class="badge badge-gray"><i class="fa-solid fa-clock"></i> Not activated</span>
+              {% endif %}
+            </dd>
+            {% if camera_device.activated_at %}
+            <dt class="text-muted">Activated</dt>
+            <dd>{{ camera_device.activated_at|date:"M d, Y" }}</dd>
+            {% endif %}
+            {% if camera_device.last_seen_at %}
+            <dt class="text-muted">Last used</dt>
+            <dd>{{ camera_device.last_seen_at|date:"M d, Y  H:i" }}</dd>
+            {% endif %}
+          </dl>
+          {% else %}
+          <p style="font-size:.85rem;color:var(--muted);margin:0">
+            {% if camera_is_admin %}
+              No device paired. <a href="{% url 'camera:pair_device' user.pk %}" style="color:var(--primary)">Pair a device now.</a>
+            {% else %}
+              No camera device paired. Contact a System Administrator.
+            {% endif %}
+          </p>
+          {% endif %}
+        </div>
+        {% endif %}
+
       </div>
     </div>
 

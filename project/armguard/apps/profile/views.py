@@ -15,6 +15,8 @@ from django.contrib import messages
 from django.shortcuts import render, redirect
 from django import forms
 from armguard.apps.users.models import PasswordHistory
+from armguard.apps.camera.models import CameraDevice
+from armguard.apps.camera.permissions import CAMERA_ALLOWED_ROLES
 
 User = get_user_model()
 
@@ -174,6 +176,11 @@ def profile_view(request):
         issued_pistols   = personnel.pistols_issued.all()
         issued_rifles    = personnel.rifles_issued.all()
 
+    # Camera device
+    camera_device = getattr(user, 'camera_device', None)
+    camera_eligible = user.is_superuser or bool(profile and profile.role in CAMERA_ALLOWED_ROLES)
+    camera_is_admin = user.is_superuser or bool(profile and profile.role == 'System Administrator')
+
     context = {
         'user': user,
         'profile': profile,
@@ -186,6 +193,9 @@ def profile_view(request):
         'assigned_rifles': assigned_rifles,
         'issued_pistols': issued_pistols,
         'issued_rifles': issued_rifles,
+        'camera_device': camera_device,
+        'camera_eligible': camera_eligible,
+        'camera_is_admin': camera_is_admin,
     }
     return render(request, 'profile/view.html', context)
 
