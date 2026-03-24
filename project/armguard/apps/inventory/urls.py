@@ -36,4 +36,10 @@ urlpatterns = [
 
     # ── Item Tag Preview (AJAX) ───────────────────────────────────────────────
     path('item-tag-preview/', views.ItemTagPreviewView.as_view(), name='item-tag-preview'),
+
+    # ── Serial Image Phone Capture ────────────────────────────────────────────
+    path('serial-capture/init/', views.serial_capture_init, name='serial-capture-init'),
+    path('serial-capture/<uuid:token>/', views.serial_capture_phone, name='serial-capture-phone'),
+    path('serial-capture/<uuid:token>/upload/', views.serial_capture_upload, name='serial-capture-upload'),
+    path('serial-capture/<uuid:token>/poll/', views.serial_capture_poll, name='serial-capture-poll'),
 ]

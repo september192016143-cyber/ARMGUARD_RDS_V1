@@ -665,3 +665,146 @@ class ItemTagPreviewView(LoginRequiredMixin, View):
             _log.exception('ItemTagPreviewView failed: %s', exc)
             return HttpResponse(f'Preview error: {exc}', content_type='text/plain', status=500)
 
+
+# ── Serial Image Phone Capture ───────────────────────────────────────────────
+
+from django.contrib.auth.decorators import login_required  # noqa: E402
+from django.views.decorators.http import require_POST       # noqa: E402
+from django.views.decorators.csrf import csrf_exempt        # noqa: E402
+from django.conf import settings as _settings               # noqa: E402
+
+
+@login_required
+@require_POST
+def serial_capture_init(request):
+    """
+    Admin POSTs here to start a phone-capture session for a serial image.
+    Returns JSON: {token, qr_b64, phone_url}.
+    Purges stale sessions (> 30 min old) on every call.
+    """
+    import io, base64, qrcode
+    from datetime import timedelta
+    from django.utils import timezone
+    from .models import SerialImageCapture
+
+    SerialImageCapture.objects.filter(
+        created_at__lt=timezone.now() - timedelta(minutes=30)
+    ).delete()
+
+    session = SerialImageCapture.objects.create()
+    phone_url = request.build_absolute_uri(
+        reverse('serial-capture-phone', kwargs={'token': str(session.token)})
+    )
+
+    qr = qrcode.QRCode(box_size=6, border=2,
+                       error_correction=qrcode.constants.ERROR_CORRECT_H)
+    qr.add_data(phone_url)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color='#0f172a', back_color='white')
+    buf = io.BytesIO()
+    qr_img.save(buf, format='PNG')
+    qr_b64 = base64.b64encode(buf.getvalue()).decode()
+
+    return JsonResponse({
+        'token':     str(session.token),
+        'qr_b64':    qr_b64,
+        'phone_url': phone_url,
+    })
+
+
+def serial_capture_phone(request, token):
+    """
+    Phone-facing HTML page — no Django auth required, token is the credential.
+    GET: renders the capture UI.
+    """
+    from datetime import timedelta
+    from django.utils import timezone
+    from django.shortcuts import render
+    from .models import SerialImageCapture
+
+    try:
+        session = SerialImageCapture.objects.get(token=token)
+    except SerialImageCapture.DoesNotExist:
+        return render(request, 'inventory/serial_capture_phone.html', {'expired': True})
+
+    if session.created_at < timezone.now() - timedelta(minutes=30):
+        session.delete()
+        return render(request, 'inventory/serial_capture_phone.html', {'expired': True})
+
+    upload_url = request.build_absolute_uri(
+        reverse('serial-capture-upload', kwargs={'token': str(token)})
+    )
+    return render(request, 'inventory/serial_capture_phone.html', {
+        'token':      str(token),
+        'upload_url': upload_url,
+        'has_image':  bool(session.image),
+    })
+
+
+@csrf_exempt
+@require_POST
+def serial_capture_upload(request, token):
+    """
+    Phone POSTs the captured image file here.
+    No Django auth — the UUID token is the credential.
+    """
+    import os
+    from datetime import timedelta
+    from django.utils import timezone
+    from .models import SerialImageCapture
+
+    try:
+        session = SerialImageCapture.objects.get(token=token)
+    except SerialImageCapture.DoesNotExist:
+        return JsonResponse({'error': 'Session expired or not found.'}, status=404)
+
+    if session.created_at < timezone.now() - timedelta(minutes=30):
+        session.delete()
+        return JsonResponse({'error': 'Session expired.'}, status=410)
+
+    file = request.FILES.get('image')
+    if not file:
+        return JsonResponse({'error': 'No image uploaded.'}, status=400)
+
+    allowed_types = {
+        'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+        'image/heic', 'image/heif',
+    }
+    if file.content_type not in allowed_types:
+        return JsonResponse({'error': 'Invalid file type.'}, status=400)
+
+    if file.size > 20 * 1024 * 1024:
+        return JsonResponse({'error': 'File too large (max 20 MB).'}, status=400)
+
+    if session.image:
+        try:
+            session.image.delete(save=False)
+        except Exception:
+            pass
+
+    ext = os.path.splitext(file.name)[1].lower() or '.jpg'
+    session.image.save(f'{token}{ext}', file, save=True)
+    return JsonResponse({'success': True})
+
+
+@login_required
+def serial_capture_poll(request, token):
+    """
+    Admin polls this (GET) every 2 s while waiting for the phone to upload.
+    Returns JSON: {ready: bool, image_url?: str, expired?: bool}.
+    """
+    from .models import SerialImageCapture
+
+    try:
+        session = SerialImageCapture.objects.get(token=token)
+    except SerialImageCapture.DoesNotExist:
+        return JsonResponse({'ready': False, 'expired': True})
+
+    if session.image and session.image.name:
+        image_url = request.build_absolute_uri(
+            _settings.MEDIA_URL + session.image.name
+        )
+        return JsonResponse({'ready': True, 'image_url': image_url})
+
+    return JsonResponse({'ready': False})
+

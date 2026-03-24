@@ -472,5 +472,102 @@
       ctx.lineWidth   = 2;
       ctx.strokeRect(dx, dy, dw, dh);
     }
+
+    // ── "Choose File" button — triggers the hidden file input ───────────────
+    var chooseFileBtn = document.getElementById('serial-choose-file-btn');
+    if (chooseFileBtn) {
+      chooseFileBtn.addEventListener('click', function () { fileInput.click(); });
+    }
+
+    // ── Phone Capture ────────────────────────────────────────────────────────
+    if (cfg.serialCaptureInitUrl) {
+      var phoneBtn     = document.getElementById('serial-phone-capture-btn');
+      var phoneOverlay = document.getElementById('serial-phone-capture-overlay');
+      var phoneClose   = document.getElementById('serial-phone-capture-close');
+      var phoneQr      = document.getElementById('serial-phone-capture-qr');
+      var phoneStatus  = document.getElementById('serial-phone-capture-status');
+      var phoneLink    = document.getElementById('serial-phone-capture-link');
+      var _pollTimer   = null;
+      var _captureToken = null;
+
+      function _csrf() {
+        var m = document.cookie.match(/csrftoken=([^;]+)/);
+        return m ? m[1] : '';
+      }
+
+      function openPhoneCapture() {
+        if (phoneQr)     { phoneQr.style.display = 'none'; phoneQr.src = ''; }
+        if (phoneLink)   phoneLink.style.display = 'none';
+        if (phoneStatus) phoneStatus.textContent = 'Generating QR code\u2026';
+        phoneOverlay.style.display = 'flex';
+
+        fetch(cfg.serialCaptureInitUrl, {
+          method: 'POST',
+          headers: { 'X-CSRFToken': _csrf() },
+          credentials: 'same-origin',
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          _captureToken = data.token;
+          if (phoneQr) {
+            phoneQr.src = 'data:image/png;base64,' + data.qr_b64;
+            phoneQr.style.display = 'block';
+          }
+          if (phoneLink) {
+            phoneLink.href = data.phone_url;
+            phoneLink.style.display = '';
+          }
+          if (phoneStatus) phoneStatus.textContent = 'Waiting for photo from phone\u2026';
+          startCapturePoll();
+        })
+        .catch(function () {
+          if (phoneStatus) phoneStatus.textContent = 'Error generating QR. Please try again.';
+        });
+      }
+
+      function startCapturePoll() {
+        clearInterval(_pollTimer);
+        _pollTimer = setInterval(function () {
+          if (!_captureToken) return;
+          fetch('/inventory/serial-capture/' + _captureToken + '/poll/', { credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data.ready) {
+              clearInterval(_pollTimer);
+              if (phoneStatus) phoneStatus.textContent = 'Photo received! Loading\u2026';
+              fetch(data.image_url, { credentials: 'same-origin' })
+              .then(function (r) { return r.blob(); })
+              .then(function (blob) {
+                var f = new File([blob], 'phone_capture.jpg', { type: blob.type || 'image/jpeg' });
+                var dt = new DataTransfer();
+                dt.items.add(f);
+                fileInput.files = dt.files;
+                fileInput.dispatchEvent(new Event('change'));
+                closePhoneCapture();
+              })
+              .catch(function () {
+                if (phoneStatus) phoneStatus.textContent = 'Error loading photo. Please try again.';
+              });
+            } else if (data.expired) {
+              clearInterval(_pollTimer);
+              if (phoneStatus) phoneStatus.textContent = 'Session expired. Close and try again.';
+            }
+          })
+          .catch(function () {});
+        }, 2000);
+      }
+
+      function closePhoneCapture() {
+        if (phoneOverlay) phoneOverlay.style.display = 'none';
+        clearInterval(_pollTimer);
+        _captureToken = null;
+      }
+
+      if (phoneBtn)     phoneBtn.addEventListener('click', openPhoneCapture);
+      if (phoneClose)   phoneClose.addEventListener('click', closePhoneCapture);
+      if (phoneOverlay) phoneOverlay.addEventListener('click', function (e) {
+        if (e.target === phoneOverlay) closePhoneCapture();
+      });
+    }
   }
 })();

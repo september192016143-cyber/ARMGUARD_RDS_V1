@@ -1,5 +1,7 @@
 
 
+import uuid
+
 from django.db import models
 
 from django.utils import timezone
@@ -1825,6 +1827,27 @@ class Accessory(models.Model):
 
 
 
+
+
+# --- Serial Image Phone Capture (temporary session) ------------------------
+
+class SerialImageCapture(models.Model):
+    """
+    Temporary session holding a serial image captured via the armorer's phone.
+
+    Created when the admin clicks "Capture via Phone" on the pistol/rifle form.
+    The phone scans the QR code, takes a photo, and uploads it here via
+    serial_capture_upload.  The admin browser polls until the image arrives
+    and then injects it into the file input so the crop modal opens as normal.
+
+    Records older than 30 minutes are purged automatically by serial_capture_init.
+    """
+    token      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    image      = models.ImageField(upload_to='serial_capture_temp/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Serial Image Capture Session'
 
 
 # Expose Inventory_Analytics to Django's app registry so it gets a DB table.

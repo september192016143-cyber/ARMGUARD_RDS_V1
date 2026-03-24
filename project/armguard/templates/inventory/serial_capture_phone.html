@@ -1,0 +1,132 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  {% if not expired %}
+  <meta name="armguard-upload-url" content="{{ upload_url }}">
+  {% endif %}
+  <title>ArmGuard — Serial Image Capture</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+      gap: 1.25rem;
+    }
+    .logo {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      color: #c9952b;
+      text-transform: uppercase;
+    }
+    .card {
+      background: #1e2535;
+      border: 1px solid #2d3550;
+      border-radius: .75rem;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    h1 { font-size: 1rem; font-weight: 600; text-align: center; }
+    p  { font-size: .875rem; color: #94a3b8; text-align: center; line-height: 1.5; }
+    #preview {
+      width: 100%;
+      max-height: 260px;
+      object-fit: contain;
+      border-radius: .5rem;
+      border: 2px solid #2d3550;
+      display: none;
+    }
+    .btn-row { display: flex; gap: .75rem; width: 100%; flex-wrap: wrap; }
+    .btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .4rem;
+      padding: .8rem 1rem;
+      border-radius: .5rem;
+      border: none;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-width: 120px;
+      transition: opacity .15s;
+    }
+    .btn:active { opacity: .75; }
+    .btn-primary  { background: #c9952b; color: #0f172a; }
+    .btn-secondary{ background: #2d3550; color: #e2e8f0; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .status {
+      font-size: .8rem;
+      text-align: center;
+      min-height: 1.2em;
+      color: #94a3b8;
+    }
+    .status.success { color: #4ade80; font-weight: 600; }
+    .status.error   { color: #f87171; }
+    #file-input { display: none; }
+    #retake-btn { display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="logo">&#9881; ArmGuard RDS</div>
+
+  {% if expired %}
+  <div class="card">
+    <h1>&#9888; Session Expired</h1>
+    <p style="color:#f87171">This capture link has expired or is no longer valid.<br>
+    Ask the admin to click <strong>Via Phone</strong> again to generate a new QR code.</p>
+  </div>
+
+  {% else %}
+  <div class="card">
+    <h1>&#128247; Serial Image Capture</h1>
+    <p>Point your camera at the weapon&#8217;s serial number and tap <strong>Take Photo</strong>.<br>
+    Then tap <strong>Send to Admin</strong>.</p>
+
+    <img id="preview" alt="Captured preview">
+
+    <input type="file" id="file-input" accept="image/*" capture="environment">
+
+    <div class="btn-row">
+      <button type="button" class="btn btn-primary" id="take-btn">
+        &#128247; Take Photo
+      </button>
+      <button type="button" class="btn btn-secondary" id="retake-btn">
+        &#8635; Retake
+      </button>
+    </div>
+
+    <button type="button" class="btn btn-primary" id="send-btn" disabled style="width:100%">
+      &#9654; Send to Admin
+    </button>
+
+    <div class="status" id="status"></div>
+  </div>
+  {% endif %}
+
+  {% if not expired %}
+  <script src="{% static 'js/serial_capture_phone.js' %}"></script>
+  {% endif %}
+
+</body>
+</html>
