@@ -16,18 +16,20 @@
   var logsUrl   = cfg.logsUrl;
   var pinUrl    = cfg.pinUrl;
   var wasActive = cfg.wasActive;
-  var reloaded  = false;
 
-  var statusEl    = document.getElementById('dev-info-status');
-  var activatedEl = document.getElementById('dev-info-activated');
-  var seenEl      = document.getElementById('dev-info-seen');
-  var lockRow     = document.getElementById('dev-info-lock-row');
-  var lockUntilEl = document.getElementById('dev-info-locked-until');
-  var logsTbody   = document.getElementById('pair-logs-tbody');
-  var logsCountEl = document.getElementById('pair-logs-count');
-  var liveEl      = document.getElementById('pair-live');
-  var logsEmpty   = document.getElementById('pair-logs-empty');
-  var knownPks    = {};
+  var statusEl      = document.getElementById('dev-info-status');
+  var activatedEl   = document.getElementById('dev-info-activated');
+  var seenEl        = document.getElementById('dev-info-seen');
+  var lockRow       = document.getElementById('dev-info-lock-row');
+  var lockUntilEl   = document.getElementById('dev-info-locked-until');
+  var qrBadgeEl     = document.getElementById('qr-status-badge');
+  var pinBoxEl      = document.getElementById('pin-box');
+  var logsTbody     = document.getElementById('pair-logs-tbody');
+  var logsCountEl   = document.getElementById('pair-logs-count');
+  var liveEl        = document.getElementById('pair-live');
+  var logsEmpty     = document.getElementById('pair-logs-empty');
+  var knownPks      = {};
+  var pollTimer     = null;
 
   // ── PIN display ──────────────────────────────────────────────────────────
   var pinDisplay  = document.getElementById('pin-display');
@@ -78,7 +80,25 @@
     setInterval(tickPin, 250);
   }
 
-  // ── Live flash ───────────────────────────────────────────────────────────
+  // ── Toast notification ───────────────────────────────────────────────────
+  function showToast(msg, color) {
+    var t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;top:1.2rem;right:1.2rem;z-index:9999;' +
+      'background:' + (color || '#052e16') + ';color:#4ade80;border:1px solid #166534;' +
+      'border-radius:.6rem;padding:.65rem 1.1rem;font-size:.85rem;font-weight:600;' +
+      'box-shadow:0 4px 16px rgba(0,0,0,.4);transition:opacity .5s;';
+    document.body.appendChild(t);
+    setTimeout(function () { t.style.opacity = '0'; }, 2800);
+    setTimeout(function () { t.remove(); }, 3300);
+  }
+
+  // ── Adaptive polling control ─────────────────────────────────────────────
+  function setAdaptivePoll(isActive) {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(pollStatus, isActive ? 5000 : 2000);
+  }
+
   function flash() {
     if (!liveEl) return;
     liveEl.style.opacity = '1';
@@ -92,11 +112,27 @@
       .then(function (d) {
         if (!d.found) return;
         flash();
-        if (d.is_active && !wasActive && !reloaded) {
-          reloaded = true;
-          window.location.reload();
-          return;
+
+        // Device just became active — update everything in-place (no reload)
+        if (d.is_active && !wasActive) {
+          wasActive = true;
+          setAdaptivePoll(true);  // slow down to 5s now that it's active
+
+          // Update QR status badge
+          if (qrBadgeEl) {
+            qrBadgeEl.style.cssText = 'background:#052e16;border-radius:.6rem;padding:.6rem;margin-bottom:1rem;font-size:.82rem;color:#4ade80;';
+            qrBadgeEl.innerHTML = '&#9679; Active &mdash; last seen ' + (d.last_seen || 'just now');
+          }
+          // Show PIN box and start displaying the PIN
+          if (pinBoxEl) {
+            pinBoxEl.style.display = 'block';
+            pinBoxEl.style.animation = 'cam-fadein .4s ease';
+            if (pinDisplay) refreshPin();
+          }
+          // Show success toast
+          showToast('\u2713 Device activated!');
         }
+
         if (statusEl) {
           if (d.revoked) { statusEl.style.color = '#f87171'; statusEl.textContent = 'Revoked'; }
           else if (d.is_active) { statusEl.style.color = '#4ade80'; statusEl.textContent = 'Active'; }
@@ -149,7 +185,7 @@
   // ── Boot ─────────────────────────────────────────────────────────────────
   pollStatus();
   refreshLogs();
-  setInterval(pollStatus,  5000);
+  setAdaptivePoll(wasActive);   // 2s if pending, 5s if already active
   setInterval(refreshLogs, 5000);
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') { pollStatus(); refreshLogs(); refreshPin(); }

@@ -25,16 +25,16 @@
 
     {% if device %}
       {% if device.revoked_at %}
-        <div style="background:#450a0a;border-radius:.6rem;padding:.8rem;margin-bottom:1rem;font-size:.82rem;color:#f87171;">
+        <div id="qr-status-badge" style="background:#450a0a;border-radius:.6rem;padding:.8rem;margin-bottom:1rem;font-size:.82rem;color:#f87171;">
           &#9888; Device revoked
           {% if device.revoked_by %}by {{ device.revoked_by.username }}{% endif %}
         </div>
       {% elif not device.is_active %}
-        <div style="background:#1c1917;border-radius:.6rem;padding:.6rem;margin-bottom:1rem;font-size:.82rem;color:#fbbf24;">
+        <div id="qr-status-badge" style="background:#1c1917;border-radius:.6rem;padding:.6rem;margin-bottom:1rem;font-size:.82rem;color:#fbbf24;">
           &#9203; Awaiting first scan
         </div>
       {% else %}
-        <div style="background:#052e16;border-radius:.6rem;padding:.6rem;margin-bottom:1rem;font-size:.82rem;color:#4ade80;">
+        <div id="qr-status-badge" style="background:#052e16;border-radius:.6rem;padding:.6rem;margin-bottom:1rem;font-size:.82rem;color:#4ade80;">
           &#9679; Active &mdash; last seen
           {% if device.last_seen_at %}{{ device.last_seen_at|date:"d M Y H:i" }}{% else %}never{% endif %}
         </div>
@@ -49,9 +49,9 @@
         Have the armorer scan this code with their phone camera while logged in to ArmGuard.
       </p>
 
-      {% if device and device.is_active and not device.revoked_at %}
-      <!-- ── 30-second rotating PIN ─────────────────────────────────────── -->
-      <div id="pin-box" style="margin-top:1.5rem;background:#0f172a;border-radius:.75rem;padding:1.25rem;text-align:center;">
+      {% if device and not device.revoked_at %}
+      <!-- ── 30-second rotating PIN — always present in DOM, hidden until active ──── -->
+      <div id="pin-box" style="margin-top:1.5rem;background:#0f172a;border-radius:.75rem;padding:1.25rem;text-align:center;{% if not device.is_active %}display:none;{% endif %}">
         <p style="font-size:.72rem;color:#64748b;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em;">Session PIN</p>
         <div id="pin-display" style="font-size:2.5rem;font-weight:800;letter-spacing:.35rem;color:#f97316;font-variant-numeric:tabular-nums;">&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;</div>
         <div style="margin-top:.6rem;display:flex;align-items:center;justify-content:center;gap:.5rem;">
@@ -95,21 +95,19 @@
       <h3 style="font-size:.95rem;margin-bottom:.75rem;color:var(--text,#f8fafc);">Device Info</h3>
       <table style="width:100%;border-collapse:collapse;">
         <tr><td style="padding:.3rem 0;width:40%;">Status</td>
-            <td style="color:{% if device.revoked_at %}#f87171{% elif device.is_active %}#4ade80{% else %}#fbbf24{% endif %};">
+            <td id="dev-info-status" style="color:{% if device.revoked_at %}#f87171{% elif device.is_active %}#4ade80{% else %}#fbbf24{% endif %};">
               {% if device.revoked_at %}Revoked{% elif device.is_active %}Active{% else %}Pending activation{% endif %}
             </td></tr>
         <tr><td style="padding:.3rem 0;">Paired</td>
             <td>{{ device.paired_at|date:"d M Y H:i" }}</td></tr>
         <tr><td style="padding:.3rem 0;">Activated</td>
-            <td>{% if device.activated_at %}{{ device.activated_at|date:"d M Y H:i" }}{% else %}&mdash;{% endif %}</td></tr>
+            <td id="dev-info-activated">{% if device.activated_at %}{{ device.activated_at|date:"d M Y H:i" }}{% else %}&mdash;{% endif %}</td></tr>
         <tr><td style="padding:.3rem 0;">Last seen</td>
-            <td>{% if device.last_seen_at %}{{ device.last_seen_at|date:"d M Y H:i" }}{% else %}&mdash;{% endif %}</td></tr>
+            <td id="dev-info-seen">{% if device.last_seen_at %}{{ device.last_seen_at|date:"d M Y H:i" }}{% else %}&mdash;{% endif %}</td></tr>
         <tr><td style="padding:.3rem 0;">Fingerprint</td>
             <td style="word-break:break-all;font-size:.72rem;">{{ device.device_fingerprint|default:"—"|truncatechars:80 }}</td></tr>
-        {% if device.is_locked %}
-        <tr><td style="padding:.3rem 0;color:#f87171;">Locked until</td>
-            <td style="color:#f87171;">{{ device.locked_until|date:"H:i" }}</td></tr>
-        {% endif %}
+        <tr id="dev-info-lock-row" style="display:{% if device.is_locked %}table-row{% else %}none{% endif %};"><td style="padding:.3rem 0;color:#f87171;">Locked until</td>
+            <td id="dev-info-locked-until" style="color:#f87171;">{% if device.locked_until %}{{ device.locked_until|date:"H:i" }}{% endif %}</td></tr>
       </table>
     </div>
 

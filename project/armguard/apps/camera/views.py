@@ -428,6 +428,8 @@ def device_status_api(request, user_pk: int):
         'activated_at': device.activated_at.strftime('%d %b %Y %H:%M') if device.activated_at else None,
         'last_seen':    device.last_seen_at.strftime('%d %b %Y %H:%M') if device.last_seen_at else None,
         'fingerprint':  (device.device_fingerprint or '')[:80],
+        'locked':       device.is_locked(),
+        'locked_until': device.locked_until.strftime('%H:%M') if device.is_locked() and device.locked_until else None,
     })
 
 
