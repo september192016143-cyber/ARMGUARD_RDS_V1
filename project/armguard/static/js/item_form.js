@@ -61,8 +61,8 @@
       var _tagAbort  = null;
 
       function _getCsrf() {
-        var m = document.cookie.match(/csrftoken=([^;]+)/);
-        return m ? m[1] : '';
+        var el = document.querySelector('[name=csrfmiddlewaretoken]');
+        return el ? el.value : '';
       }
 
       function scheduleTagPreview() {
@@ -491,8 +491,8 @@
       var _captureToken = null;
 
       function _csrf() {
-        var m = document.cookie.match(/csrftoken=([^;]+)/);
-        return m ? m[1] : '';
+        var el = document.querySelector('[name=csrfmiddlewaretoken]');
+        return el ? el.value : '';
       }
 
       function openPhoneCapture() {
