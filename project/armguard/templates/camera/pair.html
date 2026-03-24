@@ -217,17 +217,36 @@
   function refreshPin() {
     if (!pinDisplay) return;
     fetch(pinUrl, { credentials: 'same-origin' })
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) {
+          console.error('PIN API returned HTTP ' + r.status + ' for ' + pinUrl);
+          pinDisplay.textContent = 'HTTP\u00a0' + r.status;
+          if (pinCountEl) pinCountEl.textContent = 'err';
+          return null;
+        }
+        return r.json();
+      })
       .then(function (json) {
-        if (!json.pin) return;
+        if (!json || !json.pin) return;
         pinDisplay.textContent = json.pin;
         pinExpiresAt = json.expires_ms;
+        if (pinCountEl) pinCountEl.textContent = '30s';
       })
-      .catch(function () {});
+      .catch(function (err) {
+        console.error('PIN fetch error:', err);
+        if (pinDisplay) pinDisplay.textContent = 'err';
+        // Retry after 3 s so a transient failure self-heals
+        setTimeout(refreshPin, 3000);
+      });
   }
 
   function tickPin() {
-    if (!pinDisplay || !pinExpiresAt) return;
+    if (!pinDisplay) return;
+    if (!pinExpiresAt) {
+      // Not yet loaded — keep bar full, show waiting state
+      if (pinBar) pinBar.style.width = '100%';
+      return;
+    }
     var now       = Date.now();
     var remaining = Math.max(0, (pinExpiresAt - now) / 1000);
     if (pinCountEl) pinCountEl.textContent = Math.ceil(remaining) + 's';
