@@ -12,10 +12,11 @@
   var cfg;
   try { cfg = JSON.parse(dataEl.textContent); } catch (e) { return; }
 
-  var statusUrl = cfg.statusUrl;
-  var logsUrl   = cfg.logsUrl;
-  var pinUrl    = cfg.pinUrl;
-  var wasActive = cfg.wasActive;
+  var statusUrl  = cfg.statusUrl;
+  var logsUrl    = cfg.logsUrl;
+  var pinUrl     = cfg.pinUrl;
+  var pairUrl    = cfg.pairUrl;
+  var wasActive  = cfg.wasActive;
 
   var statusEl      = document.getElementById('dev-info-status');
   var activatedEl   = document.getElementById('dev-info-activated');
@@ -24,6 +25,11 @@
   var lockUntilEl   = document.getElementById('dev-info-locked-until');
   var qrBadgeEl     = document.getElementById('qr-status-badge');
   var pinBoxEl      = document.getElementById('pin-box');
+  var labelFormEl  = document.getElementById('label-form');
+  var labelInputEl = document.getElementById('label-input');
+  var labelSaveBtn = document.getElementById('label-save-btn');
+  var labelDisplay = document.getElementById('label-display');
+  var labelInfoEl  = document.getElementById('dev-info-label');
   var logsTbody     = document.getElementById('pair-logs-tbody');
   var logsCountEl   = document.getElementById('pair-logs-count');
   var liveEl        = document.getElementById('pair-live');
@@ -180,6 +186,56 @@
         if (added > 0) flash();
       })
       .catch(function () {});
+  }
+
+  // ── CSRF helper ──────────────────────────────────────────────────────────
+  function getCsrf() {
+    var match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return match ? match[1] : '';
+  }
+
+  // ── Device Label AJAX save ────────────────────────────────────────────────
+  if (labelFormEl && labelInputEl) {
+    labelFormEl.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var newLabel = labelInputEl.value.trim().slice(0, 100);
+      if (labelSaveBtn) { labelSaveBtn.disabled = true; labelSaveBtn.textContent = 'Saving…'; }
+
+      var body = new URLSearchParams();
+      body.append('action', 'set_name');
+      body.append('device_name', newLabel);
+      body.append('csrfmiddlewaretoken', getCsrf());
+
+      fetch(pairUrl, {
+        method:      'POST',
+        credentials: 'same-origin',
+        headers:     { 'Content-Type': 'application/x-www-form-urlencoded',
+                       'X-CSRFToken':  getCsrf() },
+        body:        body.toString(),
+      })
+        .then(function (r) {
+          if (r.ok || r.redirected) {
+            // Update all label display elements in-place
+            var display = newLabel || '—';
+            if (labelInfoEl) labelInfoEl.textContent = display;
+            if (labelDisplay) {
+              if (newLabel) {
+                labelDisplay.textContent = '\uD83C\uDFF7\uFE0F ' + newLabel;
+                labelDisplay.style.display = '';
+              } else {
+                labelDisplay.style.display = 'none';
+              }
+            }
+            showToast('\u2713 Label saved');
+          } else {
+            showToast('Save failed (' + r.status + ')', '#450a0a');
+          }
+        })
+        .catch(function () { showToast('Save failed — network error', '#450a0a'); })
+        .finally(function () {
+          if (labelSaveBtn) { labelSaveBtn.disabled = false; labelSaveBtn.textContent = 'Save'; }
+        });
+    });
   }
 
   // ── Boot ─────────────────────────────────────────────────────────────────

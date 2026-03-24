@@ -18,10 +18,25 @@
 
   <!-- ── QR Code card ──────────────────────────────────────────────────── -->
   <div style="background:var(--surface,#1e293b);border-radius:1rem;padding:2rem;min-width:260px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.3);">
-    <p style="font-size:.8rem;color:var(--text-muted,#94a3b8);margin-bottom:1rem;">
-      Armorer: <strong style="color:var(--text,#f8fafc);">{{ armorer.username }}</strong>
-      {% if armorer.get_full_name %}&ndash; {{ armorer.get_full_name }}{% endif %}
+    <p style="font-size:.8rem;color:var(--text-muted,#94a3b8);margin-bottom:.25rem;">
+      <strong style="color:var(--text,#f8fafc);font-size:.95rem;">{{ armorer.username }}</strong>
+      {% if armorer.get_full_name %}<span style="color:#64748b;"> &mdash; {{ armorer.get_full_name }}</span>{% endif %}
     </p>
+    {% if armorer_role %}
+    <p style="margin-bottom:.75rem;">
+      <span style="font-size:.72rem;font-weight:600;padding:.2rem .6rem;border-radius:1rem;
+        {% if armorer_role == 'System Administrator' %}background:#1e3a5f;color:#93c5fd;
+        {% elif armorer_role == 'Armorer' %}background:#431407;color:#f97316;
+        {% else %}background:#1e293b;color:#94a3b8;{% endif %}">
+        {{ armorer_role }}
+      </span>
+    </p>
+    {% endif %}
+    {% if device and device.device_name %}
+    <p id="label-display" style="font-size:.78rem;color:#f8fafc;margin-bottom:.75rem;font-style:italic;">&#127991; {{ device.device_name }}</p>
+    {% else %}
+    <p id="label-display" style="font-size:.78rem;color:#475569;margin-bottom:.75rem;display:none;"></p>
+    {% endif %}
 
     {% if device %}
       {% if device.revoked_at %}
@@ -73,16 +88,16 @@
     <!-- Device name form -->
     <div style="background:var(--surface,#1e293b);border-radius:.75rem;padding:1.5rem;margin-bottom:1rem;">
       <h3 style="font-size:.95rem;margin-bottom:1rem;color:var(--text,#f8fafc);">Device Label</h3>
-      <form method="post">
+      <form id="label-form" method="post">
         {% csrf_token %}
         <input type="hidden" name="action" value="set_name">
         <div style="display:flex;gap:.5rem;">
-          <input type="text" name="device_name"
+          <input id="label-input" type="text" name="device_name"
                  value="{{ device.device_name }}"
                  placeholder="e.g. Sgt. Santos — Samsung A54"
                  maxlength="100"
                  style="flex:1;background:#0f172a;border:1px solid #334155;border-radius:.4rem;padding:.55rem .75rem;color:#f8fafc;font-size:.9rem;">
-          <button type="submit"
+          <button id="label-save-btn" type="submit"
                   style="background:#f97316;color:#fff;border:none;border-radius:.4rem;padding:.55rem 1rem;font-size:.9rem;cursor:pointer;">
             Save
           </button>
@@ -94,6 +109,8 @@
     <div style="background:var(--surface,#1e293b);border-radius:.75rem;padding:1.5rem;margin-bottom:1rem;font-size:.82rem;color:#94a3b8;">
       <h3 style="font-size:.95rem;margin-bottom:.75rem;color:var(--text,#f8fafc);">Device Info</h3>
       <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:.3rem 0;width:40%;">Label</td>
+            <td id="dev-info-label" style="color:#f8fafc;">{{ device.device_name|default:"—" }}</td></tr>
         <tr><td style="padding:.3rem 0;width:40%;">Status</td>
             <td id="dev-info-status" style="color:{% if device.revoked_at %}#f87171{% elif device.is_active %}#4ade80{% else %}#fbbf24{% endif %};">
               {% if device.revoked_at %}Revoked{% elif device.is_active %}Active{% else %}Pending activation{% endif %}
@@ -189,7 +206,7 @@
 </style>
 
 {# Page data for camera_pair.js — type=application/json is not executed by the browser (CSP-safe) #}
-<script type="application/json" id="pair-page-data">{"statusUrl":"{% url 'camera:device_status' armorer.pk %}","logsUrl":"{% url 'camera:logs_feed' %}?device={{ armorer.pk }}","pinUrl":"{% url 'camera:pair_pin' armorer.pk %}","wasActive":{% if device.is_active %}true{% else %}false{% endif %}}</script>
+<script type="application/json" id="pair-page-data">{"statusUrl":"{% url 'camera:device_status' armorer.pk %}","logsUrl":"{% url 'camera:logs_feed' %}?device={{ armorer.pk }}","pinUrl":"{% url 'camera:pair_pin' armorer.pk %}","pairUrl":"{% url 'camera:pair_device' armorer.pk %}","wasActive":{% if device.is_active %}true{% else %}false{% endif %}}</script>
 <script src="{% static 'js/camera_pair.js' %}"></script>
 {% endif %}
 {% endblock %}

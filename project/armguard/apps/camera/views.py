@@ -405,11 +405,16 @@ def pair_device_view(request, user_pk: int):
     )
     qr_b64 = _make_qr_b64(activate_url)
 
+    # Resolve display role (superusers may have no profile entry)
+    if armorer.is_superuser and not armorer_role:
+        armorer_role = 'System Administrator'
+
     return render(request, 'camera/pair.html', {
-        'armorer':      armorer,
-        'device':       device,
-        'qr_b64':       qr_b64,
-        'activate_url': activate_url,
+        'armorer':       armorer,
+        'armorer_role':  armorer_role,
+        'device':        device,
+        'qr_b64':        qr_b64,
+        'activate_url':  activate_url,
     })
 
 
