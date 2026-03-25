@@ -42,4 +42,9 @@ urlpatterns = [
     path('serial-capture/<uuid:token>/', views.serial_capture_phone, name='serial-capture-phone'),
     path('serial-capture/<uuid:token>/upload/', views.serial_capture_upload, name='serial-capture-upload'),
     path('serial-capture/<uuid:token>/poll/', views.serial_capture_poll, name='serial-capture-poll'),
+
+    # ── Firearm Discrepancies ─────────────────────────────────────────────────
+    path('discrepancies/', views.FirearmDiscrepancyListView.as_view(), name='discrepancy-list'),
+    path('discrepancies/add/', views.FirearmDiscrepancyCreateView.as_view(), name='discrepancy-add'),
+    path('discrepancies/<int:pk>/edit/', views.FirearmDiscrepancyUpdateView.as_view(), name='discrepancy-edit'),
 ]

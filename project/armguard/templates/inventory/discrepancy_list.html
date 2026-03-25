@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Firearm Discrepancies — ArmGuard RDS{% endblock %}
+{% block page_title %}Firearm Discrepancies{% endblock %}
+{% block page_sub %}Inspection and transaction discrepancy log{% endblock %}
+
+{% block topbar_actions %}
+<div style="display:flex;align-items:center;gap:.5rem">
+  {% if can_add %}
+  <a href="{% url 'discrepancy-add' %}" class="btn btn-primary btn-sm">
+    <i class="fa-solid fa-plus"></i> Log Discrepancy
+  </a>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<style>
+.main{height:100vh;min-height:unset;overflow:hidden}
+.page-body{display:flex;flex-direction:column;overflow:hidden;padding-bottom:.75rem}
+.page-body>.card{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.page-body>.card>.filter-bar{flex-shrink:0}
+.page-body>.card>.table-wrap{flex:1;overflow-y:auto;min-height:0}
+.page-body>.card table tbody td{padding:.45rem .85rem}
+.page-body>.card table thead th{padding:.45rem .85rem}
+</style>
+<div class="card">
+  <!-- Filters -->
+  <div class="filter-bar">
+    <form method="get" class="search-bar" style="flex:1">
+      <div class="input-wrap" style="flex:1;max-width:280px">
+        <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;pointer-events:none"></i>
+        <input type="text" name="q" value="{{ request.GET.q }}" class="form-control"
+               placeholder="Serial, description, reporter…" style="padding-left:2.1rem" autocomplete="off">
+      </div>
+      <select name="status" class="form-control" style="max-width:150px">
+        <option value="">All Status</option>
+        {% for val, label in status_choices %}
+        <option value="{{ val }}" {% if request.GET.status == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="type" class="form-control" style="max-width:180px">
+        <option value="">All Types</option>
+        {% for val, label in type_choices %}
+        <option value="{{ val }}" {% if request.GET.type == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+      {% if request.GET.q or request.GET.status or request.GET.type %}
+        <a href="{% url 'discrepancy-list' %}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
+      {% endif %}
+    </form>
+    <span class="text-muted" style="font-size:.8rem;white-space:nowrap">{{ page_obj.paginator.count }} records</span>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Type</th>
+          <th>Firearm</th>
+          <th>Discrepancy</th>
+          <th>Status</th>
+          <th>Reported By</th>
+          <th>Reported At</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in discrepancies %}
+        <tr>
+          <td>{{ d.pk }}</td>
+          <td>
+            {% if d.firearm_type == 'Pistol' %}
+              <span class="badge" style="background:#1d4ed8;color:#fff;padding:.2rem .55rem;border-radius:.3rem;font-size:.72rem">Pistol</span>
+            {% elif d.firearm_type == 'Rifle' %}
+              <span class="badge" style="background:#065f46;color:#fff;padding:.2rem .55rem;border-radius:.3rem;font-size:.72rem">Rifle</span>
+            {% else %}
+              <span style="color:var(--muted)">—</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.82rem">
+            {% if d.pistol %}{{ d.pistol.model }} / {{ d.pistol.serial_number }}
+            {% elif d.rifle %}{{ d.rifle.model }} / {{ d.rifle.serial_number }}
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            <span style="font-size:.78rem;font-weight:600">{{ d.discrepancy_type }}</span>
+            {% if d.description %}
+            <div style="font-size:.72rem;color:var(--muted);margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ d.description }}">{{ d.description }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if d.status == 'Open' %}
+              <span style="color:#f87171;font-weight:600;font-size:.78rem">{{ d.status }}</span>
+            {% elif d.status == 'Under Review' %}
+              <span style="color:#fbbf24;font-weight:600;font-size:.78rem">{{ d.status }}</span>
+            {% elif d.status == 'Resolved' or d.status == 'Closed' %}
+              <span style="color:#4ade80;font-weight:600;font-size:.78rem">{{ d.status }}</span>
+            {% else %}
+              <span style="font-size:.78rem">{{ d.status }}</span>
+            {% endif %}
+          </td>
+          <td style="font-size:.8rem">{{ d.reported_by.get_full_name|default:d.reported_by.username|default:"—" }}</td>
+          <td style="font-size:.78rem;color:var(--muted);white-space:nowrap">{{ d.reported_at|date:"d M Y H:i" }}</td>
+          <td>
+            <a href="{% url 'discrepancy-edit' d.pk %}" class="btn btn-secondary btn-sm" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted)">No discrepancy records found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <div style="padding:.75rem 1rem;display:flex;gap:.5rem;align-items:center;flex-shrink:0">
+    {% if page_obj.has_previous %}
+      <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.previous_page_number }}" class="btn btn-secondary btn-sm">&laquo; Prev</a>
+    {% endif %}
+    <span style="font-size:.8rem;color:var(--muted)">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.next_page_number }}" class="btn btn-secondary btn-sm">Next &raquo;</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

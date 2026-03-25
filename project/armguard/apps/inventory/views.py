@@ -9,7 +9,8 @@ from django.db.models import Q, Sum, OuterRef, Subquery, IntegerField, Value, Ca
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
-from .models import Pistol, Rifle, Magazine, Ammunition, Accessory, AMMUNITION_TYPES
+from .models import Pistol, Rifle, Magazine, Ammunition, Accessory, AMMUNITION_TYPES, FirearmDiscrepancy
+from .pistol_rifle_discrepancy_model import DISCREPANCY_TYPE_CHOICES, DISCREPANCY_STATUS_CHOICES
 from .forms import (PistolForm, RifleForm, MagazineForm,
                     AmmunitionForm, AccessoryForm)
 # H1 FIX: Import per-module permission helpers.
@@ -833,4 +834,89 @@ def serial_capture_poll(request, token):
         return JsonResponse({'ready': True, 'image_url': image_url})
 
     return JsonResponse({'ready': False})
+
+
+# ── Firearm Discrepancy views ────────────────────────────────────────────────
+
+class FirearmDiscrepancyListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    model               = FirearmDiscrepancy
+    template_name       = 'inventory/discrepancy_list.html'
+    context_object_name = 'discrepancies'
+    paginate_by         = 25
+
+    def test_func(self):
+        return can_view_inventory(self.request.user)
+
+    def get_queryset(self):
+        qs = FirearmDiscrepancy.objects.select_related(
+            'pistol', 'rifle', 'issuer', 'withdrawer', 'reported_by'
+        )
+        q      = self.request.GET.get('q', '').strip()
+        status = self.request.GET.get('status', '').strip()
+        dtype  = self.request.GET.get('type', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(pistol__serial_number__icontains=q) |
+                Q(rifle__serial_number__icontains=q)  |
+                Q(description__icontains=q)           |
+                Q(reported_by__username__icontains=q)
+            )
+        if status:
+            qs = qs.filter(status=status)
+        if dtype:
+            qs = qs.filter(discrepancy_type=dtype)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['status_choices'] = DISCREPANCY_STATUS_CHOICES
+        ctx['type_choices']   = DISCREPANCY_TYPE_CHOICES
+        ctx['can_add']        = can_add_inventory(self.request.user)
+        return ctx
+
+
+class FirearmDiscrepancyCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    model         = FirearmDiscrepancy
+    template_name = 'inventory/discrepancy_form.html'
+    fields        = [
+        'pistol', 'rifle', 'issuer', 'withdrawer', 'related_transaction',
+        'discrepancy_type', 'description', 'status',
+    ]
+    success_url = reverse_lazy('discrepancy-list')
+
+    def test_func(self):
+        return can_add_inventory(self.request.user)
+
+    def form_valid(self, form):
+        form.instance.reported_by = self.request.user
+        messages.success(self.request, 'Discrepancy recorded.')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['title'] = 'Log Discrepancy'
+        return ctx
+
+
+class FirearmDiscrepancyUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model         = FirearmDiscrepancy
+    template_name = 'inventory/discrepancy_form.html'
+    fields        = [
+        'pistol', 'rifle', 'issuer', 'withdrawer', 'related_transaction',
+        'discrepancy_type', 'description', 'status',
+        'resolved_by', 'resolved_at', 'resolution_notes',
+    ]
+    success_url = reverse_lazy('discrepancy-list')
+
+    def test_func(self):
+        return can_edit_inventory(self.request.user)
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Discrepancy updated.')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['title'] = 'Edit Discrepancy'
+        return ctx
 

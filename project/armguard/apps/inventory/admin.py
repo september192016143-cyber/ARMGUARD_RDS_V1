@@ -1,5 +1,5 @@
 from django.contrib import admin, messages as admin_messages
-from .models import Pistol, Rifle, Magazine, Ammunition, Accessory
+from .models import Pistol, Rifle, Magazine, Ammunition, Accessory, FirearmDiscrepancy
 from .inventory_analytics_model import Inventory_Analytics, AnalyticsSnapshot
 from django import forms
 from django.contrib.admin import SimpleListFilter
@@ -169,6 +169,42 @@ admin.site.register(Magazine, MagazineAdmin)
 admin.site.register(Ammunition, AmmunitionAdmin)
 admin.site.register(Accessory, AccessoryAdmin)
 # admin.site.register(Location)  # Disabled temporarily
+
+
+@admin.register(FirearmDiscrepancy)
+class FirearmDiscrepancyAdmin(admin.ModelAdmin):
+    list_display  = ['pk', 'firearm_type', 'pistol', 'rifle', 'discrepancy_type',
+                     'status', 'reported_by', 'reported_at']
+    list_filter   = ['status', 'discrepancy_type']
+    search_fields = ['pistol__serial_number', 'rifle__serial_number',
+                     'reported_by__username', 'description']
+    readonly_fields = ['reported_at', 'firearm_type']
+    autocomplete_fields = []
+
+    fieldsets = (
+        ('Firearm', {
+            'description': 'Set exactly one of Pistol or Rifle.',
+            'fields': ('pistol', 'rifle'),
+        }),
+        ('Personnel', {
+            'fields': ('issuer', 'withdrawer', 'related_transaction'),
+        }),
+        ('Discrepancy Details', {
+            'fields': ('discrepancy_type', 'description', 'status'),
+        }),
+        ('Reporting', {
+            'fields': ('reported_by', 'reported_at'),
+        }),
+        ('Resolution', {
+            'fields': ('resolved_by', 'resolved_at', 'resolution_notes'),
+            'classes': ('collapse',),
+        }),
+    )
+
+    def save_model(self, request, obj, form, change):
+        if not obj.reported_by_id:
+            obj.reported_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 class InventoryAnalyticsAdmin(admin.ModelAdmin):

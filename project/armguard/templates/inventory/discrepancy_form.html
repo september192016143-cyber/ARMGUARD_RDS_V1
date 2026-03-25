@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} — ArmGuard RDS{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_sub %}Firearm discrepancy record{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'discrepancy-list' %}" class="btn btn-secondary btn-sm">
+  <i class="fa-solid fa-arrow-left"></i> Back to List
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:680px">
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-error" role="alert">
+      {% for err in form.non_field_errors %}{{ err }}{% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+
+      <!-- Pistol -->
+      <div>
+        <label class="form-label">Pistol <span style="color:var(--muted);font-size:.72rem">(leave blank if rifle)</span></label>
+        {{ form.pistol }}
+        {% if form.pistol.errors %}<div class="form-error">{{ form.pistol.errors }}</div>{% endif %}
+      </div>
+
+      <!-- Rifle -->
+      <div>
+        <label class="form-label">Rifle <span style="color:var(--muted);font-size:.72rem">(leave blank if pistol)</span></label>
+        {{ form.rifle }}
+        {% if form.rifle.errors %}<div class="form-error">{{ form.rifle.errors }}</div>{% endif %}
+      </div>
+
+      <!-- Issuer -->
+      <div>
+        <label class="form-label">Issuer</label>
+        {{ form.issuer }}
+        {% if form.issuer.errors %}<div class="form-error">{{ form.issuer.errors }}</div>{% endif %}
+      </div>
+
+      <!-- Withdrawer -->
+      <div>
+        <label class="form-label">Withdrawer</label>
+        {{ form.withdrawer }}
+        {% if form.withdrawer.errors %}<div class="form-error">{{ form.withdrawer.errors }}</div>{% endif %}
+      </div>
+
+      <!-- Related Transaction -->
+      <div style="grid-column:1/-1">
+        <label class="form-label">Related Transaction <span style="color:var(--muted);font-size:.72rem">(optional)</span></label>
+        {{ form.related_transaction }}
+        {% if form.related_transaction.errors %}<div class="form-error">{{ form.related_transaction.errors }}</div>{% endif %}
+      </div>
+
+      <!-- Discrepancy Type -->
+      <div>
+        <label class="form-label">Discrepancy Type</label>
+        {{ form.discrepancy_type }}
+        {% if form.discrepancy_type.errors %}<div class="form-error">{{ form.discrepancy_type.errors }}</div>{% endif %}
+      </div>
+
+      <!-- Status -->
+      <div>
+        <label class="form-label">Status</label>
+        {{ form.status }}
+        {% if form.status.errors %}<div class="form-error">{{ form.status.errors }}</div>{% endif %}
+      </div>
+
+      <!-- Description -->
+      <div style="grid-column:1/-1">
+        <label class="form-label">Description</label>
+        {{ form.description }}
+        {% if form.description.errors %}<div class="form-error">{{ form.description.errors }}</div>{% endif %}
+      </div>
+
+      {% if form.resolved_by %}
+      <!-- Resolution fields (edit only) -->
+      <div>
+        <label class="form-label">Resolved By</label>
+        {{ form.resolved_by }}
+        {% if form.resolved_by.errors %}<div class="form-error">{{ form.resolved_by.errors }}</div>{% endif %}
+      </div>
+      <div>
+        <label class="form-label">Resolved At</label>
+        {{ form.resolved_at }}
+        {% if form.resolved_at.errors %}<div class="form-error">{{ form.resolved_at.errors }}</div>{% endif %}
+      </div>
+      <div style="grid-column:1/-1">
+        <label class="form-label">Resolution Notes</label>
+        {{ form.resolution_notes }}
+        {% if form.resolution_notes.errors %}<div class="form-error">{{ form.resolution_notes.errors }}</div>{% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+
+    <div style="display:flex;gap:.75rem;justify-content:flex-end">
+      <a href="{% url 'discrepancy-list' %}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary">
+        <i class="fa-solid fa-floppy-disk"></i> Save
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

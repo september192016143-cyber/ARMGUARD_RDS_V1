@@ -1,16 +1,14 @@
-# This file has been superseded by pistol_rifle_discrepancy_model.py (fixed spelling).
-# Re-exported for backwards compatibility with any cached imports.
-from .pistol_rifle_discrepancy_model import (  # noqa: F401
-    FirearmDiscrepancy,
-    DISCREPANCY_TYPE_CHOICES,
-    DISCREPANCY_STATUS_CHOICES,
-)
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.db import models
+from django.utils import timezone
 
+
+DISCREPANCY_TYPE_CHOICES = [
     ('Missing',                'Missing'),
     ('Damaged',                'Damaged'),
     ('Wrong Serial',           'Wrong Serial'),
     ('Condition Mismatch',     'Condition Mismatch'),
-    ('Extra Rounds',           'Extra Rounds'),
     ('Incomplete Accessories', 'Incomplete Accessories'),
     ('Others',                 'Others'),
 ]
@@ -22,11 +20,6 @@ DISCREPANCY_STATUS_CHOICES = [
     ('Closed',        'Closed'),
 ]
 
-FIREARM_TYPE_CHOICES = [
-    ('Pistol', 'Pistol'),
-    ('Rifle',  'Rifle'),
-]
-
 
 class FirearmDiscrepancy(models.Model):
     """
@@ -34,28 +27,22 @@ class FirearmDiscrepancy(models.Model):
 
     Fields
     ------
-    firearm_type    : whether the discrepancy involves a Pistol or a Rifle.
-    pistol / rifle  : exactly one should be set (the other stays NULL).
-    issuer          : the armorer / personnel who issued the firearm.
-    withdrawer      : the personnel who withdrew / received the firearm.
+    pistol / rifle      : exactly one must be set (the other stays NULL).
+                          firearm_type is derived from whichever FK is set.
+    issuer              : the armorer / personnel who issued the firearm.
+    withdrawer          : the personnel who withdrew / received the firearm.
     related_transaction : optional link to the originating Transaction record.
     discrepancy_type    : category of the discrepancy.
     description         : free-text details.
     status              : lifecycle state (Open → Resolved etc.).
-    reported_by         : username of the staff member who logged the record.
+    reported_by         : FK to User who logged the record.
     reported_at         : timestamp when the record was created.
-    resolved_by         : username of the staff member who resolved it (optional).
+    resolved_by         : FK to User who resolved it (optional).
     resolved_at         : timestamp of resolution (optional).
     resolution_notes    : free-text explanation of how it was resolved (optional).
     """
 
-    firearm_type = models.CharField(
-        max_length=10,
-        choices=FIREARM_TYPE_CHOICES,
-    )
-
     # Only one of these two FK fields should be set per record.
-    # String references avoid circular imports (transactions → inventory already exists).
     pistol = models.ForeignKey(
         'inventory.Pistol',
         on_delete=models.SET_NULL,
@@ -112,13 +99,24 @@ class FirearmDiscrepancy(models.Model):
     )
 
     # ── Audit fields ─────────────────────────────────────────────────────────
-    reported_by = models.CharField(
-        max_length=100,
-        help_text='Username of the staff member who reported this discrepancy.',
+    reported_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='discrepancies_reported',
+        help_text='User who reported this discrepancy.',
     )
     reported_at = models.DateTimeField(default=timezone.now)
 
-    resolved_by = models.CharField(max_length=100, blank=True, null=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='discrepancies_resolved',
+        help_text='User who resolved this discrepancy.',
+    )
     resolved_at = models.DateTimeField(blank=True, null=True)
     resolution_notes = models.TextField(blank=True, null=True)
 
@@ -128,6 +126,41 @@ class FirearmDiscrepancy(models.Model):
         verbose_name = 'Firearm Discrepancy'
         verbose_name_plural = 'Firearm Discrepancies'
 
+    # ── Derived property ──────────────────────────────────────────────────────
+    @property
+    def firearm_type(self):
+        """Return 'Pistol', 'Rifle', or None — derived from the set FK."""
+        if self.pistol_id is not None:
+            return 'Pistol'
+        if self.rifle_id is not None:
+            return 'Rifle'
+        return None
+
+    # ── Validation ────────────────────────────────────────────────────────────
+    def clean(self):
+        has_pistol = self.pistol_id is not None
+        has_rifle = self.rifle_id is not None
+        if has_pistol and has_rifle:
+            raise ValidationError(
+                'A discrepancy must link to either a Pistol or a Rifle — not both.'
+            )
+        if not has_pistol and not has_rifle:
+            raise ValidationError(
+                'A discrepancy must link to either a Pistol or a Rifle.'
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        item = self.pistol_id or self.rifle_id or '—'
-        return f'Discrepancy #{self.pk} – {self.firearm_type} {item} [{self.discrepancy_type}] ({self.status})'
+        item = (
+            self.pistol_id if self.pistol_id is not None
+            else self.rifle_id if self.rifle_id is not None
+            else '—'
+        )
+        return (
+            f'Discrepancy #{self.pk} – '
+            f'{self.firearm_type or "Unknown"} {item} '
+            f'[{self.discrepancy_type}] ({self.status})'
+        )

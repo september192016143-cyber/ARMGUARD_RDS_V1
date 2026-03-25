@@ -1856,4 +1856,4 @@ from .inventory_analytics_model import Inventory_Analytics, AnalyticsSnapshot  #
 
 
 # Expose FirearmDiscrepancy to Django's app registry.
-from .pistol_rifle_discrepacy_model import FirearmDiscrepancy  # noqa: E402,F401
+from .pistol_rifle_discrepancy_model import FirearmDiscrepancy  # noqa: E402,F401
