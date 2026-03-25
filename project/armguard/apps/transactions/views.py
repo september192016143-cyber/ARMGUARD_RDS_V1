@@ -253,6 +253,35 @@ def create_transaction(request):
             from django.utils import timezone as _tz
             cache.delete(f'dashboard_stats_{_tz.localdate()}')
             cache.delete('dashboard_inventory_tables')
+
+            # Create discrepancy record if the operator flagged one on Return.
+            if (request.POST.get('report_discrepancy')
+                    and txn.transaction_type == 'Return'):
+                from armguard.apps.inventory.pistol_rifle_discrepancy_model import FirearmDiscrepancy
+                _disc_type = request.POST.get('discrepancy_type', '').strip()
+                _disc_desc = request.POST.get('discrepancy_description', '').strip()
+                if _disc_type and _disc_desc:
+                    # Create one record per firearm involved in this return.
+                    _firearms = []
+                    if txn.pistol_id:
+                        _firearms.append({'pistol_id': txn.pistol_id, 'rifle_id': None})
+                    if txn.rifle_id:
+                        _firearms.append({'pistol_id': None, 'rifle_id': txn.rifle_id})
+                    for _fw in _firearms:
+                        try:
+                            FirearmDiscrepancy.objects.create(
+                                pistol_id=_fw['pistol_id'],
+                                rifle_id=_fw['rifle_id'],
+                                withdrawer=txn.personnel,
+                                related_transaction=txn,
+                                discrepancy_type=_disc_type,
+                                description=_disc_desc,
+                                status='Open',
+                                reported_by=request.user,
+                            )
+                        except Exception:
+                            pass  # Discrepancy error must never block the Return
+
             messages.success(request, f'Transaction #{txn.transaction_id} recorded successfully.')
             return redirect('transaction-detail', transaction_id=txn.transaction_id)
     else:

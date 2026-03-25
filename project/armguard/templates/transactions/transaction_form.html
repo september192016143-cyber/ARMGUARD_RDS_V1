@@ -230,6 +230,37 @@
       </div>
     </div>
 
+    <!-- Discrepancy report (Return mode only) ──────────────────────────── -->
+    <div id="discrepancy-section" style="display:none;padding-top:.75rem;margin-top:.75rem;border-top:1px solid var(--border);">
+      <label style="display:flex;align-items:center;gap:.75rem;cursor:pointer;margin-bottom:0;user-select:none;">
+        <input type="checkbox" id="cb_report_discrepancy" name="report_discrepancy"
+               style="width:15px;height:15px;flex-shrink:0;accent-color:#ef4444;cursor:pointer;">
+        <span style="font-size:.82rem;font-weight:600;color:#fca5a5;">
+          <i class="fa-solid fa-triangle-exclamation" style="margin-right:.4rem;font-size:.75rem;"></i>Report Firearm Discrepancy
+        </span>
+      </label>
+      <div id="discrepancy-fields" style="display:none;flex-direction:column;gap:.65rem;margin-top:.75rem;">
+        <div class="form-group" style="margin-bottom:0;max-width:320px;">
+          <label class="form-label" for="dis_type">Discrepancy Type <span class="req">*</span></label>
+          <select id="dis_type" name="discrepancy_type" class="form-control">
+            <option value="">----------</option>
+            <option value="Missing">Missing</option>
+            <option value="Damaged">Damaged</option>
+            <option value="Wrong Serial">Wrong Serial</option>
+            <option value="Condition Mismatch">Condition Mismatch</option>
+            <option value="Incomplete Accessories">Incomplete Accessories</option>
+            <option value="Others">Others</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label" for="dis_desc">Description <span class="req">*</span></label>
+          <textarea id="dis_desc" name="discrepancy_description" rows="3" class="form-control"
+                    style="resize:vertical;color:#fff;"
+                    placeholder="Describe the discrepancy…"></textarea>
+        </div>
+      </div>
+    </div>
+
   </div>
 
 

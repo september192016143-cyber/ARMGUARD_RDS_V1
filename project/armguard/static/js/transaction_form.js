@@ -127,6 +127,20 @@ function toggleReturnMode() {
   if (issuanceWrapper) issuanceWrapper.style.display = isReturn ? 'none' : 'flex';
   if (purposeWrapper) purposeWrapper.style.display = isReturn ? 'none' : 'flex';
   toggleTrPreview();
+
+  // Discrepancy section — only relevant on Return
+  var discSection = document.getElementById('discrepancy-section');
+  if (discSection) discSection.style.display = isReturn ? '' : 'none';
+  if (!isReturn && discSection) {
+    var cb = document.getElementById('cb_report_discrepancy');
+    if (cb) cb.checked = false;
+    var discFields = document.getElementById('discrepancy-fields');
+    if (discFields) discFields.style.display = 'none';
+    var disType = document.getElementById('dis_type');
+    var disDesc = document.getElementById('dis_desc');
+    if (disType) { disType.required = false; disType.value = ''; disType.style.borderColor = ''; }
+    if (disDesc) { disDesc.required = false; disDesc.value = ''; disDesc.style.borderColor = ''; }
+  }
   // When switching away from Return mode, clear any auto-filled consumable values
   // so they don't bleed into a Withdrawal form submission.
   if (!isReturn) {
@@ -690,6 +704,23 @@ function _attachSelectStyles(el) {
   if (tbPurpose) tbPurpose.addEventListener('change', autoCheckDutySentinelAccessories);
   if (tbType)    tbType.addEventListener('change',    autoCheckDutySentinelAccessories);
   autoCheckDutySentinelAccessories();
+
+  // Discrepancy checkbox — expand/collapse the type+description fields
+  var discCb = document.getElementById('cb_report_discrepancy');
+  if (discCb) {
+    discCb.addEventListener('change', function () {
+      var discFields = document.getElementById('discrepancy-fields');
+      var disType    = document.getElementById('dis_type');
+      var disDesc    = document.getElementById('dis_desc');
+      if (discFields) discFields.style.display = this.checked ? 'flex' : 'none';
+      if (disType)    disType.required = this.checked;
+      if (disDesc)    disDesc.required = this.checked;
+      if (!this.checked) {
+        if (disType) { disType.value = ''; disType.style.borderColor = ''; }
+        if (disDesc) { disDesc.value = ''; disDesc.style.borderColor = ''; }
+      }
+    });
+  }
 
   // Form submit — sync topbar selects into hidden inputs; clear persisted type
   if (form) {
