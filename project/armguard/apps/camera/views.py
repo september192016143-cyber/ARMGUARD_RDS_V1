@@ -45,7 +45,7 @@ import qrcode
 import qrcode.constants
 
 from django.contrib.auth import get_user_model
-from django.http import JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -53,7 +53,11 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.conf import settings
 
 from .models import CameraDevice, CameraUploadLog
-from .permissions import camera_admin_required, CAMERA_ALLOWED_ROLES, https_required
+from .permissions import (
+    camera_admin_required, camera_role_required,
+    is_camera_admin,
+    CAMERA_ALLOWED_ROLES, https_required,
+)
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -399,16 +403,28 @@ def device_list_view(request):
     return render(request, 'camera/device_list.html', {'devices': devices})
 
 
-@camera_admin_required
+@camera_role_required
 @require_http_methods(['GET', 'POST'])
 def pair_device_view(request, user_pk: int):
     """
     Generate (or display) the QR code pairing a phone to an armorer.
 
+    Access: System Administrators can manage any device.
+            Armorers can view and label their own device only.
+
     The QR encodes:  /camera/activate/<device_token>/
     That URL is usable any number of times by the registered user (re-scan after
     session expiry), but the token never appears in plain text on the page.
     """
+    is_admin = is_camera_admin(request.user)
+
+    # Non-admins may only access their own device page
+    if not is_admin and request.user.pk != user_pk:
+        return HttpResponseForbidden(
+            b"<h2>Access Denied</h2>"
+            b"<p>You may only manage your own camera device.</p>"
+        )
+
     User = get_user_model()
     armorer = get_object_or_404(User, pk=user_pk)
 
@@ -417,6 +433,7 @@ def pair_device_view(request, user_pk: int):
         return render(request, 'camera/pair.html', {
             'armorer': armorer,
             'error':   f'User "{armorer.username}" does not have an Armorer or Administrator role.',
+            'is_admin': is_admin,
         }, status=400)
 
     device, _ = CameraDevice.objects.get_or_create(user=armorer)
@@ -428,22 +445,29 @@ def pair_device_view(request, user_pk: int):
             device.device_name = request.POST.get('device_name', '')[:100]
             device.save(update_fields=['device_name'])
 
-        elif action == 'revoke':
-            device.is_active  = False
-            device.revoked_at = timezone.now()
-            device.revoked_by = request.user
-            device.save(update_fields=['is_active', 'revoked_at', 'revoked_by'])
+        elif action in ('revoke', 'unrevoke', 'regenerate'):
+            # Destructive actions are restricted to System Administrators
+            if not is_admin:
+                return HttpResponseForbidden(
+                    b"<h2>Access Denied</h2>"
+                    b"<p>Device revocation and token management require System Administrator access.</p>"
+                )
+            if action == 'revoke':
+                device.is_active  = False
+                device.revoked_at = timezone.now()
+                device.revoked_by = request.user
+                device.save(update_fields=['is_active', 'revoked_at', 'revoked_by'])
 
-        elif action == 'unrevoke':
-            device.revoked_at = None
-            device.revoked_by = None
-            device.save(update_fields=['revoked_at', 'revoked_by'])
+            elif action == 'unrevoke':
+                device.revoked_at = None
+                device.revoked_by = None
+                device.save(update_fields=['revoked_at', 'revoked_by'])
 
-        elif action == 'regenerate':
-            # Issue a brand-new token; old session tokens are instantly invalidated
-            old_name = device.device_name
-            device.delete()
-            device = CameraDevice.objects.create(user=armorer, device_name=old_name)
+            elif action == 'regenerate':
+                # Issue a brand-new token; old session tokens are instantly invalidated
+                old_name = device.device_name
+                device.delete()
+                device = CameraDevice.objects.create(user=armorer, device_name=old_name)
 
         return redirect('camera:pair_device', user_pk=user_pk)
 
@@ -470,10 +494,11 @@ def pair_device_view(request, user_pk: int):
         'activate_url':          activate_url,
         'initial_pin':           initial_pin,
         'initial_pin_expires_ms': initial_pin_expires_ms,
+        'is_admin':              is_admin,
     })
 
 
-@camera_admin_required
+@camera_role_required
 def device_status_api(request, user_pk: int):
     """JSON poll endpoint for the pair page auto-refresh."""
     from django.contrib.auth import get_user_model as _get_user_model
@@ -525,14 +550,19 @@ def devices_feed_api(request):
     return JsonResponse({'devices': data, 'ts': int(time.time())})
 
 
-@camera_admin_required
+@camera_role_required
 def logs_feed_api(request):
     """
     JSON list of the 50 most recent upload log entries.
-    Optional ?device=<user_pk> query param narrows to one device.
+    System Administrators see all logs and may filter by ?device=<user_pk>.
+    Armorers see only their own device's logs.
     Polled by admin pages to render a live upload-log table without a reload.
     """
-    device_user_pk = request.GET.get('device')
+    if is_camera_admin(request.user):
+        device_user_pk = request.GET.get('device')
+    else:
+        # Non-admins are always scoped to their own device
+        device_user_pk = str(request.user.pk)
     qs = (
         CameraUploadLog.objects
         .select_related('uploaded_by', 'device')
@@ -561,15 +591,18 @@ def logs_feed_api(request):
     return JsonResponse({'logs': logs, 'count': len(logs), 'ts': int(time.time())})
 
 
-@camera_admin_required
+@camera_role_required
 def pair_pin_api(request, user_pk: int):
     """
     Returns the current 6-digit PIN for the pair page to display.
-    Only generated / shown to a System Administrator; the phone never calls this.
+    System Administrators and the device owner may call this.
     Rotates every 30 seconds (lazily generated on first request).
 
     Response: { pin: "123456", expires_ms: 1234567890, pin_period_s: 30 }
     """
+    # Non-admins may only fetch their own PIN
+    if not is_camera_admin(request.user) and request.user.pk != user_pk:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
     device = CameraDevice.objects.filter(user_id=user_pk).first()
     if not device:
         return JsonResponse({'error': 'Device not found'}, status=404)
@@ -647,3 +680,12 @@ def revoke_device_view(request, device_pk: int):
     device.revoked_by = request.user
     device.save(update_fields=['is_active', 'revoked_at', 'revoked_by'])
     return redirect('camera:device_list')
+
+
+@camera_role_required
+def my_device_view(request):
+    """
+    Redirect the current user to their own camera device pair page.
+    Available to any Armorer or System Administrator.
+    """
+    return redirect('camera:pair_device', user_pk=request.user.pk)

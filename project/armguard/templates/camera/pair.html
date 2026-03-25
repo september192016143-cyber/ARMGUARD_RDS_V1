@@ -5,8 +5,12 @@
 {% block content %}
 <div class="page-header">
   <h1 class="page-title">
-    <a href="{% url 'camera:device_list' %}" style="color:inherit;text-decoration:none;">&#128247; Camera Devices</a>
-    &rsaquo; Pair Device
+    {% if is_admin %}
+      <a href="{% url 'camera:device_list' %}" style="color:inherit;text-decoration:none;">&#128247; Camera Devices</a>
+      &rsaquo; Pair Device
+    {% else %}
+      &#128247; My Camera Device
+    {% endif %}
   </h1>
 </div>
 
@@ -128,6 +132,7 @@
       </table>
     </div>
 
+    {% if is_admin %}
     <!-- Danger actions -->
     <div style="background:#1e293b;border:1px solid #450a0a;border-radius:.75rem;padding:1.25rem;">
       <h3 style="font-size:.9rem;color:#f87171;margin-bottom:.75rem;">&#9888; Danger Zone</h3>
@@ -169,6 +174,7 @@
         Regenerating issues a new token and immediately invalidates the old QR code and any active phone session.
       </p>
     </div>
+    {% endif %}
 
   </div>
   {% endif %}

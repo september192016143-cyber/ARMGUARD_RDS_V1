@@ -118,3 +118,15 @@ def camera_admin_required(view_func):
             )
         return view_func(request, *args, **kwargs)
     return _wrapped
+
+
+# ── Public helpers — import these in views / context_processors ───────────────
+
+def is_camera_admin(user) -> bool:
+    """Return True if user is a System Administrator or superuser."""
+    return _is_camera_admin(user)
+
+
+def has_camera_role(user) -> bool:
+    """Return True if user has any camera-permitted role (Armorer or System Administrator)."""
+    return _has_camera_role(user)

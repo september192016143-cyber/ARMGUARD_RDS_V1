@@ -97,6 +97,12 @@
       <i class="fa-solid fa-circle-plus nav-icon"></i><span class="nav-label">New Transaction</span>
     </a>
     {% endif %}
+    {% if can_use_camera and not can_manage_users %}
+    <div class="nav-section">Camera</div>
+    <a href="{% url 'camera:my_device' %}" class="nav-item {% if 'camera' in request.resolver_match.url_name %}active{% endif %}" title="My Camera Device">
+      <i class="fa-solid fa-camera nav-icon"></i><span class="nav-label">My Camera</span>
+    </a>
+    {% endif %}
     {% if can_print %}
     <div class="nav-section">Print</div>
     <a href="{% url 'print_handler:print_id_cards' %}" class="nav-item {% if request.resolver_match.url_name == 'print_id_cards' %}active{% endif %}" title="Personnel ID Cards">

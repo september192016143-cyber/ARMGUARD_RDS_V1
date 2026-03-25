@@ -5,6 +5,7 @@ from armguard.utils.permissions import (
     can_view_reports, can_print,
     can_manage_users,
 )
+from armguard.apps.camera.permissions import has_camera_role
 
 
 def nav_permissions(request):
@@ -29,6 +30,7 @@ def nav_permissions(request):
             'can_view_reports': False,
             'can_print': False,
             'can_manage_users': False,
+            'can_use_camera': False,
             'site_settings': SystemSettings.get(),
         }
     return {
@@ -45,5 +47,6 @@ def nav_permissions(request):
         'can_view_reports':      can_view_reports(user),
         'can_print':             can_print(user),
         'can_manage_users':      can_manage_users(user),
+        'can_use_camera':        has_camera_role(user),
         'site_settings':         SystemSettings.get(),
     }
