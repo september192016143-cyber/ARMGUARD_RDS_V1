@@ -193,6 +193,26 @@ _git_pull_repo() {
     # means the stash never captures them.
     _clean_test_media_files "$repo_dir"
 
+    # ── Remove Django auto-generated migration files BEFORE stash ────────────
+    # Django's migration autodetect can generate new migration files on the server
+    # when it sees a model/migration state mismatch (e.g. choices changes in 4.x+).
+    # These untracked files get stashed, then conflict on pop when the repo ships
+    # the canonical version of the same migration.  Deleting them pre-stash means
+    # the repo version always wins cleanly.
+    find "$repo_dir/project/armguard/apps" \
+        -path "*/migrations/0[0-9][0-9][0-9]_*.py" \
+        -not -path "*/__pycache__/*" \
+        ! -name "*initial*" \
+        -newer "$repo_dir/.git/FETCH_HEAD" 2>/dev/null | while IFS= read -r mf; do
+        # Only remove if it is NOT tracked by git
+        local rel_mf="${mf#$repo_dir/}"
+        if ! sudo -u "$DEPLOY_USER" git -C "$repo_dir" \
+                ls-files --error-unmatch "$rel_mf" &>/dev/null 2>&1; then
+            rm -f "$mf"
+            warn "Removed server-generated Django migration (not in repo): $rel_mf"
+        fi
+    done
+
     # Clear any unmerged/conflicted index entries left by previous failed merges.
     # These block both 'git stash' and 'git pull'. Generated files (e.g. fontawesome
     # downloaded by this script) should never be tracked anyway.
