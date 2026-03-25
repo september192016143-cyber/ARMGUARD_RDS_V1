@@ -747,16 +747,22 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
   // ── Script management ───────────────────────────────────────────────────
-  function reloadBodyScripts(newDoc) {
+  // done() is called once every src-based script from newDoc has loaded and
+  // executed (or errored).  Inline data-block scripts are injected synchronously
+  // and do not count toward the pending total.
+  function reloadBodyScripts(newDoc, done) {
     // Remove every <script> that lives as a direct child of <body>,
     // EXCEPT scripts marked data-pjax-permanent (e.g. hot_key.js) — those
     // must only ever execute once; re-executing them accumulates duplicate
     // event listeners that can never be cleaned up.
     document.querySelectorAll('body > script:not([data-pjax-permanent])').forEach(function (s) { s.remove(); });
 
-    // Inject the new page's body scripts. They are IIFEs and execute
-    // immediately when appended, re-initialising against the fresh DOM.
-    // Skip permanent scripts — they were already executed on first load.
+    // Collect src-based scripts so we can track when each one has executed.
+    // Dynamically inserted <script src> elements are always async regardless of
+    // the async attribute — setting async=false only controls insertion order.
+    // We therefore use onload/onerror to know when each script has actually run
+    // before we call done() and mark the PJAX navigation complete.
+    var pending = [];
     newDoc.querySelectorAll('body > script:not([data-pjax-permanent])').forEach(function (orig) {
       var src  = orig.getAttribute('src');
       var type = orig.getAttribute('type') || '';
@@ -778,6 +784,16 @@ document.addEventListener('DOMContentLoaded', function () {
       var s = document.createElement('script');
       s.src = src;   // browser resolves relative src against current document
       s.async = false;
+      pending.push(s);
+    });
+
+    if (!pending.length) { if (done) done(); return; }
+
+    var remaining = pending.length;
+    function onScriptDone() { if (--remaining === 0 && done) done(); }
+    pending.forEach(function (s) {
+      s.addEventListener('load',  onScriptDone);
+      s.addEventListener('error', onScriptDone); // don't hang if a script 404s
       document.body.appendChild(s);
     });
   }
@@ -893,13 +909,16 @@ document.addEventListener('DOMContentLoaded', function () {
       // Sync sidebar active state
       try { updateSidebarActive(new URL(url, ORIGIN).pathname); } catch (e) {}
 
-      // Re-initialise page-specific scripts for the new content
-      reloadBodyScripts(doc);
-
-      if (pushState) history.pushState({ pjax: url }, doc.title, url);
-      window.scrollTo(0, 0);
-      doneBar();
-      _busy = false;
+      // Re-initialise page-specific scripts for the new content.
+      // doneBar() / _busy=false are deferred until all scripts have executed
+      // so the form is fully interactive before the progress bar disappears
+      // and before new PJAX navigations are allowed.
+      reloadBodyScripts(doc, function () {
+        if (pushState) history.pushState({ pjax: url }, doc.title, url);
+        window.scrollTo(0, 0);
+        doneBar();
+        _busy = false;
+      });
     })
     .catch(function () {
       window.location.href = url;
