@@ -114,12 +114,12 @@
 </div>
 
 <!-- ── Analytics Card (all four tables in one card) ──────────────────────── -->
-<div class="card" style="border-left:4px solid #1867d4;box-shadow:0 4px 18px rgba(0,31,107,.13);overflow-x:auto;width:fit-content;max-width:100%">
-  <div style="display:flex;flex-direction:column;gap:1.25rem;padding:0.75rem 0;min-width:max-content">
+<div class="card" style="border-left:4px solid #1867d4;box-shadow:0 4px 18px rgba(0,31,107,.13);overflow-x:auto">
+  <div style="display:flex;flex-direction:column;gap:1.25rem;padding:0.75rem 0;width:fit-content">
   <div style="display:flex;flex-wrap:nowrap;gap:1.25rem;align-items:flex-start">
 
     <!-- ── Firearm Analytics ─────────────────────────────────── -->
-    <div style="flex:1;min-width:460px">
+    <div style="flex:0 0 auto;min-width:460px">
       <div class="dash-section-heading" style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #1867d4;margin-bottom:6px">FIREARM ANALYTICS</div>
       <div>
         {% if inventory_rows %}
@@ -225,7 +225,7 @@
   <div style="display:flex;flex-wrap:nowrap;gap:1.25rem;align-items:flex-start">
 
     <!-- ── Ammunition Analytics ──────────────────────────────── -->
-    <div style="flex:1;min-width:460px">
+    <div style="flex:0 0 auto;min-width:460px">
       <div class="dash-section-heading" style="font-size:0.75rem;font-weight:700;letter-spacing:.05em;padding:4px 0 6px 6px;border-left:3px solid #0ca678;margin-bottom:6px">AMMUNITION ANALYTICS</div>
       <div>
         {% if ammo_rows %}
