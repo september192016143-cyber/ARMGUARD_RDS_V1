@@ -587,6 +587,8 @@ def logs_feed_api(request):
             'ip_address':      log.ip_address or '\u2014',
             'file_url':        file_url,
             'file_purged':     log.file_purged_at is not None,
+            'can_delete':      log.file_purged_at is None,
+            'delete_url':      reverse('camera:delete_upload_image', kwargs={'log_pk': log.pk}),
         })
     return JsonResponse({'logs': logs, 'count': len(logs), 'ts': int(time.time())})
 
@@ -689,3 +691,40 @@ def my_device_view(request):
     Available to any Armorer or System Administrator.
     """
     return redirect('camera:pair_device', user_pk=request.user.pk)
+
+
+@camera_role_required
+@require_POST
+def delete_upload_image(request, log_pk: int):
+    """
+    Delete the physical image file for a single upload log entry.
+    The database record is preserved (shows as “Purged”) and will be
+    auto-deleted by the purge_camera_uploads command after 3 years.
+
+    Access:
+      - System Administrators may delete any image.
+      - Armorers may only delete images from their own device.
+    """
+    log = get_object_or_404(CameraUploadLog, pk=log_pk)
+
+    # Ownership check: non-admins may only delete their own files
+    if not is_camera_admin(request.user):
+        if log.uploaded_by_id != request.user.pk:
+            return JsonResponse({'error': 'Forbidden'}, status=403)
+
+    if log.file_purged_at:
+        return JsonResponse({'already_purged': True})
+
+    if log.file_path:
+        abs_path = os.path.join(settings.MEDIA_ROOT, log.file_path)
+        try:
+            if os.path.isfile(abs_path):
+                os.remove(abs_path)
+        except OSError:
+            pass  # file already gone is acceptable
+
+    log.file_path      = ''
+    log.file_purged_at = timezone.now()
+    log.save(update_fields=['file_path', 'file_purged_at'])
+
+    return JsonResponse({'deleted': True})

@@ -20,4 +20,5 @@ urlpatterns = [
     path('admin/feed/devices/',           views.devices_feed_api,       name='devices_feed'),
     path('admin/feed/logs/',              views.logs_feed_api,          name='logs_feed'),
     path('admin/revoke/<int:device_pk>/', views.revoke_device_view,     name='revoke_device'),
+    path('upload/<int:log_pk>/delete-image/', views.delete_upload_image, name='delete_upload_image'),
 ]

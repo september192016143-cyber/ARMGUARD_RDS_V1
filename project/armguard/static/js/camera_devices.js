@@ -65,6 +65,21 @@
     return b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(1) + ' MB';
   }
 
+  function getCsrf() {
+    var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  }
+
+  function showToast(msg, bg) {
+    var t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;padding:.6rem 1.1rem;'
+      + 'background:' + (bg || '#166534') + ';color:#f0fdf4;border-radius:.5rem;'
+      + 'font-size:.82rem;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,.4);';
+    document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, 2800);
+  }
+
   function refreshLogs() {
     if (!logsTbody) return;
     fetch(logsFeedUrl, { credentials: 'same-origin' })
@@ -86,6 +101,12 @@
           var viewCell = log.file_purged
             ? '<span style="color:#475569;font-size:.78rem;">Purged</span>'
             : '<a href="' + log.file_url + '" target="_blank" rel="noopener" style="color:#93c5fd;font-size:.78rem;text-decoration:none;">View</a>';
+          var deleteCell = log.can_delete
+            ? '<button data-pk="' + log.pk + '" data-url="' + log.delete_url + '" '
+              + 'style="background:#450a0a;color:#f87171;border:none;border-radius:.3rem;'
+              + 'padding:.2rem .55rem;font-size:.72rem;cursor:pointer;" '
+              + 'class="cam-del-btn">Delete</button>'
+            : '';
           tr.innerHTML =
             '<td style="padding:.5rem .75rem;color:#94a3b8;font-size:.78rem;white-space:nowrap;">' + log.uploaded_at + '</td>' +
             '<td style="padding:.5rem .75rem;color:#f8fafc;font-weight:600;">' + log.uploaded_by + '</td>' +
@@ -93,12 +114,42 @@
             '<td style="padding:.5rem .75rem;color:#94a3b8;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + log.original_name + '">' + log.original_name + '</td>' +
             '<td style="padding:.5rem .75rem;color:#94a3b8;white-space:nowrap;">' + formatBytes(log.file_size_bytes) + '</td>' +
             '<td style="padding:.5rem .75rem;">' + viewCell + '</td>' +
-            '<td style="padding:.5rem .75rem;color:#64748b;font-size:.72rem;">' + log.ip_address + '</td>';
+            '<td style="padding:.5rem .75rem;color:#64748b;font-size:.72rem;">' + log.ip_address + '</td>' +
+            '<td style="padding:.5rem .75rem;">' + deleteCell + '</td>';
           logsTbody.insertBefore(tr, logsTbody.firstChild);
         });
         if (added > 0) flash();
       })
       .catch(function () {});
+  }
+
+  // ── Delete image delegated handler ───────────────────────────────────────
+  if (logsTbody) {
+    logsTbody.addEventListener('click', function (e) {
+      var btn = e.target.closest('.cam-del-btn');
+      if (!btn || btn.disabled) return;
+      if (!confirm('Delete this image file? The record will be kept for 3 years.')) return;
+      btn.disabled = true; btn.textContent = '\u2026';
+      fetch(btn.dataset.url, {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'X-CSRFToken': getCsrf() },
+        body: 'csrfmiddlewaretoken=' + encodeURIComponent(getCsrf()),
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (json.deleted || json.already_purged) {
+          var tr = btn.closest('tr');
+          var cells = tr.querySelectorAll('td');
+          if (cells[5]) cells[5].innerHTML = '<span style="color:#475569;font-size:.78rem;">Purged</span>';
+          if (cells[7]) cells[7].innerHTML = '';
+          showToast('\u2713 Image deleted. Record preserved.');
+        } else {
+          btn.disabled = false; btn.textContent = 'Delete';
+          showToast('Delete failed', '#450a0a');
+        }
+      })
+      .catch(function () { btn.disabled = false; btn.textContent = 'Delete'; showToast('Delete failed \u2014 network error', '#450a0a'); });
+    });
   }
 
   refreshDevices();
