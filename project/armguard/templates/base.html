@@ -56,6 +56,7 @@
         <a href="{% url 'magazine-list' %}"><i class="fa-solid fa-bars"></i>Magazines</a>
         <a href="{% url 'ammunition-list' %}"><i class="fa-solid fa-circle" style="font-size:.5rem"></i>Ammunition</a>
         <a href="{% url 'accessory-list' %}"><i class="fa-solid fa-toolbox"></i>Accessories</a>
+        <a href="{% url 'discrepancy-list' %}"><i class="fa-solid fa-triangle-exclamation"></i>Discrepancies</a>
       </div>
       <div class="nav-sub">
         <div class="nav-item-row {% if request.resolver_match.url_name == 'pistol-list' %}active{% endif %}">
@@ -82,6 +83,10 @@
           <i class="fa-solid fa-toolbox nav-icon"></i>
           <a href="{% url 'accessory-list' %}" class="nav-item-main">Accessories</a>
           {% if can_add_inventory %}<a href="{% url 'accessory-add' %}" class="nav-item-add">+ Add</a>{% endif %}
+        </div>
+        <div class="nav-item-row {% if request.resolver_match.url_name == 'discrepancy-list' %}active{% endif %}">
+          <i class="fa-solid fa-triangle-exclamation nav-icon" style="color:#f87171"></i>
+          <a href="{% url 'discrepancy-list' %}" class="nav-item-main">Discrepancies</a>
         </div>
       </div>
     </div>
