@@ -63,6 +63,7 @@
           <th>Type</th>
           <th>Firearm</th>
           <th>Discrepancy</th>
+          <th>Issued To</th>
           <th>Status</th>
           <th>Reported By</th>
           <th>Reported At</th>
@@ -93,6 +94,9 @@
             <div style="font-size:.72rem;color:var(--muted);margin-top:2px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ d.description }}">{{ d.description }}</div>
             {% endif %}
           </td>
+          <td style="font-size:.8rem">
+            {% if d.withdrawer %}{{ d.withdrawer.last_name }}, {{ d.withdrawer.first_name }}{% else %}<span style="color:var(--muted)">—</span>{% endif %}
+          </td>
           <td>
             {% if d.status == 'Open' %}
               <span style="color:#f87171;font-weight:600;font-size:.78rem">{{ d.status }}</span>
@@ -111,7 +115,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted)">No discrepancy records found.</td></tr>
+        <tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--muted)">No discrepancy records found.</td></tr>
         {% endfor %}
       </tbody>
     </table>
