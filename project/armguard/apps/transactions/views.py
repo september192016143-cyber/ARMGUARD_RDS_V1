@@ -516,6 +516,7 @@ def item_status_check(request):
         'issued_to': item.item_issued_to_id or None,
         'item_tag_url': request.build_absolute_uri(item.item_tag.url) if item.item_tag else None,
         'serial_image_url': request.build_absolute_uri(item.serial_image.url) if item.serial_image else None,
+        'has_open_discrepancy': not ok and reason and 'open discrepancy' in reason.lower(),
     }
     return JsonResponse(data)
 

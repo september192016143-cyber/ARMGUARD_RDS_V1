@@ -174,6 +174,23 @@ class SmallArm(models.Model):
                 f"{self.arm_type.title()} {self.item_id} cannot be withdrawn "
                 f"— current status: {self.item_status}."
             )
+        # Block withdrawal when there is any unresolved discrepancy for this firearm.
+        # Uses the reverse relation created by FirearmDiscrepancy.pistol/rifle FK.
+        _disc_rel = (
+            'discrepancies'  # related_name on both FKs in FirearmDiscrepancy
+        )
+        try:
+            open_disc = getattr(self, _disc_rel).filter(
+                status__in=('Open', 'Under Review')
+            ).order_by('-reported_at').first()
+        except Exception:
+            open_disc = None
+        if open_disc:
+            return False, (
+                f"{self.arm_type.title()} {self.item_id} has an open discrepancy "
+                f"({open_disc.discrepancy_type}) — it cannot be withdrawn until "
+                "the discrepancy is resolved."
+            )
         return True, None
 
     def can_be_returned(self, personnel_id=None):

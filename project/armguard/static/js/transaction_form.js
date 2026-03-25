@@ -525,6 +525,11 @@ function checkItem(selectId, bannerId, itemType) {
       } else {
         if (d.available) {
           setBanner(bannerId, 'ok', '<b>Available</b> \u2014 ' + modelSn);
+        } else if (d.has_open_discrepancy) {
+          setBanner(bannerId, 'err',
+            '<i class="fa-solid fa-triangle-exclamation" style="margin-right:.3rem;"></i>' +
+            '<b>Withdrawal blocked</b> \u2014 ' + modelSn +
+            ' has an <b>open discrepancy</b>. Resolve it before withdrawing.');
         } else {
           var msg = escHtml(d.reason || ('Status: ' + d.item_status));
           if (d.issued_to) msg += ' \u2014 issued to: ' + escHtml(String(d.issued_to));
