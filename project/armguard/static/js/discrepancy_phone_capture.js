@@ -42,12 +42,15 @@
       choose.addEventListener('click', function () { inp.click(); });
     }
 
+    var previewRow = slot.previewRowId ? document.getElementById(slot.previewRowId) : null;
+
     /* Show thumbnail on file selection */
     inp.addEventListener('change', function () {
       if (inp.files && inp.files[0]) {
         var reader = new FileReader();
         reader.onload = function (e) {
           if (thumb) { thumb.src = e.target.result; thumb.style.display = 'block'; }
+          if (previewRow) previewRow.style.display = 'flex';
           if (empty) empty.style.display = 'none';
           if (clear) clear.style.display = '';
         };

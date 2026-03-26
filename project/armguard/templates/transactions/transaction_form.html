@@ -339,6 +339,6 @@
 
 {% block extra_js %}
 <script src="{% static 'js/transaction_form.js' %}" defer></script>
-<script type="application/json" id="disc-capture-config">{"initUrl": "{% url 'serial-capture-init' %}", "fileInputId": "dis_image", "phoneBtnId": "txn-disc-phone-btn", "chooseBtnId": "txn-disc-choose-btn", "overlayId": "txn-disc-phone-overlay", "closeBtnId": "txn-disc-phone-close", "qrImgId": "txn-disc-phone-qr", "statusElId": "txn-disc-phone-status", "linkElId": "txn-disc-phone-link", "previewRowId": "txn-disc-img-preview-row", "previewThumbId": "txn-disc-img-thumb"}</script>
+<script type="application/json" id="disc-capture-config">{"initUrl": "{% url 'serial-capture-init' %}", "phoneBtnId": "txn-disc-phone-btn", "overlayId": "txn-disc-phone-overlay", "closeBtnId": "txn-disc-phone-close", "qrImgId": "txn-disc-phone-qr", "statusElId": "txn-disc-phone-status", "linkElId": "txn-disc-phone-link", "slots": [{"inputId": "dis_image", "chooseBtnId": "txn-disc-choose-btn", "clearBtnId": "", "thumbId": "txn-disc-img-thumb", "emptyIconId": "", "previewRowId": "txn-disc-img-preview-row"}]}</script>
 <script src="{% static 'js/discrepancy_phone_capture.js' %}" defer></script>
 {% endblock %}
