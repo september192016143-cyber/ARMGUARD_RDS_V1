@@ -123,4 +123,13 @@
     </div>
   </form>
 </div>
+<script>
+(function(){
+  var imgInput = document.getElementById('id_image');
+  if (imgInput) {
+    imgInput.setAttribute('accept', 'image/*');
+    imgInput.setAttribute('capture', 'environment');
+  }
+})();
+</script>
 {% endblock %}
