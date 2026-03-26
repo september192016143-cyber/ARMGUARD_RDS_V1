@@ -131,26 +131,20 @@ It changes every 30 seconds.</p>
     <div class="key-bar" id="key-timer">Key valid for <span id="key-countdown">--</span>s</div>
   </div>
 
-  <form id="upload-form" method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <label class="drop-zone" id="drop-zone">
-      <strong>Tap to capture / browse</strong>
-      <span>JPG, PNG, WEBP &bull; max 15 MB</span>
-      <input type="file" id="image-input" name="image"
-             accept="image/jpeg,image/png,image/gif,image/webp"
-             capture="environment">
-    </label>
-
-    <div id="preview-wrap">
-      <img id="preview" src="" alt="preview">
+  <!-- Standby state — shown until the armory desk sends a capture request -->
+  <div id="standby-state" style="text-align:center;padding:2rem 0 1.25rem;">
+    <div style="font-size:2.5rem;margin-bottom:.75rem;">&#128274;</div>
+    <div style="font-size:1rem;font-weight:700;color:#f8fafc;margin-bottom:.4rem;">Standby</div>
+    <div style="font-size:.82rem;color:#94a3b8;line-height:1.6;">
+      No active request from the armory desk.<br>
+      A capture prompt will appear when a photo is needed.
     </div>
-
-    <input type="hidden" id="serial-task-id" name="serial_task_id" value="">
-    <button class="btn" id="submit-btn" type="submit" disabled>Upload Photo</button>
-    <div id="status"></div>
-    <div class="thumb-list" id="thumb-list"></div>
-  </form>
+    <div style="margin-top:1rem;font-size:.72rem;color:#475569;">&#9679; polling for requests&hellip;</div>
+  </div>
 </div>
+
+{# Hidden form — keeps CSRF token in DOM for AJAX requests #}
+<form id="csrf-form" style="display:none">{% csrf_token %}</form>
 
 <!-- ── Serial capture task overlay ──────────────────────────────────────── -->
 <div id="serial-task-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;padding:1.5rem;">

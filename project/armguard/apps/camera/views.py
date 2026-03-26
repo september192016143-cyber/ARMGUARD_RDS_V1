@@ -320,6 +320,15 @@ def upload_image(request):
         device.record_failure()
         return JsonResponse({'success': False, 'error': 'Invalid API key. Reload the page to refresh.'}, status=403)
 
+    # Standby-mode gate: only accept uploads linked to the device's pending task.
+    # This is enforced server-side so the restriction cannot be bypassed via the API.
+    serial_task_id = request.POST.get('serial_task_id', '').strip()
+    if not serial_task_id or not device.pending_serial_task or str(device.pending_serial_task) != serial_task_id:
+        return JsonResponse(
+            {'success': False, 'error': 'No active capture request. Upload not permitted.'},
+            status=403,
+        )
+
     file = request.FILES.get('image')
     if not file:
         return JsonResponse({'success': False, 'error': 'No image file received.'}, status=400)
@@ -370,22 +379,19 @@ def upload_image(request):
     device.record_success()
 
     # ── Serial capture task linkage ───────────────────────────────────────────
-    # If the phone is responding to an admin "Via Phone" request, link the
-    # uploaded file to the SerialImageCapture session and clear the pending task.
-    serial_task_id = request.POST.get('serial_task_id', '').strip()
-    if serial_task_id:
-        import uuid as _uuid
-        from django.core.files.base import ContentFile
-        try:
-            from armguard.apps.inventory.models import SerialImageCapture
-            task_uuid = _uuid.UUID(serial_task_id)
-            capture_session = SerialImageCapture.objects.get(token=task_uuid)
-            abs_path = os.path.join(abs_dir, safe_name)
-            with open(abs_path, 'rb') as fh:
-                capture_session.image.save(safe_name, ContentFile(fh.read()), save=True)
-            CameraDevice.objects.filter(pk=device.pk).update(pending_serial_task=None)
-        except (ValueError, Exception):
-            pass  # Invalid task_id — upload still succeeds, just not linked
+    # serial_task_id is already validated against device.pending_serial_task above.
+    import uuid as _uuid
+    from django.core.files.base import ContentFile
+    try:
+        from armguard.apps.inventory.models import SerialImageCapture
+        task_uuid = _uuid.UUID(serial_task_id)
+        capture_session = SerialImageCapture.objects.get(token=task_uuid)
+        abs_path = os.path.join(abs_dir, safe_name)
+        with open(abs_path, 'rb') as fh:
+            capture_session.image.save(safe_name, ContentFile(fh.read()), save=True)
+        CameraDevice.objects.filter(pk=device.pk).update(pending_serial_task=None)
+    except (ValueError, Exception):
+        pass  # SerialImageCapture may have been cancelled — upload still recorded
 
     return JsonResponse({'success': True, 'filename': safe_name, 'url': file_url})
 

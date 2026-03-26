@@ -1,11 +1,13 @@
 /**
  * camera_upload.js
- * F-CSP: Extracted from upload.html inline <script> to comply with CSP script-src 'self'.
- * Handles: rotating API key countdown/refresh, PIN gate, image preview, AJAX upload.
+ * Standby mode: phone shows a waiting screen until the armory desk triggers a
+ * capture request via "Via Phone" (sets CameraDevice.pending_serial_task).
+ * Free uploads are blocked both here and server-side; only task-requested
+ * photos may be sent.
  *
  * URLs that vary per-request are passed via
  *   <script type="application/json" id="camera-upload-data">
- * The HMAC key and expiry already come from <meta> tags; reactivate URL too.
+ * The HMAC key and expiry come from <meta> tags; reactivate URL too.
  */
 (function () {
   // ── URL config (from JSON block) ─────────────────────────────────────────
@@ -15,14 +17,6 @@
   try { cfg = JSON.parse(dataEl.textContent); } catch (e) { return; }
 
   // ── DOM refs ─────────────────────────────────────────────────────────────
-  var input      = document.getElementById('image-input');
-  var previewWrap= document.getElementById('preview-wrap');
-  var preview    = document.getElementById('preview');
-  var submitBtn  = document.getElementById('submit-btn');
-  var statusEl   = document.getElementById('status');
-  var thumbList  = document.getElementById('thumb-list');
-  var dropZone   = document.getElementById('drop-zone');
-  var form       = document.getElementById('upload-form');
   var pinGate    = document.getElementById('pin-gate');
   var pinInput   = document.getElementById('pin-input');
   var pinSubmit  = document.getElementById('pin-submit');
@@ -130,76 +124,6 @@
     setTimeout(function () { pinInput.focus(); }, 200);
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  function setStatus(msg, ok) {
-    statusEl.textContent = msg;
-    statusEl.className = ok ? 'ok' : 'err';
-  }
-
-  // ── Image preview ─────────────────────────────────────────────────────────
-  input.addEventListener('change', function () {
-    if (!input.files || !input.files[0]) return;
-    var reader = new FileReader();
-    reader.onload = function (e) {
-      preview.src = e.target.result;
-      previewWrap.style.display = '';
-      submitBtn.disabled = false;
-      statusEl.textContent = '';
-    };
-    reader.readAsDataURL(input.files[0]);
-  });
-
-  // ── Drag-and-drop ─────────────────────────────────────────────────────────
-  dropZone.addEventListener('dragover', function (e) { e.preventDefault(); dropZone.classList.add('dragover'); });
-  dropZone.addEventListener('dragleave', function () { dropZone.classList.remove('dragover'); });
-  dropZone.addEventListener('drop', function (e) {
-    e.preventDefault(); dropZone.classList.remove('dragover');
-    if (e.dataTransfer && e.dataTransfer.files[0]) {
-      input.files = e.dataTransfer.files;
-      input.dispatchEvent(new Event('change'));
-    }
-  });
-
-  // ── AJAX upload ───────────────────────────────────────────────────────────
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (!input.files || !input.files[0]) return;
-
-    submitBtn.disabled = true;
-    setStatus('Uploading\u2026', true);
-
-    var data = new FormData(form);
-    fetch(cfg.uploadUrl, {
-      method: 'POST',
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-Api-Key': apiKey,
-      },
-      body: data,
-    })
-    .then(function (r) { return r.json(); })
-    .then(function (json) {
-      if (json.success) {
-        setStatus('Uploaded successfully!', true);
-        var img = document.createElement('img');
-        img.src = json.url;
-        img.title = json.filename;
-        thumbList.prepend(img);
-        input.value = '';
-        preview.src = '';
-        previewWrap.style.display = 'none';
-        submitBtn.disabled = true;
-      } else {
-        setStatus('Error: ' + (json.error || 'Unknown error'), false);
-        submitBtn.disabled = false;
-      }
-    })
-    .catch(function () {
-      setStatus('Network error. Check your connection.', false);
-      submitBtn.disabled = false;
-    });
-  });
-
   // ── Serial capture task polling ───────────────────────────────────────────
   // When the admin clicks "Via Phone" and a paired device is found the server
   // sets CameraDevice.pending_serial_task.  We poll every 3 s; when a task
@@ -213,7 +137,6 @@
   var _sendBtn      = document.getElementById('serial-send-btn');
   var _serialStatus = document.getElementById('serial-status');
   var _cancelBtn    = document.getElementById('serial-cancel-btn');
-  var _taskIdField  = document.getElementById('serial-task-id');
   var _activeTask   = null;
 
   function _isPinVerified() {
@@ -222,7 +145,6 @@
 
   function _showOverlay(taskId) {
     _activeTask = taskId;
-    if (_taskIdField) _taskIdField.value = taskId;
     _previewWrap.style.display = 'none';
     _previewImg.src = '';
     if (_sendBtn) _sendBtn.style.display = 'none';
@@ -246,7 +168,6 @@
 
   function _hideOverlay() {
     _activeTask = null;
-    if (_taskIdField) _taskIdField.value = '';
     _overlay.style.display = 'none';
     _captureInput.value = '';
     _previewWrap.style.display = 'none';
