@@ -84,13 +84,25 @@
       <div style="grid-column:1/-1">
         <label class="form-label">Photo Evidence <span style="color:var(--muted);font-size:.72rem">(optional)</span></label>
         {% if object.image %}
-        <div style="margin-bottom:.5rem">
+        <div id="disc-current-img" style="margin-bottom:.5rem">
           <img src="{{ object.image.url }}" alt="Discrepancy photo"
                style="max-height:180px;max-width:100%;border-radius:.4rem;border:1px solid var(--border);object-fit:contain;background:#0d1117">
           <div style="font-size:.72rem;color:var(--muted);margin-top:.25rem">Current image — upload a new one to replace it.</div>
         </div>
         {% endif %}
-        {{ form.image }}
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">
+          <button type="button" class="btn btn-secondary btn-sm" id="disc-phone-btn">
+            <i class="fa-solid fa-mobile-screen-button"></i> Via Phone
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="disc-choose-btn">
+            <i class="fa-solid fa-folder-open"></i> Choose File
+          </button>
+        </div>
+        <div id="disc-img-preview-row" style="display:none;align-items:center;gap:.75rem;margin-bottom:.5rem">
+          <img id="disc-img-thumb" src="" alt="Preview" style="max-height:80px;border-radius:.375rem;border:1px solid var(--border)">
+          <span style="font-size:.75rem;color:var(--muted)">Preview</span>
+        </div>
+        <div style="display:none">{{ form.image }}</div>
         {% if form.image.errors %}<div class="form-error">{{ form.image.errors }}</div>{% endif %}
       </div>
 
@@ -123,13 +135,96 @@
     </div>
   </form>
 </div>
+
+<!-- Phone Capture Overlay -->
+<div id="disc-phone-overlay"
+     style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:.75rem"
+     aria-modal="true" role="dialog">
+  <div style="background:var(--card,#1e2535);border:1px solid var(--border,#2d3550);border-radius:.75rem;padding:1.5rem;width:min(380px,96vw);display:flex;flex-direction:column;align-items:center;gap:1rem">
+    <div style="width:100%;display:flex;justify-content:space-between;align-items:center">
+      <h3 style="margin:0;font-size:1rem;font-weight:600"><i class="fa-solid fa-mobile-screen-button"></i> Capture via Phone</h3>
+      <button type="button" id="disc-phone-close" style="background:none;border:none;color:var(--muted,#6b7897);font-size:1.4rem;cursor:pointer;padding:.25rem;line-height:1">&times;</button>
+    </div>
+    <p style="margin:0;font-size:.8rem;color:var(--muted,#6b7897);text-align:center">Scan the QR code with the phone camera &rarr; take photo &rarr; form updates automatically.</p>
+    <img id="disc-phone-qr" src="" alt="QR Code" style="display:none;width:200px;height:200px;border-radius:.5rem;border:3px solid var(--border,#2d3550)">
+    <div id="disc-phone-status" style="font-size:.85rem;color:var(--muted,#6b7897);text-align:center">Generating QR code&hellip;</div>
+    <a id="disc-phone-link" href="#" target="_blank" rel="noopener noreferrer"
+       style="display:none;font-size:.75rem;color:var(--primary,#c9952b);word-break:break-all;text-align:center">Or open this link on your phone &rarr;</a>
+  </div>
+</div>
+
 <script>
 (function(){
-  var imgInput = document.getElementById('id_image');
-  if (imgInput) {
-    imgInput.setAttribute('accept', 'image/*');
-    imgInput.setAttribute('capture', 'environment');
+  var fileInput  = document.getElementById('id_image');
+  var phoneBtn   = document.getElementById('disc-phone-btn');
+  var chooseBtn  = document.getElementById('disc-choose-btn');
+  var overlay    = document.getElementById('disc-phone-overlay');
+  var closeBtn   = document.getElementById('disc-phone-close');
+  var qrImg      = document.getElementById('disc-phone-qr');
+  var statusEl   = document.getElementById('disc-phone-status');
+  var linkEl     = document.getElementById('disc-phone-link');
+  var previewRow = document.getElementById('disc-img-preview-row');
+  var previewThumb = document.getElementById('disc-img-thumb');
+  if (!fileInput) return;
+  if (chooseBtn) chooseBtn.addEventListener('click', function(){ fileInput.click(); });
+  fileInput.addEventListener('change', function(){
+    if (fileInput.files && fileInput.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function(e){ previewThumb.src = e.target.result; previewRow.style.display = 'flex'; };
+      reader.readAsDataURL(fileInput.files[0]);
+    }
+  });
+  var _timer = null, _token = null;
+  function csrf(){ var el = document.querySelector('[name=csrfmiddlewaretoken]'); return el ? el.value : ''; }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function open_(){
+    if (qrImg)   { qrImg.style.display='none'; qrImg.src=''; }
+    if (linkEl)  linkEl.style.display='none';
+    if (statusEl) statusEl.textContent='Generating QR code…';
+    overlay.style.display='flex';
+    fetch('{% url "serial-capture-init" %}',{method:'POST',headers:{'X-CSRFToken':csrf()},credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      _token=d.token;
+      if(d.mode==='device'){
+        if(qrImg) qrImg.style.display='none';
+        if(linkEl) linkEl.style.display='none';
+        if(statusEl) statusEl.innerHTML='📱 Capture request sent to <strong>'+esc(d.device_name||'unnamed')+'</strong>.<br><span style="font-size:.75rem;color:#94a3b8;">The camera page on that phone will prompt for the photo automatically.</span>';
+      } else {
+        if(qrImg){qrImg.src='data:image/png;base64,'+d.qr_b64;qrImg.style.display='block';}
+        if(linkEl){linkEl.href=d.phone_url;linkEl.style.display='';}
+        if(statusEl) statusEl.textContent='Waiting for photo from phone…';
+      }
+      startPoll();
+    })
+    .catch(function(){ if(statusEl) statusEl.textContent='Error generating QR. Please try again.'; });
   }
+  function startPoll(){
+    clearInterval(_timer);
+    _timer=setInterval(function(){
+      if(!_token) return;
+      fetch('/inventory/serial-capture/'+_token+'/poll/',{credentials:'same-origin'})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d.ready){
+          clearInterval(_timer);
+          if(statusEl) statusEl.textContent='Photo received! Loading…';
+          fetch(d.image_url,{credentials:'same-origin'})
+          .then(function(r){return r.blob();})
+          .then(function(b){
+            var f=new File([b],'phone_capture.jpg',{type:b.type||'image/jpeg'});
+            var dt=new DataTransfer(); dt.items.add(f); fileInput.files=dt.files;
+            fileInput.dispatchEvent(new Event('change'));
+            close_();
+          }).catch(function(){if(statusEl) statusEl.textContent='Error loading photo. Please try again.';});
+        } else if(d.expired){ clearInterval(_timer); if(statusEl) statusEl.textContent='Session expired. Close and try again.'; }
+      }).catch(function(){});
+    },2000);
+  }
+  function close_(){ overlay.style.display='none'; clearInterval(_timer); _token=null; }
+  if(phoneBtn)  phoneBtn.addEventListener('click', open_);
+  if(closeBtn)  closeBtn.addEventListener('click', close_);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&overlay.style.display!=='none') close_();});
 })();
 </script>
 {% endblock %}
