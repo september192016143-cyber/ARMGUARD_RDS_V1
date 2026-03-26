@@ -136,7 +136,7 @@
   </form>
 </div>
 
-<!-- Phone Capture Overlay -->
+<!-- Phone Capture Overlay — kept inside #main-content so PJAX re-injects it on every navigation -->
 <div id="disc-phone-overlay"
      style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:.75rem"
      aria-modal="true" role="dialog">
@@ -152,7 +152,9 @@
        style="display:none;font-size:.75rem;color:var(--primary,#c9952b);word-break:break-all;text-align:center">Or open this link on your phone &rarr;</a>
   </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script type="application/json" id="disc-capture-config">{"initUrl": "{% url 'serial-capture-init' %}", "fileInputId": "id_image", "phoneBtnId": "disc-phone-btn", "chooseBtnId": "disc-choose-btn", "overlayId": "disc-phone-overlay", "closeBtnId": "disc-phone-close", "qrImgId": "disc-phone-qr", "statusElId": "disc-phone-status", "linkElId": "disc-phone-link", "previewRowId": "disc-img-preview-row", "previewThumbId": "disc-img-thumb"}</script>
 <script src="{% static 'js/discrepancy_phone_capture.js' %}" defer></script>
 {% endblock %}

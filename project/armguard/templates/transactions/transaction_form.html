@@ -318,12 +318,8 @@
 </div><!-- /txn-sidebar -->
 
 </div><!-- /flex wrapper -->
-{% endblock %}
 
-{% block extra_js %}
-<script src="{% static 'js/transaction_form.js' %}" defer></script>
-
-<!-- Phone capture for inline discrepancy image -->
+<!-- Phone capture overlay — kept inside #main-content so PJAX re-injects it on every navigation -->
 <div id="txn-disc-phone-overlay"
      style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:.75rem"
      aria-modal="true" role="dialog">
@@ -339,6 +335,10 @@
        style="display:none;font-size:.75rem;color:var(--primary,#c9952b);word-break:break-all;text-align:center">Or open this link on your phone &rarr;</a>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/transaction_form.js' %}" defer></script>
 <script type="application/json" id="disc-capture-config">{"initUrl": "{% url 'serial-capture-init' %}", "fileInputId": "dis_image", "phoneBtnId": "txn-disc-phone-btn", "chooseBtnId": "txn-disc-choose-btn", "overlayId": "txn-disc-phone-overlay", "closeBtnId": "txn-disc-phone-close", "qrImgId": "txn-disc-phone-qr", "statusElId": "txn-disc-phone-status", "linkElId": "txn-disc-phone-link", "previewRowId": "txn-disc-img-preview-row", "previewThumbId": "txn-disc-img-thumb"}</script>
 <script src="{% static 'js/discrepancy_phone_capture.js' %}" defer></script>
 {% endblock %}
