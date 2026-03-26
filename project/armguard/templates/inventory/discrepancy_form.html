@@ -13,7 +13,7 @@
 
 {% block content %}
 <div class="card" style="max-width:680px">
-  <form method="post" novalidate>
+  <form method="post" enctype="multipart/form-data" novalidate>
     {% csrf_token %}
 
     {% if form.non_field_errors %}
@@ -78,6 +78,20 @@
         <label class="form-label">Description</label>
         {{ form.description }}
         {% if form.description.errors %}<div class="form-error">{{ form.description.errors }}</div>{% endif %}
+      </div>
+
+      <!-- Photo Evidence -->
+      <div style="grid-column:1/-1">
+        <label class="form-label">Photo Evidence <span style="color:var(--muted);font-size:.72rem">(optional)</span></label>
+        {% if object.image %}
+        <div style="margin-bottom:.5rem">
+          <img src="{{ object.image.url }}" alt="Discrepancy photo"
+               style="max-height:180px;max-width:100%;border-radius:.4rem;border:1px solid var(--border);object-fit:contain;background:#0d1117">
+          <div style="font-size:.72rem;color:var(--muted);margin-top:.25rem">Current image — upload a new one to replace it.</div>
+        </div>
+        {% endif %}
+        {{ form.image }}
+        {% if form.image.errors %}<div class="form-error">{{ form.image.errors }}</div>{% endif %}
       </div>
 
       {% if form.resolved_by %}

@@ -120,6 +120,14 @@ class FirearmDiscrepancy(models.Model):
     resolved_at = models.DateTimeField(blank=True, null=True)
     resolution_notes = models.TextField(blank=True, null=True)
 
+    # Optional photo evidence (e.g. damage photo, wrong serial photo).
+    image = models.ImageField(
+        upload_to='discrepancy_images/',
+        blank=True,
+        null=True,
+        help_text='Optional photo evidence of the discrepancy.',
+    )
+
     class Meta:
         app_label = 'inventory'
         ordering = ['-reported_at']
