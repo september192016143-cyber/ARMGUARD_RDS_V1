@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.utils.html import format_html
+from django.utils.html import format_html, mark_safe
 from .models import CameraDevice, CameraUploadLog
 
 
@@ -24,10 +24,10 @@ class CameraDeviceAdmin(admin.ModelAdmin):
     @admin.display(description='Status')
     def status_badge(self, obj):
         if obj.revoked_at:
-            return format_html('<span style="color:#ef4444;">&#9632; Revoked</span>')
+            return mark_safe('<span style="color:#ef4444;">&#9632; Revoked</span>')
         if obj.is_active:
-            return format_html('<span style="color:#22c55e;">&#9679; Active</span>')
-        return format_html('<span style="color:#f59e0b;">&#9203; Pending</span>')
+            return mark_safe('<span style="color:#22c55e;">&#9679; Active</span>')
+        return mark_safe('<span style="color:#f59e0b;">&#9203; Pending</span>')
 
 
 @admin.register(CameraUploadLog)
