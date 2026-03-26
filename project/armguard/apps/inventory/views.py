@@ -701,23 +701,33 @@ def serial_capture_init(request):
     # ── Paired camera device path (zero-QR) ───────────────────────────────────
     try:
         from armguard.apps.camera.models import CameraDevice
-        paired_device = CameraDevice.objects.get(
+        paired_device = CameraDevice.objects.filter(
             user=request.user,
             is_active=True,
             revoked_at__isnull=True,
-        )
-        CameraDevice.objects.filter(pk=paired_device.pk).update(
-            pending_serial_task=session.token
-        )
+        ).first()
+
+        if paired_device:
+            CameraDevice.objects.filter(pk=paired_device.pk).update(
+                pending_serial_task=session.token
+            )
+            return JsonResponse({
+                'token':       str(session.token),
+                'mode':        'device',
+                'device_name': paired_device.device_name or 'unnamed',
+            })
+
+        # No active device — send user to register/pair their phone instead of showing a QR.
+        pair_url = request.build_absolute_uri(reverse('camera:my_device') + '?setup=1')
         return JsonResponse({
-            'token':       str(session.token),
-            'mode':        'device',
-            'device_name': paired_device.device_name or 'unnamed',
+            'token':    str(session.token),
+            'mode':     'pair_needed',
+            'pair_url': pair_url,
         })
     except Exception:
-        pass  # No paired device — fall through to QR
+        pass  # camera app not installed — fall through to QR
 
-    # ── QR fallback ───────────────────────────────────────────────────────────
+    # ── QR fallback (camera app unavailable) ────────────────────────────────────────
     phone_url = request.build_absolute_uri(
         reverse('serial-capture-phone', kwargs={'token': str(session.token)})
     )

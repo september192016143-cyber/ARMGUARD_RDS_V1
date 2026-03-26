@@ -73,6 +73,11 @@
           if (statusEl) statusEl.innerHTML =
             '\uD83D\uDCF1 Capture request sent to <strong>' + esc(d.device_name || 'unnamed') + '</strong>.' +
             '<br><span style="font-size:.75rem;color:#94a3b8;">The camera page on that phone will prompt for the photo automatically.</span>';
+        } else if (d.mode === 'pair_needed') {
+          // No active paired phone — redirect to device setup page
+          overlay.style.display = 'none';
+          window.location.href = d.pair_url;
+          return;
         } else {
           if (qrImg)  { qrImg.src = 'data:image/png;base64,' + d.qr_b64; qrImg.style.display = 'block'; }
           if (linkEl) { linkEl.href = d.phone_url; linkEl.style.display = ''; }

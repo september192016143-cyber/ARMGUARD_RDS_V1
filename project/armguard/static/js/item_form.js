@@ -524,8 +524,12 @@
               (_escHtml(data.device_name) || 'unnamed') +
               '</strong>.<br><span style="font-size:.75rem;color:#94a3b8;">' +
               'The camera page on that phone will prompt for the photo automatically.</span>';
+          } else if (data.mode === 'pair_needed') {
+            // No active paired phone — redirect to device setup page
+            closePhoneCapture();
+            window.location.href = data.pair_url;
+            return;
           } else {
-            // QR mode (no paired device registered)
             if (phoneQr) {
               phoneQr.src = 'data:image/png;base64,' + data.qr_b64;
               phoneQr.style.display = 'block';
