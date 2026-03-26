@@ -120,13 +120,17 @@ class FirearmDiscrepancy(models.Model):
     resolved_at = models.DateTimeField(blank=True, null=True)
     resolution_notes = models.TextField(blank=True, null=True)
 
-    # Optional photo evidence (e.g. damage photo, wrong serial photo).
+    # Photo evidence — up to 5 images (image is slot 1, image_2–5 are additional slots).
     image = models.ImageField(
         upload_to='discrepancy_images/',
         blank=True,
         null=True,
         help_text='Optional photo evidence of the discrepancy.',
     )
+    image_2 = models.ImageField(upload_to='discrepancy_images/', blank=True, null=True)
+    image_3 = models.ImageField(upload_to='discrepancy_images/', blank=True, null=True)
+    image_4 = models.ImageField(upload_to='discrepancy_images/', blank=True, null=True)
+    image_5 = models.ImageField(upload_to='discrepancy_images/', blank=True, null=True)
 
     class Meta:
         app_label = 'inventory'

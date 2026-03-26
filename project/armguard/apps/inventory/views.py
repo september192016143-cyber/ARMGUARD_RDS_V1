@@ -890,7 +890,7 @@ class FirearmDiscrepancyCreateView(LoginRequiredMixin, UserPassesTestMixin, Crea
     template_name = 'inventory/discrepancy_form.html'
     fields        = [
         'pistol', 'rifle', 'issuer', 'withdrawer', 'related_transaction',
-        'discrepancy_type', 'description', 'image', 'status',
+        'discrepancy_type', 'description', 'image', 'image_2', 'image_3', 'image_4', 'image_5', 'status',
     ]
     success_url = reverse_lazy('discrepancy-list')
 
@@ -913,7 +913,7 @@ class FirearmDiscrepancyUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
     template_name = 'inventory/discrepancy_form.html'
     fields        = [
         'pistol', 'rifle', 'issuer', 'withdrawer', 'related_transaction',
-        'discrepancy_type', 'description', 'image', 'status',
+        'discrepancy_type', 'description', 'image', 'image_2', 'image_3', 'image_4', 'image_5', 'status',
         'resolved_by', 'resolved_at', 'resolution_notes',
     ]
     success_url = reverse_lazy('discrepancy-list')
