@@ -316,6 +316,12 @@ LOGGING = {
             'level': 'WARNING',
             'propagate': False,
         },
+        # Capture 500 tracebacks and 4xx errors to armguard.log.
+        'django.request': {
+            'handlers': ['file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
     },
 }
 
