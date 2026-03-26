@@ -259,20 +259,73 @@
                     placeholder="Describe the discrepancy…"></textarea>
         </div>
         <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">Photo Evidence <span style="color:var(--muted);font-size:.72rem">(optional)</span></label>
+          <label class="form-label">Photo Evidence <span style="color:var(--muted);font-size:.72rem">(optional, up to 5)</span></label>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.5rem">
             <button type="button" class="btn btn-secondary btn-sm" id="txn-disc-phone-btn">
               <i class="fa-solid fa-mobile-screen-button"></i> Via Phone
             </button>
-            <button type="button" class="btn btn-secondary btn-sm" id="txn-disc-choose-btn">
-              <i class="fa-solid fa-folder-open"></i> Choose File
-            </button>
           </div>
-          <div id="txn-disc-img-preview-row" style="display:none;align-items:center;gap:.75rem;margin-bottom:.35rem">
-            <img id="txn-disc-img-thumb" src="" alt="Preview" style="max-height:70px;border-radius:.375rem;border:1px solid var(--border)">
-            <span style="font-size:.72rem;color:var(--muted)">Preview</span>
-          </div>
-          <input type="file" id="dis_image" name="discrepancy_image" accept="image/*" style="display:none">
+          <!-- 5-slot image grid -->
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;">
+
+            <!-- Slot 1 -->
+            <div style="position:relative;aspect-ratio:1/1;border:2px dashed var(--border);border-radius:.5rem;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;min-width:0;">
+              <img id="txn-disc-thumb-1" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
+              <span id="txn-disc-empty-1" style="color:var(--muted);font-size:1.75rem">+</span>
+              <div style="display:flex;gap:.25rem;flex-wrap:wrap;justify-content:center;padding:.2rem;">
+                <button type="button" class="btn btn-secondary btn-sm" id="txn-disc-choose-1" title="Choose file" style="font-size:.65rem;padding:.2rem .45rem"><i class="fa-solid fa-folder-open"></i></button>
+                <button type="button" class="btn btn-danger btn-sm" id="txn-disc-clear-1" title="Remove" style="font-size:.65rem;padding:.2rem .45rem;display:none"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </div>
+
+            <!-- Slot 2 -->
+            <div style="position:relative;aspect-ratio:1/1;border:2px dashed var(--border);border-radius:.5rem;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;min-width:0;">
+              <img id="txn-disc-thumb-2" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
+              <span id="txn-disc-empty-2" style="color:var(--muted);font-size:1.75rem">+</span>
+              <div style="display:flex;gap:.25rem;flex-wrap:wrap;justify-content:center;padding:.2rem;">
+                <button type="button" class="btn btn-secondary btn-sm" id="txn-disc-choose-2" title="Choose file" style="font-size:.65rem;padding:.2rem .45rem"><i class="fa-solid fa-folder-open"></i></button>
+                <button type="button" class="btn btn-danger btn-sm" id="txn-disc-clear-2" title="Remove" style="font-size:.65rem;padding:.2rem .45rem;display:none"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </div>
+
+            <!-- Slot 3 -->
+            <div style="position:relative;aspect-ratio:1/1;border:2px dashed var(--border);border-radius:.5rem;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;min-width:0;">
+              <img id="txn-disc-thumb-3" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
+              <span id="txn-disc-empty-3" style="color:var(--muted);font-size:1.75rem">+</span>
+              <div style="display:flex;gap:.25rem;flex-wrap:wrap;justify-content:center;padding:.2rem;">
+                <button type="button" class="btn btn-secondary btn-sm" id="txn-disc-choose-3" title="Choose file" style="font-size:.65rem;padding:.2rem .45rem"><i class="fa-solid fa-folder-open"></i></button>
+                <button type="button" class="btn btn-danger btn-sm" id="txn-disc-clear-3" title="Remove" style="font-size:.65rem;padding:.2rem .45rem;display:none"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </div>
+
+            <!-- Slot 4 -->
+            <div style="position:relative;aspect-ratio:1/1;border:2px dashed var(--border);border-radius:.5rem;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;min-width:0;">
+              <img id="txn-disc-thumb-4" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
+              <span id="txn-disc-empty-4" style="color:var(--muted);font-size:1.75rem">+</span>
+              <div style="display:flex;gap:.25rem;flex-wrap:wrap;justify-content:center;padding:.2rem;">
+                <button type="button" class="btn btn-secondary btn-sm" id="txn-disc-choose-4" title="Choose file" style="font-size:.65rem;padding:.2rem .45rem"><i class="fa-solid fa-folder-open"></i></button>
+                <button type="button" class="btn btn-danger btn-sm" id="txn-disc-clear-4" title="Remove" style="font-size:.65rem;padding:.2rem .45rem;display:none"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </div>
+
+            <!-- Slot 5 -->
+            <div style="position:relative;aspect-ratio:1/1;border:2px dashed var(--border);border-radius:.5rem;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;min-width:0;">
+              <img id="txn-disc-thumb-5" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
+              <span id="txn-disc-empty-5" style="color:var(--muted);font-size:1.75rem">+</span>
+              <div style="display:flex;gap:.25rem;flex-wrap:wrap;justify-content:center;padding:.2rem;">
+                <button type="button" class="btn btn-secondary btn-sm" id="txn-disc-choose-5" title="Choose file" style="font-size:.65rem;padding:.2rem .45rem"><i class="fa-solid fa-folder-open"></i></button>
+                <button type="button" class="btn btn-danger btn-sm" id="txn-disc-clear-5" title="Remove" style="font-size:.65rem;padding:.2rem .45rem;display:none"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </div>
+
+          </div><!-- /5-slot grid -->
+
+          <!-- Hidden file inputs -->
+          <input type="file" id="dis_image"   name="discrepancy_image"   accept="image/*" style="display:none">
+          <input type="file" id="dis_image_2" name="discrepancy_image_2" accept="image/*" style="display:none">
+          <input type="file" id="dis_image_3" name="discrepancy_image_3" accept="image/*" style="display:none">
+          <input type="file" id="dis_image_4" name="discrepancy_image_4" accept="image/*" style="display:none">
+          <input type="file" id="dis_image_5" name="discrepancy_image_5" accept="image/*" style="display:none">
         </div>
       </div>
     </div>
@@ -339,6 +392,6 @@
 
 {% block extra_js %}
 <script src="{% static 'js/transaction_form.js' %}" defer></script>
-<script type="application/json" id="disc-capture-config">{"initUrl": "{% url 'serial-capture-init' %}", "phoneBtnId": "txn-disc-phone-btn", "overlayId": "txn-disc-phone-overlay", "closeBtnId": "txn-disc-phone-close", "qrImgId": "txn-disc-phone-qr", "statusElId": "txn-disc-phone-status", "linkElId": "txn-disc-phone-link", "slots": [{"inputId": "dis_image", "chooseBtnId": "txn-disc-choose-btn", "clearBtnId": "", "thumbId": "txn-disc-img-thumb", "emptyIconId": "", "previewRowId": "txn-disc-img-preview-row"}]}</script>
+<script type="application/json" id="disc-capture-config">{"initUrl": "{% url 'serial-capture-init' %}", "phoneBtnId": "txn-disc-phone-btn", "overlayId": "txn-disc-phone-overlay", "closeBtnId": "txn-disc-phone-close", "qrImgId": "txn-disc-phone-qr", "statusElId": "txn-disc-phone-status", "linkElId": "txn-disc-phone-link", "slots": [{"inputId": "dis_image", "chooseBtnId": "txn-disc-choose-1", "clearBtnId": "txn-disc-clear-1", "thumbId": "txn-disc-thumb-1", "emptyIconId": "txn-disc-empty-1"}, {"inputId": "dis_image_2", "chooseBtnId": "txn-disc-choose-2", "clearBtnId": "txn-disc-clear-2", "thumbId": "txn-disc-thumb-2", "emptyIconId": "txn-disc-empty-2"}, {"inputId": "dis_image_3", "chooseBtnId": "txn-disc-choose-3", "clearBtnId": "txn-disc-clear-3", "thumbId": "txn-disc-thumb-3", "emptyIconId": "txn-disc-empty-3"}, {"inputId": "dis_image_4", "chooseBtnId": "txn-disc-choose-4", "clearBtnId": "txn-disc-clear-4", "thumbId": "txn-disc-thumb-4", "emptyIconId": "txn-disc-empty-4"}, {"inputId": "dis_image_5", "chooseBtnId": "txn-disc-choose-5", "clearBtnId": "txn-disc-clear-5", "thumbId": "txn-disc-thumb-5", "emptyIconId": "txn-disc-empty-5"}]}</script>
 <script src="{% static 'js/discrepancy_phone_capture.js' %}" defer></script>
 {% endblock %}

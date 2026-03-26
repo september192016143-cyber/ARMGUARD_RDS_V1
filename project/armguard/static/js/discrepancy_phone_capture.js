@@ -177,7 +177,18 @@
                   inp.files = dt.files;
                   inp.dispatchEvent(new Event('change'));
                 }
-                closeOverlay();
+                /* Auto-advance: if there is still an empty slot, start next capture */
+                var nextIdx = getNextEmptySlotIdx();
+                if (nextIdx < 0) {
+                  /* All slots filled */
+                  if (statusEl) statusEl.textContent = 'All photos received!';
+                  setTimeout(closeOverlay, 1200);
+                } else {
+                  var received = _targetSlotIdx + 1;
+                  if (statusEl) statusEl.textContent = 'Photo ' + received + ' received \u2713 \u2014 preparing next\u2026';
+                  _targetSlotIdx = nextIdx;
+                  setTimeout(openOverlay, 1000);
+                }
               })
               .catch(function () {
                 if (statusEl) statusEl.textContent = 'Error loading photo. Please try again.';

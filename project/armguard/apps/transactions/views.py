@@ -269,7 +269,11 @@ def create_transaction(request):
                         _firearms.append({'pistol_id': None, 'rifle_id': txn.rifle_id})
                     for _fw in _firearms:
                         try:
-                            _disc_image = request.FILES.get('discrepancy_image') or None
+                            _disc_image   = request.FILES.get('discrepancy_image')   or None
+                            _disc_image_2 = request.FILES.get('discrepancy_image_2') or None
+                            _disc_image_3 = request.FILES.get('discrepancy_image_3') or None
+                            _disc_image_4 = request.FILES.get('discrepancy_image_4') or None
+                            _disc_image_5 = request.FILES.get('discrepancy_image_5') or None
                             FirearmDiscrepancy.objects.create(
                                 pistol_id=_fw['pistol_id'],
                                 rifle_id=_fw['rifle_id'],
@@ -278,6 +282,10 @@ def create_transaction(request):
                                 discrepancy_type=_disc_type,
                                 description=_disc_desc,
                                 image=_disc_image,
+                                image_2=_disc_image_2,
+                                image_3=_disc_image_3,
+                                image_4=_disc_image_4,
+                                image_5=_disc_image_5,
                                 status='Open',
                                 reported_by=request.user,
                             )
