@@ -57,6 +57,15 @@
         <em style="color:#64748b;">No login required — the QR is your authentication.</em></li>
   </ol>
 
+  {% if login_url %}
+  <div style="border-top:1px solid #1e293b;margin-top:1.25rem;padding-top:1.25rem;font-size:.8rem;color:#475569;">
+    Already have an account?
+    <a href="{{ login_url }}?next=/camera/"
+       style="color:#f97316;text-decoration:none;font-weight:600;">Log in</a>
+    to access your device setup page directly.
+  </div>
+  {% endif %}
+
 </div>
 </body>
 </html>

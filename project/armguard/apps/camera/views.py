@@ -243,6 +243,12 @@ def camera_upload_page(request):
     """
     device = _get_device_from_session(request)
     if device is None:
+        # If the visiting user is Django-authenticated with camera permissions,
+        # send them to their device setup page (QR scan / registration).
+        if request.user.is_authenticated:
+            role = getattr(getattr(request.user, 'profile', None), 'role', '')
+            if request.user.is_superuser or role in CAMERA_ALLOWED_ROLES:
+                return redirect(reverse('camera:my_device') + '?setup=1')
         return redirect('camera:no_device')
 
     if device.is_locked():
@@ -269,7 +275,9 @@ def camera_upload_page(request):
 
 
 def no_device_view(request):
-    return render(request, 'camera/no_device.html')
+    return render(request, 'camera/no_device.html', {
+        'login_url': reverse('login'),
+    })
 
 
 @https_required
@@ -501,6 +509,8 @@ def pair_device_view(request, user_pk: int):
         'initial_pin':           initial_pin,
         'initial_pin_expires_ms': initial_pin_expires_ms,
         'is_admin':              is_admin,
+        # True when user arrived here because their phone is not yet registered.
+        'setup_needed':          not device.is_active and request.GET.get('setup') == '1',
     })
 
 
@@ -696,7 +706,10 @@ def my_device_view(request):
     Redirect the current user to their own camera device pair page.
     Available to any Armorer or System Administrator.
     """
-    return redirect('camera:pair_device', user_pk=request.user.pk)
+    url = reverse('camera:pair_device', kwargs={'user_pk': request.user.pk})
+    if request.GET.get('setup'):
+        url += '?setup=1'
+    return redirect(url)
 
 
 @camera_role_required

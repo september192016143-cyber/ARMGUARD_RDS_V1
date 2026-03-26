@@ -18,6 +18,16 @@
   <div class="alert alert-danger">{{ error }}</div>
 {% endif %}
 
+{% if setup_needed %}
+<div style="background:#422006;border:1px solid #92400e;border-radius:.75rem;padding:1rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:flex-start;gap:.75rem;">
+  <span style="font-size:1.5rem;line-height:1;">&#128241;</span>
+  <div>
+    <p style="font-weight:700;color:#fbbf24;margin-bottom:.25rem;">Phone not registered yet</p>
+    <p style="font-size:.85rem;color:#d97706;line-height:1.5;">Your phone hasn&#39;t been paired to ArmGuard. Scan the QR code below with your phone camera to register it. No login required &mdash; the QR is your authentication.</p>
+  </div>
+</div>
+{% endif %}
+
 <div style="display:flex;gap:2rem;flex-wrap:wrap;align-items:flex-start;">
 
   <!-- ── QR Code card ──────────────────────────────────────────────────── -->
