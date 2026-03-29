@@ -593,6 +593,8 @@ def logs_feed_api(request):
             file_url = request.build_absolute_uri(settings.MEDIA_URL + log.file_path)
         else:
             file_url = None  # file has been purged; no URL to serve
+        from datetime import timedelta
+        purge_date = (log.uploaded_at + timedelta(days=5)).strftime('%d %b %Y')
         logs.append({
             'pk':              log.pk,
             'uploaded_by':     log.uploaded_by.username if log.uploaded_by else '\u2014',
@@ -603,6 +605,7 @@ def logs_feed_api(request):
             'ip_address':      log.ip_address or '\u2014',
             'file_url':        file_url,
             'file_purged':     log.file_purged_at is not None,
+            'purge_date':      purge_date,
             'can_delete':      log.file_purged_at is None,
             'delete_url':      reverse('camera:delete_upload_image', kwargs={'log_pk': log.pk}),
         })

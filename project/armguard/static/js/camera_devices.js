@@ -100,7 +100,12 @@
           tr.style.cssText = 'border-bottom:1px solid #1e293b;animation:cam-fadein .4s ease;';
           var viewCell = log.file_purged
             ? '<span style="color:#475569;font-size:.78rem;">Purged</span>'
-            : '<a href="' + log.file_url + '" target="_blank" rel="noopener" style="color:#93c5fd;font-size:.78rem;text-decoration:none;">View</a>';
+            : (log.file_url
+                ? '<a href="' + log.file_url + '" target="_blank" rel="noopener" style="color:#93c5fd;font-size:.78rem;text-decoration:none;">View</a>'
+                : '<span style="color:#475569;font-size:.78rem;">Purged</span>');
+          var expiresCell = log.file_purged
+            ? '<span style="color:#475569;font-size:.72rem;">\u2014</span>'
+            : '<span style="color:#fbbf24;font-size:.72rem;">' + log.purge_date + '</span>';
           var deleteCell = log.can_delete
             ? '<button data-pk="' + log.pk + '" data-url="' + log.delete_url + '" '
               + 'style="background:#450a0a;color:#f87171;border:none;border-radius:.3rem;'
@@ -114,6 +119,7 @@
             '<td style="padding:.5rem .75rem;color:#94a3b8;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + log.original_name + '">' + log.original_name + '</td>' +
             '<td style="padding:.5rem .75rem;color:#94a3b8;white-space:nowrap;">' + formatBytes(log.file_size_bytes) + '</td>' +
             '<td style="padding:.5rem .75rem;">' + viewCell + '</td>' +
+            '<td style="padding:.5rem .75rem;">' + expiresCell + '</td>' +
             '<td style="padding:.5rem .75rem;color:#64748b;font-size:.72rem;">' + log.ip_address + '</td>' +
             '<td style="padding:.5rem .75rem;">' + deleteCell + '</td>';
           logsTbody.insertBefore(tr, logsTbody.firstChild);
@@ -141,7 +147,8 @@
           var tr = btn.closest('tr');
           var cells = tr.querySelectorAll('td');
           if (cells[5]) cells[5].innerHTML = '<span style="color:#475569;font-size:.78rem;">Purged</span>';
-          if (cells[7]) cells[7].innerHTML = '';
+          if (cells[6]) cells[6].innerHTML = '<span style="color:#475569;font-size:.72rem;">\u2014</span>';
+          if (cells[8]) cells[8].innerHTML = '';
           showToast('\u2713 Image deleted. Record preserved.');
         } else {
           btn.disabled = false; btn.textContent = 'Delete';
