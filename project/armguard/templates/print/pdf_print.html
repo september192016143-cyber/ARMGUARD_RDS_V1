@@ -7,7 +7,16 @@
     <style>
         @page {
             size: legal;
-            margin: 1.1in 0.2in 0.3in 0.2in;  /* Extra top margin to prevent logo cutting */
+            /*
+             * Margins must leave ≥13.35 in printable height so the canvas
+             * (PDF.js PRINT_SCALE=2 → 1224×2016px, displayed width=100%
+             * → ~13.35 in tall on a legal sheet) never overflows onto a
+             * blank page 2.  0.2in all-round → 13.6in printable ✓
+             * The VERTICAL_OFFSET=26 in form_filler already shifts content
+             * away from the top edge inside the PDF, so no extra top margin
+             * is needed here.
+             */
+            margin: 0.2in;
         }
         
         @media print {
@@ -31,11 +40,16 @@
         }
         @media print {
             canvas {
+                /* Safety: never let a canvas overflow the page height */
+                max-height: 96vh;
+                width: auto;
+                max-width: 100%;
                 page-break-inside: avoid;
                 break-inside: avoid;
             }
-            /* Only add a page break BEFORE a canvas that follows another canvas.
-               This avoids the trailing blank page that page-break-after:always causes. */
+            /* Add a page break only between consecutive canvases (multi-page PDFs).
+               Using page-break-before avoids the trailing blank page that
+               page-break-after:always produces. */
             canvas + canvas {
                 page-break-before: always;
                 break-before: page;

@@ -29,8 +29,10 @@
   var workerUrl = container ? container.getAttribute('data-pdfjs-worker') : null;
 
   if (pdfUrl && pdfjsUrl && workerUrl) {
-    // High scale for print-quality rendering (300 dpi-equivalent).
-    var PRINT_SCALE = 2.0;
+    // Scale for rendering. CSS width:100% rescales to fit the container
+    // regardless of pixel count, so this only affects sharpness.
+    // 1.5 is sufficient for legal-size print quality.
+    var PRINT_SCALE = 1.5;
 
     function renderAllPages(pdf, targetEl, scale) {
       var pageNums = [];
