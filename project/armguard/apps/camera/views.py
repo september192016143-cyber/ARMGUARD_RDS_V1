@@ -594,7 +594,9 @@ def logs_feed_api(request):
         else:
             file_url = None  # file has been purged; no URL to serve
         from datetime import timedelta
-        purge_date = (log.uploaded_at + timedelta(days=5)).strftime('%d %b %Y')
+        purge_dt = log.uploaded_at + timedelta(days=5)
+        purge_date = purge_dt.strftime('%d %b %Y')
+        purge_date_iso = purge_dt.strftime('%Y-%m-%d')
         logs.append({
             'pk':              log.pk,
             'uploaded_by':     log.uploaded_by.username if log.uploaded_by else '\u2014',
@@ -606,6 +608,7 @@ def logs_feed_api(request):
             'file_url':        file_url,
             'file_purged':     log.file_purged_at is not None,
             'purge_date':      purge_date,
+            'purge_date_iso':  purge_date_iso,
             'can_delete':      log.file_purged_at is None,
             'delete_url':      reverse('camera:delete_upload_image', kwargs={'log_pk': log.pk}),
         })

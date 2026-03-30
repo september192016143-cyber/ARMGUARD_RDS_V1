@@ -98,14 +98,19 @@
           if (logsEmpty) { logsEmpty.remove(); logsEmpty = null; }
           var tr = document.createElement('tr');
           tr.style.cssText = 'border-bottom:1px solid #1e293b;animation:cam-fadein .4s ease;';
+          var now = new Date();
+          var purgeTs = new Date(log.purge_date_iso);
+          var isExpired = !log.file_purged && purgeTs < now;
           var viewCell = log.file_purged
             ? '<span style="color:#475569;font-size:.78rem;">Purged</span>'
-            : (log.file_url
+            : (log.file_url && !isExpired
                 ? '<a href="' + log.file_url + '" target="_blank" rel="noopener" style="color:#93c5fd;font-size:.78rem;text-decoration:none;">View</a>'
-                : '<span style="color:#475569;font-size:.78rem;">Purged</span>');
+                : '<span style="color:#475569;font-size:.78rem;">Expired</span>');
           var expiresCell = log.file_purged
             ? '<span style="color:#475569;font-size:.72rem;">\u2014</span>'
-            : '<span style="color:#fbbf24;font-size:.72rem;">' + log.purge_date + '</span>';
+            : (isExpired
+                ? '<span style="color:#ef4444;font-size:.72rem;">' + log.purge_date + '</span>'
+                : '<span style="color:#fbbf24;font-size:.72rem;">' + log.purge_date + '</span>');
           var deleteCell = log.can_delete
             ? '<button data-pk="' + log.pk + '" data-url="' + log.delete_url + '" '
               + 'style="background:#450a0a;color:#f87171;border:none;border-radius:.3rem;'

@@ -371,8 +371,9 @@ if [[ "$SKIP_MIGRATE" == "false" ]]; then
         '$VENV_PYTHON' manage.py migrate --noinput
         '$VENV_PYTHON' manage.py setup_groups
         '$VENV_PYTHON' manage.py backfill_user_groups
+        '$VENV_PYTHON' manage.py purge_camera_uploads
     "
-    success "Migrations, group setup, and user backfill complete."
+    success "Migrations, group setup, user backfill, and camera purge complete."
 else
     info "Skipping migrations (--skip-migrate)."
 fi
