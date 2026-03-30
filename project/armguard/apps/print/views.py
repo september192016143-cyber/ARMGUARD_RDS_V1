@@ -549,6 +549,7 @@ def download_transaction_pdf(request, transaction_id):
                 pdf_type=PDF_TYPE_PAR,
                 filename=par_filename,
                 label=f'PAR #{transaction_id} – {transaction.personnel}',
+                apply_watermark=True,
             )
         except Exception as e:
             messages.error(request, f'Error serving PAR document: {e}')
@@ -577,6 +578,7 @@ def download_transaction_pdf(request, transaction_id):
                     pdf_type=PDF_TYPE_TR,
                     filename=filename,
                     label=f'TR #{transaction_id} – {transaction.personnel} (cached)',
+                    apply_watermark=True,
                     extra_headers={'X-Print-Page-Size': 'legal'},
                 )
             except Exception:
@@ -599,6 +601,7 @@ def download_transaction_pdf(request, transaction_id):
             pdf_bytes=pdf_bytes,
             filename=filename,
             label=f'TR #{transaction_id} – {transaction.personnel} (generated)',
+            apply_watermark=True,
             extra_headers={'X-Print-Page-Size': 'legal'},
         )
 
@@ -912,6 +915,7 @@ def download_mo_pdf(request, transaction_id):
             pdf_type=PDF_TYPE_MO,
             filename=mo_filename,
             label=f'MO #{transaction_id} – {transaction.personnel}',
+            apply_watermark=True,
         )
     except Exception as e:
         messages.error(request, f'Error serving Mission Order document: {e}')
@@ -1048,4 +1052,5 @@ def download_daily_report_pdf(request):
         pdf_bytes=pdf_bytes,
         filename=filename,
         label=f'Daily Firearms Evaluation – {date_str}',
+        apply_watermark=True,
     )

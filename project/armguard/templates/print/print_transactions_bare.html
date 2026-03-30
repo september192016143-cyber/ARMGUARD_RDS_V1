@@ -88,9 +88,33 @@ html, body {
 .sig-block-rank  { font-size: 10pt; text-align: left;  white-space: nowrap; padding-right: 1em; }
 .sig-block-branch{ font-size: 10pt; text-align: right; white-space: nowrap; }
 .sig-block-desig { font-size: 10pt; font-weight: 600; text-align: center; padding-top: 1px; }
+/* ── Print watermark — screen hidden, printed on every page ── */
+.print-watermark {
+    display: none;
+    pointer-events: none;
+}
+@media print {
+    .print-watermark {
+        display: block;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-45deg);
+        font-size: 52pt;
+        font-weight: 900;
+        color: rgba(120, 0, 0, 0.07);
+        white-space: nowrap;
+        z-index: 9999;
+        pointer-events: none;
+        line-height: 1.4;
+        text-align: center;
+        font-family: Arial, sans-serif;
+    }
+}
 </style>
 </head>
 <body data-autoprint>
+<div class="print-watermark">ARMGUARD RDS<br>{{ request.user.get_full_name|default:request.user.username }}</div>
 
 <div class="report">
 
