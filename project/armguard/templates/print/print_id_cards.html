@@ -243,16 +243,16 @@
             <span class="regen-icon-{{ entry.personnel.Personnel_ID|slugify }}"><i class="fas fa-sync-alt"></i></span>
             <span class="regen-spinner-{{ entry.personnel.Personnel_ID|slugify }}" style="display:none;">
               <i class="fas fa-spinner fa-spin"></i>
-            </span>
+            </span> Regen
           </button>
           {% if entry.thumb_url %}
           <a href="{% url 'print_handler:print_id_cards_view' %}?ids={{ entry.personnel.Personnel_ID }}"
              target="_blank" class="btn btn-primary" title="Print this card">
-            <i class="fas fa-print"></i>
+            <i class="fas fa-print"></i> Print
           </a>
           {% else %}
           <button id="print-card-disabled-btn" class="btn btn-primary" disabled title="Generate card first">
-            <i class="fas fa-print"></i>
+            <i class="fas fa-print"></i> Print
           </button>
           {% endif %}
           {% endif %}
