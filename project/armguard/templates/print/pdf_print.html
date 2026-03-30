@@ -31,14 +31,14 @@
         }
         @media print {
             canvas {
-                page-break-after: always;
                 page-break-inside: avoid;
-                break-after: page;
                 break-inside: avoid;
             }
-            canvas:last-of-type {
-                page-break-after: auto;
-                break-after: auto;
+            /* Only add a page break BEFORE a canvas that follows another canvas.
+               This avoids the trailing blank page that page-break-after:always causes. */
+            canvas + canvas {
+                page-break-before: always;
+                break-before: page;
             }
         }
         

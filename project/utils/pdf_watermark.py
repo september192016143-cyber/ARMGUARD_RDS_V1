@@ -106,9 +106,14 @@ def _stamp_line(
             text,
             fontname='helv',
             fontsize=fontsize,
-            # fill= sets the glyph interior colour (render_mode=0 fill-only)
-            fill=(0.72, 0.12, 0.12),
-            fill_opacity=0.30,
+            # render_mode=2 paints both fill and stroke — covers all PyMuPDF
+            # versions regardless of whether fill= or color= drives the glyph
+            # colour in render_mode=0.
+            render_mode=2,
+            color=(0.72, 0.12, 0.12),   # stroke colour  (render_mode 1 / 2)
+            fill=(0.72, 0.12, 0.12),    # fill colour    (render_mode 0 / 2)
+            stroke_opacity=0.35,
+            fill_opacity=0.35,
             rotate=45,
         )
     except Exception:
