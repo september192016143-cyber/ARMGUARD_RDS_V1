@@ -567,24 +567,8 @@ def download_transaction_pdf(request, transaction_id):
     output_dir = os.path.join(settings.MEDIA_ROOT, 'TR_PDF')
     output_path = os.path.join(output_dir, filename)
 
-    # Serve cached file only if it was generated after the transaction was last modified
-    if os.path.exists(output_path) and os.path.getsize(output_path) > 1024:
-        import datetime as _dt
-        file_mtime = _dt.datetime.fromtimestamp(os.path.getmtime(output_path), tz=_dt.timezone.utc)
-        if transaction.updated_at is None or file_mtime >= transaction.updated_at:
-            try:
-                return serve_pdf(
-                    request,
-                    pdf_type=PDF_TYPE_TR,
-                    filename=filename,
-                    label=f'TR #{transaction_id} – {transaction.personnel} (cached)',
-                    apply_watermark=True,
-                    extra_headers={'X-Print-Page-Size': 'legal'},
-                )
-            except Exception:
-                pass  # Fall through to regeneration
-
-    # Generate PDF
+    # Always regenerate fresh so stale cached files never produce blank/extra pages.
+    # The filled PDF is written to disk for archival but always served from memory.
     try:
         form_filler = TransactionFormFiller()
         filled_pdf = form_filler.fill_transaction_form(transaction)
@@ -593,6 +577,7 @@ def download_transaction_pdf(request, transaction_id):
         filled_pdf.seek(0)
         pdf_bytes = filled_pdf.read()
 
+        # Write to disk for archival (overwrites stale cache).
         with open(output_path, 'wb') as f:
             f.write(pdf_bytes)
 
@@ -600,7 +585,7 @@ def download_transaction_pdf(request, transaction_id):
             request,
             pdf_bytes=pdf_bytes,
             filename=filename,
-            label=f'TR #{transaction_id} – {transaction.personnel} (generated)',
+            label=f'TR #{transaction_id} – {transaction.personnel}',
             apply_watermark=True,
             extra_headers={'X-Print-Page-Size': 'legal'},
         )
