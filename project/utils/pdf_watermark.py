@@ -76,21 +76,39 @@ def _stamp_line(
         row 0 → slightly above centre
         row 1 → centre
         row 2 → slightly below centre
+
+    Note: render_mode=0 (fill-only) requires ``fill`` for colour — ``color``
+    is the stroke colour and has no effect in fill-only mode.  Using
+    fill_opacity on a None fill would produce invisible text.
     """
     try:
+        import math
         import fitz
 
         text_len = fitz.get_text_length(text, fontname='helv', fontsize=fontsize)
-        cx = page_width  / 2 - text_len / 2
-        cy = page_height / 2 + (row - 1) * (fontsize + 10)
+
+        # Centre the midpoint of the rotated text on the page.
+        # With rotate=45° CCW the baseline runs up-right; offset the start
+        # so the text midpoint lands at the page centre.
+        angle  = math.radians(45)
+        cos_a  = math.cos(angle)
+        sin_a  = math.sin(angle)
+
+        # Perpendicular offset direction (rotated 90° from text baseline)
+        row_spacing = fontsize * 1.8
+        perp_offset = (row - 1) * row_spacing
+
+        cx = page_width  / 2 - (text_len / 2) * cos_a + perp_offset * sin_a
+        cy = page_height / 2 + (text_len / 2) * sin_a + perp_offset * cos_a
 
         page.insert_text(
             fitz.Point(cx, cy),
             text,
             fontname='helv',
             fontsize=fontsize,
-            color=(0.72, 0.12, 0.12),   # muted red
-            fill_opacity=0.22,          # semi-transparent
+            # fill= sets the glyph interior colour (render_mode=0 fill-only)
+            fill=(0.72, 0.12, 0.12),
+            fill_opacity=0.30,
             rotate=45,
         )
     except Exception:
