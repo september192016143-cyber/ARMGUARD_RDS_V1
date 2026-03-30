@@ -51,30 +51,55 @@
         return resp.json();
       })
       .then(function (data) {
+        var wrap = document.getElementById('wrap-' + itemId);
         if (data.success) {
-          var wrap = document.getElementById('wrap-' + itemId);
-          var img = wrap.querySelector('img');
+          var img = wrap ? wrap.querySelector('img') : null;
           if (img) {
             img.src = data.thumb_url + '?v=' + Date.now();
           } else {
-            var div = wrap.querySelector('.tag-no-thumb');
+            var div = wrap ? wrap.querySelector('.tag-no-thumb') : null;
             if (div) {
               var newImg = document.createElement('img');
               newImg.id = 'thumb-' + itemId; newImg.src = data.thumb_url; newImg.alt = 'Tag';
               div.replaceWith(newImg);
             }
           }
-          var badge = wrap.querySelector('.status-badge');
-          if (badge) { badge.textContent = 'OK'; badge.className = 'status-badge badge-ok'; }
-          var actions = wrap.querySelector('.tag-actions');
+          // Fix: template uses .badge-ok not .status-badge
+          var badge = wrap ? wrap.querySelector('.badge-ok, .badge-missing') : null;
+          if (badge) { badge.textContent = 'OK'; badge.className = 'badge-ok'; }
+          else if (wrap) {
+            var infoTop = wrap.querySelector('.tag-info > div');
+            if (infoTop) { var nb = document.createElement('span'); nb.className = 'badge-ok'; nb.textContent = 'OK'; infoTop.appendChild(nb); }
+          }
+          var actions = wrap ? wrap.querySelector('.tag-actions') : null;
           if (actions && !actions.querySelector('a.btn-primary')) {
             var a = document.createElement('a');
             a.href = PRINT_URL + '?ids=' + itemId; a.target = '_blank';
             a.className = 'btn btn-primary btn-sm';
+            a.setAttribute('data-item-action', 'print-single');
+            a.setAttribute('data-item-id', itemId);
             a.innerHTML = '<i class="fas fa-print"></i> Print';
-            actions.appendChild(a);
+            actions.insertBefore(a, btn.nextSibling);
           }
-        } else { alert('Error: ' + (data.error || 'Unknown error')); }
+          // Clear any previous inline error
+          var prevErr = wrap ? wrap.querySelector('.regen-error') : null;
+          if (prevErr) prevErr.remove();
+        } else {
+          // Show error inline in card so it's visible without dismissing an alert
+          var errMsg = data.error || 'Unknown error';
+          if (wrap) {
+            var card = wrap.querySelector('.tag-card');
+            var existing = wrap.querySelector('.regen-error');
+            if (existing) { existing.textContent = '\u274C ' + errMsg; }
+            else if (card) {
+              var errDiv = document.createElement('div');
+              errDiv.className = 'regen-error';
+              errDiv.style.cssText = 'font-size:.65rem;color:#f87171;padding:.3rem .6rem;background:rgba(239,68,68,.1);border-top:1px solid rgba(239,68,68,.3);word-break:break-all;';
+              errDiv.textContent = '\u274C ' + errMsg;
+              card.appendChild(errDiv);
+            }
+          } else { alert('Regen error: ' + errMsg); }
+        }
       })
       .catch(function (e) { alert('Request failed: ' + e.message); })
       .then(function () { _setBusy(btn, false); });
@@ -94,8 +119,11 @@
       })
       .then(function (data) {
         if (data.success) {
-          var msg = 'Done — generated: ' + data.generated + ', skipped: ' + data.skipped +
-            (data.errors.length ? ', errors: ' + data.errors.length : '');
+          var msg = 'Done — generated: ' + data.generated + ', skipped: ' + data.skipped;
+          if (data.errors && data.errors.length) {
+            msg += '\n\nErrors (' + data.errors.length + '):';
+            data.errors.forEach(function (e) { msg += '\n• ' + e.id + ': ' + e.error; });
+          }
           alert(msg); location.reload();
         } else { alert('Error: ' + (data.error || JSON.stringify(data))); }
       })
