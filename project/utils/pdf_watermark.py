@@ -41,6 +41,7 @@ def watermark_pdf_bytes(pdf_bytes: bytes, username: str) -> bytes:
         timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
 
         doc = fitz.open(stream=pdf_bytes, filetype='pdf')
+        logger.info('Watermarking PDF — pages=%d user=%s', doc.page_count, username)
         for page in doc:
             w = page.rect.width
             h = page.rect.height
@@ -50,6 +51,7 @@ def watermark_pdf_bytes(pdf_bytes: bytes, username: str) -> bytes:
 
         out = doc.tobytes(deflate=True)
         doc.close()
+        logger.info('Watermark applied successfully')
         return out
 
     except Exception:
@@ -68,7 +70,7 @@ def _stamp_line(
     fontsize: int,
 ) -> None:
     """
-    Insert one watermark line centred on *page*, rotated 45 °, at a vertical
+    Insert one watermark line centred on *page*, rotated 45°, at a vertical
     position determined by *row*.
 
     The three rows are spread around the vertical centre of the page so they
@@ -76,44 +78,52 @@ def _stamp_line(
         row 0 → slightly above centre
         row 1 → centre
         row 2 → slightly below centre
-
-    Note: render_mode=0 (fill-only) requires ``fill`` for colour — ``color``
-    is the stroke colour and has no effect in fill-only mode.  Using
-    fill_opacity on a None fill would produce invisible text.
     """
+    import math
+    import fitz
+
+    text_len = fitz.get_text_length(text, fontname='helv', fontsize=fontsize)
+
+    # Centre the midpoint of the rotated text on the page.
+    # With rotate=45° CCW the baseline runs up-right; offset the start
+    # so the text midpoint lands at the page centre.
+    angle       = math.radians(45)
+    cos_a       = math.cos(angle)   # ≈ 0.707
+    sin_a       = math.sin(angle)   # ≈ 0.707
+
+    # Perpendicular offset direction (rotated 90° from text baseline)
+    row_spacing = fontsize * 1.8
+    perp_offset = (row - 1) * row_spacing
+
+    cx = page_width  / 2 - (text_len / 2) * cos_a + perp_offset * sin_a
+    cy = page_height / 2 + (text_len / 2) * sin_a + perp_offset * cos_a
+
+    pt = fitz.Point(cx, cy)
+
+    # Attempt 1: with opacity parameters (PyMuPDF ≥ 1.18)
     try:
-        import math
-        import fitz
-
-        text_len = fitz.get_text_length(text, fontname='helv', fontsize=fontsize)
-
-        # Centre the midpoint of the rotated text on the page.
-        # With rotate=45° CCW the baseline runs up-right; offset the start
-        # so the text midpoint lands at the page centre.
-        angle  = math.radians(45)
-        cos_a  = math.cos(angle)
-        sin_a  = math.sin(angle)
-
-        # Perpendicular offset direction (rotated 90° from text baseline)
-        row_spacing = fontsize * 1.8
-        perp_offset = (row - 1) * row_spacing
-
-        cx = page_width  / 2 - (text_len / 2) * cos_a + perp_offset * sin_a
-        cy = page_height / 2 + (text_len / 2) * sin_a + perp_offset * cos_a
-
         page.insert_text(
-            fitz.Point(cx, cy),
-            text,
+            pt, text,
             fontname='helv',
             fontsize=fontsize,
-            # render_mode=2 paints both fill and stroke — covers all PyMuPDF
-            # versions regardless of whether fill= or color= drives the glyph
-            # colour in render_mode=0.
             render_mode=2,
-            color=(0.72, 0.12, 0.12),   # stroke colour  (render_mode 1 / 2)
-            fill=(0.72, 0.12, 0.12),    # fill colour    (render_mode 0 / 2)
+            color=(0.72, 0.12, 0.12),
+            fill=(0.72, 0.12, 0.12),
             stroke_opacity=0.35,
             fill_opacity=0.35,
+            rotate=45,
+        )
+        return
+    except TypeError:
+        pass  # opacity kwargs not supported — fall back below
+
+    # Attempt 2: light colour without opacity (all PyMuPDF versions)
+    try:
+        page.insert_text(
+            pt, text,
+            fontname='helv',
+            fontsize=fontsize,
+            color=(0.80, 0.55, 0.55),
             rotate=45,
         )
     except Exception:
