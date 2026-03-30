@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Transaction #{{ transaction.transaction_id }} — ArmGuard RDS{% endblock %}
+{% block title %}Transaction Logs #{{ transaction.transaction_id }} — ArmGuard RDS{% endblock %}
 {% block page_title %}Transaction #{{ transaction.transaction_id }}{% endblock %}
 {% block page_sub %}
   {% if transaction.transaction_type == 'Withdrawal' %}Withdrawal{% else %}Return{% endif %}
