@@ -85,7 +85,7 @@
 /* ── Day-mode main content ──────────────────────────────────────────── */
 [data-theme="light"] .page-body { background: #eef2f7; color: #0d1f35; }
 [data-theme="light"] tbody td { color: #0d1f35; }
-[data-theme="light"] tfoot td { color: #ffffff; }
+[data-theme="light"] tfoot td { color: #ffffff !important; }
 [data-theme="light"] thead th { color: #3d536b; }
 [data-theme="light"] .card-title { color: #0d1f35; }
 /* ── Day-mode card depth (shadow gives visual lift without fill) ─────── */
