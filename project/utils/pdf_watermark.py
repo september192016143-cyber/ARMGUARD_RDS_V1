@@ -78,6 +78,9 @@ def _stamp_line(
         row 0 → slightly above centre
         row 1 → centre
         row 2 → slightly below centre
+
+    Uses fitz.TextWriter + morph=(pivot, Matrix(-45)) because insert_text()
+    only accepts rotate=0/90/180/270 and raises ValueError for 45°.
     """
     import math
     import fitz
@@ -85,47 +88,30 @@ def _stamp_line(
     text_len = fitz.get_text_length(text, fontname='helv', fontsize=fontsize)
 
     # Centre the midpoint of the rotated text on the page.
-    # With rotate=45° CCW the baseline runs up-right; offset the start
-    # so the text midpoint lands at the page centre.
+    # Text goes UP-RIGHT at 45° (screen coords, Y-down).  Matrix(-45) rotates
+    # the horizontal baseline CCW by 45° visually.
     angle       = math.radians(45)
     cos_a       = math.cos(angle)   # ≈ 0.707
     sin_a       = math.sin(angle)   # ≈ 0.707
 
-    # Perpendicular offset direction (rotated 90° from text baseline)
     row_spacing = fontsize * 1.8
     perp_offset = (row - 1) * row_spacing
 
+    # (cx, cy) = baseline START so that the text midpoint falls on the page centre
+    # offset by perp_offset in the direction perpendicular to the text diagonal.
     cx = page_width  / 2 - (text_len / 2) * cos_a + perp_offset * sin_a
     cy = page_height / 2 + (text_len / 2) * sin_a + perp_offset * cos_a
 
     pt = fitz.Point(cx, cy)
 
-    # Attempt 1: with opacity parameters (PyMuPDF ≥ 1.18)
     try:
-        page.insert_text(
-            pt, text,
-            fontname='helv',
-            fontsize=fontsize,
-            render_mode=2,
-            color=(0.72, 0.12, 0.12),
-            fill=(0.72, 0.12, 0.12),
-            stroke_opacity=0.35,
-            fill_opacity=0.35,
-            rotate=45,
-        )
-        return
-    except TypeError:
-        pass  # opacity kwargs not supported — fall back below
-
-    # Attempt 2: light colour without opacity (all PyMuPDF versions)
-    try:
-        page.insert_text(
-            pt, text,
-            fontname='helv',
-            fontsize=fontsize,
-            color=(0.80, 0.55, 0.55),
-            rotate=45,
-        )
+        # TextWriter is the correct way to draw text at arbitrary angles in PyMuPDF.
+        # morph=(pivot, matrix) rotates text around `pivot`; Matrix(-45) visually
+        # tilts the text up-right at 45° in screen co-ordinates (Y points down).
+        tw = fitz.TextWriter(page.rect, opacity=0.35, color=(0.72, 0.12, 0.12))
+        font = fitz.Font('helv')
+        tw.append(pt, text, font=font, fontsize=fontsize)
+        tw.write_text(page, morph=(pt, fitz.Matrix(-45)))
     except Exception:
         logger.debug(
             'Watermark line skipped: row=%d text=%r', row, text, exc_info=True
