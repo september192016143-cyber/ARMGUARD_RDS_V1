@@ -520,6 +520,9 @@ def print_transactions(request):
         'commander_rank':            _sys.commander_rank,
         'commander_branch':          _sys.commander_branch,
         'commander_designation':     _sys.commander_designation or 'Squadron Commander',
+        # Watermark
+        'watermark_user':            request.user.get_full_name() or request.user.username,
+        'watermark_time':            timezone.localtime().strftime('%Y-%m-%d %H:%M PHT'),
     }
     return render(request, 'print/print_transactions_bare.html' if request.GET.get('bare') else 'print/print_transactions.html', context)
 
