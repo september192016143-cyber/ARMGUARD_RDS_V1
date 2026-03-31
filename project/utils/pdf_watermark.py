@@ -13,7 +13,8 @@ Install PyMuPDF with:  pip install pymupdf
 """
 
 import logging
-from datetime import datetime, timezone
+
+from django.utils import timezone
 
 logger = logging.getLogger('armguard.pdf')
 
@@ -38,7 +39,7 @@ def watermark_pdf_bytes(pdf_bytes: bytes, username: str) -> bytes:
         return pdf_bytes
 
     try:
-        timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+        timestamp = timezone.localtime().strftime('%Y-%m-%d %H:%M PHT')
 
         doc = fitz.open(stream=pdf_bytes, filetype='pdf')
         logger.info('Watermarking PDF — pages=%d user=%s', doc.page_count, username)
