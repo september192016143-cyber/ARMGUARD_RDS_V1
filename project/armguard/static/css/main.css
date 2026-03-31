@@ -57,8 +57,11 @@
 [data-theme="light"] .sidebar .nav-item-row:hover { background: rgba(255,255,255,.1); }
 [data-theme="light"] .sidebar .nav-item-row.active { background: rgba(79,163,255,.18); border-left-color: #4FA3FF; }
 [data-theme="light"] .sidebar .nav-item-row i.nav-icon { color: rgba(255,255,255,.65); }
+[data-theme="light"] .sidebar .nav-item-row:hover i.nav-icon { color: #4FA3FF; }
 [data-theme="light"] .sidebar .nav-item-main,
 [data-theme="light"] .sidebar .nav-item-add { color: rgba(255,255,255,.85); }
+[data-theme="light"] .sidebar .nav-item-row:hover .nav-item-main { color: #ffffff; }
+[data-theme="light"] .sidebar .nav-item-row:hover .nav-item-add { color: #4FA3FF; }
 [data-theme="light"] .sidebar .nav-group-header { color: rgba(255,255,255,.82); }
 [data-theme="light"] .sidebar .nav-group.open .nav-group-header { color: #ffffff; border-left-color: #4FA3FF; }
 [data-theme="light"] .sidebar .nav-flyout { background: #000d4d; border-color: rgba(79,163,255,.25); }
