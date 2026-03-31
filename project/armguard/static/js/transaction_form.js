@@ -532,7 +532,6 @@ function checkItem(selectId, bannerId, itemType) {
             ' has an <b>open discrepancy</b>. Resolve it before withdrawing.');
         } else {
           var msg = escHtml(d.reason || ('Status: ' + d.item_status));
-          if (d.issued_to) msg += ' \u2014 issued to: ' + escHtml(String(d.issued_to));
           setBanner(bannerId, 'err', msg);
         }
       }
