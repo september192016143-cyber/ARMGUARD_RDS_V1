@@ -45,9 +45,13 @@ def watermark_pdf_bytes(pdf_bytes: bytes, username: str) -> bytes:
         for page in doc:
             w = page.rect.width
             h = page.rect.height
-            _stamp_line(page, 'ARMGUARD RDS', w, h, row=0, fontsize=30)
-            _stamp_line(page, username,        w, h, row=1, fontsize=20)
-            _stamp_line(page, timestamp,       w, h, row=2, fontsize=14)
+            half = h / 2
+            # Stamp watermark in both halves — TR legal page is cut into two
+            # identical copies (upper + lower), each copy needs its own stamp.
+            for y_off in (0.0, half):
+                _stamp_line(page, 'ARMGUARD RDS', w, half, row=0, fontsize=30, y_offset=y_off)
+                _stamp_line(page, username,        w, half, row=1, fontsize=20, y_offset=y_off)
+                _stamp_line(page, timestamp,       w, half, row=2, fontsize=14, y_offset=y_off)
 
         out = doc.tobytes(deflate=True)
         doc.close()
@@ -68,13 +72,13 @@ def _stamp_line(
     page_height: float,
     row: int,
     fontsize: int,
+    y_offset: float = 0.0,
 ) -> None:
     """
-    Insert one watermark line centred on *page*, rotated 45°, at a vertical
-    position determined by *row*.
+    Insert one watermark line rotated 45°, centred within a horizontal band
+    of *page_height* tall, starting at *y_offset* from the page top.
 
-    The three rows are spread around the vertical centre of the page so they
-    read as a stacked block:
+    The three rows form a stacked block around the band centre:
         row 0 → slightly above centre
         row 1 → centre
         row 2 → slightly below centre
@@ -87,7 +91,7 @@ def _stamp_line(
 
     text_len = fitz.get_text_length(text, fontname='helv', fontsize=fontsize)
 
-    # Centre the midpoint of the rotated text on the page.
+    # Centre the midpoint of the rotated text within the band.
     # Text goes UP-RIGHT at 45° (screen coords, Y-down).  Matrix(-45) rotates
     # the horizontal baseline CCW by 45° visually.
     angle       = math.radians(45)
@@ -97,10 +101,12 @@ def _stamp_line(
     row_spacing = fontsize * 1.8
     perp_offset = (row - 1) * row_spacing
 
-    # (cx, cy) = baseline START so that the text midpoint falls on the page centre
-    # offset by perp_offset in the direction perpendicular to the text diagonal.
-    cx = page_width  / 2 - (text_len / 2) * cos_a + perp_offset * sin_a
-    cy = page_height / 2 + (text_len / 2) * sin_a + perp_offset * cos_a
+    # Band centre is at (page_width/2, y_offset + page_height/2).
+    band_cx = page_width  / 2
+    band_cy = y_offset + page_height / 2
+
+    cx = band_cx - (text_len / 2) * cos_a + perp_offset * sin_a
+    cy = band_cy + (text_len / 2) * sin_a + perp_offset * cos_a
 
     pt = fitz.Point(cx, cy)
 
