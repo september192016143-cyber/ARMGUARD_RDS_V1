@@ -172,7 +172,7 @@ class Pistol(SmallArm):
     # -- Primary key and identification ----------------------------------------
     # item_id is set automatically during save(); do not supply manually.
     item_id = models.CharField(max_length=50, primary_key=True, unique=True, blank=False, editable=False)
-    item_number = models.CharField(max_length=4, blank=True, help_text="Sequential number within the same pistol model. Auto-assigned.")
+    item_number = models.CharField(max_length=4, blank=False, help_text="Required. Unique number within the same pistol model (e.g. 0001). Must be entered manually.")
     # -- Item attributes -------------------------------------------------------
     # C4: FK to Category — enables item classification with referential integrity.
     category = models.ForeignKey(
@@ -259,17 +259,31 @@ class Pistol(SmallArm):
 
     def get_item_type_display(self):
         return 'PISTOL'
-    # -- Save ------------------------------------------------------------------
+
+    def clean(self):
+        """Validate that item_number is provided and unique within the same pistol model."""
+        from django.core.exceptions import ValidationError
+        errors = {}
+        if not self.item_number:
+            errors['item_number'] = 'Item number is required. Auto-assignment is not allowed.'
+        else:
+            qs = Pistol.objects.filter(model=self.model, item_number=self.item_number)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                errors['item_number'] = f'Item number {self.item_number} is already used by another {self.model} pistol.'
+        if errors:
+            raise ValidationError(errors)
+        super().clean()
 
     def save(self, *args, **kwargs):
         """
         Extended save() that handles auto-generation of identifiers and QR codes:
-        - Assigns a sequential item_number within the same pistol model (e.g., 0001).
         - Generates item_id as 'IP-<model_code>-<serial_number>' on first save.
         - Sets qr_code equal to item_id.
         - Generates a QR code PNG image when item_id is new or changes.
         - Records created/updated timestamps and the acting username.
-        - Retries up to 5 times on item_number IntegrityError (concurrent assignment race).
+        - item_number must be set before save(); no auto-assignment is performed.
         Pass user=<request.user> as a keyword argument to capture created_by/updated_by.
         """
         from django.db import IntegrityError, transaction
@@ -298,20 +312,10 @@ class Pistol(SmallArm):
                 _prev_remarks = Pistol.objects.values_list('remarks', flat=True).get(pk=self.pk)
             except Pistol.DoesNotExist:
                 pass
-        max_retries = 5
-        for attempt in range(max_retries):
-            # Auto-assign a sequential item_number per model if not yet set
-            if not self.item_number:
-                existing_numbers = set(
-                    Pistol.objects.filter(model=self.model).values_list('item_number', flat=True)
-                )
-                num = 1
-                while True:
-                    candidate = f"{num:04d}"
-                    if candidate not in existing_numbers:
-                        self.item_number = candidate
-                        break
-                    num += 1
+        from django.core.exceptions import ValidationError as _VE
+        if not self.item_number:
+            raise _VE({'item_number': 'Item number is required. Auto-assignment is not allowed.'})
+        for attempt in range(1):
             # Generate item_id from model abbreviation and serial number on creation
             if not self.item_id:
                 # BUG-FIX: Use exact choice-string keys so codes match real model names.
@@ -363,13 +367,7 @@ class Pistol(SmallArm):
                     super().save(*args, **kwargs)
                 break
             except IntegrityError as e:
-                if 'item_number' in str(e):
-                    self.item_number = None  # Force regeneration on next attempt
-                    continue
-                else:
-                    raise
-        else:
-            raise IntegrityError("Could not assign unique item_number after multiple attempts.")
+                raise
         # Auto-generate item tag PNG after the record is committed.
         # Runs on creation and whenever item_id (and therefore the QR) changes.
         if not self.item_tag or not self.item_tag.name or regenerate_qr:
@@ -401,7 +399,7 @@ class Rifle(SmallArm):
     arm_type = 'rifle'
     # -- Primary key and identification ----------------------------------------
     item_id = models.CharField(max_length=50, primary_key=True, unique=True, blank=False, editable=False)
-    item_number = models.CharField(max_length=4, blank=True, help_text="Sequential number within the same rifle model. Auto-assigned.")
+    item_number = models.CharField(max_length=4, blank=False, help_text="Required. Unique number within the same rifle model (e.g. 0001). Must be entered manually.")
     # -- Item attributes -------------------------------------------------------
     # C4: FK to Category — enables item classification with referential integrity.
     category = models.ForeignKey(
@@ -494,15 +492,27 @@ class Rifle(SmallArm):
 
     def clean(self):
         """M4 Carbine DSAR-15 5.56mm requires factory_qr; no other model should have it set.
+        Also validates item_number uniqueness within the same rifle model.
         Common item_status / issued_to / assignment checks are delegated to super().clean().
         """
         from django.core.exceptions import ValidationError
+        errors = {}
         if self.model == 'M4 Carbine DSAR-15 5.56mm':
             if not self.factory_qr:
-                raise ValidationError({'factory_qr': 'Factory QR code is required for M4 Carbine DSAR-15 5.56mm model.'})
+                errors['factory_qr'] = 'Factory QR code is required for M4 Carbine DSAR-15 5.56mm model.'
         else:
             if self.factory_qr:
-                raise ValidationError({'factory_qr': 'Factory QR code should only be set for M4 Carbine DSAR-15 5.56mm model.'})
+                errors['factory_qr'] = 'Factory QR code should only be set for M4 Carbine DSAR-15 5.56mm model.'
+        if not self.item_number:
+            errors['item_number'] = 'Item number is required. Auto-assignment is not allowed.'
+        else:
+            qs = Rifle.objects.filter(model=self.model, item_number=self.item_number)
+            if self.pk:
+                qs = qs.exclude(pk=self.pk)
+            if qs.exists():
+                errors['item_number'] = f'Item number {self.item_number} is already used by another {self.model} rifle.'
+        if errors:
+            raise ValidationError(errors)
         super().clean()
     # -- Save ------------------------------------------------------------------
 
@@ -513,10 +523,9 @@ class Rifle(SmallArm):
           serial_number and description from the factory QR string (PAF<serial> pattern).
         - For all other models: generates item_id as 'IR-<model_code>-<serial_number>'.
         - Sets qr_code = item_id (M4) or factory_qr / item_id (others).
-        - Auto-assigns a sequential item_number within the same rifle model.
         - Generates a QR code PNG image on creation or when qr_code changes.
         - Records created/updated timestamps and the acting username.
-        - Retries up to 5 times on item_number IntegrityError.
+        - item_number must be set before save(); no auto-assignment is performed.
         Pass user=<request.user> as a keyword argument to capture created_by/updated_by.
         """
         from django.db import IntegrityError, transaction
@@ -557,20 +566,10 @@ class Rifle(SmallArm):
                 before = self.factory_qr.split(serial)[0]
                 after = self.factory_qr.split(serial)[1]
                 self.description = self.description or (before + after)
-        max_retries = 5
-        for attempt in range(max_retries):
-            # Auto-assign a sequential item_number per model if not yet set
-            if not self.item_number:
-                existing_numbers = set(
-                    Rifle.objects.filter(model=self.model).values_list('item_number', flat=True)
-                )
-                num = 1
-                while True:
-                    candidate = f"{num:04d}"
-                    if candidate not in existing_numbers:
-                        self.item_number = candidate
-                        break
-                    num += 1
+        from django.core.exceptions import ValidationError as _VE
+        if not self.item_number:
+            raise _VE({'item_number': 'Item number is required. Auto-assignment is not allowed.'})
+        for attempt in range(1):
             # M4 uses factory_qr as item_id; all others use IR-<code>-<serial>
             if self.model == 'M4 Carbine DSAR-15 5.56mm' and self.factory_qr:
                 object.__setattr__(self, 'item_id', self.factory_qr)
@@ -626,13 +625,7 @@ class Rifle(SmallArm):
                     super().save(*args, **kwargs)
                 break
             except IntegrityError as e:
-                if 'item_number' in str(e):
-                    self.item_number = None  # Force regeneration on next attempt
-                    continue
-                else:
-                    raise
-        else:
-            raise IntegrityError("Could not assign unique item_number after multiple attempts.")
+                raise
         # Auto-generate item tag PNG after the record is committed.
         # Runs on creation and whenever qr_code (and therefore item_id) changes.
         if not self.item_tag or not self.item_tag.name or regenerate_qr:
