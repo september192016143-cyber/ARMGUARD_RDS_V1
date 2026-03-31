@@ -859,6 +859,11 @@ document.addEventListener('DOMContentLoaded', function () {
         window.location.href = res.url;
         return null;
       }
+      // Same-origin redirect (e.g. session expired → /login/) → follow it
+      if (res.redirected && res.url !== url) {
+        window.location.href = res.url;
+        return null;
+      }
       var ct = res.headers.get('Content-Type') || '';
       if (!res.ok || ct.indexOf('text/html') === -1) {
         window.location.href = url;
