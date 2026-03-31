@@ -102,8 +102,9 @@ def _stamp_line(
     perp_offset = (row - 1) * row_spacing
 
     # Band centre is at (page_width/2, y_offset + page_height/2).
+    # Nudge upward ~8 % of the band height so the block looks visually centred.
     band_cx = page_width  / 2
-    band_cy = y_offset + page_height / 2
+    band_cy = y_offset + page_height / 2 - page_height * 0.08
 
     cx = band_cx - (text_len / 2) * cos_a + perp_offset * sin_a
     cy = band_cy + (text_len / 2) * sin_a + perp_offset * cos_a
