@@ -19,7 +19,7 @@
   </div>
 {% else %}
 <div style="overflow-x:auto;">
-<table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+<table class="cam-table" style="width:100%;border-collapse:collapse;font-size:.85rem;">
   <thead>
     <tr style="border-bottom:1px solid #334155;color:#64748b;text-align:left;">
       <th style="padding:.6rem .75rem;">User</th>
@@ -97,7 +97,7 @@
     <span id="logs-count" style="background:#1e3a5f;color:#93c5fd;border-radius:1rem;padding:.1rem .6rem;font-size:.72rem;">&#8212;</span>
   </div>
   <div style="overflow-x:auto;">
-  <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+  <table class="cam-table" style="width:100%;border-collapse:collapse;font-size:.82rem;">
     <thead>
       <tr style="border-bottom:1px solid #334155;color:#64748b;text-align:left;">
         <th style="padding:.5rem .75rem;">Time</th>
@@ -125,6 +125,12 @@
 {% block extra_css %}
 <style>
 @keyframes cam-fadein { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+
+/* ── Day-mode: camera tables text visibility ────────────────────── */
+[data-theme="light"] .cam-table thead th { color: #3d536b !important; border-bottom-color: #b8cce0 !important; }
+[data-theme="light"] .cam-table td { color: #0d1f35 !important; border-bottom-color: rgba(0,31,107,.08) !important; }
+[data-theme="light"] .cam-table td small { color: #3d536b !important; }
+[data-theme="light"] #logs-count { background: #dbeafe; color: #1e40af; }
 </style>
 {% endblock %}
 
