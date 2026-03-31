@@ -93,7 +93,7 @@
 <!-- ── Live Upload Logs ─────────────────────────────────────────────────── -->
 <div style="margin-top:2rem;">
   <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem;">
-    <h2 style="font-size:1rem;font-weight:700;color:#f8fafc;">&#128443; Recent Upload Logs</h2>
+    <h2 class="cam-log-heading" style="font-size:1rem;font-weight:700;color:#f8fafc;">&#128443; Recent Upload Logs</h2>
     <span id="logs-count" style="background:#1e3a5f;color:#93c5fd;border-radius:1rem;padding:.1rem .6rem;font-size:.72rem;">&#8212;</span>
   </div>
   <div style="overflow-x:auto;">
@@ -130,7 +130,9 @@
 [data-theme="light"] .cam-table thead th { color: #3d536b !important; border-bottom-color: #b8cce0 !important; }
 [data-theme="light"] .cam-table td { color: #0d1f35 !important; border-bottom-color: rgba(0,31,107,.08) !important; }
 [data-theme="light"] .cam-table td small { color: #3d536b !important; }
-[data-theme="light"] #logs-count { background: #dbeafe; color: #1e40af; }
+[data-theme="light"] .cam-log-heading { color: #0d1f35 !important; }
+[data-theme="light"] .cam-view-link { color: #1d4ed8 !important; }
+[data-theme="light"] #logs-count { background: #dbeafe !important; color: #1e40af !important; }
 </style>
 {% endblock %}
 

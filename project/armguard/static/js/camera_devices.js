@@ -104,7 +104,7 @@
           var viewCell = log.file_purged
             ? '<span style="color:#475569;font-size:.78rem;">Purged</span>'
             : (log.file_url && !isExpired
-                ? '<a href="' + log.file_url + '" target="_blank" rel="noopener" style="color:#93c5fd;font-size:.78rem;text-decoration:none;">View</a>'
+                ? '<a href="' + log.file_url + '" target="_blank" rel="noopener" class="cam-view-link" style="color:#93c5fd;font-size:.78rem;text-decoration:none;">View</a>'
                 : '<span style="color:#475569;font-size:.78rem;">Expired</span>');
           var expiresCell = log.file_purged
             ? '<span style="color:#475569;font-size:.72rem;">\u2014</span>'
