@@ -165,9 +165,21 @@ class SmallArm(models.Model):
     def can_be_withdrawn(self):
         """Returns (True, None) if eligible for withdrawal."""
         if self.item_status == 'Issued':
+            holder = self.item_issued_to
+            if holder is not None:
+                mi = (holder.middle_initial or '').strip()
+                mi_part = f" {mi}" if mi else ''
+                afsn = (holder.AFSN or '').strip()
+                issued_label = (
+                    f"{holder.rank} {holder.first_name}{mi_part} {holder.last_name} "
+                    f"{afsn} PAF"
+                ).strip()
+            else:
+                issued_label = str(self.item_issued_to_id)
             return False, (
                 f"{self.arm_type.title()} {self.item_id} is already issued to "
-                f"{self.item_issued_to_id} and must be returned first."
+                f"{self.item_issued_to_id} and must be returned first. "
+                f"— issued to: \"{issued_label}\""
             )
         if self.item_status in ('Under Maintenance', 'For Turn In', 'Turned In', 'Decommissioned'):
             return False, (
