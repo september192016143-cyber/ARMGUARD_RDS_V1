@@ -36,6 +36,8 @@ urlpatterns = [
 
     # ── Item Tag Preview (AJAX) ───────────────────────────────────────────────
     path('item-tag-preview/', views.ItemTagPreviewView.as_view(), name='item-tag-preview'),
+    # ── Real-time field uniqueness check (AJAX) ───────────────────────────────
+    path('validate-field/', views.FieldValidateView.as_view(), name='inventory-validate-field'),
 
     # ── Serial Image Phone Capture ────────────────────────────────────────────
     path('serial-capture/init/', views.serial_capture_init, name='serial-capture-init'),

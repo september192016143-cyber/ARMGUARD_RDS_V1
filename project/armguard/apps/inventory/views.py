@@ -640,7 +640,7 @@ class AccessoryDeleteView(_InventoryPermMixin, DeleteView):
 
 
 class ItemTagPreviewView(LoginRequiredMixin, View):
-    """POST {item_type, model, serial_number} → returns a live preview PNG of the item tag."""
+    """POST {item_type, model, serial_number, item_number} → returns a live preview PNG of the item tag."""
     def post(self, request, *args, **kwargs):
         import io, logging
         from types import SimpleNamespace
@@ -653,7 +653,7 @@ class ItemTagPreviewView(LoginRequiredMixin, View):
             item.item_type = request.POST.get('item_type', 'pistol')
             item.model = request.POST.get('model', '')
             item.serial = request.POST.get('serial_number', '') or '\u2014'
-            item.item_number = None
+            item.item_number = request.POST.get('item_number', '').strip() or None
             item.qr_code_image = None
             item.get_item_type_display = lambda: {'pistol': 'Pistol', 'rifle': 'Rifle'}.get(item.item_type, 'Item')
 
@@ -665,6 +665,45 @@ class ItemTagPreviewView(LoginRequiredMixin, View):
         except Exception as exc:
             _log.exception('ItemTagPreviewView failed: %s', exc)
             return HttpResponse(f'Preview error: {exc}', content_type='text/plain', status=500)
+
+
+class FieldValidateView(LoginRequiredMixin, View):
+    """
+    GET ?item_type=pistol&field=serial_number&value=X&model=Y&exclude_pk=Z
+    Returns JSON {ok: bool, msg: str} — used for real-time field availability checks.
+    Fields: serial_number (global unique), item_number (unique per model), property_number (global unique).
+    """
+    def get(self, request, *args, **kwargs):
+        item_type   = request.GET.get('item_type', 'pistol')
+        field       = request.GET.get('field', '')
+        value       = request.GET.get('value', '').strip()
+        model       = request.GET.get('model', '').strip()
+        exclude_pk  = request.GET.get('exclude_pk', '').strip()
+        Model       = Pistol if item_type == 'pistol' else Rifle
+        if not value:
+            return JsonResponse({'ok': True, 'msg': ''})
+        if field == 'serial_number':
+            qs = Model.objects.filter(serial_number=value)
+            if exclude_pk:
+                qs = qs.exclude(pk=exclude_pk)
+            if qs.exists():
+                return JsonResponse({'ok': False, 'msg': 'Serial number already registered.'})
+        elif field == 'item_number':
+            padded = f'{int(value):04d}' if value.isdigit() else value
+            qs = Model.objects.filter(model=model, item_number=padded)
+            if exclude_pk:
+                qs = qs.exclude(pk=exclude_pk)
+            if qs.exists():
+                return JsonResponse({'ok': False, 'msg': f'Item number {padded} already used for this model.'})
+        elif field == 'property_number':
+            qs = Model.objects.filter(property_number=value)
+            if exclude_pk:
+                qs = qs.exclude(pk=exclude_pk)
+            if qs.exists():
+                return JsonResponse({'ok': False, 'msg': 'Property number already registered.'})
+        else:
+            return JsonResponse({'ok': True, 'msg': ''})
+        return JsonResponse({'ok': True, 'msg': 'Available'})
 
 
 # ── Serial Image Phone Capture ───────────────────────────────────────────────

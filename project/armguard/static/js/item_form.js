@@ -49,16 +49,16 @@
 
   /* ── Pistol + Rifle: Live item tag preview ───────────────────── */
   if ((itemType === 'pistol' || itemType === 'rifle') && cfg.tagPreviewUrl) {
-    var tagPreviewUrl   = cfg.tagPreviewUrl;
-    var tagPreviewImg   = document.getElementById('item-tag-preview-img');
+    var tagPreviewUrl    = cfg.tagPreviewUrl;
+    var tagPreviewImg    = document.getElementById('item-tag-preview-img');
     var tagPreviewHolder = document.getElementById('item-tag-preview-placeholder');
-    var tagPreviewMsg   = document.getElementById('item-tag-preview-msg');
-    var tagModelSel     = document.getElementById(cfg.modelFieldId);
-    var tagSerialIn     = document.getElementById(cfg.serialFieldId);
+    var tagModelSel      = document.getElementById(cfg.modelFieldId);
+    var tagSerialIn      = document.getElementById(cfg.serialFieldId);
+    var tagItemNumIn     = document.getElementById(cfg.itemNumberFieldId);
 
     if (tagPreviewImg) {
-      var _tagTimer  = null;
-      var _tagAbort  = null;
+      var _tagTimer = null;
+      var _tagAbort = null;
 
       function _getCsrf() {
         var el = document.querySelector('[name=csrfmiddlewaretoken]');
@@ -67,12 +67,13 @@
 
       function scheduleTagPreview() {
         clearTimeout(_tagTimer);
-        _tagTimer = setTimeout(sendTagPreview, 450);
+        _tagTimer = setTimeout(sendTagPreview, 400);
       }
 
       function sendTagPreview() {
         var modelVal  = tagModelSel  ? tagModelSel.value.trim()  : '';
-        var serialVal = tagSerialIn  ? tagSerialIn.value.trim() : '';
+        var serialVal = tagSerialIn  ? tagSerialIn.value.trim()  : '';
+        var numVal    = tagItemNumIn ? tagItemNumIn.value.trim()  : '';
         if (!modelVal && !serialVal) return;
 
         if (_tagAbort) _tagAbort.abort();
@@ -82,6 +83,7 @@
         fd.append('item_type',           itemType);
         fd.append('model',               modelVal);
         fd.append('serial_number',       serialVal);
+        fd.append('item_number',         numVal);
         fd.append('csrfmiddlewaretoken', _getCsrf());
 
         fetch(tagPreviewUrl, { method: 'POST', body: fd, signal: _tagAbort.signal })
@@ -89,9 +91,9 @@
           .then(function (blob) {
             var url = URL.createObjectURL(blob);
             if (tagPreviewImg._blobUrl) URL.revokeObjectURL(tagPreviewImg._blobUrl);
-            tagPreviewImg._blobUrl       = url;
-            tagPreviewImg.src            = url;
-            tagPreviewImg.style.display  = '';
+            tagPreviewImg._blobUrl      = url;
+            tagPreviewImg.src           = url;
+            tagPreviewImg.style.display = '';
             if (tagPreviewHolder) tagPreviewHolder.style.display = 'none';
           })
           .catch(function (err) {
@@ -99,12 +101,91 @@
           });
       }
 
-      if (tagModelSel) tagModelSel.addEventListener('change', scheduleTagPreview);
-      if (tagSerialIn) tagSerialIn.addEventListener('input',  scheduleTagPreview);
-      // Fire on load (populates for edit mode or after redirect from add)
+      if (tagModelSel)  tagModelSel.addEventListener('change', scheduleTagPreview);
+      if (tagSerialIn)  tagSerialIn.addEventListener('input',  scheduleTagPreview);
+      if (tagItemNumIn) tagItemNumIn.addEventListener('input', scheduleTagPreview);
       scheduleTagPreview();
       window.__tagPreviewBound = true;
     }
+  }
+
+  /* ── Pistol + Rifle: Real-time field uniqueness checks ───────── */
+  if ((itemType === 'pistol' || itemType === 'rifle') && cfg.validateUrl) {
+    var validateUrl  = cfg.validateUrl;
+    var editPk       = cfg.editPk || '';
+    var vModelSel    = document.getElementById(cfg.modelFieldId);
+    var vSerialIn    = document.getElementById(cfg.serialFieldId);
+    var vItemNumIn   = document.getElementById(cfg.itemNumberFieldId);
+    var vPropNumIn   = document.getElementById(cfg.propertyNumberFieldId);
+
+    // Inject inline status badge right after the input
+    function _badge(input) {
+      if (!input) return null;
+      var b = input.parentNode.querySelector('.field-avail-badge');
+      if (!b) {
+        b = document.createElement('span');
+        b.className = 'field-avail-badge';
+        b.style.cssText = 'display:none;font-size:.72rem;font-weight:600;margin-top:3px;display:block';
+        // Insert before the form-hint if present, otherwise append
+        var hint = input.parentNode.querySelector('.form-hint');
+        if (hint) { hint.parentNode.insertBefore(b, hint); } else { input.parentNode.appendChild(b); }
+      }
+      return b;
+    }
+
+    function _setBadge(badge, state, msg) {
+      if (!badge) return;
+      if (state === 'ok') {
+        badge.textContent = '✓ ' + msg;
+        badge.style.color = 'var(--green, #22c55e)';
+        badge.style.display = 'block';
+      } else if (state === 'err') {
+        badge.textContent = '✗ ' + msg;
+        badge.style.color = 'var(--red, #ef4444)';
+        badge.style.display = 'block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    var _vTimers = {};
+
+    function _checkField(field, input, badge, extraParams) {
+      var value = input ? input.value.trim() : '';
+      if (!value) { _setBadge(badge, 'hide'); return; }
+      clearTimeout(_vTimers[field]);
+      _setBadge(badge, 'hide');
+      _vTimers[field] = setTimeout(function () {
+        var params = new URLSearchParams({
+          item_type:  itemType,
+          field:      field,
+          value:      value,
+          model:      vModelSel ? vModelSel.value : '',
+          exclude_pk: editPk,
+        });
+        if (extraParams) {
+          Object.keys(extraParams).forEach(function (k) { params.set(k, extraParams[k]); });
+        }
+        fetch(validateUrl + '?' + params.toString())
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            _setBadge(badge, data.ok ? 'ok' : 'err', data.msg);
+          })
+          .catch(function () { _setBadge(badge, 'hide'); });
+      }, 450);
+    }
+
+    var bSerial  = _badge(vSerialIn);
+    var bItemNum = _badge(vItemNumIn);
+    var bPropNum = _badge(vPropNumIn);
+
+    if (vSerialIn)  vSerialIn.addEventListener('input',  function () { _checkField('serial_number',  vSerialIn,  bSerial); });
+    if (vItemNumIn) vItemNumIn.addEventListener('input', function () { _checkField('item_number',    vItemNumIn, bItemNum); });
+    if (vPropNumIn) vPropNumIn.addEventListener('input', function () { _checkField('property_number',vPropNumIn, bPropNum); });
+    // Re-check item_number when model changes (uniqueness is per-model)
+    if (vModelSel)  vModelSel.addEventListener('change', function () {
+      if (vItemNumIn && vItemNumIn.value.trim()) _checkField('item_number', vItemNumIn, bItemNum);
+    });
   }
 
   /* ── Pistol + Rifle: Serial image crop modal ─────────────────── */

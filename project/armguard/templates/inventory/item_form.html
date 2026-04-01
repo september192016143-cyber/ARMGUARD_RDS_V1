@@ -480,7 +480,7 @@
 
 {% block extra_js %}
 {% if item_type == 'pistol' or item_type == 'rifle' %}
-<script type="application/json" id="item-form-config">{"itemType": "{{ item_type }}", "modelFieldId": "{{ form.model.id_for_label }}", "factoryQrFieldId": "{% if item_type == 'rifle' %}{{ form.factory_qr.id_for_label }}{% endif %}", "serialFieldId": "{{ form.serial_number.id_for_label }}", "descFieldId": "{{ form.description.id_for_label }}", "serialImageFieldId": "{{ form.serial_image.id_for_label }}", "tagPreviewUrl": "{% if item_type == 'pistol' or item_type == 'rifle' %}{% url 'item-tag-preview' %}{% endif %}", "serialCaptureInitUrl": "{% url 'serial-capture-init' %}"}</script>
+<script type="application/json" id="item-form-config">{"itemType": "{{ item_type }}", "modelFieldId": "{{ form.model.id_for_label }}", "factoryQrFieldId": "{% if item_type == 'rifle' %}{{ form.factory_qr.id_for_label }}{% endif %}", "serialFieldId": "{{ form.serial_number.id_for_label }}", "itemNumberFieldId": "{{ form.item_number.id_for_label }}", "propertyNumberFieldId": "{{ form.property_number.id_for_label }}", "descFieldId": "{{ form.description.id_for_label }}", "serialImageFieldId": "{{ form.serial_image.id_for_label }}", "tagPreviewUrl": "{% url 'item-tag-preview' %}", "validateUrl": "{% url 'inventory-validate-field' %}", "editPk": "{% if object %}{{ object.pk }}{% endif %}", "serialCaptureInitUrl": "{% url 'serial-capture-init' %}"}</script>
 <script src="{% static 'js/item_form.js' %}"></script>
 {% endif %}
 {% endblock %}
