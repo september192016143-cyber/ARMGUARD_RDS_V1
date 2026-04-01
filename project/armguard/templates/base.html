@@ -41,7 +41,7 @@
     <a href="{% url 'personnel-list' %}" class="nav-item {% if request.resolver_match.url_name|slice:':9' == 'personnel' %}active{% endif %}" title="Personnels">
       <i class="fa-solid fa-users nav-icon"></i><span class="nav-label">Personnels</span>
     </a>
-    {% if can_add_personnel %}
+    {% if user.is_superuser %}
     <a href="{% url 'personnel-import' %}" class="nav-item {% if request.resolver_match.url_name == 'personnel-import' %}active{% endif %}" title="Import Personnel">
       <i class="fa-solid fa-file-import nav-icon"></i><span class="nav-label">Import Personnel</span>
     </a>
@@ -93,7 +93,7 @@
           <i class="fa-solid fa-triangle-exclamation nav-icon" style="color:#f87171"></i>
           <a href="{% url 'discrepancy-list' %}" class="nav-item-main">Discrepancies</a>
         </div>
-        {% if can_add_inventory %}
+        {% if user.is_superuser %}
         <div class="nav-item-row {% if request.resolver_match.url_name == 'inventory-import' %}active{% endif %}">
           <i class="fa-solid fa-file-import nav-icon"></i>
           <a href="{% url 'inventory-import' %}" class="nav-item-main">Import Items</a>

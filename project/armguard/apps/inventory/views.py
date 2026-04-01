@@ -1026,7 +1026,7 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
     template_name = 'inventory/inventory_import.html'
 
     def test_func(self):
-        return can_add_inventory(self.request.user)
+        return self.request.user.is_superuser
 
     def get(self, request):
         from .models import PISTOL_MODELS, RIFLE_MODELS

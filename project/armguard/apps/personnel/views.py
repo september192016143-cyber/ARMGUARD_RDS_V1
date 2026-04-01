@@ -424,7 +424,7 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 	template_name = 'personnel/personnel_import.html'
 
 	def test_func(self):
-		return _can_add_personnel(self.request.user)
+		return self.request.user.is_superuser
 
 	def get(self, request):
 		return render(request, self.template_name)
