@@ -1110,6 +1110,9 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
                 condition = 'Serviceable'
             if status not in valid_statuses:
                 status = 'Available'
+            # Issued status must come from Transactions, never from bulk import.
+            if status == 'Issued':
+                status = 'Available'
 
             # Pad item_number to 4 digits if numeric
             if item_number and item_number.isdigit():

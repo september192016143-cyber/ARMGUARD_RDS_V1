@@ -777,6 +777,10 @@ class Personnel(models.Model):
 
 
     def save(self, *args, **kwargs):
+        # Pop 'user' kwarg so it is not forwarded to Django's Model.save(),
+        # which does not accept it.  Pistol/Rifle use this kwarg to set
+        # created_by/updated_by; here those fields are set by the caller.
+        kwargs.pop('user', None)
         # Normalize fields BEFORE generating filenames or QR codes
         if self.middle_initial:
             self.middle_initial = self.middle_initial.upper()

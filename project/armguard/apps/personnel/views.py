@@ -498,14 +498,14 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 				row_errors.append('middle_initial required')
 			if not afsn:
 				row_errors.append('afsn required')
+			elif Personnel.objects.filter(AFSN=afsn).exists():
+				row_errors.append(f'AFSN {afsn} already registered')
 			if group not in valid_groups:
 				row_errors.append(f'invalid group "{group}" (valid: {", ".join(sorted(valid_groups))})')
 			if not squadron:
 				row_errors.append('squadron required')
 			if status and status not in valid_status:
 				status = 'Active'
-			if Personnel.objects.filter(AFSN=afsn).exists():
-				row_errors.append(f'AFSN {afsn} already registered')
 			if tel and Personnel.objects.filter(tel=tel).exists():
 				row_errors.append(f'tel {tel} already registered')
 
