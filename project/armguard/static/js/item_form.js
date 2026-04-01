@@ -125,7 +125,8 @@
       if (!b) {
         b = document.createElement('span');
         b.className = 'field-avail-badge';
-        b.style.cssText = 'display:none;font-size:.72rem;font-weight:600;margin-top:3px;display:block';
+        b.style.cssText = 'font-size:.72rem;font-weight:600;margin-top:3px';
+        b.style.display = 'none';
         // Insert before the form-hint if present, otherwise append
         var hint = input.parentNode.querySelector('.form-hint');
         if (hint) { hint.parentNode.insertBefore(b, hint); } else { input.parentNode.appendChild(b); }
