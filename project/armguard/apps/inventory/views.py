@@ -65,7 +65,7 @@ class PistolListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         q = self.request.GET.get('q', '').strip()
         status = self.request.GET.get('status', '').strip()
         if q:
-            qs = qs.filter(Q(serial_number__icontains=q) | Q(model__icontains=q) | Q(item_id__icontains=q))
+            qs = qs.filter(Q(serial_number__icontains=q) | Q(model__icontains=q) | Q(item_id__icontains=q) | Q(property_number__icontains=q))
         if status:
             qs = qs.filter(item_status=status)
         return qs
@@ -150,7 +150,7 @@ class RifleListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         q = self.request.GET.get('q', '').strip()
         status = self.request.GET.get('status', '').strip()
         if q:
-            qs = qs.filter(Q(serial_number__icontains=q) | Q(model__icontains=q) | Q(item_id__icontains=q))
+            qs = qs.filter(Q(serial_number__icontains=q) | Q(model__icontains=q) | Q(item_id__icontains=q) | Q(property_number__icontains=q))
         if status:
             qs = qs.filter(item_status=status)
         return qs

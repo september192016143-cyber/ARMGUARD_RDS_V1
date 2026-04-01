@@ -125,6 +125,12 @@
         <div class="form-hint">{{ form.item_number.help_text }}</div>
         {% if form.item_number.errors %}<div class="form-error">{{ form.item_number.errors|join:", " }}</div>{% endif %}
       </div>
+      <div class="form-group">
+        <label class="form-label" for="{{ form.property_number.id_for_label }}">Property Number</label>
+        {{ form.property_number }}
+        <div class="form-hint">{{ form.property_number.help_text }}</div>
+        {% if form.property_number.errors %}<div class="form-error">{{ form.property_number.errors|join:", " }}</div>{% endif %}
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -209,6 +215,12 @@
         {{ form.item_number }}
         <div class="form-hint">{{ form.item_number.help_text }}</div>
         {% if form.item_number.errors %}<div class="form-error">{{ form.item_number.errors|join:", " }}</div>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="{{ form.property_number.id_for_label }}">Property Number</label>
+        {{ form.property_number }}
+        <div class="form-hint">{{ form.property_number.help_text }}</div>
+        {% if form.property_number.errors %}<div class="form-error">{{ form.property_number.errors|join:", " }}</div>{% endif %}
       </div>
     </div>
     <div class="form-row">

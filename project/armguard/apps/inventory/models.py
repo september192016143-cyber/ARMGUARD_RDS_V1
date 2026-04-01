@@ -173,6 +173,7 @@ class Pistol(SmallArm):
     # item_id is set automatically during save(); do not supply manually.
     item_id = models.CharField(max_length=50, primary_key=True, unique=True, blank=False, editable=False)
     item_number = models.CharField(max_length=4, blank=False, help_text="Required. Unique number within the same pistol model (e.g. 0001). Must be entered manually.")
+    property_number = models.CharField(max_length=50, blank=True, null=True, unique=True, help_text="Government / property custodian number assigned to this pistol. Leave blank if not yet assigned.")
     # -- Item attributes -------------------------------------------------------
     # C4: FK to Category — enables item classification with referential integrity.
     category = models.ForeignKey(
@@ -400,6 +401,7 @@ class Rifle(SmallArm):
     # -- Primary key and identification ----------------------------------------
     item_id = models.CharField(max_length=50, primary_key=True, unique=True, blank=False, editable=False)
     item_number = models.CharField(max_length=4, blank=False, help_text="Required. Unique number within the same rifle model (e.g. 0001). Must be entered manually.")
+    property_number = models.CharField(max_length=50, blank=True, null=True, unique=True, help_text="Government / property custodian number assigned to this rifle. Leave blank if not yet assigned.")
     # -- Item attributes -------------------------------------------------------
     # C4: FK to Category — enables item classification with referential integrity.
     category = models.ForeignKey(

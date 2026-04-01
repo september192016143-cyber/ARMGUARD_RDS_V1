@@ -56,12 +56,12 @@ _compact_item_numbers.short_description = "Compact item numbers (fill gaps from 
 class PistolAdmin(admin.ModelAdmin):
     exclude = ('category',)
     list_display = [
-        'item_id', 'model', 'serial_number', 'item_status', 'item_condition',
-        'item_issued_to', 'item_assigned_to', 'created',
+        'item_id', 'item_number', 'property_number', 'model', 'serial_number',
+        'item_status', 'item_condition', 'item_issued_to', 'item_assigned_to', 'created',
     ]
     list_filter = ['item_status', 'item_condition', 'model']
     search_fields = ['item_id', 'serial_number', 'item_issued_to__Personnel_ID', 'item_assigned_to']
-    readonly_fields = ['item_id', 'qr_code', 'item_number', 'remarks_timestamp', 'remarks_updated_by']
+    readonly_fields = ['item_id', 'qr_code', 'remarks_timestamp', 'remarks_updated_by']
     actions = [_compact_item_numbers]
 
     def save_model(self, request, obj, form, change):
@@ -82,12 +82,12 @@ class RifleAdmin(admin.ModelAdmin):
     form = RifleAdminForm
     exclude = ('category',)
     list_display = [
-        'item_id', 'model', 'serial_number', 'item_status', 'item_condition',
-        'item_issued_to', 'item_assigned_to', 'created',
+        'item_id', 'item_number', 'property_number', 'model', 'serial_number',
+        'item_status', 'item_condition', 'item_issued_to', 'item_assigned_to', 'created',
     ]
     list_filter = ['item_status', 'item_condition', 'model']
     search_fields = ['item_id', 'serial_number', 'item_issued_to__Personnel_ID', 'item_assigned_to']
-    readonly_fields = ['item_id', 'qr_code', 'item_number', 'remarks_timestamp', 'remarks_updated_by']
+    readonly_fields = ['item_id', 'qr_code', 'remarks_timestamp', 'remarks_updated_by']
     actions = [_compact_item_numbers]
 
     def save_model(self, request, obj, form, change):

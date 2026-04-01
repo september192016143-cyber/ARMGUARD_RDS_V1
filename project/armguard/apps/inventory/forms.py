@@ -10,7 +10,7 @@ _EDITABLE_STATUSES = [s for s in STATUS_CHOICES if s[0] != 'Issued']
 class PistolForm(forms.ModelForm):
     class Meta:
         model = Pistol
-        fields = ['model', 'serial_number', 'item_number', 'item_condition', 'item_status',
+        fields = ['model', 'serial_number', 'item_number', 'property_number', 'item_condition', 'item_status',
                   'description', 'serial_image', 'remarks']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3}),
@@ -44,7 +44,11 @@ class PistolForm(forms.ModelForm):
             )
         return padded
 
-
+    def clean_property_number(self):
+        value = self.cleaned_data.get('property_number', '')
+        if value:
+            return value.strip() or None
+        return None
 
 
 class RifleAdminForm(forms.ModelForm):
@@ -84,7 +88,7 @@ class RifleForm(forms.ModelForm):
     """Front-end form for creating / editing a Rifle record."""
     class Meta:
         model = Rifle
-        fields = ['model', 'factory_qr', 'serial_number', 'item_number', 'item_condition',
+        fields = ['model', 'factory_qr', 'serial_number', 'item_number', 'property_number', 'item_condition',
                   'item_status', 'description', 'serial_image', 'remarks']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 3}),
@@ -119,6 +123,12 @@ class RifleForm(forms.ModelForm):
                 f'Item number {padded} is already used by another {model} rifle.'
             )
         return padded
+
+    def clean_property_number(self):
+        value = self.cleaned_data.get('property_number', '')
+        if value:
+            return value.strip() or None
+        return None
 
     def clean(self):
         cleaned_data = super().clean()
