@@ -55,6 +55,7 @@
     var tagModelSel      = document.getElementById(cfg.modelFieldId);
     var tagSerialIn      = document.getElementById(cfg.serialFieldId);
     var tagItemNumIn     = document.getElementById(cfg.itemNumberFieldId);
+    var tagFactoryQrIn   = cfg.factoryQrFieldId ? document.getElementById(cfg.factoryQrFieldId) : null;
 
     if (tagPreviewImg) {
       var _tagTimer = null;
@@ -79,11 +80,13 @@
         if (_tagAbort) _tagAbort.abort();
         _tagAbort = new AbortController();
 
+        var factoryQrVal = tagFactoryQrIn ? tagFactoryQrIn.value.trim() : '';
         var fd = new FormData();
         fd.append('item_type',           itemType);
         fd.append('model',               modelVal);
         fd.append('serial_number',       serialVal);
         fd.append('item_number',         numVal);
+        fd.append('factory_qr',          factoryQrVal);
         fd.append('csrfmiddlewaretoken', _getCsrf());
 
         fetch(tagPreviewUrl, { method: 'POST', body: fd, signal: _tagAbort.signal })
@@ -101,9 +104,11 @@
           });
       }
 
-      if (tagModelSel)  tagModelSel.addEventListener('change', scheduleTagPreview);
-      if (tagSerialIn)  tagSerialIn.addEventListener('input',  scheduleTagPreview);
-      if (tagItemNumIn) tagItemNumIn.addEventListener('input', scheduleTagPreview);
+      if (tagModelSel)    tagModelSel.addEventListener('change', scheduleTagPreview);
+      if (tagSerialIn)    tagSerialIn.addEventListener('input',  scheduleTagPreview);
+      if (tagItemNumIn)   tagItemNumIn.addEventListener('input', scheduleTagPreview);
+      if (tagFactoryQrIn) tagFactoryQrIn.addEventListener('input', scheduleTagPreview);
+      if (tagFactoryQrIn) tagFactoryQrIn.addEventListener('change', scheduleTagPreview);
       scheduleTagPreview();
       window.__tagPreviewBound = true;
     }

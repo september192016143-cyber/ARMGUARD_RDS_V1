@@ -656,7 +656,44 @@ class ItemTagPreviewView(LoginRequiredMixin, View):
             item.item_number = request.POST.get('item_number', '').strip() or None
             item.qr_code_image = None
             item.get_item_type_display = lambda: {'pistol': 'Pistol', 'rifle': 'Rifle'}.get(item.item_type, 'Item')
-
+            # Compute the same QR data string that models.py would generate on save,
+            # then render a live QR image in-memory so the tag preview is never "NO QR".
+            import re as _re
+            from utils.qr_generator import generate_qr_code_to_buffer
+            from PIL import Image as _PILImage
+            serial_val = request.POST.get('serial_number', '').strip()
+            if serial_val:
+                if item.item_type == 'pistol':
+                    _PISTOL_CODE_MAP = {
+                        'Glock 17 9mm':           'GL17',
+                        'M1911 Cal.45':           'M1911',
+                        'Armscor Hi Cap Cal.45':  'ARMSCOR',
+                        'RIA Hi Cap Cal.45':      'RIA',
+                        'M1911 Customized Cal.45':'M1911C',
+                    }
+                    _mc = _PISTOL_CODE_MAP.get(item.model) or _re.sub(r'[^A-Z0-9]', '_', item.model.upper())
+                    _qr_data = f'IP-{_mc}-{serial_val}'
+                else:  # rifle
+                    _factory_qr = request.POST.get('factory_qr', '').strip()
+                    if item.model == 'M4 Carbine DSAR-15 5.56mm' and _factory_qr:
+                        _qr_data = _factory_qr
+                    else:
+                        _RIFLE_CODE_MAP = {
+                            'M4 Carbine DSAR-15 5.56mm':  'M4',
+                            'M4 14.5" DGIS EMTAN 5.56mm': 'M4E',
+                            'M16A1 Rifle 5.56mm':         'M16',
+                            'M14 Rifle 7.62mm':           'M14',
+                            'M653 Carbine 5.56mm':        'M653',
+                        }
+                        _mc = _RIFLE_CODE_MAP.get(item.model) or _re.sub(r'[^A-Z0-9]', '_', item.model.upper())
+                        _qr_data = f'IR-{_mc}-{serial_val}'
+                try:
+                    _qr_buf = generate_qr_code_to_buffer(_qr_data)
+                    item._qr_pil_img = _PILImage.open(_qr_buf)
+                except Exception:
+                    item._qr_pil_img = None
+            else:
+                item._qr_pil_img = None
             img = _build_tag(item)
             buf = io.BytesIO()
             img.save(buf, 'PNG')

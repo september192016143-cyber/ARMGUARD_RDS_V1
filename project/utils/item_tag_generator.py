@@ -165,7 +165,15 @@ def generate_item_tag(item) -> dict:
 def _load_qr_image(item):
     """Return PIL Image of the QR code for this item, or None.
     Uses item.qr_code_image (set by Pistol/Rifle.save()) directly.
+    For live preview, item._qr_pil_img may be set instead (in-memory PIL Image).
     """
+    # In-memory image set by ItemTagPreviewView for live previews (no saved file needed)
+    pil_img = getattr(item, '_qr_pil_img', None)
+    if pil_img is not None:
+        try:
+            return pil_img.convert('RGB')
+        except Exception:
+            pass
     try:
         qr_field = getattr(item, 'qr_code_image', None)
         if qr_field and qr_field.name:
