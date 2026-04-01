@@ -120,6 +120,14 @@
     </div>
     <div class="form-row">
       <div class="form-group">
+        <label class="form-label" for="{{ form.item_number.id_for_label }}">Item Number <span class="req">*</span></label>
+        {{ form.item_number }}
+        <div class="form-hint">{{ form.item_number.help_text }}</div>
+        {% if form.item_number.errors %}<div class="form-error">{{ form.item_number.errors|join:", " }}</div>{% endif %}
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
         <label class="form-label" for="{{ form.item_condition.id_for_label }}">Condition</label>
         {{ form.item_condition }}
         {% if form.item_condition.errors %}<div class="form-error">{{ form.item_condition.errors|join:", " }}</div>{% endif %}
@@ -194,6 +202,14 @@
       {{ form.serial_number }}
       <div class="form-hint" id="serial-hint" style="display:none">Auto-extracted from the Factory QR code for M4 DSAR-15.</div>
       {% if form.serial_number.errors %}<div class="form-error">{{ form.serial_number.errors|join:", " }}</div>{% endif %}
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="{{ form.item_number.id_for_label }}">Item Number <span class="req">*</span></label>
+        {{ form.item_number }}
+        <div class="form-hint">{{ form.item_number.help_text }}</div>
+        {% if form.item_number.errors %}<div class="form-error">{{ form.item_number.errors|join:", " }}</div>{% endif %}
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group">
