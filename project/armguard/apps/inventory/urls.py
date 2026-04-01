@@ -49,4 +49,7 @@ urlpatterns = [
     path('discrepancies/', views.FirearmDiscrepancyListView.as_view(), name='discrepancy-list'),
     path('discrepancies/add/', views.FirearmDiscrepancyCreateView.as_view(), name='discrepancy-add'),
     path('discrepancies/<int:pk>/edit/', views.FirearmDiscrepancyUpdateView.as_view(), name='discrepancy-edit'),
+
+    # ── Bulk Excel Import ─────────────────────────────────────────────────────
+    path('import/', views.InventoryImportView.as_view(), name='inventory-import'),
 ]

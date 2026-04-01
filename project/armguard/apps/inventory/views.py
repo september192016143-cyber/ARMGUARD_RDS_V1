@@ -1006,3 +1006,173 @@ class FirearmDiscrepancyUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         ctx['title'] = 'Edit Discrepancy'
         return ctx
 
+
+# ── Bulk Excel Import ──────────────────────────────────────────────────────────
+class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """Upload an .xlsx file to bulk-create Pistol or Rifle records.
+
+    The first row must be a header. Accepted item types: pistol, rifle.
+
+    Pistol required columns:  item_type, model, serial_number, item_number
+    Pistol optional columns:  property_number, item_condition, item_status, description
+
+    Rifle required columns:   item_type, model, serial_number, item_number
+    Rifle optional columns:   factory_qr (required when model=M4 Carbine DSAR-15 5.56mm),
+                              property_number, item_condition, item_status, description
+
+    Use the EXACT model strings defined in PISTOL_MODELS / RIFLE_MODELS.
+    One sheet may contain a mix of pistol and rifle rows.
+    """
+    template_name = 'inventory/inventory_import.html'
+
+    def test_func(self):
+        return can_add_inventory(self.request.user)
+
+    def get(self, request):
+        from .models import PISTOL_MODELS, RIFLE_MODELS
+        return render(request, self.template_name, {
+            'pistol_models': [m for m, _ in PISTOL_MODELS],
+            'rifle_models':  [m for m, _ in RIFLE_MODELS],
+        })
+
+    def post(self, request):
+        from .models import PISTOL_MODELS, RIFLE_MODELS, STATUS_CHOICES, CONDITION_CHOICES
+        xlsx_file = request.FILES.get('xlsx_file')
+        if not xlsx_file:
+            messages.error(request, 'Please upload an Excel (.xlsx) file.')
+            return redirect('inventory-import')
+        if not xlsx_file.name.endswith('.xlsx'):
+            messages.error(request, 'Only .xlsx files are accepted.')
+            return redirect('inventory-import')
+
+        try:
+            import openpyxl
+            wb = openpyxl.load_workbook(xlsx_file, read_only=True, data_only=True)
+            ws = wb.active
+        except Exception as exc:
+            messages.error(request, f'Could not read Excel file: {exc}')
+            return redirect('inventory-import')
+
+        rows = list(ws.iter_rows(values_only=True))
+        if not rows:
+            messages.error(request, 'The Excel file is empty.')
+            return redirect('inventory-import')
+
+        headers = [str(h).strip().lower() if h is not None else '' for h in rows[0]]
+        required_cols = {'item_type', 'model', 'serial_number', 'item_number'}
+        missing = required_cols - set(headers)
+        if missing:
+            messages.error(request, f'Missing required columns: {", ".join(sorted(missing))}')
+            return redirect('inventory-import')
+
+        def col(row, name, default=''):
+            if name not in headers:
+                return default
+            val = row[headers.index(name)]
+            return str(val).strip() if val is not None else default
+
+        valid_pistol_models = {m for m, _ in PISTOL_MODELS}
+        valid_rifle_models  = {m for m, _ in RIFLE_MODELS}
+        valid_conditions    = {c for c, _ in CONDITION_CHOICES}
+        valid_statuses      = {s for s, _ in STATUS_CHOICES}
+
+        created_count = 0
+        skipped = []
+
+        for i, row in enumerate(rows[1:], start=2):
+            if all(v is None or str(v).strip() == '' for v in row):
+                continue
+
+            item_type     = col(row, 'item_type').lower()
+            model         = col(row, 'model')
+            serial_number = col(row, 'serial_number')
+            item_number   = col(row, 'item_number')
+            property_num  = col(row, 'property_number') or None
+            factory_qr    = col(row, 'factory_qr') or None
+            condition     = col(row, 'item_condition', 'Serviceable')
+            status        = col(row, 'item_status', 'Available')
+            description   = col(row, 'description') or None
+
+            row_errors = []
+
+            if item_type not in ('pistol', 'rifle'):
+                row_errors.append(f'unknown item_type "{item_type}" (use pistol or rifle)')
+            else:
+                valid_models = valid_pistol_models if item_type == 'pistol' else valid_rifle_models
+                if model not in valid_models:
+                    row_errors.append(f'invalid model "{model}"')
+
+            if not serial_number:
+                row_errors.append('serial_number required')
+            if not item_number:
+                row_errors.append('item_number required')
+            if condition not in valid_conditions:
+                condition = 'Serviceable'
+            if status not in valid_statuses:
+                status = 'Available'
+
+            # Pad item_number to 4 digits if numeric
+            if item_number and item_number.isdigit():
+                item_number = f'{int(item_number):04d}'
+
+            # Uniqueness checks (skip if earlier errors already flagged this row)
+            if not row_errors:
+                if item_type == 'pistol':
+                    if Pistol.objects.filter(serial_number=serial_number).exists():
+                        row_errors.append(f'serial_number {serial_number} already registered')
+                    elif Pistol.objects.filter(model=model, item_number=item_number).exists():
+                        row_errors.append(f'item_number {item_number} already used for {model}')
+                    elif property_num and Pistol.objects.filter(property_number=property_num).exists():
+                        row_errors.append(f'property_number {property_num} already registered')
+                else:
+                    if Rifle.objects.filter(serial_number=serial_number).exists():
+                        row_errors.append(f'serial_number {serial_number} already registered')
+                    elif Rifle.objects.filter(model=model, item_number=item_number).exists():
+                        row_errors.append(f'item_number {item_number} already used for {model}')
+                    elif property_num and Rifle.objects.filter(property_number=property_num).exists():
+                        row_errors.append(f'property_number {property_num} already registered')
+                    if model == 'M4 Carbine DSAR-15 5.56mm' and not factory_qr:
+                        row_errors.append('factory_qr required for M4 Carbine DSAR-15 5.56mm')
+
+            if row_errors:
+                skipped.append(f'Row {i}: {"; ".join(row_errors)}')
+                continue
+
+            try:
+                if item_type == 'pistol':
+                    obj = Pistol(
+                        model          = model,
+                        serial_number  = serial_number,
+                        item_number    = item_number,
+                        property_number= property_num,
+                        item_condition = condition,
+                        item_status    = status,
+                        description    = description,
+                    )
+                else:
+                    obj = Rifle(
+                        model          = model,
+                        serial_number  = serial_number,
+                        item_number    = item_number,
+                        property_number= property_num,
+                        factory_qr     = factory_qr,
+                        item_condition = condition,
+                        item_status    = status,
+                        description    = description,
+                    )
+                obj.save(user=request.user)
+                created_count += 1
+            except Exception as exc:
+                skipped.append(f'Row {i}: {exc}')
+
+        if created_count:
+            messages.success(request, f'Successfully imported {created_count} item(s).')
+        if skipped:
+            for msg in skipped[:20]:
+                messages.warning(request, msg)
+            if len(skipped) > 20:
+                messages.warning(request, f'…and {len(skipped) - 20} more skipped rows.')
+        if not created_count and not skipped:
+            messages.info(request, 'No data rows found in the file.')
+        return redirect('pistol-list')
+

@@ -42,3 +42,7 @@ gunicorn==22.0.0             # WSGI server for production (systemd + Nginx)
 
 # ── PostgreSQL driver (required for production) ────────────────
 psycopg2-binary>=2.9.9   # L2 FIX: declared (uncommented); required for PostgreSQL production DB
+
+# ── Excel import ───────────────────────────────────────────────
+openpyxl==3.1.5          # Bulk import of personnel and inventory from .xlsx files
+et-xmlfile==2.0.0        # openpyxl dependency

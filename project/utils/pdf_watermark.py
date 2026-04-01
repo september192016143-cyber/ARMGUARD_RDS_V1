@@ -55,7 +55,7 @@ def watermark_pdf_bytes(pdf_bytes: bytes, username: str) -> bytes:
                 _stamp_block(
                     page,
                     lines=[
-                        ('ARMGUARD RDS', 30),
+                        ('ARMGUARD ', 30),
                         (username,       20),
                         (timestamp,      14),
                     ],

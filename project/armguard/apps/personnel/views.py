@@ -412,3 +412,133 @@ class AssignWeaponView(LoginRequiredMixin, UserPassesTestMixin, View):
 
 		messages.success(request, f"Weapon assignments updated for {personnel.rank} {personnel.last_name}.")
 		return redirect('personnel-detail', pk=pk)
+
+# ── Bulk Excel Import ──────────────────────────────────────────────────────────
+class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
+	"""Upload an .xlsx file to bulk-create Personnel records.
+	Required columns (case-insensitive, order doesn't matter):
+	  rank, first_name, last_name, middle_initial, afsn, group, squadron
+	Optional columns:
+	  tel, status
+	"""
+	template_name = 'personnel/personnel_import.html'
+
+	def test_func(self):
+		return _can_add_personnel(self.request.user)
+
+	def get(self, request):
+		return render(request, self.template_name)
+
+	def post(self, request):
+		xlsx_file = request.FILES.get('xlsx_file')
+		if not xlsx_file:
+			messages.error(request, 'Please upload an Excel (.xlsx) file.')
+			return render(request, self.template_name)
+		if not xlsx_file.name.endswith('.xlsx'):
+			messages.error(request, 'Only .xlsx files are accepted.')
+			return render(request, self.template_name)
+
+		try:
+			import openpyxl
+			wb = openpyxl.load_workbook(xlsx_file, read_only=True, data_only=True)
+			ws = wb.active
+		except Exception as exc:
+			messages.error(request, f'Could not read Excel file: {exc}')
+			return render(request, self.template_name)
+
+		rows = list(ws.iter_rows(values_only=True))
+		if not rows:
+			messages.error(request, 'The Excel file is empty.')
+			return render(request, self.template_name)
+
+		# Normalise header row
+		headers = [str(h).strip().lower() if h is not None else '' for h in rows[0]]
+		required = {'rank', 'first_name', 'last_name', 'middle_initial', 'afsn', 'group', 'squadron'}
+		missing = required - set(headers)
+		if missing:
+			messages.error(request, f'Missing required columns: {", ".join(sorted(missing))}')
+			return render(request, self.template_name)
+
+		def col(row, name):
+			idx = headers.index(name)
+			val = row[idx]
+			return str(val).strip() if val is not None else ''
+
+		# Valid choices sets for quick validation
+		valid_ranks  = {r for r, _ in Personnel.ALL_RANKS}
+		valid_groups = {g for g, _ in Personnel.GROUP_CHOICES}
+		valid_status = {s for s, _ in Personnel.STATUS_CHOICES}
+
+		created_count = 0
+		skipped = []
+
+		for i, row in enumerate(rows[1:], start=2):
+			if all(v is None or str(v).strip() == '' for v in row):
+				continue  # skip blank rows
+
+			rank            = col(row, 'rank')
+			first_name      = col(row, 'first_name')
+			last_name       = col(row, 'last_name')
+			middle_initial  = col(row, 'middle_initial')
+			afsn            = col(row, 'afsn')
+			group           = col(row, 'group')
+			squadron        = col(row, 'squadron')
+			tel             = col(row, 'tel') if 'tel' in headers else ''
+			status          = col(row, 'status') if 'status' in headers else 'Active'
+
+			# ── Validate ─────────────────────────────────────────
+			row_errors = []
+			if rank not in valid_ranks:
+				row_errors.append(f'invalid rank "{rank}"')
+			if not first_name:
+				row_errors.append('first_name required')
+			if not last_name:
+				row_errors.append('last_name required')
+			if not middle_initial:
+				row_errors.append('middle_initial required')
+			if not afsn:
+				row_errors.append('afsn required')
+			if group not in valid_groups:
+				row_errors.append(f'invalid group "{group}" (valid: {", ".join(sorted(valid_groups))})')
+			if not squadron:
+				row_errors.append('squadron required')
+			if status and status not in valid_status:
+				status = 'Active'
+			if Personnel.objects.filter(AFSN=afsn).exists():
+				row_errors.append(f'AFSN {afsn} already registered')
+			if tel and Personnel.objects.filter(tel=tel).exists():
+				row_errors.append(f'tel {tel} already registered')
+
+			if row_errors:
+				skipped.append(f'Row {i}: {"; ".join(row_errors)}')
+				continue
+
+			try:
+				p = Personnel(
+					rank           = rank,
+					first_name     = first_name,
+					last_name      = last_name,
+					middle_initial = middle_initial[:1],
+					AFSN           = afsn,
+					group          = group,
+					squadron       = squadron,
+					tel            = tel or None,
+					status         = status or 'Active',
+					created_by     = request.user.username,
+					updated_by     = request.user.username,
+				)
+				p.save(user=request.user)
+				created_count += 1
+			except Exception as exc:
+				skipped.append(f'Row {i}: {exc}')
+
+		if created_count:
+			messages.success(request, f'Successfully imported {created_count} personnel record(s).')
+		if skipped:
+			for msg in skipped[:20]:
+				messages.warning(request, msg)
+			if len(skipped) > 20:
+				messages.warning(request, f'…and {len(skipped) - 20} more skipped rows.')
+		if not created_count and not skipped:
+			messages.info(request, 'No data rows found in the file.')
+		return redirect('personnel-list')
