@@ -45,13 +45,19 @@
         <input id="rifle-q" type="text" name="q" value="{{ request.GET.q }}" class="form-control"
                placeholder="Serial, model, item ID…" style="padding-left:2.1rem" autocomplete="off">
       </div>
+      <select id="rifle-model" name="model" class="form-control" style="max-width:200px">
+        <option value="">All Models</option>
+        {% for key, label in rifle_model_choices %}
+        <option value="{{ key }}" {% if selected_model == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
       <select id="rifle-status" name="status" class="form-control" style="max-width:160px">
         <option value="">All Status</option>
         <option value="Available" {% if request.GET.status == 'Available' %}selected{% endif %}>Available</option>
         <option value="Issued" {% if request.GET.status == 'Issued' %}selected{% endif %}>Issued</option>
         <option value="Under Maintenance" {% if request.GET.status == 'Under Maintenance' %}selected{% endif %}>Maintenance</option>
       </select>
-      {% if request.GET.q or request.GET.status %}
+      {% if request.GET.q or request.GET.status or request.GET.model %}
         <a href="{% url 'rifle-list' %}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
       {% endif %}
     </form>
