@@ -24,17 +24,24 @@
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
           <label style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
-            Item Type <span style="font-size:.75rem;font-weight:400;color:var(--muted)">(optional — overrides per-row column)</span>
+            Batch Model <span style="font-size:.75rem;font-weight:400;color:var(--muted)">(optional — applies one model to every row)</span>
           </label>
-          <select name="item_type_override"
+          <select name="model_override"
                   style="width:100%;padding:.55rem .75rem;background:var(--input,#1e2540);border:1px solid var(--border,#2d3550);border-radius:.5rem;color:var(--text);font-size:.875rem">
-            <option value="">— Use item_type column from Excel —</option>
-            {% for val, label in item_type_choices %}
-            <option value="{{ val }}">{{ label }}</option>
-            {% endfor %}
+            <option value="">— Use item_type &amp; model columns from Excel —</option>
+            <optgroup label="Pistols">
+              {% for key, label in pistol_model_choices %}
+              <option value="{{ key }}">{{ label }}</option>
+              {% endfor %}
+            </optgroup>
+            <optgroup label="Rifles">
+              {% for key, label in rifle_model_choices %}
+              <option value="{{ key }}">{{ label }}</option>
+              {% endfor %}
+            </optgroup>
           </select>
           <p style="font-size:.75rem;color:var(--muted);margin-top:.35rem">
-            Select a type to apply it to all rows (the <code>item_type</code> column becomes optional).
+            When a model is selected, the <code>item_type</code> and <code>model</code> columns in the Excel become optional — every row is imported as that model.
           </p>
         </div>
         <div>
@@ -63,7 +70,7 @@
     <p style="font-size:.85rem;color:var(--muted);margin:0 0 1rem">
       The first row must be a header. Column names are case-insensitive and spaces are treated as underscores
       (e.g. <code>SERIAL NUMBER</code> and <code>serial_number</code> are both accepted). Extra columns are ignored.
-      A single sheet can contain a mix of pistol <em>and</em> rifle rows.
+      A single sheet can contain a mix of pistol <em>and</em> rifle rows (when no Batch Model is selected above).
     </p>
     <div style="overflow-x:auto">
       <table class="data-table" style="width:100%;font-size:.8rem">
@@ -75,8 +82,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td><code>item_type</code></td><td>Yes*</td><td><code>pistol</code> or <code>rifle</code>. Optional if Item Type dropdown is selected above.</td></tr>
-          <tr><td><code>model</code></td><td>Yes</td><td>Must match an exact model string (see below)</td></tr>
+          <tr><td><code>item_type</code></td><td>Yes*</td><td><code>pistol</code> or <code>rifle</code>. Optional when Batch Model is selected.</td></tr>
+          <tr><td><code>model</code></td><td>Yes*</td><td>Must match an exact model string (see below). Optional when Batch Model is selected.</td></tr>
           <tr><td><code>serial_number</code></td><td>Yes</td><td>Must be globally unique</td></tr>
           <tr><td><code>item_number</code></td><td>Yes</td><td>Unique per model. Numeric values are zero-padded to 4 digits (e.g. 1 → 0001)</td></tr>
           <tr><td><code>property_number</code></td><td>No</td><td>Government property number. Must be globally unique if provided.</td></tr>

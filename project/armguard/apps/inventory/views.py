@@ -1031,9 +1031,10 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
     def get(self, request):
         from .models import PISTOL_MODELS, RIFLE_MODELS
         return render(request, self.template_name, {
-            'pistol_models':    [m for m, _ in PISTOL_MODELS],
-            'rifle_models':     [m for m, _ in RIFLE_MODELS],
-            'item_type_choices': [('pistol', 'Pistol'), ('rifle', 'Rifle')],
+            'pistol_models':        [m for m, _ in PISTOL_MODELS],
+            'rifle_models':         [m for m, _ in RIFLE_MODELS],
+            'pistol_model_choices': PISTOL_MODELS,
+            'rifle_model_choices':  RIFLE_MODELS,
         })
 
     def post(self, request):
@@ -1046,8 +1047,17 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
             messages.error(request, 'Only .xlsx files are accepted.')
             return redirect('inventory-import')
 
-        item_type_override = request.POST.get('item_type_override', '').strip().lower()
-        if item_type_override not in ('pistol', 'rifle', ''):
+        valid_pistol_models = {m for m, _ in PISTOL_MODELS}
+        valid_rifle_models  = {m for m, _ in RIFLE_MODELS}
+
+        # Batch-model override: pre-select both item_type and model for every row.
+        model_override = request.POST.get('model_override', '').strip()
+        if model_override in valid_pistol_models:
+            item_type_override = 'pistol'
+        elif model_override in valid_rifle_models:
+            item_type_override = 'rifle'
+        else:
+            model_override    = ''
             item_type_override = ''
 
         try:
@@ -1064,8 +1074,9 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
             return redirect('inventory-import')
 
         headers = [str(h).strip().lower().replace(' ', '_') if h is not None else '' for h in rows[0]]
-        required_cols = {'model', 'serial_number', 'item_number'}
-        if not item_type_override:
+        required_cols = {'serial_number', 'item_number'}
+        if not model_override:
+            required_cols.add('model')
             required_cols.add('item_type')
         missing = required_cols - set(headers)
         if missing:
@@ -1091,7 +1102,7 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
                 continue
 
             item_type     = item_type_override or col(row, 'item_type').lower()
-            model         = col(row, 'model')
+            model         = model_override or col(row, 'model')
             serial_number = col(row, 'serial_number')
             item_number   = col(row, 'item_number')
             property_num  = col(row, 'property_number') or None
