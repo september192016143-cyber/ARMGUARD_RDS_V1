@@ -64,16 +64,22 @@ class PistolListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         qs = Pistol.objects.select_related('item_issued_to', 'item_assigned_to').order_by('model', 'serial_number')
         q = self.request.GET.get('q', '').strip()
         status = self.request.GET.get('status', '').strip()
+        model = self.request.GET.get('model', '').strip()
         if q:
             qs = qs.filter(Q(serial_number__icontains=q) | Q(model__icontains=q) | Q(item_id__icontains=q) | Q(property_number__icontains=q))
         if status:
             qs = qs.filter(item_status=status)
+        if model:
+            qs = qs.filter(model=model)
         return qs
 
     def get_context_data(self, **kwargs):
+        from .models import PISTOL_MODELS
         ctx = super().get_context_data(**kwargs)
         ctx['q'] = self.request.GET.get('q', '')
         ctx['selected_status'] = self.request.GET.get('status', '')
+        ctx['selected_model'] = self.request.GET.get('model', '')
+        ctx['pistol_model_choices'] = PISTOL_MODELS
         # M2 FIX: One aggregated query instead of 3 separate COUNT queries.
         stats = Pistol.objects.aggregate(
             total=Count('pk'),

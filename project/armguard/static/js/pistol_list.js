@@ -2,6 +2,7 @@
   var form        = document.getElementById('pistol-filter-form');
   var qInput      = document.getElementById('pistol-q');
   var statusSelect= document.getElementById('pistol-status');
+  var modelSelect = document.getElementById('pistol-model');
   var resultsDiv  = document.getElementById('pistol-results');
   var countSpan   = document.getElementById('pistol-count');
   if (!form || !resultsDiv) return;
@@ -14,6 +15,7 @@
     var params = new URLSearchParams();
     if (qInput.value.trim()) params.set('q', qInput.value.trim());
     if (statusSelect && statusSelect.value) params.set('status', statusSelect.value);
+    if (modelSelect && modelSelect.value) params.set('model', modelSelect.value);
     if (page && page > 1) params.set('page', page);
     return params;
   }
@@ -50,6 +52,7 @@
     debounceTimer = setTimeout(function () { doFetch(buildParams(1)); }, 400);
   });
   if (statusSelect) statusSelect.addEventListener('change', function () { doFetch(buildParams(1)); });
+  if (modelSelect)  modelSelect.addEventListener('change',  function () { doFetch(buildParams(1)); });
 
   bindPagination();
 
