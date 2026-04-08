@@ -17,7 +17,7 @@ _NOMENCLATURE = {
     'M1911 Customized Cal.45':   'Pistol, Cal.45: M1911 (Customized)',
     'M4 Carbine DSAR-15 5.56mm': 'Carbine, 5.56mm: M4 (DSAR-15)',
     'M4 14.5" DGIS EMTAN 5.56mm':'Carbine, 5.56mm: M4 14.5" (EMTAN)',
-    'M16A1 Rifle 5.56mm':        'Rifle, 5.56mm: M16A1',
+    'M16A1 Rifle 5.56mm':        'Rifle, 5.56mm: M16',
     'M14 Rifle 7.62mm':          'Rifle, 7.62mm: M14',
     'M653 Carbine 5.56mm':       'Carbine, 5.56mm: M653',
 }

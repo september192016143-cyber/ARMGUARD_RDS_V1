@@ -374,7 +374,7 @@ def _firearms_evaluation():
         {'label': 'PISTOL,9MM GLOCK 17',     'qs': pistols, 'models': ['Glock 17 9mm']},
         {'label': 'PISTOL CAL.45: M1911',     'qs': pistols, 'models': ['M1911 Cal.45', 'M1911 Customized Cal.45']},
         {'label': 'PISTOL CAL.45: (HI-CAP)', 'qs': pistols, 'models': ['Armscor Hi Cap Cal.45', 'RIA Hi Cap Cal.45']},
-        {'label': 'RIFLE 5.56MM: M16A1',      'qs': rifles,  'models': ['M16A1 Rifle 5.56mm']},
+        {'label': 'RIFLE 5.56MM: M16',         'qs': rifles,  'models': ['M16A1 Rifle 5.56mm']},
         {'label': 'RIFLE 5.56MM: M4',         'qs': rifles,  'models': ['M4 Carbine DSAR-15 5.56mm', 'M4 14.5" DGIS EMTAN 5.56mm']},
         {'label': 'RIFLE 5.56MM: M653',       'qs': rifles,  'models': ['M653 Carbine 5.56mm']},
         {'label': 'RIFLE 7.62: M14',          'qs': rifles,  'models': ['M14 Rifle 7.62mm']},
