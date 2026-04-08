@@ -108,16 +108,16 @@
     <form id="tags-filter-form" method="get" style="display:flex; gap:.5rem; flex-wrap:wrap; flex:1; align-items:center;" data-url="{% url 'print_handler:print_item_tags' %}">
       <input id="tags-q" type="text" name="q" value="{{ search_q }}"
              placeholder="Search by serial, type, or ID…" class="form-control" style="max-width:260px;flex:1" autocomplete="off">
-      <select id="tags-model" name="model" class="form-control" style="max-width:230px">
-        <option value="">All Models</option>
-        <optgroup label="Pistols">
+      <select id="tags-model" name="model" class="form-control" style="max-width:230px;background:#1e293b;color:#e2e8f0">
+        <option value="" style="background:#1e293b;color:#e2e8f0">All Models</option>
+        <optgroup label="Pistols" style="background:#1e293b;color:#94a3b8;font-size:.75rem;font-weight:600">
           {% for key, label in pistol_model_choices %}
-          <option value="{{ key }}" {% if model_filter == key %}selected{% endif %}>{{ label }}</option>
+          <option value="{{ key }}" style="background:#1e293b;color:#e2e8f0" {% if model_filter == key %}selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </optgroup>
-        <optgroup label="Rifles">
+        <optgroup label="Rifles" style="background:#1e293b;color:#94a3b8;font-size:.75rem;font-weight:600">
           {% for key, label in rifle_model_choices %}
-          <option value="{{ key }}" {% if model_filter == key %}selected{% endif %}>{{ label }}</option>
+          <option value="{{ key }}" style="background:#1e293b;color:#e2e8f0" {% if model_filter == key %}selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </optgroup>
       </select>
