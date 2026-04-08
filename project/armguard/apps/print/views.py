@@ -73,11 +73,16 @@ def print_item_tags(request):
     Item Tag Print Manager — lists all items, shows their tag thumbnail,
     and allows single/bulk printing and re-generation.
     """
-    search_q = request.GET.get('q', '').strip()
+    from armguard.apps.inventory.models import PISTOL_MODELS, RIFLE_MODELS
+
+    search_q     = request.GET.get('q', '').strip()
+    type_filter  = request.GET.get('type', '').strip().lower()
+    model_filter = request.GET.get('model', '').strip()
 
     # C7 FIX: Use ORM filtering instead of loading all records into Python memory.
     pistol_qs = Pistol.objects.all()
     rifle_qs  = Rifle.objects.all()
+
     if search_q:
         pq = (
             Q(serial_number__icontains=search_q) |
@@ -86,10 +91,20 @@ def print_item_tags(request):
         )
         pistol_qs = pistol_qs.filter(pq)
         rifle_qs  = rifle_qs.filter(pq)
+
+    if type_filter == 'pistol':
+        rifle_qs = rifle_qs.none()
+    elif type_filter == 'rifle':
+        pistol_qs = pistol_qs.none()
+
+    if model_filter:
+        pistol_qs = pistol_qs.filter(model=model_filter)
+        rifle_qs  = rifle_qs.filter(model=model_filter)
+
     # Merge and sort; both querysets are now DB-filtered before loading into memory.
     all_items = sorted(
         list(pistol_qs) + list(rifle_qs),
-        key=lambda i: (i.item_type, i.serial_number)
+        key=lambda i: (i.item_type, i.model, i.item_number or '')
     )
 
     # PERF: one os.listdir() to build a membership set instead of N os.path.exists() calls
@@ -110,12 +125,16 @@ def print_item_tags(request):
     with_tag   = sum(1 for t in item_tags if t['has_tag'])
 
     context = {
-        'item_tags': item_tags,
-        'search_q': search_q,
-        'total': total,
-        'with_tag': with_tag,
-        'without_tag': total - with_tag,
-        'is_admin': _can_delete(request.user),
+        'item_tags':           item_tags,
+        'search_q':            search_q,
+        'type_filter':         type_filter,
+        'model_filter':        model_filter,
+        'pistol_model_choices': PISTOL_MODELS,
+        'rifle_model_choices':  RIFLE_MODELS,
+        'total':               total,
+        'with_tag':            with_tag,
+        'without_tag':         total - with_tag,
+        'is_admin':            _can_delete(request.user),
     }
     return render(request, 'print/print_item_tags.html', context)
 
