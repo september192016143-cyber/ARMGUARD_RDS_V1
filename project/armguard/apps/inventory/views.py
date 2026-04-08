@@ -1031,8 +1031,9 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
     def get(self, request):
         from .models import PISTOL_MODELS, RIFLE_MODELS
         return render(request, self.template_name, {
-            'pistol_models': [m for m, _ in PISTOL_MODELS],
-            'rifle_models':  [m for m, _ in RIFLE_MODELS],
+            'pistol_models':    [m for m, _ in PISTOL_MODELS],
+            'rifle_models':     [m for m, _ in RIFLE_MODELS],
+            'item_type_choices': [('pistol', 'Pistol'), ('rifle', 'Rifle')],
         })
 
     def post(self, request):
@@ -1044,6 +1045,10 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
         if not xlsx_file.name.endswith('.xlsx'):
             messages.error(request, 'Only .xlsx files are accepted.')
             return redirect('inventory-import')
+
+        item_type_override = request.POST.get('item_type_override', '').strip().lower()
+        if item_type_override not in ('pistol', 'rifle', ''):
+            item_type_override = ''
 
         try:
             import openpyxl
@@ -1059,7 +1064,9 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
             return redirect('inventory-import')
 
         headers = [str(h).strip().lower().replace(' ', '_') if h is not None else '' for h in rows[0]]
-        required_cols = {'item_type', 'model', 'serial_number', 'item_number'}
+        required_cols = {'model', 'serial_number', 'item_number'}
+        if not item_type_override:
+            required_cols.add('item_type')
         missing = required_cols - set(headers)
         if missing:
             messages.error(request, f'Missing required columns: {", ".join(sorted(missing))}')
@@ -1083,7 +1090,7 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
             if all(v is None or str(v).strip() == '' for v in row):
                 continue
 
-            item_type     = col(row, 'item_type').lower()
+            item_type     = item_type_override or col(row, 'item_type').lower()
             model         = col(row, 'model')
             serial_number = col(row, 'serial_number')
             item_number   = col(row, 'item_number')

@@ -24,6 +24,21 @@
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
           <label style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
+            Item Type <span style="font-size:.75rem;font-weight:400;color:var(--muted)">(optional — overrides per-row column)</span>
+          </label>
+          <select name="item_type_override"
+                  style="width:100%;padding:.55rem .75rem;background:var(--input,#1e2540);border:1px solid var(--border,#2d3550);border-radius:.5rem;color:var(--text);font-size:.875rem">
+            <option value="">— Use item_type column from Excel —</option>
+            {% for val, label in item_type_choices %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <p style="font-size:.75rem;color:var(--muted);margin-top:.35rem">
+            Select a type to apply it to all rows (the <code>item_type</code> column becomes optional).
+          </p>
+        </div>
+        <div>
+          <label style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
             Excel File (.xlsx) <span style="color:var(--red,#ef4444)">*</span>
           </label>
           <input type="file" name="xlsx_file" accept=".xlsx" required
@@ -60,7 +75,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td><code>item_type</code></td><td>Yes</td><td><code>pistol</code> or <code>rifle</code></td></tr>
+          <tr><td><code>item_type</code></td><td>Yes*</td><td><code>pistol</code> or <code>rifle</code>. Optional if Item Type dropdown is selected above.</td></tr>
           <tr><td><code>model</code></td><td>Yes</td><td>Must match an exact model string (see below)</td></tr>
           <tr><td><code>serial_number</code></td><td>Yes</td><td>Must be globally unique</td></tr>
           <tr><td><code>item_number</code></td><td>Yes</td><td>Unique per model. Numeric values are zero-padded to 4 digits (e.g. 1 → 0001)</td></tr>
