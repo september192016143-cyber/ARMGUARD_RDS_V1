@@ -452,7 +452,7 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 			return render(request, self.template_name)
 
 		# Normalise header row
-		headers = [str(h).strip().lower() if h is not None else '' for h in rows[0]]
+		headers = [str(h).strip().lower().replace(' ', '_') if h is not None else '' for h in rows[0]]
 		required = {'rank', 'first_name', 'last_name', 'middle_initial', 'afsn', 'group', 'squadron'}
 		missing = required - set(headers)
 		if missing:

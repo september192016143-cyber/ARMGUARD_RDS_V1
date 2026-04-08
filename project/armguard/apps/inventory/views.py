@@ -1058,7 +1058,7 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
             messages.error(request, 'The Excel file is empty.')
             return redirect('inventory-import')
 
-        headers = [str(h).strip().lower() if h is not None else '' for h in rows[0]]
+        headers = [str(h).strip().lower().replace(' ', '_') if h is not None else '' for h in rows[0]]
         required_cols = {'item_type', 'model', 'serial_number', 'item_number'}
         missing = required_cols - set(headers)
         if missing:
