@@ -1,20 +1,22 @@
 <span id="ajax-count" data-count="{{ page_obj.paginator.count }}" hidden></span>
 {% if page_obj.object_list %}
 <table>
+  {% with cur_sort=request.GET.sort|default:'model' cur_dir=request.GET.dir|default:'asc' %}
   <thead>
     <tr>
       <th>Item ID</th>
-      <th>Item #</th>
-      <th>Property #</th>
-      <th>Model</th>
-      <th>Serial Number</th>
+      <th data-sort="item_number" class="sortable{% if cur_sort == 'item_number' %} sort-active{% endif %}">Item # {% if cur_sort == 'item_number' %}{% if cur_dir == 'asc' %}<i class="fa-solid fa-sort-up"></i>{% else %}<i class="fa-solid fa-sort-down"></i>{% endif %}{% else %}<i class="fa-solid fa-sort sort-icon-dim"></i>{% endif %}</th>
+      <th data-sort="property" class="sortable{% if cur_sort == 'property' %} sort-active{% endif %}">Property # {% if cur_sort == 'property' %}{% if cur_dir == 'asc' %}<i class="fa-solid fa-sort-up"></i>{% else %}<i class="fa-solid fa-sort-down"></i>{% endif %}{% else %}<i class="fa-solid fa-sort sort-icon-dim"></i>{% endif %}</th>
+      <th data-sort="model" class="sortable{% if cur_sort == 'model' %} sort-active{% endif %}">Model {% if cur_sort == 'model' %}{% if cur_dir == 'asc' %}<i class="fa-solid fa-sort-up"></i>{% else %}<i class="fa-solid fa-sort-down"></i>{% endif %}{% else %}<i class="fa-solid fa-sort sort-icon-dim"></i>{% endif %}</th>
+      <th data-sort="serial" class="sortable{% if cur_sort == 'serial' %} sort-active{% endif %}">Serial Number {% if cur_sort == 'serial' %}{% if cur_dir == 'asc' %}<i class="fa-solid fa-sort-up"></i>{% else %}<i class="fa-solid fa-sort-down"></i>{% endif %}{% else %}<i class="fa-solid fa-sort sort-icon-dim"></i>{% endif %}</th>
       <th>Condition</th>
-      <th>Status</th>
+      <th data-sort="status" class="sortable{% if cur_sort == 'status' %} sort-active{% endif %}">Status {% if cur_sort == 'status' %}{% if cur_dir == 'asc' %}<i class="fa-solid fa-sort-up"></i>{% else %}<i class="fa-solid fa-sort-down"></i>{% endif %}{% else %}<i class="fa-solid fa-sort sort-icon-dim"></i>{% endif %}</th>
       <th>Issued To</th>
       <th>Assigned To</th>
       {% if can_edit %}<th style="width:80px"></th>{% endif %}
     </tr>
   </thead>
+  {% endwith %}
   <tbody>
     {% for r in page_obj %}
     <tr>
@@ -65,20 +67,20 @@
 </table>
 
 {% if page_obj.has_other_pages %}
-{% with q=request.GET.q status=request.GET.status model=request.GET.model %}
+{% with q=request.GET.q status=request.GET.status model=request.GET.model sort=request.GET.sort dir=request.GET.dir %}
 <div class="pagination">
   {% if page_obj.has_previous %}
-    <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if model %}model={{ model }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
+    <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if model %}model={{ model }}&{% endif %}{% if sort %}sort={{ sort }}&{% endif %}{% if dir %}dir={{ dir }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
   {% endif %}
   {% for num in page_obj.paginator.page_range %}
     {% if page_obj.number == num %}
       <a class="page-link active" aria-current="page" aria-disabled="true">{{ num }}</a>
     {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-      <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if model %}model={{ model }}&{% endif %}page={{ num }}" class="page-link">{{ num }}</a>
+      <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if model %}model={{ model }}&{% endif %}{% if sort %}sort={{ sort }}&{% endif %}{% if dir %}dir={{ dir }}&{% endif %}page={{ num }}" class="page-link">{{ num }}</a>
     {% endif %}
   {% endfor %}
   {% if page_obj.has_next %}
-    <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if model %}model={{ model }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
+    <a href="?{% if q %}q={{ q }}&{% endif %}{% if status %}status={{ status }}&{% endif %}{% if model %}model={{ model }}&{% endif %}{% if sort %}sort={{ sort }}&{% endif %}{% if dir %}dir={{ dir }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
   {% endif %}
 </div>
 {% endwith %}

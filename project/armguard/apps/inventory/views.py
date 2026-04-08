@@ -151,8 +151,20 @@ class RifleListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     def test_func(self):
         return can_view_inventory(self.request.user)
 
+    _SORT_FIELDS = {
+        'item_number': 'item_number',
+        'property':    'property_number',
+        'model':       'model',
+        'serial':      'serial_number',
+        'status':      'item_status',
+    }
+
     def get_queryset(self):
-        qs = Rifle.objects.select_related('item_issued_to', 'item_assigned_to').order_by('model', 'item_number')
+        sort_key   = self.request.GET.get('sort', 'model')
+        sort_dir   = self.request.GET.get('dir',  'asc')
+        sort_field = self._SORT_FIELDS.get(sort_key, 'model')
+        prefix     = '-' if sort_dir == 'desc' else ''
+        qs = Rifle.objects.select_related('item_issued_to', 'item_assigned_to').order_by(prefix + sort_field)
         q = self.request.GET.get('q', '').strip()
         status = self.request.GET.get('status', '').strip()
         model = self.request.GET.get('model', '').strip()
@@ -170,6 +182,8 @@ class RifleListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         ctx['q'] = self.request.GET.get('q', '')
         ctx['selected_status'] = self.request.GET.get('status', '')
         ctx['selected_model'] = self.request.GET.get('model', '')
+        ctx['sort']     = self.request.GET.get('sort', 'model')
+        ctx['sort_dir'] = self.request.GET.get('dir',  'asc')
         ctx['rifle_model_choices'] = RIFLE_MODELS
         # M2 FIX: One aggregated query instead of 3 separate COUNT queries.
         stats = Rifle.objects.aggregate(

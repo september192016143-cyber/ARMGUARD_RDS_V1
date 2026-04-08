@@ -36,10 +36,16 @@
 .page-body>.card>.table-wrap{flex:1;overflow-y:auto;min-height:0}
 .page-body>.card table tbody td{padding:.45rem .85rem}
 .page-body>.card table thead th{padding:.45rem .85rem}
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover{background:var(--hover,rgba(255,255,255,.05))}
+th.sort-active{color:var(--primary,#60a5fa)}
+.sort-icon-dim{opacity:.3}
 </style>
 <div class="card">
   <div class="filter-bar">
     <form id="rifle-filter-form" method="get" class="search-bar" style="flex:1" data-url="{% url 'rifle-list' %}">
+      <input type="hidden" id="rifle-sort" name="sort" value="{{ request.GET.sort|default:'model' }}">
+      <input type="hidden" id="rifle-dir"  name="dir"  value="{{ request.GET.dir|default:'asc' }}">
       <div class="input-wrap" style="flex:1;max-width:300px">
         <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.8rem;pointer-events:none"></i>
         <input id="rifle-q" type="text" name="q" value="{{ request.GET.q }}" class="form-control"

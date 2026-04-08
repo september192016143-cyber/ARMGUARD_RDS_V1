@@ -3,6 +3,8 @@
   var qInput      = document.getElementById('rifle-q');
   var statusSelect= document.getElementById('rifle-status');
   var modelSelect = document.getElementById('rifle-model');
+  var sortInput   = document.getElementById('rifle-sort');
+  var dirInput    = document.getElementById('rifle-dir');
   var resultsDiv  = document.getElementById('rifle-results');
   var countSpan   = document.getElementById('rifle-count');
   if (!form || !resultsDiv) return;
@@ -16,6 +18,8 @@
     if (qInput.value.trim()) params.set('q', qInput.value.trim());
     if (statusSelect && statusSelect.value) params.set('status', statusSelect.value);
     if (modelSelect && modelSelect.value) params.set('model', modelSelect.value);
+    if (sortInput && sortInput.value) params.set('sort', sortInput.value);
+    if (dirInput && dirInput.value && dirInput.value !== 'asc') params.set('dir', dirInput.value);
     if (page && page > 1) params.set('page', page);
     return params;
   }
@@ -32,6 +36,7 @@
         countSpan.textContent = countEl.dataset.count + ' records';
       }
       bindPagination();
+      bindSortHeaders();
     });
   }
 
@@ -46,6 +51,26 @@
     });
   }
 
+  function bindSortHeaders() {
+    resultsDiv.querySelectorAll('th[data-sort]').forEach(function (th) {
+      th.style.cursor = 'pointer';
+      th.addEventListener('click', function () {
+        var col = th.dataset.sort;
+        var curSort = sortInput ? sortInput.value : 'model';
+        var curDir  = dirInput  ? dirInput.value  : 'asc';
+        if (col === curSort) {
+          // toggle direction
+          var newDir = curDir === 'asc' ? 'desc' : 'asc';
+          if (dirInput) dirInput.value = newDir;
+        } else {
+          if (sortInput) sortInput.value = col;
+          if (dirInput)  dirInput.value  = 'asc';
+        }
+        doFetch(buildParams(1));
+      });
+    });
+  }
+
   // ── Input listeners ───────────────────────────────────────────────────────
   qInput.addEventListener('input', function () {
     clearTimeout(debounceTimer);
@@ -55,6 +80,7 @@
   if (modelSelect)  modelSelect.addEventListener('change',  function () { doFetch(buildParams(1)); });
 
   bindPagination();
+  bindSortHeaders();
 
   // ── Background QR / barcode scanner listener ──────────────────────────────
   (function () {
