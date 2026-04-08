@@ -41,11 +41,6 @@
     <a href="{% url 'personnel-list' %}" class="nav-item {% if request.resolver_match.url_name|slice:':9' == 'personnel' %}active{% endif %}" title="Personnels">
       <i class="fa-solid fa-users nav-icon"></i><span class="nav-label">Personnels</span>
     </a>
-    {% if user.is_superuser %}
-    <a href="{% url 'personnel-import' %}" class="nav-item {% if request.resolver_match.url_name == 'personnel-import' %}active{% endif %}" title="Import Personnel">
-      <i class="fa-solid fa-file-import nav-icon"></i><span class="nav-label">Import Personnel</span>
-    </a>
-    {% endif %}
     {% endif %}
     {% if can_view_inventory %}
     <div class="nav-group {% if 'inventory' in request.path %}open{% endif %}">
@@ -93,12 +88,6 @@
           <i class="fa-solid fa-triangle-exclamation nav-icon" style="color:#f87171"></i>
           <a href="{% url 'discrepancy-list' %}" class="nav-item-main">Discrepancies</a>
         </div>
-        {% if user.is_superuser %}
-        <div class="nav-item-row {% if request.resolver_match.url_name == 'inventory-import' %}active{% endif %}">
-          <i class="fa-solid fa-file-import nav-icon"></i>
-          <a href="{% url 'inventory-import' %}" class="nav-item-main">Import Items</a>
-        </div>
-        {% endif %}
       </div>
     </div>
     {% endif %}
@@ -153,6 +142,12 @@
     </a>
     <a href="{% url 'system-settings' %}" class="nav-item {% if request.resolver_match.url_name == 'system-settings' %}active{% endif %}" title="Settings">
       <i class="fa-solid fa-gear nav-icon"></i><span class="nav-label">Settings</span>
+    </a>
+    <a href="{% url 'personnel-import' %}" class="nav-item {% if request.resolver_match.url_name == 'personnel-import' %}active{% endif %}" title="Import Personnel">
+      <i class="fa-solid fa-file-import nav-icon"></i><span class="nav-label">Import Personnel</span>
+    </a>
+    <a href="{% url 'inventory-import' %}" class="nav-item {% if request.resolver_match.url_name == 'inventory-import' %}active{% endif %}" title="Import Items">
+      <i class="fa-solid fa-file-import nav-icon"></i><span class="nav-label">Import Items</span>
     </a>
     {% endif %}
     {% endif %}
