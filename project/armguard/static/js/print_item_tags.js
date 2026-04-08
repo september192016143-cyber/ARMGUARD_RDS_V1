@@ -11,7 +11,7 @@
   // ── Real-time filter (PJAX) ───────────────────────────────────────────────
   var filterForm = document.getElementById('tags-filter-form');
   var qInput     = document.getElementById('tags-q');
-  var typeSelect = document.getElementById('tags-type');
+    var typeSelect = null;
   var modelSel   = document.getElementById('tags-model');
   var tagGrid    = document.getElementById('tagGrid');
   var clearBtn   = document.getElementById('tags-clear-btn');

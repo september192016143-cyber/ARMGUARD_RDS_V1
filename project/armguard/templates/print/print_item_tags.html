@@ -108,11 +108,6 @@
     <form id="tags-filter-form" method="get" style="display:flex; gap:.5rem; flex-wrap:wrap; flex:1; align-items:center;" data-url="{% url 'print_handler:print_item_tags' %}">
       <input id="tags-q" type="text" name="q" value="{{ search_q }}"
              placeholder="Search by serial, type, or ID…" class="form-control" style="max-width:260px;flex:1" autocomplete="off">
-      <select id="tags-type" name="type" class="form-control" style="max-width:130px">
-        <option value="">All Types</option>
-        <option value="pistol" {% if type_filter == 'pistol' %}selected{% endif %}>Pistol</option>
-        <option value="rifle"  {% if type_filter == 'rifle'  %}selected{% endif %}>Rifle</option>
-      </select>
       <select id="tags-model" name="model" class="form-control" style="max-width:230px">
         <option value="">All Models</option>
         <optgroup label="Pistols">
