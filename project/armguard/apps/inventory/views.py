@@ -61,7 +61,7 @@ class PistolListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         return can_view_inventory(self.request.user)
 
     def get_queryset(self):
-        qs = Pistol.objects.select_related('item_issued_to', 'item_assigned_to').order_by('model', 'serial_number')
+        qs = Pistol.objects.select_related('item_issued_to', 'item_assigned_to').order_by('model', 'item_number')
         q = self.request.GET.get('q', '').strip()
         status = self.request.GET.get('status', '').strip()
         model = self.request.GET.get('model', '').strip()
