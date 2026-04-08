@@ -87,17 +87,17 @@
 <div class="stat-grid mb-2">
   <div class="stat-card accent-blue">
     <div class="stat-label">Total Items</div>
-    <div class="stat-value">{{ total }}</div>
+    <div class="stat-value" id="tags-stat-total">{{ total }}</div>
     <div class="stat-sub">Pistols &amp; Rifles</div>
   </div>
   <div class="stat-card accent-green">
     <div class="stat-label">Tags Generated</div>
-    <div class="stat-value">{{ with_tag }}</div>
+    <div class="stat-value" id="tags-stat-with-tag">{{ with_tag }}</div>
     <div class="stat-sub">PNG tags on disk</div>
   </div>
   <div class="stat-card accent-red">
     <div class="stat-label">Tags Missing</div>
-    <div class="stat-value">{{ without_tag }}</div>
+    <div class="stat-value" id="tags-stat-without-tag">{{ without_tag }}</div>
     <div class="stat-sub">Need generation</div>
   </div>
 </div>
@@ -105,17 +105,15 @@
 <!-- ── Search + Toolbar ───────────────────────────────────────────────────── -->
 <div class="card mb-2">
   <div style="display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; margin-bottom:.75rem;">
-    <form method="get" style="display:flex; gap:.5rem; flex-wrap:wrap; flex:1; align-items:center;">
-      <input type="text" name="q" value="{{ search_q }}"
-             placeholder="Search by serial, type, or ID…" class="form-control" style="max-width:260px;flex:1">
-      <select name="type" class="form-control" style="max-width:130px"
-              onchange="this.form.submit()">
+    <form id="tags-filter-form" method="get" style="display:flex; gap:.5rem; flex-wrap:wrap; flex:1; align-items:center;" data-url="{% url 'print_handler:print_item_tags' %}">
+      <input id="tags-q" type="text" name="q" value="{{ search_q }}"
+             placeholder="Search by serial, type, or ID…" class="form-control" style="max-width:260px;flex:1" autocomplete="off">
+      <select id="tags-type" name="type" class="form-control" style="max-width:130px">
         <option value="">All Types</option>
         <option value="pistol" {% if type_filter == 'pistol' %}selected{% endif %}>Pistol</option>
         <option value="rifle"  {% if type_filter == 'rifle'  %}selected{% endif %}>Rifle</option>
       </select>
-      <select name="model" class="form-control" style="max-width:230px"
-              onchange="this.form.submit()">
+      <select id="tags-model" name="model" class="form-control" style="max-width:230px">
         <option value="">All Models</option>
         <optgroup label="Pistols">
           {% for key, label in pistol_model_choices %}
@@ -128,10 +126,8 @@
           {% endfor %}
         </optgroup>
       </select>
-      <button type="submit" id="tags-search-submit" name="search" class="btn btn-primary btn-sm" aria-label="Search"><i class="fas fa-search"></i></button>
-      {% if search_q or type_filter or model_filter %}
-      <a href="{% url 'print_handler:print_item_tags' %}" class="btn btn-secondary btn-sm" aria-label="Clear search"><i class="fas fa-times"></i></a>
-      {% endif %}
+      <button type="submit" class="btn btn-primary btn-sm" aria-label="Search"><i class="fas fa-search"></i></button>
+      <a id="tags-clear-btn" href="{% url 'print_handler:print_item_tags' %}" class="btn btn-secondary btn-sm" aria-label="Clear" style="{% if not search_q and not type_filter and not model_filter %}display:none{% endif %}"><i class="fas fa-times"></i></a>
     </form>
   </div>
 
@@ -174,65 +170,9 @@
 
 <!-- ── Tag Grid ──────────────────────────────────────────────────────────── -->
 <div class="tag-grid" id="tagGrid">
-  {% for entry in item_tags %}
-  <div class="tag-wrapper" id="wrap-{{ entry.item.id }}">
-    <input type="checkbox" class="select-checkbox tag-checkbox"
-           id="chk-{{ entry.item.id }}" name="selected_items"
-           value="{{ entry.item.id }}">
-    <div class="tag-card">
-      <div class="tag-thumb-wrap"
-           data-item-action="toggle-check" data-item-id="{{ entry.item.id }}"
-           title="{{ entry.item.get_item_type_display }} — {{ entry.item.model }} {{ entry.item.serial }}">
-        {% if entry.has_tag %}
-        <img id="thumb-{{ entry.item.id }}" src="{{ entry.thumb_url }}"
-             alt="Tag {{ entry.item.id }}">
-        {% else %}
-        <div class="tag-no-thumb" id="thumb-{{ entry.item.id }}"></div>
-        {% endif %}
-      </div>
-      <div class="tag-info">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:.4rem;">
-          <span class="tag-name">{{ entry.item.get_item_type_display }}</span>
-          {% if entry.has_tag %}
-          <span class="badge-ok">OK</span>
-          {% endif %}
-        </div>
-        <span class="tag-sub" style="font-weight:600; color:var(--text);">{{ entry.item.model }}</span>
-        <span class="tag-sub">{{ entry.item.serial }}</span>
-        <span class="tag-sub">{{ entry.item.item_status }}</span>
-      </div>
-      <div class="tag-actions">
-        {% if can_print %}
-        <button class="btn btn-secondary btn-sm" data-item-action="regen" data-item-id="{{ entry.item.id }}" title="Regenerate">
-          <i class="fas fa-sync-alt regen-icon"></i>
-          <i class="fas fa-spinner fa-spin regen-spinner"></i> Regen
-        </button>
-        {% if entry.has_tag %}
-        <a href="#" class="btn btn-primary btn-sm" target="_blank"
-           data-item-action="print-single" data-item-id="{{ entry.item.id }}">
-          <i class="fas fa-print"></i> Print
-        </a>
-        {% if is_admin %}
-        <button class="btn btn-sm btn-red-soft" data-item-action="delete" data-item-id="{{ entry.item.id }}" title="Delete tag PNG">
-          <i class="fas fa-trash regen-icon"></i>
-          <i class="fas fa-spinner fa-spin regen-spinner"></i> Delete
-        </button>
-        {% endif %}
-        {% endif %}
-        {% endif %}
-      </div>
-    </div>
-  </div>
-  {% empty %}
-  <div class="card" style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--muted);">
-    <i class="fas fa-box-open" style="font-size:2rem; margin-bottom:.5rem;"></i>
-    <p>{% if search_q %}No items match "{{ search_q }}"{% else %}No items found{% endif %}</p>
-  </div>
-  {% endfor %}
+  {% include 'print/print_item_tags_grid.html' %}
 </div>
 
 <script type="application/json" id="item-tags-config">{"genUrl": "{% url 'print_handler:generate_item_tags' %}", "regenBase": "{% url 'print_handler:regenerate_item_tag' item_id='PLACEHOLDER' %}", "deleteBase": "{% url 'print_handler:delete_item_tag' item_id='PLACEHOLDER' %}", "printUrl": "{% url 'print_handler:print_item_tags_view' %}", "csrf": "{{ csrf_token }}"}</script>
 <script src="{% static 'js/print_item_tags.js' %}"></script>
 {% endblock %}
-
-function updateCount() {

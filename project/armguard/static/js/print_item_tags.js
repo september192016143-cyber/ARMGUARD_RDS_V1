@@ -8,6 +8,65 @@
   var PRINT_URL  = cfg.printUrl;
   var CSRF       = cfg.csrf;
 
+  // ── Real-time filter (PJAX) ───────────────────────────────────────────────
+  var filterForm = document.getElementById('tags-filter-form');
+  var qInput     = document.getElementById('tags-q');
+  var typeSelect = document.getElementById('tags-type');
+  var modelSel   = document.getElementById('tags-model');
+  var tagGrid    = document.getElementById('tagGrid');
+  var clearBtn   = document.getElementById('tags-clear-btn');
+  var debounceTimer;
+
+  if (filterForm && tagGrid) {
+    var baseUrl = filterForm.dataset.url || window.location.pathname;
+
+    function hasFilters() {
+      return !!((qInput && qInput.value.trim()) ||
+                (typeSelect && typeSelect.value) ||
+                (modelSel && modelSel.value));
+    }
+
+    function doFilterFetch() {
+      var params = new URLSearchParams();
+      if (qInput && qInput.value.trim()) params.set('q', qInput.value.trim());
+      if (typeSelect && typeSelect.value) params.set('type', typeSelect.value);
+      if (modelSel && modelSel.value) params.set('model', modelSel.value);
+      fetch(baseUrl + '?' + params.toString(), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        tagGrid.innerHTML = html;
+        var statsEl = document.getElementById('tags-ajax-stats');
+        if (statsEl) {
+          var el;
+          el = document.getElementById('tags-stat-total');    if (el) el.textContent = statsEl.dataset.total;
+          el = document.getElementById('tags-stat-with-tag'); if (el) el.textContent = statsEl.dataset.withTag;
+          el = document.getElementById('tags-stat-without-tag'); if (el) el.textContent = statsEl.dataset.withoutTag;
+        }
+        var sc = document.getElementById('selCount');
+        if (sc) sc.textContent = '0';
+        if (clearBtn) clearBtn.style.display = hasFilters() ? '' : 'none';
+      });
+    }
+
+    if (qInput) {
+      qInput.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(doFilterFetch, 400);
+      });
+    }
+    if (typeSelect) typeSelect.addEventListener('change', doFilterFetch);
+    if (modelSel)   modelSel.addEventListener('change',  doFilterFetch);
+
+    filterForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      clearTimeout(debounceTimer);
+      doFilterFetch();
+    });
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   function updateCount() {
     document.getElementById('selCount').textContent =
       document.querySelectorAll('.tag-checkbox:checked').length;

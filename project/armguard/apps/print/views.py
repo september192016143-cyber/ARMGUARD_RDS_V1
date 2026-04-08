@@ -135,7 +135,10 @@ def print_item_tags(request):
         'with_tag':            with_tag,
         'without_tag':         total - with_tag,
         'is_admin':            _can_delete(request.user),
+        'can_print':           _can_print(request.user),
     }
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(request, 'print/print_item_tags_grid.html', context)
     return render(request, 'print/print_item_tags.html', context)
 
 
