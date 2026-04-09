@@ -182,6 +182,7 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     template_name        = 'users/user_list.html'
     context_object_name  = 'users'
     ordering             = ['username']
+    paginate_by          = 25
 
     def test_func(self):
         return _can_manage_users(self.request.user)

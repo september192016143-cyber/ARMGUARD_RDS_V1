@@ -109,6 +109,24 @@
       {% endfor %}
     </tbody>
   </table>
+
+  {% if page_obj.has_other_pages %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+      {% if page_obj.number == num %}
+        <a class="page-link active" aria-current="page">{{ num }}</a>
+      {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <a href="?page={{ num }}" class="page-link">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
+    {% endif %}
+  </div>
+  {% endif %}
 </div>
 
 <!-- Delete confirmation modal -->
