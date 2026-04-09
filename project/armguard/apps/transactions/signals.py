@@ -16,7 +16,9 @@ Example settings.py LOGGING entry:
 """
 
 import logging
-from django.db.models.signals import post_save, post_delete
+import os
+from django.conf import settings
+from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 
 audit_logger = logging.getLogger('armguard.audit')
@@ -95,7 +97,34 @@ def _resync_log_issuance_type(transaction):
         )
 
 
+def _remove_file(relative_name):
+    """Delete a MEDIA_ROOT-relative file silently."""
+    if not relative_name:
+        return
+    try:
+        path = os.path.join(settings.MEDIA_ROOT, relative_name)
+        if os.path.isfile(path):
+            os.remove(path)
+    except OSError:
+        pass
+
+
 # ── Transaction ───────────────────────────────────────────────────────────────
+
+@receiver(pre_save, sender='transactions.Transaction')
+def on_transaction_pre_save(sender, instance, **kwargs):
+    """Delete old par_document when it is replaced on an existing record."""
+    if not instance.pk:
+        return
+    try:
+        old = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return
+    old_doc = old.par_document.name if old.par_document else None
+    new_doc = instance.par_document.name if instance.par_document else None
+    if old_doc and old_doc != new_doc:
+        _remove_file(old_doc)
+
 
 @receiver(post_save, sender='transactions.Transaction')
 def on_transaction_save(sender, instance, created, **kwargs):
@@ -115,6 +144,8 @@ def on_transaction_save(sender, instance, created, **kwargs):
 @receiver(post_delete, sender='transactions.Transaction')
 def on_transaction_delete(sender, instance, **kwargs):
     _log('DELETE', instance, f"type={instance.transaction_type}")
+    if instance.par_document and instance.par_document.name:
+        _remove_file(instance.par_document.name)
 
 
 # ── TransactionLogs ───────────────────────────────────────────────────────────
@@ -132,6 +163,24 @@ def on_transactionlogs_delete(sender, instance, **kwargs):
 
 # ── Pistol / Rifle ────────────────────────────────────────────────────────────
 
+@receiver(pre_save, sender='inventory.Pistol')
+def on_pistol_pre_save(sender, instance, **kwargs):
+    """Delete old serial_image, qr_code_image, item_tag when replaced."""
+    if not instance.pk:
+        return
+    try:
+        old = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return
+    for attr in ('serial_image', 'qr_code_image', 'item_tag'):
+        old_f = getattr(old, attr)
+        new_f = getattr(instance, attr)
+        old_name = old_f.name if old_f else None
+        new_name = new_f.name if new_f else None
+        if old_name and old_name != new_name:
+            _remove_file(old_name)
+
+
 @receiver(post_save, sender='inventory.Pistol')
 def on_pistol_save(sender, instance, created, **kwargs):
     action = 'CREATE' if created else 'UPDATE'
@@ -141,6 +190,28 @@ def on_pistol_save(sender, instance, created, **kwargs):
 @receiver(post_delete, sender='inventory.Pistol')
 def on_pistol_delete(sender, instance, **kwargs):
     _log('DELETE', instance)
+    for attr in ('serial_image', 'qr_code_image', 'item_tag'):
+        f = getattr(instance, attr)
+        if f and f.name:
+            _remove_file(f.name)
+
+
+@receiver(pre_save, sender='inventory.Rifle')
+def on_rifle_pre_save(sender, instance, **kwargs):
+    """Delete old serial_image, qr_code_image, item_tag when replaced."""
+    if not instance.pk:
+        return
+    try:
+        old = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return
+    for attr in ('serial_image', 'qr_code_image', 'item_tag'):
+        old_f = getattr(old, attr)
+        new_f = getattr(instance, attr)
+        old_name = old_f.name if old_f else None
+        new_name = new_f.name if new_f else None
+        if old_name and old_name != new_name:
+            _remove_file(old_name)
 
 
 @receiver(post_save, sender='inventory.Rifle')
@@ -152,9 +223,34 @@ def on_rifle_save(sender, instance, created, **kwargs):
 @receiver(post_delete, sender='inventory.Rifle')
 def on_rifle_delete(sender, instance, **kwargs):
     _log('DELETE', instance)
+    for attr in ('serial_image', 'qr_code_image', 'item_tag'):
+        f = getattr(instance, attr)
+        if f and f.name:
+            _remove_file(f.name)
 
 
 # ── Personnel ─────────────────────────────────────────────────────────────────
+
+
+@receiver(pre_save, sender='personnel.Personnel')
+def on_personnel_pre_save(sender, instance, **kwargs):
+    """When personnel_image or qr_code_image is replaced, delete the old file."""
+    if not instance.pk:
+        return  # new record — nothing to clean up
+    try:
+        old = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return
+    # Delete old personnel photo if it changed
+    old_photo = old.personnel_image.name if old.personnel_image else None
+    new_photo = instance.personnel_image.name if instance.personnel_image else None
+    if old_photo and old_photo != new_photo:
+        _remove_file(old_photo)
+    # Delete old QR image if it changed
+    old_qr = old.qr_code_image.name if old.qr_code_image else None
+    new_qr = instance.qr_code_image.name if instance.qr_code_image else None
+    if old_qr and old_qr != new_qr:
+        _remove_file(old_qr)
 
 @receiver(post_save, sender='personnel.Personnel')
 def on_personnel_save(sender, instance, created, **kwargs):
@@ -170,27 +266,15 @@ def on_personnel_save(sender, instance, created, **kwargs):
 def on_personnel_delete(sender, instance, **kwargs):
     _log('DELETE', instance, f"rank={instance.rank}")
     # Clean up all files on disk that belong to this personnel record.
-    import os
-    from django.conf import settings
-
-    def _remove(path):
-        try:
-            if path and os.path.isfile(path):
-                os.remove(path)
-        except OSError:
-            pass
-
-    # personnel photo and QR code (ImageField — .name is the relative path)
     if instance.personnel_image and instance.personnel_image.name:
-        _remove(os.path.join(settings.MEDIA_ROOT, instance.personnel_image.name))
+        _remove_file(instance.personnel_image.name)
     if instance.qr_code_image and instance.qr_code_image.name:
-        _remove(os.path.join(settings.MEDIA_ROOT, instance.qr_code_image.name))
-
+        _remove_file(instance.qr_code_image.name)
     # ID card files (combined, front, back)
     pid = instance.Personnel_ID
     card_dir = os.path.join(settings.MEDIA_ROOT, 'personnel_id_cards')
     for suffix in ('', '_front', '_back'):
-        _remove(os.path.join(card_dir, f"{pid}{suffix}.png"))
+        _remove_file(os.path.join('personnel_id_cards', f"{pid}{suffix}.png"))
 
 
 # ── Magazine / Ammunition / Accessory ───────────────────────────────────────────
@@ -228,3 +312,62 @@ def on_accessory_save(sender, instance, created, **kwargs):
 @receiver(post_delete, sender='inventory.Accessory')
 def on_accessory_delete(sender, instance, **kwargs):
     _log('DELETE', instance, f"type={instance.type} qty={instance.quantity}")
+
+
+# ── SerialImageCapture ────────────────────────────────────────────────────────
+
+@receiver(post_delete, sender='inventory.SerialImageCapture')
+def on_serial_image_capture_delete(sender, instance, **kwargs):
+    if instance.image and instance.image.name:
+        _remove_file(instance.image.name)
+
+
+# ── FirearmDiscrepancy ────────────────────────────────────────────────────────
+
+@receiver(pre_save, sender='inventory.FirearmDiscrepancy')
+def on_discrepancy_pre_save(sender, instance, **kwargs):
+    """Delete old discrepancy images when replaced."""
+    if not instance.pk:
+        return
+    try:
+        old = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return
+    for attr in ('image', 'image_2', 'image_3', 'image_4', 'image_5'):
+        old_f = getattr(old, attr)
+        new_f = getattr(instance, attr)
+        old_name = old_f.name if old_f else None
+        new_name = new_f.name if new_f else None
+        if old_name and old_name != new_name:
+            _remove_file(old_name)
+
+
+@receiver(post_delete, sender='inventory.FirearmDiscrepancy')
+def on_discrepancy_delete(sender, instance, **kwargs):
+    for attr in ('image', 'image_2', 'image_3', 'image_4', 'image_5'):
+        f = getattr(instance, attr)
+        if f and f.name:
+            _remove_file(f.name)
+
+
+# ── SystemSettings (app_logo) ──────────────────────────────────────────────────
+
+@receiver(pre_save, sender='users.SystemSettings')
+def on_system_settings_pre_save(sender, instance, **kwargs):
+    """Delete old app_logo when it is replaced."""
+    if not instance.pk:
+        return
+    try:
+        old = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return
+    old_logo = old.app_logo.name if old.app_logo else None
+    new_logo = instance.app_logo.name if instance.app_logo else None
+    if old_logo and old_logo != new_logo:
+        _remove_file(old_logo)
+
+
+@receiver(post_delete, sender='users.SystemSettings')
+def on_system_settings_delete(sender, instance, **kwargs):
+    if instance.app_logo and instance.app_logo.name:
+        _remove_file(instance.app_logo.name)
