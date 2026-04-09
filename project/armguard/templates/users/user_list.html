@@ -130,9 +130,14 @@
 <div class="card" style="margin-top:1.5rem" id="storage-panel">
   <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
     <span class="card-title"><i class="fa-solid fa-hard-drive"></i> Storage Status</span>
-    <button id="storage-refresh-btn" class="btn btn-secondary btn-sm btn-icon" title="Refresh">
-      <i class="fa-solid fa-rotate-right"></i>
-    </button>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <button id="storage-cleanup-btn" class="btn btn-sm" style="background:rgba(239,68,68,.15);border:1px solid var(--red,#f87171);color:var(--red,#f87171);font-size:.72rem" title="Delete orphaned personnel media files">
+        <i class="fa-solid fa-broom"></i> Clean Orphans
+      </button>
+      <button id="storage-refresh-btn" class="btn btn-secondary btn-sm btn-icon" title="Refresh">
+        <i class="fa-solid fa-rotate-right"></i>
+      </button>
+    </div>
   </div>
 
   <!-- Disk usage bar -->

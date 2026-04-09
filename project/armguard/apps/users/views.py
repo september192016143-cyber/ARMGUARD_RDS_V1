@@ -822,3 +822,71 @@ def storage_status_json(request):
         'records':    records,
         'per_record': _per_record_storage(media_root),
     })
+
+
+@require_POST
+def cleanup_orphaned_personnel_media(request):
+    """Delete personnel media files on disk that have no matching Personnel record."""
+    if not _is_admin(request.user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+
+    media_root = str(django_settings.MEDIA_ROOT)
+    existing_ids = set(Personnel.objects.values_list('Personnel_ID', flat=True))
+
+    removed = []
+
+    # ── Personnel images  ( IMG_<last>_<ID>.jpeg ) ────────────────────────────
+    img_dir = os.path.join(media_root, 'personnel_images')
+    if os.path.isdir(img_dir):
+        for entry in os.scandir(img_dir):
+            if not entry.is_file():
+                continue
+            # filename is IMG_<LastName>_<PersonnelID>.jpeg
+            name = entry.name
+            # extract ID: last segment before extension after last underscore
+            stem = os.path.splitext(name)[0]          # e.g. IMG_SMITH_PAF-001
+            parts = stem.split('_')
+            pid = parts[-1] if len(parts) >= 2 else None
+            if pid and pid not in existing_ids:
+                try:
+                    os.remove(entry.path)
+                    removed.append(f'personnel_images/{name}')
+                except OSError:
+                    pass
+
+    # ── QR images  ( <ID>_qr.png or <ID>.png ) ───────────────────────────────
+    qr_dir = os.path.join(media_root, 'qr_code_images_personnel')
+    if os.path.isdir(qr_dir):
+        for entry in os.scandir(qr_dir):
+            if not entry.is_file():
+                continue
+            stem = os.path.splitext(entry.name)[0]
+            # strip common suffixes to recover the Personnel_ID
+            pid = stem.replace('_qr', '')
+            if pid not in existing_ids:
+                try:
+                    os.remove(entry.path)
+                    removed.append(f'qr_code_images_personnel/{entry.name}')
+                except OSError:
+                    pass
+
+    # ── ID cards  ( <ID>.png / <ID>_front.png / <ID>_back.png ) ─────────────
+    card_dir = os.path.join(media_root, 'personnel_id_cards')
+    if os.path.isdir(card_dir):
+        for entry in os.scandir(card_dir):
+            if not entry.is_file():
+                continue
+            stem = os.path.splitext(entry.name)[0]    # e.g. PAF-001_front
+            # strip _front / _back suffix to get the ID
+            pid = stem.replace('_front', '').replace('_back', '')
+            # skip preview files (named preview_<hex>)
+            if stem.startswith('preview_'):
+                continue
+            if pid not in existing_ids:
+                try:
+                    os.remove(entry.path)
+                    removed.append(f'personnel_id_cards/{entry.name}')
+                except OSError:
+                    pass
+
+    return JsonResponse({'removed': len(removed), 'files': removed})

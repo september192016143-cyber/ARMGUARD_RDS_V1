@@ -126,5 +126,37 @@
     loadStorage();
     const btn = document.getElementById('storage-refresh-btn');
     if (btn) btn.addEventListener('click', loadStorage);
+
+    const cleanBtn = document.getElementById('storage-cleanup-btn');
+    if (cleanBtn) {
+      cleanBtn.addEventListener('click', function () {
+        if (!confirm('Delete all orphaned personnel image, QR, and ID card files that have no matching personnel record?')) return;
+        cleanBtn.disabled = true;
+        cleanBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cleaning…';
+        const csrfEl = document.querySelector('[name=csrfmiddlewaretoken]') ||
+                       { value: '' };
+        fetch('/users/storage/cleanup-orphans/', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'X-CSRFToken': csrfEl.value || getCookie('csrftoken') },
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data.error) { alert('Error: ' + data.error); return; }
+          alert('Removed ' + data.removed + ' orphaned file(s).');
+          loadStorage();
+        })
+        .catch(function (e) { alert('Request failed: ' + e.message); })
+        .finally(function () {
+          cleanBtn.disabled = false;
+          cleanBtn.innerHTML = '<i class="fa-solid fa-broom"></i> Clean Orphans';
+        });
+      });
+    }
+
+    function getCookie(name) {
+      const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+      return v ? v.pop() : '';
+    }
   })();
 })();
