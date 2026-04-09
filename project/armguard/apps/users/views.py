@@ -634,17 +634,17 @@ def _per_record_storage(media_root):
         'personnel': {
             'total': _fmt(p_total), 'total_bytes': p_total,
             'avg': _fmt(p_avg), 'count': len(personnel_rows),
-            'rows': personnel_rows[:15],
+            'rows': personnel_rows,
         },
         'pistols': {
             'total': _fmt(pi_total), 'total_bytes': pi_total,
             'avg': _fmt(pi_avg), 'count': len(pistol_rows),
-            'rows': pistol_rows[:15],
+            'rows': pistol_rows,
         },
         'rifles': {
             'total': _fmt(ri_total), 'total_bytes': ri_total,
             'avg': _fmt(ri_avg), 'count': len(rifle_rows),
-            'rows': rifle_rows[:15],
+            'rows': rifle_rows,
         },
     }
 
