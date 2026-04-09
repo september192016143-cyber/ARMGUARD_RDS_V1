@@ -169,6 +169,28 @@ def on_personnel_save(sender, instance, created, **kwargs):
 @receiver(post_delete, sender='personnel.Personnel')
 def on_personnel_delete(sender, instance, **kwargs):
     _log('DELETE', instance, f"rank={instance.rank}")
+    # Clean up all files on disk that belong to this personnel record.
+    import os
+    from django.conf import settings
+
+    def _remove(path):
+        try:
+            if path and os.path.isfile(path):
+                os.remove(path)
+        except OSError:
+            pass
+
+    # personnel photo and QR code (ImageField — .name is the relative path)
+    if instance.personnel_image and instance.personnel_image.name:
+        _remove(os.path.join(settings.MEDIA_ROOT, instance.personnel_image.name))
+    if instance.qr_code_image and instance.qr_code_image.name:
+        _remove(os.path.join(settings.MEDIA_ROOT, instance.qr_code_image.name))
+
+    # ID card files (combined, front, back)
+    pid = instance.Personnel_ID
+    card_dir = os.path.join(settings.MEDIA_ROOT, 'personnel_id_cards')
+    for suffix in ('', '_front', '_back'):
+        _remove(os.path.join(card_dir, f"{pid}{suffix}.png"))
 
 
 # ── Magazine / Ammunition / Accessory ───────────────────────────────────────────
