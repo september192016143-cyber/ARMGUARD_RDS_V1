@@ -3,6 +3,12 @@
   'use strict';
 
   const API_URL = '/users/storage/';
+  const PAGE_SIZE = 10;
+
+  // Current page state per group key
+  var pages = { personnel: 1, pistols: 1, rifles: 1 };
+  // Last fetched data cache
+  var cachedData = null;
 
   function fmt(n) {
     return Number(n).toLocaleString();
@@ -14,20 +20,52 @@
     return 'var(--success, #22c55e)';
   }
 
-  function recordTable(group, label) {
-    const rows = (group && group.rows) ? group.rows : [];
-    const total = (group && group.total) ? group.total : '—';
-    const avg   = (group && group.avg)   ? group.avg   : '—';
-    const count = (group && group.count !== undefined) ? group.count : '—';
-    const rowsHtml = rows.length === 0
+  function renderRecordTable(key, group, label) {
+    var rows  = (group && group.rows)  ? group.rows  : [];
+    var total = (group && group.total) ? group.total : '—';
+    var avg   = (group && group.avg)   ? group.avg   : '—';
+    var count = (group && group.count !== undefined) ? group.count : '—';
+    var page      = pages[key] || 1;
+    var totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+    if (page > totalPages) { page = totalPages; pages[key] = page; }
+    var start = (page - 1) * PAGE_SIZE;
+    var pageRows = rows.slice(start, start + PAGE_SIZE);
+
+    var rowsHtml = pageRows.length === 0
       ? '<tr><td colspan="2" style="color:var(--muted);padding:.4rem .3rem">No files found.</td></tr>'
-      : rows.map(function (r) {
+      : pageRows.map(function (r) {
           return '<tr style="border-top:1px solid var(--border,rgba(255,255,255,.07))">' +
             '<td style="padding:.2rem .3rem;color:var(--text);font-size:.75rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + r.id + '">' + r.name + '</td>' +
             '<td style="text-align:right;padding:.2rem .3rem;color:var(--primary);font-size:.75rem;white-space:nowrap">' + r.size + '</td>' +
             '</tr>';
         }).join('');
-    return '<div>' +
+
+    // Pagination controls
+    var paginationHtml = '';
+    if (totalPages > 1) {
+      var btns = '';
+      // Prev
+      btns += '<button data-key="' + key + '" data-page="' + (page - 1) + '" ' +
+        (page <= 1 ? 'disabled ' : '') +
+        'style="' + pageBtnStyle(false) + '">&lsaquo;</button>';
+      // Page numbers (window of ±2)
+      for (var i = 1; i <= totalPages; i++) {
+        if (i === page) {
+          btns += '<button disabled style="' + pageBtnStyle(true) + '">' + i + '</button>';
+        } else if (i >= page - 2 && i <= page + 2) {
+          btns += '<button data-key="' + key + '" data-page="' + i + '" style="' + pageBtnStyle(false) + '">' + i + '</button>';
+        }
+      }
+      // Next
+      btns += '<button data-key="' + key + '" data-page="' + (page + 1) + '" ' +
+        (page >= totalPages ? 'disabled ' : '') +
+        'style="' + pageBtnStyle(false) + '">&rsaquo;</button>';
+      paginationHtml = '<div style="display:flex;gap:.25rem;align-items:center;margin-top:.5rem;flex-wrap:wrap">' + btns + '</div>';
+    }
+
+    var el = document.getElementById('pr-' + key);
+    if (!el) return;
+    el.innerHTML =
       '<div style="font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem">' + label + '</div>' +
       '<div style="font-size:.72rem;color:var(--muted);margin-bottom:.4rem">' +
         count + ' records &mdash; Total: <strong style="color:var(--text)">' + total + '</strong>' +
@@ -40,7 +78,39 @@
         '</tr></thead>' +
         '<tbody>' + rowsHtml + '</tbody>' +
       '</table>' +
-    '</div>';
+      paginationHtml;
+  }
+
+  function pageBtnStyle(active) {
+    return 'cursor:pointer;border:1px solid var(--border,rgba(255,255,255,.12));border-radius:4px;padding:.1rem .45rem;font-size:.72rem;background:' +
+      (active ? 'var(--primary)' : 'var(--surface2,rgba(255,255,255,.06))') +
+      ';color:' + (active ? '#fff' : 'var(--text)') + ';';
+  }
+
+  function renderPerRecord(pr) {
+    var grid = document.getElementById('storage-per-record-grid');
+    if (!grid) return;
+    // Build the three column containers once
+    if (!document.getElementById('pr-personnel')) {
+      grid.innerHTML =
+        '<div id="pr-personnel"></div>' +
+        '<div id="pr-pistols"></div>' +
+        '<div id="pr-rifles"></div>';
+      // Single delegated listener for all pagination buttons
+      grid.addEventListener('click', function (e) {
+        var btn = e.target.closest('button[data-key]');
+        if (!btn || btn.disabled) return;
+        var k = btn.getAttribute('data-key');
+        var p = parseInt(btn.getAttribute('data-page'), 10);
+        if (!k || isNaN(p) || !cachedData) return;
+        pages[k] = p;
+        var labels = { personnel: 'Personnel', pistols: 'Pistols', rifles: 'Rifles' };
+        renderRecordTable(k, cachedData.per_record[k], labels[k]);
+      });
+    }
+    renderRecordTable('personnel', pr.personnel, 'Personnel');
+    renderRecordTable('pistols', pr.pistols, 'Pistols');
+    renderRecordTable('rifles', pr.rifles, 'Rifles');
   }
 
   function render(data) {
@@ -92,14 +162,9 @@
     }
 
     // ── Per-record storage ────────────────────────────────────────────────────
-    const pr = data.per_record || {};
-    const grid = document.getElementById('storage-per-record-grid');
-    if (grid) {
-      grid.innerHTML =
-        recordTable(pr.personnel, 'Personnel') +
-        recordTable(pr.pistols,   'Pistols') +
-        recordTable(pr.rifles,    'Rifles');
-    }
+    cachedData = data;
+    pages = { personnel: 1, pistols: 1, rifles: 1 };
+    renderPerRecord(data.per_record || {});
 
     // ── Timestamp ─────────────────────────────────────────────────────────────
     document.getElementById('storage-ts').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
