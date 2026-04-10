@@ -45,10 +45,14 @@
     <div style="font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">
       Excel Template — Required Columns
     </div>
-    <p style="font-size:.85rem;color:var(--muted);margin:0 0 1rem">
+    <p style="font-size:.85rem;color:var(--muted);margin:0 0 .75rem">
       Your spreadsheet <strong>must</strong> have a header row with these exact column names (case-insensitive).
       Extra columns are ignored.
     </p>
+    <a href="{% static 'personnel_import_template.xlsx' %}" download
+       class="btn btn-secondary btn-sm" style="width:fit-content;margin-bottom:1rem">
+      <i class="fa-solid fa-file-arrow-down"></i> Download Excel Template
+    </a>
     <div style="overflow-x:auto">
       <table class="data-table" style="width:100%;font-size:.8rem">
         <thead>
