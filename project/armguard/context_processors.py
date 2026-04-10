@@ -53,8 +53,21 @@ def nav_permissions(request):
 
 
 def session_settings(request):
-    """Inject IDLE_SESSION_TIMEOUT into every template context."""
-    from django.conf import settings
-    return {
-        'IDLE_SESSION_TIMEOUT': getattr(settings, 'IDLE_SESSION_TIMEOUT', 1800),
-    }
+    """Inject the per-role idle timeout for the current user into every template context."""
+    from armguard.apps.users.models import SystemSettings
+    user = request.user
+    if not user.is_authenticated:
+        return {'IDLE_SESSION_TIMEOUT': 0}
+    s = SystemSettings.get()
+    if user.is_superuser:
+        timeout = s.timeout_superuser
+    else:
+        role = getattr(getattr(user, 'profile', None), 'role', '')
+        _map = {
+            'System Administrator':      s.timeout_system_admin,
+            'Administrator — View Only': s.timeout_admin_view_only,
+            'Administrator — Edit & Add': s.timeout_admin_edit_add,
+            'Armorer':                   s.timeout_armorer,
+        }
+        timeout = _map.get(role, 1800)
+    return {'IDLE_SESSION_TIMEOUT': timeout}

@@ -301,6 +301,30 @@ class SystemSettings(models.Model):
         help_text='Number of previous passwords a user may not reuse (0 = no restriction).'
     )
 
+    # ── Per-role idle session timeout ─────────────────────────────────────────
+    # After this many seconds of inactivity the browser shows a 60-second
+    # warning then auto-logs the user out.  0 = disabled for that role.
+    timeout_system_admin = models.PositiveIntegerField(
+        default=1800,
+        help_text='Idle timeout in seconds for System Administrator accounts (0 = never).',
+    )
+    timeout_admin_view_only = models.PositiveIntegerField(
+        default=1800,
+        help_text='Idle timeout in seconds for Administrator — View Only accounts (0 = never).',
+    )
+    timeout_admin_edit_add = models.PositiveIntegerField(
+        default=1800,
+        help_text='Idle timeout in seconds for Administrator — Edit & Add accounts (0 = never).',
+    )
+    timeout_armorer = models.PositiveIntegerField(
+        default=3600,
+        help_text='Idle timeout in seconds for Armorer accounts (0 = never).',
+    )
+    timeout_superuser = models.PositiveIntegerField(
+        default=0,
+        help_text='Idle timeout in seconds for Superuser accounts (0 = never). Default: disabled.',
+    )
+
     # ── Per-purpose weapon field visibility ───────────────────────────────────
     # Controls which weapon columns (pistol / rifle) are shown on the
     # New Transaction form for each purpose.  Editable via System Settings.
