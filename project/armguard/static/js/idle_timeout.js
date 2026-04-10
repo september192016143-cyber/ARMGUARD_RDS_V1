@@ -156,10 +156,19 @@
   stayBtn.addEventListener('click', function () {
     hideModal();
     resetIdle();
-    // Ping server to refresh session cookie expiry
+    // Ping server to refresh session cookie expiry.
+    // Use redirect:'manual' so an expired-session redirect (302→login) is
+    // not silently followed — we detect it and force logout instead of leaving
+    // the user stranded on a page backed by an expired session.
     fetch('/users/ping/', { method: 'POST', credentials: 'same-origin',
+      redirect: 'manual',
       headers: { 'X-CSRFToken': getCsrf(), 'X-Requested-With': 'XMLHttpRequest' }
-    }).catch(function () {});
+    }).then(function (r) {
+      // 204 = session still alive; anything else (opaqueredirect, 4xx, 5xx) means
+      // the session has expired or the server is unavailable — log the user out now
+      // so they aren't stuck on a stale page until their next navigation.
+      if (r.status !== 204) { doLogout(); }
+    }).catch(function () { doLogout(); });
   });
 
   logoutBtn.addEventListener('click', doLogout);
