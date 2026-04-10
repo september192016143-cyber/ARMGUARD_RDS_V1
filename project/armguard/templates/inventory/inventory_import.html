@@ -72,10 +72,23 @@
       (e.g. <code>SERIAL NUMBER</code> and <code>serial_number</code> are both accepted). Extra columns are ignored.
       A single sheet can contain a mix of pistol <em>and</em> rifle rows (when no Batch Model is selected above).
     </p>
-    <a href="{% static 'inventory_import_template.xlsx' %}" download
-       class="btn btn-secondary btn-sm" style="width:fit-content;margin-bottom:1rem">
-      <i class="fa-solid fa-file-arrow-down"></i> Download Excel Template (all types)
-    </a>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem">
+      <a href="{% static 'tpl_pistol.xlsx' %}" download class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-file-arrow-down"></i> Pistol
+      </a>
+      <a href="{% static 'tpl_rifle.xlsx' %}" download class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-file-arrow-down"></i> Rifle
+      </a>
+      <a href="{% static 'tpl_magazine.xlsx' %}" download class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-file-arrow-down"></i> Magazine
+      </a>
+      <a href="{% static 'tpl_ammunition.xlsx' %}" download class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-file-arrow-down"></i> Ammunition
+      </a>
+      <a href="{% static 'tpl_accessory.xlsx' %}" download class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-file-arrow-down"></i> Accessory
+      </a>
+    </div>
     <div style="overflow-x:auto">
       <table class="data-table" style="width:100%;font-size:.8rem">
         <thead>
