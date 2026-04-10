@@ -398,8 +398,11 @@ def upload_image(request):
         with open(abs_path, 'rb') as fh:
             capture_session.image.save(safe_name, ContentFile(fh.read()), save=True)
         CameraDevice.objects.filter(pk=device.pk).update(pending_serial_task=None)
-    except (ValueError, Exception):
-        pass  # SerialImageCapture may have been cancelled — upload still recorded
+    except (ValueError, Exception) as _cap_exc:
+        import logging as _logmod
+        _logmod.getLogger(__name__).warning(
+            'Serial capture linkage failed for task %s: %s', serial_task_id, _cap_exc
+        )  # SerialImageCapture may have been cancelled — upload still recorded
 
     return JsonResponse({'success': True, 'filename': safe_name, 'url': file_url})
 

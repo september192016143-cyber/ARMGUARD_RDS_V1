@@ -230,11 +230,15 @@ class PersonnelUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 		# Redirect back to edit so the flip card preview shows the regenerated PNG
 		return redirect('personnel-update', pk=obj.Personnel_ID)
 
-class PersonnelCardPreviewView(LoginRequiredMixin, View):
+class PersonnelCardPreviewView(LoginRequiredMixin, UserPassesTestMixin, View):
 	"""
 	POST form fields + optional photo → returns a front or back card PNG.
 	Used by the real-time flip-card preview on the create/edit form.
 	"""
+	def test_func(self):
+		return _can_view_personnel(self.request.user)
+
+
 	def _render_card(self, request, face='front'):
 		import io, uuid, os
 		from django.http import HttpResponse
@@ -506,7 +510,9 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 				row_errors.append('squadron required')
 			if status and status not in valid_status:
 				status = 'Active'
-			if tel and Personnel.objects.filter(tel=tel).exists():
+			if not tel:
+				row_errors.append('tel required')
+			elif Personnel.objects.filter(tel=tel).exists():
 				row_errors.append(f'tel {tel} already registered')
 
 			if row_errors:

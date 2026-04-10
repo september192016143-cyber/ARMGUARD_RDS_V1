@@ -47,8 +47,8 @@ def _write_audit_log(action, instance, extra=''):
             object_pk=str(_pk(instance) or ''),
             message=extra,
         )
-    except Exception:
-        pass
+    except Exception as _audit_exc:
+        audit_logger.warning('AuditLog write failed: %s', _audit_exc)
 
 
 def _log(action, instance, extra=''):

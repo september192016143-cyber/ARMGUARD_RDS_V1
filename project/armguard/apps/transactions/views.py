@@ -48,13 +48,17 @@ class TransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             .values('issuance_type')[:1]
         )
         # For Return rows: look up the most-recent prior Withdrawal's return_by
-        # so we can show the original deadline instead of a stale/wrong value.
+        # for the same personnel AND the same firearm (pistol or rifle) so we
+        # always show the deadline for the correct specific weapon.
         _withdrawal_return_by = (
             Transaction.objects
             .filter(
                 transaction_type='Withdrawal',
                 personnel=OuterRef('personnel'),
                 timestamp__lt=OuterRef('timestamp'),
+            )
+            .filter(
+                Q(pistol_id=OuterRef('pistol_id')) | Q(rifle_id=OuterRef('rifle_id'))
             )
             .order_by('-timestamp')
             .values('return_by')[:1]
@@ -241,6 +245,21 @@ class TransactionDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView)
                     .values_list('timestamp', flat=True)
                     .first()
                 )
+            else:
+                # Accessories-only withdrawal: look up any matching Return for
+                # this personnel after this timestamp so OVERDUE is not shown
+                # perpetually once the accessories have been returned.
+                ctx['transaction_returned_at'] = (
+                    Transaction.objects
+                    .filter(
+                        transaction_type='Return',
+                        personnel=transaction.personnel,
+                        timestamp__gt=transaction.timestamp,
+                    )
+                    .order_by('timestamp')
+                    .values_list('timestamp', flat=True)
+                    .first()
+                )
         return ctx
 
 
@@ -311,8 +330,12 @@ def create_transaction(request):
                                 status='Open',
                                 reported_by=request.user,
                             )
-                        except Exception:
-                            pass  # Discrepancy error must never block the Return
+                        except Exception as _disc_exc:
+                            import logging as _log_mod
+                            _log_mod.getLogger(__name__).exception(
+                                'Discrepancy creation failed for transaction #%s: %s',
+                                txn.transaction_id, _disc_exc,
+                            )  # Error must never block the Return
 
             messages.success(request, f'Transaction #{txn.transaction_id} recorded successfully.')
             return redirect('transaction-detail', transaction_id=txn.transaction_id)
