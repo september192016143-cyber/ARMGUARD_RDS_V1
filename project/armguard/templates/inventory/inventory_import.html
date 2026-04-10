@@ -67,11 +67,15 @@
     <div style="font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">
       Excel Template — Required &amp; Optional Columns
     </div>
-    <p style="font-size:.85rem;color:var(--muted);margin:0 0 1rem">
+    <p style="font-size:.85rem;color:var(--muted);margin:0 0 .75rem">
       The first row must be a header. Column names are case-insensitive and spaces are treated as underscores
       (e.g. <code>SERIAL NUMBER</code> and <code>serial_number</code> are both accepted). Extra columns are ignored.
       A single sheet can contain a mix of pistol <em>and</em> rifle rows (when no Batch Model is selected above).
     </p>
+    <a href="{% static 'inventory_import_template.xlsx' %}" download
+       class="btn btn-secondary btn-sm" style="width:fit-content;margin-bottom:1rem">
+      <i class="fa-solid fa-file-arrow-down"></i> Download Excel Template (all types)
+    </a>
     <div style="overflow-x:auto">
       <table class="data-table" style="width:100%;font-size:.8rem">
         <thead>
