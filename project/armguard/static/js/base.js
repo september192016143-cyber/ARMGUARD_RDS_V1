@@ -509,23 +509,41 @@ document.addEventListener('DOMContentLoaded', function () {
     var _lastCertMtime = 0;
 
     function checkSslCert() {
+      // Already on HTTPS → connection is secure; hide the sidebar shortcut and stop
+      if (window.location.protocol === 'https:') {
+        hideSidebarBtn();
+        return;
+      }
       fetch(SSL_STATUS_URL, {
         credentials: 'same-origin',
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
       })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
-        if (!data || !data.cert_mtime) return;
-        _lastCertMtime = data.cert_mtime;
-        var acked = parseFloat(localStorage.getItem(LS_KEY) || '0');
-        if (acked >= _lastCertMtime) return; // already installed this version
-        var isRenewal = acked > 0;
+        if (!data) return;
+        _lastCertMtime = data.cert_mtime || 0;
+        var noCert = _lastCertMtime === 0;
+
+        if (!noCert) {
+          // Cert file exists on server — check if this device has already acked it
+          var acked = parseFloat(localStorage.getItem(LS_KEY) || '0');
+          if (acked >= _lastCertMtime) return; // already installed this version
+        }
+        // noCert === true: no cert configured → connection is always insecure → always notify
+
+        var acked2 = _lastCertMtime > 0 ? parseFloat(localStorage.getItem(LS_KEY) || '0') : 0;
+        var isRenewal = !noCert && acked2 > 0;
+        var title = noCert   ? 'Connection Not Secured'
+                  : isRenewal ? 'SSL Certificate Renewed'
+                  :             'Install SSL Certificate';
+        var msg = noCert
+          ? 'This server does not have an SSL certificate. All data is transmitted unencrypted. Contact the administrator to configure SSL.'
+          : isRenewal
+          ? 'A new security certificate was issued for this server. Reinstall it on this device to keep the secure padlock.'
+          : 'This server uses a self-signed certificate. Install it on this device to remove the \u201cNot secure\u201d warning.';
+        var actionUrl = noCert ? null : '#ssl-install';
         var added = window.addNotif(
-          isRenewal ? 'SSL Certificate Renewed' : 'Install SSL Certificate',
-          isRenewal
-            ? 'A new security certificate was issued for this server. Reinstall it on this device to keep the secure padlock.'
-            : 'This server uses a self-signed certificate. Install it on this device to remove the "Not secure" warning.',
-          'warning', 'fa-certificate', 'ssl-cert', '#ssl-install'
+          title, msg, 'warning', 'fa-certificate', 'ssl-cert', actionUrl
         );
         if (added) {
           document.getElementById('notif-panel').classList.add('open');
@@ -545,8 +563,9 @@ document.addEventListener('DOMContentLoaded', function () {
       hideSidebarBtn();
     };
 
-    // Hide sidebar button immediately if already acked on this device
+    // Hide sidebar button immediately if already acked OR already on HTTPS
     (function () {
+      if (window.location.protocol === 'https:') { hideSidebarBtn(); return; }
       var acked = parseFloat(localStorage.getItem(LS_KEY) || '0');
       if (acked > 0) hideSidebarBtn();
     })();
