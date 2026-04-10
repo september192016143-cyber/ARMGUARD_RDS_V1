@@ -430,17 +430,26 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 	def test_func(self):
 		return self.request.user.is_superuser
 
+	def _ctx(self):
+		return {'group_choices': Personnel.GROUP_CHOICES}
+
 	def get(self, request):
-		return render(request, self.template_name)
+		return render(request, self.template_name, self._ctx())
 
 	def post(self, request):
 		xlsx_file = request.FILES.get('xlsx_file')
 		if not xlsx_file:
 			messages.error(request, 'Please upload an Excel (.xlsx) file.')
-			return render(request, self.template_name)
+			return render(request, self.template_name, self._ctx())
 		if not xlsx_file.name.endswith('.xlsx'):
 			messages.error(request, 'Only .xlsx files are accepted.')
-			return render(request, self.template_name)
+			return render(request, self.template_name, self._ctx())
+
+		# Group override — if selected in the form, every row uses this group
+		valid_groups_set = {g for g, _ in Personnel.GROUP_CHOICES}
+		group_override = request.POST.get('group_override', '').strip()
+		if group_override not in valid_groups_set:
+			group_override = ''
 
 		try:
 			import openpyxl
@@ -448,20 +457,22 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 			ws = wb.active
 		except Exception as exc:
 			messages.error(request, f'Could not read Excel file: {exc}')
-			return render(request, self.template_name)
+			return render(request, self.template_name, self._ctx())
 
 		rows = list(ws.iter_rows(values_only=True))
 		if not rows:
 			messages.error(request, 'The Excel file is empty.')
-			return render(request, self.template_name)
+			return render(request, self.template_name, self._ctx())
 
 		# Normalise header row
 		headers = [str(h).strip().lower().replace(' ', '_') if h is not None else '' for h in rows[0]]
-		required = {'rank', 'first_name', 'last_name', 'middle_initial', 'afsn', 'group', 'squadron'}
+		required = {'rank', 'first_name', 'last_name', 'middle_initial', 'afsn', 'squadron'}
+		if not group_override:
+			required.add('group')
 		missing = required - set(headers)
 		if missing:
 			messages.error(request, f'Missing required columns: {", ".join(sorted(missing))}')
-			return render(request, self.template_name)
+			return render(request, self.template_name, self._ctx())
 
 		def col(row, name):
 			idx = headers.index(name)
@@ -485,7 +496,7 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 			last_name       = col(row, 'last_name')
 			middle_initial  = col(row, 'middle_initial')
 			afsn            = col(row, 'afsn')
-			group           = col(row, 'group')
+			group           = group_override or col(row, 'group')
 			squadron        = col(row, 'squadron')
 			tel             = col(row, 'tel') if 'tel' in headers else ''
 			status          = col(row, 'status') if 'status' in headers else 'Active'

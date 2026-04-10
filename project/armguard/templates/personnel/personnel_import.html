@@ -30,6 +30,21 @@
                  style="width:100%;padding:.55rem .75rem;background:var(--input,#1e2540);border:1px solid var(--border,#2d3550);border-radius:.5rem;color:var(--text);font-size:.875rem">
           <p style="font-size:.75rem;color:var(--muted);margin-top:.35rem">Only .xlsx format is supported.</p>
         </div>
+        <div>
+          <label style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
+            Group Override
+          </label>
+          <select name="group_override"
+                  style="width:100%;padding:.55rem .75rem;background:var(--input,#1e2540);border:1px solid var(--border,#2d3550);border-radius:.5rem;color:var(--text);font-size:.875rem">
+            <option value="">— Use group column from spreadsheet —</option>
+            {% for val, label in group_choices %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <p style="font-size:.75rem;color:var(--muted);margin-top:.35rem">
+            Select a group to apply it to every row. When set, the <code>group</code> column in the spreadsheet is ignored.
+          </p>
+        </div>
         <div style="display:flex;gap:.75rem;justify-content:flex-end">
           <a href="{% url 'personnel-list' %}" class="btn btn-secondary">Cancel</a>
           <button type="submit" class="btn btn-primary">
