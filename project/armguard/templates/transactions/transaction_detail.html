@@ -52,7 +52,7 @@
       <span class="text-muted">Return By</span>
       <span style="{% if transaction.return_by < now %}color:#ef4444;font-weight:700{% else %}color:#facc15;font-weight:600{% endif %}">
         {{ transaction.return_by|date:"d M Y H:i" }}
-        {% if transaction.return_by < now %}<span class="badge badge-red" style="font-size:.62rem;margin-left:.3rem">OVERDUE</span>{% endif %}
+        {% if transaction.return_by < now and not transaction_returned_at %}<span class="badge badge-red" style="font-size:.62rem;margin-left:.3rem">OVERDUE</span>{% endif %}
       </span>
       {% endif %}      <span class="text-muted">By</span><span>{{ transaction.transaction_personnel|default:"—" }}</span>
     </div>

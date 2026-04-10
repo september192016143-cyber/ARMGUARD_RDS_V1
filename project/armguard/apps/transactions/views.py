@@ -219,6 +219,28 @@ class TransactionDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView)
                                 break
         ctx['original_issuance_type'] = original_issuance_type
         ctx['now'] = timezone.now()
+        # For Withdrawal rows: check if a matching Return exists so we can
+        # suppress the OVERDUE badge when the item has already been returned.
+        if transaction.transaction_type == 'Withdrawal':
+            from django.db.models import Q as _Q
+            _ret_filter = _Q()
+            if transaction.pistol_id:
+                _ret_filter |= _Q(pistol_id=transaction.pistol_id)
+            if transaction.rifle_id:
+                _ret_filter |= _Q(rifle_id=transaction.rifle_id)
+            if _ret_filter:
+                ctx['transaction_returned_at'] = (
+                    Transaction.objects
+                    .filter(
+                        transaction_type='Return',
+                        personnel=transaction.personnel,
+                        timestamp__gt=transaction.timestamp,
+                    )
+                    .filter(_ret_filter)
+                    .order_by('timestamp')
+                    .values_list('timestamp', flat=True)
+                    .first()
+                )
         return ctx
 
 
