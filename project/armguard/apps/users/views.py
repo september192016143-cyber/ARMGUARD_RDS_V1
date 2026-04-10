@@ -736,20 +736,20 @@ class SystemSettingsView(LoginRequiredMixin, View):
             obj.password_history_count = max(0, min(20, hist))
         except (ValueError, TypeError):
             obj.password_history_count = 5
-        # Per-role idle session timeouts
+        # Per-role idle session timeouts (UI submits minutes; DB stores seconds)
         _timeout_fields = {
-            'timeout_system_admin':   1800,
-            'timeout_admin_view_only': 1800,
-            'timeout_admin_edit_add':  1800,
-            'timeout_armorer':         3600,
-            'timeout_superuser':       0,
+            'timeout_system_admin':    30,
+            'timeout_admin_view_only': 30,
+            'timeout_admin_edit_add':  30,
+            'timeout_armorer':         60,
+            'timeout_superuser':        0,
         }
         for field, default in _timeout_fields.items():
             try:
-                val = int(request.POST.get(field, default))
-                setattr(obj, field, max(0, val))
+                minutes = int(request.POST.get(field, default))
+                setattr(obj, field, max(0, minutes) * 60)
             except (ValueError, TypeError):
-                setattr(obj, field, default)
+                setattr(obj, field, default * 60)
         # Branding — logo upload / clear
         if request.POST.get('clear_app_logo') and obj.app_logo:
             obj.app_logo.delete(save=False)
