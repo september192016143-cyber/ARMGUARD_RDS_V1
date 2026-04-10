@@ -440,15 +440,14 @@ document.addEventListener('DOMContentLoaded', function () {
         var isTRNotif = _cur.id && (
           _cur.id.indexOf('tr-overdue-') === 0 || _cur.id.indexOf('tr-warning-') === 0
         );
-        if (isTRNotif) {
-          // TR overdue/warning notifs can only be cleared when the firearm is returned.
-          // Just close the modal — the poll will remove it automatically when resolved.
+        if (isTRNotif || _cur.id === 'ssl-cert') {
+          // TR overdue/warning: only cleared when firearm is returned.
+          // ssl-cert: only cleared when user confirms installation via the install guide modal.
+          // In both cases just close the detail — do NOT remove the notification.
           closeDetail();
           return;
         }
-        if (_cur.id === 'ssl-cert' && typeof window.ackSslCert === 'function') {
-          window.ackSslCert();
-        } else if (_cur.id) {
+        if (_cur.id) {
           window.removeNotifById(_cur.id);
         } else {
           var t = _cur.time;
