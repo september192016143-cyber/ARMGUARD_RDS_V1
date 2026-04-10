@@ -106,6 +106,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'armguard.context_processors.session_settings',
             ],
         },
     },
@@ -178,6 +179,9 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 SESSION_COOKIE_AGE = 28800  # 8 hours in seconds
 SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript from reading session cookie
 CSRF_COOKIE_HTTPONLY = True
+
+# Client-side idle auto-logout: warn after 29 min, force logout at 30 min.
+IDLE_SESSION_TIMEOUT = 1800  # seconds (30 minutes of inactivity)
 
 # L7 FIX: Production HTTPS security headers.
 # These are safe to set even in development (they only apply via HTTPS).

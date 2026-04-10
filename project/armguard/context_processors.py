@@ -50,3 +50,11 @@ def nav_permissions(request):
         'can_use_camera':        has_camera_role(user),
         'site_settings':         SystemSettings.get(),
     }
+
+
+def session_settings(request):
+    """Inject IDLE_SESSION_TIMEOUT into every template context."""
+    from django.conf import settings
+    return {
+        'IDLE_SESSION_TIMEOUT': getattr(settings, 'IDLE_SESSION_TIMEOUT', 1800),
+    }

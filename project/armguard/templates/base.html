@@ -13,7 +13,7 @@
 </head>
 {# C2 FIX: data-poll activates G13 inventory polling for authenticated users only (replaces inline auth-block script). #}
 {# F6 FIX: data-last-modified-url passes the API endpoint URL so base.js doesn't need to hardcode it. #}
-<body data-poll="{% if user.is_authenticated %}1{% endif %}" data-last-modified-url="{% url 'api:api-last-modified' %}" data-new-txn-url="{% url 'transaction-create' %}"{% if request.resolver_match.url_name == 'transaction-create' %} data-collapse-sidebar="1"{% endif %}>
+<body data-poll="{% if user.is_authenticated %}1{% endif %}" data-last-modified-url="{% url 'api:api-last-modified' %}" data-new-txn-url="{% url 'transaction-create' %}"{% if request.resolver_match.url_name == 'transaction-create' %} data-collapse-sidebar="1"{% endif %}{% if user.is_authenticated %} data-idle-timeout="{{ IDLE_SESSION_TIMEOUT }}" data-logout-url="{% url 'logout' %}"{% endif %}>
 <a href="#main-content" class="skip-to-content">Skip to main content</a>
 <div class="sidebar-overlay" id="sidebar-overlay"></div>
 <aside class="sidebar" role="navigation" aria-label="Main navigation">
@@ -297,6 +297,7 @@
 
 <div id="pjax-extra-css">{% block extra_css %}{% endblock %}</div>
 <script src="{% static 'js/hot_key.js' %}" defer data-pjax-permanent></script>
+{% if user.is_authenticated %}<script src="{% static 'js/idle_timeout.js' %}" defer data-pjax-permanent></script>{% endif %}
 {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -538,6 +538,19 @@ class OTPVerifyView(LoginRequiredMixin, View):
 
 
 # ---------------------------------------------------------------------------
+# Session ping — keeps the session alive when "Stay Logged In" is clicked
+# ---------------------------------------------------------------------------
+
+@require_POST
+@login_required
+def session_ping(request):
+    """Touch the session so the cookie expiry is reset. Returns 204 No Content."""
+    request.session.modified = True
+    from django.http import HttpResponse
+    return HttpResponse(status=204)
+
+
+# ---------------------------------------------------------------------------
 # Storage status JSON (admin-only)
 # ---------------------------------------------------------------------------
 

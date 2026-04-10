@@ -11,4 +11,5 @@ urlpatterns = [
     path('settings/',      views.SystemSettingsView.as_view(),              name='system-settings'),
     path('storage/',       views.storage_status_json,                       name='storage-status'),
     path('storage/cleanup-orphans/', views.cleanup_orphaned_personnel_media, name='storage-cleanup-orphans'),
+    path('ping/',          views.session_ping,                              name='session-ping'),
 ]
