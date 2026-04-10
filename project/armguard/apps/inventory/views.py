@@ -992,7 +992,7 @@ class FirearmDiscrepancyCreateView(LoginRequiredMixin, UserPassesTestMixin, Crea
     template_name = 'inventory/discrepancy_form.html'
     fields        = [
         'pistol', 'rifle', 'issuer', 'withdrawer', 'related_transaction',
-        'discrepancy_type', 'description', 'image', 'image_2', 'image_3', 'image_4', 'image_5', 'status',
+        'discrepancy_type', 'description', 'image', 'image_2', 'image_3', 'image_4', 'image_5',
     ]
     success_url = reverse_lazy('discrepancy-list')
 
@@ -1001,6 +1001,7 @@ class FirearmDiscrepancyCreateView(LoginRequiredMixin, UserPassesTestMixin, Crea
 
     def form_valid(self, form):
         form.instance.reported_by = self.request.user
+        form.instance.status = 'Open'  # Always start as Open; cannot self-close on creation
         messages.success(self.request, 'Discrepancy recorded.')
         return super().form_valid(form)
 
@@ -1016,7 +1017,7 @@ class FirearmDiscrepancyUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
     fields        = [
         'pistol', 'rifle', 'issuer', 'withdrawer', 'related_transaction',
         'discrepancy_type', 'description', 'image', 'image_2', 'image_3', 'image_4', 'image_5', 'status',
-        'resolved_by', 'resolved_at', 'resolution_notes',
+        'resolved_at', 'resolution_notes',
     ]
     success_url = reverse_lazy('discrepancy-list')
 
@@ -1024,6 +1025,15 @@ class FirearmDiscrepancyUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         return can_edit_inventory(self.request.user)
 
     def form_valid(self, form):
+        # Auto-set resolved_by to the current user when marking as Resolved or Closed.
+        # This prevents attributing resolution to an arbitrary (potentially fraudulent) user.
+        new_status = form.cleaned_data.get('status', '')
+        if new_status in ('Resolved', 'Closed'):
+            if not form.instance.resolved_by_id:
+                form.instance.resolved_by = self.request.user
+            from django.utils import timezone as _tz
+            if not form.instance.resolved_at:
+                form.instance.resolved_at = _tz.now()
         messages.success(self.request, 'Discrepancy updated.')
         return super().form_valid(form)
 

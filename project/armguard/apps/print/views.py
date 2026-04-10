@@ -53,6 +53,8 @@ def serve_item_tag_image(request, item_id):
     """Serve an item tag PNG file directly through Django."""
     from django.http import FileResponse, Http404
     from pathlib import Path
+    if not _can_print(request.user):
+        raise Http404('Item not found')
     # Validate item exists in DB before serving any file (prevents path-based enumeration)
     if not Pistol.objects.filter(item_id=item_id).exists() and \
        not Rifle.objects.filter(item_id=item_id).exists():
@@ -73,6 +75,9 @@ def print_item_tags(request):
     Item Tag Print Manager — lists all items, shows their tag thumbnail,
     and allows single/bulk printing and re-generation.
     """
+    if not _can_print(request.user):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('You do not have permission to access the Print module.')
     from armguard.apps.inventory.models import PISTOL_MODELS, RIFLE_MODELS
 
     search_q     = request.GET.get('q', '').strip()
