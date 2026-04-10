@@ -479,12 +479,16 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 			val = row[idx]
 			return str(val).strip() if val is not None else ''
 
+		# Upsert mode: update existing records matched by AFSN when checkbox is ticked
+		upsert = request.POST.get('upsert') == '1'
+
 		# Valid choices sets for quick validation
 		valid_ranks  = {r for r, _ in Personnel.ALL_RANKS}
 		valid_groups = {g for g, _ in Personnel.GROUP_CHOICES}
 		valid_status = {s for s, _ in Personnel.STATUS_CHOICES}
 
 		created_count = 0
+		updated_count = 0
 		skipped = []
 
 		for i, row in enumerate(rows[1:], start=2):
@@ -500,8 +504,10 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 			squadron        = col(row, 'squadron')
 			tel             = col(row, 'tel') if 'tel' in headers else ''
 			status          = col(row, 'status') if 'status' in headers else 'Active'
+			if status and status not in valid_status:
+				status = 'Active'
 
-			# ── Validate ─────────────────────────────────────────
+			# ── Base validation (applies to both create and update) ───────────
 			row_errors = []
 			if rank not in valid_ranks:
 				row_errors.append(f'invalid rank "{rank}"')
@@ -513,49 +519,78 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 				row_errors.append('middle_initial required')
 			if not afsn:
 				row_errors.append('afsn required')
-			elif Personnel.objects.filter(AFSN=afsn).exists():
-				row_errors.append(f'AFSN {afsn} already registered')
 			if group not in valid_groups:
 				row_errors.append(f'invalid group "{group}" (valid: {", ".join(sorted(valid_groups))})')
 			if not squadron:
 				row_errors.append('squadron required')
-			if status and status not in valid_status:
-				status = 'Active'
-			if not tel:
-				row_errors.append('tel required')
-			elif Personnel.objects.filter(tel=tel).exists():
-				row_errors.append(f'tel {tel} already registered')
 
 			if row_errors:
 				skipped.append(f'Row {i}: {"; ".join(row_errors)}')
 				continue
 
-			try:
-				p = Personnel(
-					rank           = rank,
-					first_name     = first_name,
-					last_name      = last_name,
-					middle_initial = middle_initial[:1],
-					AFSN           = afsn,
-					group          = group,
-					squadron       = squadron,
-					tel            = tel or None,
-					status         = status or 'Active',
-					created_by     = request.user.username,
-					updated_by     = request.user.username,
-				)
-				p.save(user=request.user)
-				created_count += 1
-			except Exception as exc:
-				skipped.append(f'Row {i}: {exc}')
+			# ── Upsert path ───────────────────────────────────────────────────
+			existing = Personnel.objects.filter(AFSN=afsn).first()
+
+			if existing and upsert:
+				# tel uniqueness: only reject if the tel belongs to a DIFFERENT person
+				if tel and Personnel.objects.filter(tel=tel).exclude(pk=existing.pk).exists():
+					skipped.append(f'Row {i}: tel {tel} already registered to another person')
+					continue
+				try:
+					existing.rank           = rank
+					existing.first_name     = first_name
+					existing.last_name      = last_name
+					existing.middle_initial = middle_initial[:1]
+					existing.group          = group
+					existing.squadron       = squadron
+					if tel:
+						existing.tel        = tel
+					existing.status         = status or 'Active'
+					existing.updated_by     = request.user.username
+					existing.save(user=request.user)
+					updated_count += 1
+				except Exception as exc:
+					skipped.append(f'Row {i}: {exc}')
+
+			elif existing and not upsert:
+				skipped.append(f'Row {i}: AFSN {afsn} already registered (use "Update existing" to overwrite)')
+
+			else:
+				# Create new
+				if not tel:
+					skipped.append(f'Row {i}: tel required')
+					continue
+				if Personnel.objects.filter(tel=tel).exists():
+					skipped.append(f'Row {i}: tel {tel} already registered')
+					continue
+				try:
+					p = Personnel(
+						rank           = rank,
+						first_name     = first_name,
+						last_name      = last_name,
+						middle_initial = middle_initial[:1],
+						AFSN           = afsn,
+						group          = group,
+						squadron       = squadron,
+						tel            = tel or None,
+						status         = status or 'Active',
+						created_by     = request.user.username,
+						updated_by     = request.user.username,
+					)
+					p.save(user=request.user)
+					created_count += 1
+				except Exception as exc:
+					skipped.append(f'Row {i}: {exc}')
 
 		if created_count:
-			messages.success(request, f'Successfully imported {created_count} personnel record(s).')
+			messages.success(request, f'Created {created_count} new personnel record(s).')
+		if updated_count:
+			messages.success(request, f'Updated {updated_count} existing personnel record(s).')
 		if skipped:
 			for msg in skipped[:20]:
 				messages.warning(request, msg)
 			if len(skipped) > 20:
 				messages.warning(request, f'…and {len(skipped) - 20} more skipped rows.')
-		if not created_count and not skipped:
+		if not created_count and not updated_count and not skipped:
 			messages.info(request, 'No data rows found in the file.')
 		return redirect('personnel-list')

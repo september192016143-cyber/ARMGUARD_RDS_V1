@@ -45,6 +45,16 @@
             Select a group to apply it to every row. When set, the <code>group</code> column in the spreadsheet is ignored.
           </p>
         </div>
+        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.25rem">
+          <input type="checkbox" name="upsert" value="1" id="id_upsert"
+                 style="width:1rem;height:1rem;accent-color:var(--primary,#c9952b);flex-shrink:0;cursor:pointer">
+          <label for="id_upsert" style="font-size:.85rem;color:var(--text);margin:0;cursor:pointer">
+            Update existing records (match by AFSN) — fields will be overwritten
+          </label>
+        </div>
+        <p style="font-size:.75rem;color:var(--muted);margin-top:.25rem;margin-bottom:1rem">
+          When unchecked, rows whose AFSN already exists are skipped.
+        </p>
         <div style="display:flex;gap:.75rem;justify-content:flex-end">
           <a href="{% url 'personnel-list' %}" class="btn btn-secondary">Cancel</a>
           <button type="submit" class="btn btn-primary">
