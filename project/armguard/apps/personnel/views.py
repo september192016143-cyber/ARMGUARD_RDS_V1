@@ -4,7 +4,7 @@ from django.views import View
 from django.views.generic import (
 	ListView, DetailView, CreateView, UpdateView, DeleteView
 )
-from .models import Personnel
+from .models import Personnel, PersonnelGroup
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django import forms
 from django.core.exceptions import ValidationError
@@ -460,7 +460,7 @@ def _import_rows(request, data_rows, group_override='', upsert=False):
 	data_rows  – list of dicts, one per data row (header row already stripped)
 	"""
 	valid_ranks  = {r for r, _ in Personnel.ALL_RANKS}
-	valid_groups = {g for g, _ in Personnel.GROUP_CHOICES}
+	valid_groups = PersonnelGroup.get_names_set()
 	valid_status = {s for s, _ in Personnel.STATUS_CHOICES}
 
 	created_count = 0
@@ -601,7 +601,7 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 	def _ctx(self):
 		from django.conf import settings as dj_settings
 		return {
-			'group_choices': Personnel.GROUP_CHOICES,
+			'group_choices': PersonnelGroup.get_choices(),
 			'gsheets_enabled': bool(getattr(dj_settings, 'GOOGLE_SA_JSON', '')),
 		}
 
@@ -622,7 +622,7 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 			messages.error(request, 'Only .xlsx files are accepted.')
 			return render(request, self.template_name, self._ctx())
 
-		valid_groups_set = {g for g, _ in Personnel.GROUP_CHOICES}
+		valid_groups_set = PersonnelGroup.get_names_set()
 		group_override = request.POST.get('group_override', '').strip()
 		if group_override not in valid_groups_set:
 			group_override = ''
@@ -673,7 +673,7 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 			messages.error(request, 'Please enter a Google Sheet URL.')
 			return render(request, self.template_name, self._ctx())
 
-		valid_groups_set = {g for g, _ in Personnel.GROUP_CHOICES}
+		valid_groups_set = PersonnelGroup.get_names_set()
 		group_override = request.POST.get('group_override_gs', '').strip()
 		if group_override not in valid_groups_set:
 			group_override = ''

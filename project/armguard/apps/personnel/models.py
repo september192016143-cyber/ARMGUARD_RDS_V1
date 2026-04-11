@@ -8,6 +8,30 @@ from django.core.files.base import ContentFile
 from django.core.validators import RegexValidator
 from utils.qr_generator import generate_qr_code_to_buffer
 
+
+class PersonnelGroup(models.Model):
+    """DB-backed list of personnel groups, manageable from the Settings page."""
+    name = models.CharField(max_length=50, unique=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name = 'Personnel Group'
+        verbose_name_plural = 'Personnel Groups'
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def get_choices(cls):
+        """Return list of (name, name) tuples suitable for CharField choices."""
+        return [(g.name, g.name) for g in cls.objects.all()]
+
+    @classmethod
+    def get_names_set(cls):
+        return set(cls.objects.values_list('name', flat=True))
+
+
 class Personnel(models.Model):
     duty_type = models.CharField(max_length=50, blank=True, null=True, help_text="Duty type for this personnel (optional)")
     # Personnel model for Air Guard personnel
@@ -48,7 +72,7 @@ class Personnel(models.Model):
 
     ALL_RANKS = RANKS_ENLISTED + RANKS_OFFICER
 
-    # Group choices
+    # Group choices — kept as a static fallback; canonical list is PersonnelGroup (DB-backed)
     GROUP_CHOICES = [
         ('HAS', 'HAS'),
         ('951st', '951st'),
@@ -69,7 +93,7 @@ class Personnel(models.Model):
     last_name = models.CharField(max_length=20)
     middle_initial = models.CharField(max_length=1)
     AFSN = models.CharField(max_length=10, unique=True)
-    group = models.CharField(max_length=10, choices=GROUP_CHOICES)
+    group = models.CharField(max_length=50, choices=GROUP_CHOICES)
     squadron = models.CharField(max_length=20)
     tel = models.CharField(
         max_length=11,

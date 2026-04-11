@@ -9,13 +9,13 @@ from django.views.generic import ListView, CreateView, UpdateView
 from django.urls import reverse_lazy
 from django.views import View
 from django import forms
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
 from .models import UserProfile, ROLE_CHOICES, PasswordHistory
-from armguard.apps.personnel.models import Personnel
+from armguard.apps.personnel.models import Personnel, PersonnelGroup
 # H1 FIX: Import per-module permission helpers for user management.
 from armguard.utils.permissions import can_manage_users as _can_manage_users, is_admin as _is_admin
 
@@ -694,6 +694,20 @@ class SystemSettingsView(LoginRequiredMixin, View):
             {'label': 'Others',         'pistol_field': 'purpose_others_show_pistol',         'pistol_value': s.purpose_others_show_pistol,         'rifle_field': 'purpose_others_show_rifle',         'rifle_value': s.purpose_others_show_rifle},
             {'label': 'OREX',           'pistol_field': 'purpose_orex_show_pistol',           'pistol_value': s.purpose_orex_show_pistol,           'rifle_field': 'purpose_orex_show_rifle',           'rifle_value': s.purpose_orex_show_rifle},
         ]
+        from django.db.models import Count, Value, IntegerField, Subquery, OuterRef
+        from django.db.models.functions import Coalesce
+        personnel_groups = PersonnelGroup.objects.annotate(
+            personnel_count=Coalesce(
+                Subquery(
+                    Personnel.objects.filter(group=OuterRef('name'))
+                        .values('group')
+                        .annotate(c=Count('group'))
+                        .values('c')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            )
+        )
         return render(request, self.template_name, {
             's':                       s,
             'total_users':             total_users,
@@ -702,6 +716,7 @@ class SystemSettingsView(LoginRequiredMixin, View):
             'non_super_users':         non_super_users,
             'enrolled_2fa_ids':        enrolled_pks,
             'purpose_visibility_rows': purpose_visibility_rows,
+            'personnel_groups':        personnel_groups,
         })
 
     def post(self, request):
@@ -769,6 +784,86 @@ class SystemSettingsView(LoginRequiredMixin, View):
         obj.save()
         messages.success(request, 'System settings saved.')
         return redirect('system-settings')
+
+
+# ── Personnel Group management (Settings page) ───────────────────────────────
+
+def _group_guard(request):
+    """Return None if superuser, else a redirect."""
+    if not request.user.is_authenticated or not request.user.is_superuser:
+        messages.error(request, 'Access denied.')
+        return redirect('dashboard')
+
+
+@login_required
+@require_POST
+def group_add(request):
+    resp = _group_guard(request)
+    if resp:
+        return resp
+    name = request.POST.get('name', '').strip()
+    if not name:
+        messages.error(request, 'Group name cannot be empty.')
+        return redirect('system-settings')
+    if len(name) > 50:
+        messages.error(request, 'Group name must be 50 characters or fewer.')
+        return redirect('system-settings')
+    _, created = PersonnelGroup.objects.get_or_create(
+        name=name,
+        defaults={'order': PersonnelGroup.objects.count()},
+    )
+    if created:
+        messages.success(request, f'Group "{name}" added.')
+    else:
+        messages.warning(request, f'Group "{name}" already exists.')
+    return redirect('system-settings')
+
+
+@login_required
+@require_POST
+def group_rename(request, pk):
+    resp = _group_guard(request)
+    if resp:
+        return resp
+    group = get_object_or_404(PersonnelGroup, pk=pk)
+    new_name = request.POST.get('name', '').strip()
+    if not new_name:
+        messages.error(request, 'Group name cannot be empty.')
+        return redirect('system-settings')
+    if len(new_name) > 50:
+        messages.error(request, 'Group name must be 50 characters or fewer.')
+        return redirect('system-settings')
+    if PersonnelGroup.objects.filter(name=new_name).exclude(pk=pk).exists():
+        messages.error(request, f'A group named "{new_name}" already exists.')
+        return redirect('system-settings')
+    old_name = group.name
+    from django.db import transaction
+    with transaction.atomic():
+        Personnel.objects.filter(group=old_name).update(group=new_name)
+        group.name = new_name
+        group.save()
+    messages.success(request, f'Group renamed from "{old_name}" to "{new_name}".')
+    return redirect('system-settings')
+
+
+@login_required
+@require_POST
+def group_delete(request, pk):
+    resp = _group_guard(request)
+    if resp:
+        return resp
+    group = get_object_or_404(PersonnelGroup, pk=pk)
+    count = Personnel.objects.filter(group=group.name).count()
+    if count > 0:
+        messages.error(
+            request,
+            f'Cannot delete "{group.name}" — {count} personnel member{"s" if count != 1 else ""} '
+            f'still assigned to this group. Reassign them first.'
+        )
+        return redirect('system-settings')
+    group.delete()
+    messages.success(request, f'Group "{group.name}" deleted.')
+    return redirect('system-settings')
 
 
 @login_required

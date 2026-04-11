@@ -333,6 +333,88 @@
   <div style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Changes apply immediately.</div>
 </form>
 
+<!-- ── Personnel Groups ────────────────────────────────────────────────── -->
+<div class="card mb-2" style="max-width:680px;margin-top:1.5rem" id="groups-card">
+  <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+    <span class="card-title"><i class="fa-solid fa-layer-group"></i> Personnel Groups</span>
+    <span style="font-size:.78rem;color:var(--muted)">{{ personnel_groups|length }} group{{ personnel_groups|length|pluralize }}</span>
+  </div>
+  <div style="font-size:.82rem;color:var(--muted);margin-bottom:.85rem">
+    <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+    Groups available when adding or importing personnel. Renaming a group updates all existing personnel automatically.
+  </div>
+
+  <!-- Group list -->
+  <table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:1rem">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:.35rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Group Name</th>
+        <th style="text-align:center;padding:.35rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Personnel</th>
+        <th style="padding:.35rem .6rem;border-bottom:1px solid var(--border)"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for grp in personnel_groups %}
+      <tr style="border-bottom:1px solid var(--border)" id="group-row-{{ grp.pk }}">
+        <!-- Static display -->
+        <td style="padding:.5rem .6rem;font-weight:500" id="group-name-{{ grp.pk }}">{{ grp.name }}</td>
+        <td style="text-align:center;padding:.5rem .6rem;color:var(--muted)" id="group-count-{{ grp.pk }}">
+          {{ grp.personnel_count }}
+        </td>
+
+        <!-- Inline rename form (hidden by default) -->
+        <td style="text-align:right;padding:.5rem .6rem">
+          <div id="group-view-{{ grp.pk }}" style="display:flex;gap:.4rem;justify-content:flex-end">
+            <button type="button" onclick="showRename({{ grp.pk }}, '{{ grp.name|escapejs }}')"
+                    class="btn btn-secondary btn-sm" title="Rename">
+              <i class="fa-solid fa-pencil"></i>
+            </button>
+            <form method="post" action="{% url 'group-delete' grp.pk %}"
+                  onsubmit="return confirmGroupDelete('{{ grp.name|escapejs }}')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-secondary btn-sm" title="Delete"
+                      style="color:var(--danger)">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </form>
+          </div>
+          <div id="group-edit-{{ grp.pk }}" style="display:none">
+            <form method="post" action="{% url 'group-rename' grp.pk %}" style="display:flex;gap:.4rem;align-items:center">
+              {% csrf_token %}
+              <input type="text" name="name" class="form-control" id="group-input-{{ grp.pk }}"
+                     maxlength="50" style="height:30px;font-size:.82rem;padding:.15rem .5rem;min-width:120px">
+              <button type="submit" class="btn btn-primary btn-sm" style="height:30px;padding:.15rem .6rem">
+                <i class="fa-solid fa-check"></i>
+              </button>
+              <button type="button" onclick="hideRename({{ grp.pk }})"
+                      class="btn btn-secondary btn-sm" style="height:30px;padding:.15rem .6rem">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3" style="text-align:center;color:var(--muted);padding:1.5rem">
+          No groups defined yet. Add one below.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Add group form -->
+  <form method="post" action="{% url 'group-add' %}" style="display:flex;gap:.5rem;align-items:center">
+    {% csrf_token %}
+    <input type="text" name="name" class="form-control" maxlength="50"
+           placeholder="New group name…" style="max-width:220px">
+    <button type="submit" class="btn btn-primary btn-sm">
+      <i class="fa-solid fa-plus"></i> Add Group
+    </button>
+  </form>
+</div>
+
 <!-- ── Per-User 2FA Exemptions ─────────────────────────────────────────── -->
 <div class="card mb-2" style="max-width:680px;margin-top:1.5rem">
   <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
@@ -411,4 +493,22 @@
 {% block extra_js %}
 {% load static %}
 <script src="{% static 'js/settings.js' %}"></script>
+<script>
+function showRename(pk, currentName) {
+  document.getElementById('group-view-' + pk).style.display = 'none';
+  var editDiv = document.getElementById('group-edit-' + pk);
+  editDiv.style.display = 'block';
+  var inp = document.getElementById('group-input-' + pk);
+  inp.value = currentName;
+  inp.focus();
+  inp.select();
+}
+function hideRename(pk) {
+  document.getElementById('group-edit-' + pk).style.display = 'none';
+  document.getElementById('group-view-' + pk).style.display = 'flex';
+}
+function confirmGroupDelete(name) {
+  return confirm('Delete group "' + name + '"? This cannot be undone.\n(Only possible if no personnel are assigned to this group.)');
+}
+</script>
 {% endblock %}

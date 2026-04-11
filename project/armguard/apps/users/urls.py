@@ -9,6 +9,10 @@ urlpatterns = [
     path('<int:pk>/revoke-2fa/', views.UserRevoke2FAView.as_view(),         name='user-revoke-2fa'),
     path('<int:pk>/toggle-2fa/', views.UserToggle2FAView.as_view(),         name='user-toggle-2fa'),
     path('settings/',      views.SystemSettingsView.as_view(),              name='system-settings'),
+    # Personnel group management
+    path('settings/groups/add/',             views.group_add,               name='group-add'),
+    path('settings/groups/<int:pk>/rename/', views.group_rename,            name='group-rename'),
+    path('settings/groups/<int:pk>/delete/', views.group_delete,            name='group-delete'),
     path('storage/',       views.storage_status_json,                       name='storage-status'),
     path('storage/cleanup-orphans/', views.cleanup_orphaned_personnel_media, name='storage-cleanup-orphans'),
     path('ping/',          views.session_ping,                              name='session-ping'),
