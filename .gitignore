@@ -20,6 +20,12 @@ __pycache__/
 .env.*
 !.env.example
 
+# Google service-account key files — NEVER commit private keys
+*.json
+!package.json
+!package-lock.json
+project/utils/googlesheet/
+
 # Virtual environment
 venv/
 .venv/

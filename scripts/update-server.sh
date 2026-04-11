@@ -365,7 +365,10 @@ if [[ -n "$_SA_JSON" ]]; then
     else
         info "Google Sheets import: gspread + google-auth present."
         if [[ -f "$_SA_JSON" ]]; then
-            info "Service account key: $_SA_JSON"
+            # Ensure the key file has correct ownership and permissions
+            chmod 600 "$_SA_JSON"
+            chown "$DEPLOY_USER:$DEPLOY_USER" "$_SA_JSON"
+            info "Service account key: $_SA_JSON (permissions secured)"
         else
             warn "Service account key not found: $_SA_JSON (set in .env GOOGLE_SA_JSON)"
         fi
