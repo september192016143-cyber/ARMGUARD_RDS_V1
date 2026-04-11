@@ -344,6 +344,18 @@
     Groups available when adding or importing personnel. Renaming a group updates all existing personnel automatically.
   </div>
 
+  <!-- Hidden forms live OUTSIDE the table to avoid browser HTML-parser issues -->
+  {% for grp in personnel_groups %}
+  <form id="form-delete-{{ grp.pk }}" method="post" action="{% url 'group-delete' grp.pk %}"
+        onsubmit="return confirmGroupDelete('{{ grp.name|escapejs }}')">
+    {% csrf_token %}
+  </form>
+  <form id="form-rename-{{ grp.pk }}" method="post" action="{% url 'group-rename' grp.pk %}">
+    {% csrf_token %}
+    <input type="text" name="name" id="group-input-{{ grp.pk }}" maxlength="50" form="form-rename-{{ grp.pk }}">
+  </form>
+  {% endfor %}
+
   <!-- Group list -->
   <table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:1rem">
     <thead>
@@ -355,43 +367,41 @@
     </thead>
     <tbody>
       {% for grp in personnel_groups %}
-      <tr style="border-bottom:1px solid var(--border)" id="group-row-{{ grp.pk }}">
-        <!-- Static display -->
-        <td style="padding:.5rem .6rem;font-weight:500" id="group-name-{{ grp.pk }}">{{ grp.name }}</td>
-        <td style="text-align:center;padding:.5rem .6rem;color:var(--muted)" id="group-count-{{ grp.pk }}">
+      <tr style="border-bottom:1px solid var(--border)">
+        <!-- Static name / inline rename input -->
+        <td style="padding:.5rem .6rem;font-weight:500">
+          <span id="group-name-{{ grp.pk }}">{{ grp.name }}</span>
+          <input type="text" id="group-input-display-{{ grp.pk }}"
+                 class="form-control" maxlength="50"
+                 style="display:none;height:30px;font-size:.85rem;padding:.15rem .5rem;min-width:140px"
+                 oninput="document.getElementById('group-input-{{ grp.pk }}').value=this.value">
+        </td>
+        <td style="text-align:center;padding:.5rem .6rem;color:var(--muted)">
           {{ grp.personnel_count }}
         </td>
-
-        <!-- Inline rename form (hidden by default) -->
-        <td style="text-align:right;padding:.5rem .6rem">
-          <div id="group-view-{{ grp.pk }}" style="display:flex;gap:.4rem;justify-content:flex-end">
+        <td style="text-align:right;padding:.5rem .6rem;white-space:nowrap">
+          <!-- View mode -->
+          <span id="group-view-{{ grp.pk }}" style="display:inline-flex;gap:.4rem">
             <button type="button" onclick="showRename({{ grp.pk }}, '{{ grp.name|escapejs }}')"
                     class="btn btn-secondary btn-sm" title="Rename">
               <i class="fa-solid fa-pencil"></i>
             </button>
-            <form method="post" action="{% url 'group-delete' grp.pk %}"
-                  onsubmit="return confirmGroupDelete('{{ grp.name|escapejs }}')">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-secondary btn-sm" title="Delete"
-                      style="color:var(--danger)">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </form>
-          </div>
-          <div id="group-edit-{{ grp.pk }}" style="display:none">
-            <form method="post" action="{% url 'group-rename' grp.pk %}" style="display:flex;gap:.4rem;align-items:center">
-              {% csrf_token %}
-              <input type="text" name="name" class="form-control" id="group-input-{{ grp.pk }}"
-                     maxlength="50" style="height:30px;font-size:.82rem;padding:.15rem .5rem;min-width:120px">
-              <button type="submit" class="btn btn-primary btn-sm" style="height:30px;padding:.15rem .6rem">
-                <i class="fa-solid fa-check"></i>
-              </button>
-              <button type="button" onclick="hideRename({{ grp.pk }})"
-                      class="btn btn-secondary btn-sm" style="height:30px;padding:.15rem .6rem">
-                <i class="fa-solid fa-xmark"></i>
-              </button>
-            </form>
-          </div>
+            <button type="submit" form="form-delete-{{ grp.pk }}"
+                    class="btn btn-secondary btn-sm" title="Delete" style="color:var(--danger)">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </span>
+          <!-- Edit mode -->
+          <span id="group-edit-{{ grp.pk }}" style="display:none;gap:.4rem;align-items:center;flex-wrap:nowrap">
+            <button type="submit" form="form-rename-{{ grp.pk }}"
+                    class="btn btn-primary btn-sm" style="height:30px;padding:.15rem .6rem" title="Save">
+              <i class="fa-solid fa-check"></i>
+            </button>
+            <button type="button" onclick="hideRename({{ grp.pk }})"
+                    class="btn btn-secondary btn-sm" style="height:30px;padding:.15rem .6rem" title="Cancel">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </span>
         </td>
       </tr>
       {% empty %}
@@ -496,16 +506,23 @@
 <script>
 function showRename(pk, currentName) {
   document.getElementById('group-view-' + pk).style.display = 'none';
-  var editDiv = document.getElementById('group-edit-' + pk);
-  editDiv.style.display = 'block';
-  var inp = document.getElementById('group-input-' + pk);
-  inp.value = currentName;
-  inp.focus();
-  inp.select();
+  var editSpan = document.getElementById('group-edit-' + pk);
+  editSpan.style.display = 'inline-flex';
+  // Show inline input in name cell, hide static text
+  document.getElementById('group-name-' + pk).style.display = 'none';
+  var disp = document.getElementById('group-input-display-' + pk);
+  disp.value = currentName;
+  disp.style.display = 'inline-block';
+  // Sync value to the hidden form input
+  document.getElementById('group-input-' + pk).value = currentName;
+  disp.focus();
+  disp.select();
 }
 function hideRename(pk) {
   document.getElementById('group-edit-' + pk).style.display = 'none';
-  document.getElementById('group-view-' + pk).style.display = 'flex';
+  document.getElementById('group-view-' + pk).style.display = 'inline-flex';
+  document.getElementById('group-name-' + pk).style.display = '';
+  document.getElementById('group-input-display-' + pk).style.display = 'none';
 }
 function confirmGroupDelete(name) {
   return confirm('Delete group "' + name + '"? This cannot be undone.\n(Only possible if no personnel are assigned to this group.)');
