@@ -417,13 +417,181 @@ class AssignWeaponView(LoginRequiredMixin, UserPassesTestMixin, View):
 		messages.success(request, f"Weapon assignments updated for {personnel.rank} {personnel.last_name}.")
 		return redirect('personnel-detail', pk=pk)
 
-# ── Bulk Excel Import ──────────────────────────────────────────────────────────
+# ── Bulk Import helpers ────────────────────────────────────────────────────────
+
+def _extract_drive_file_id(url: str) -> str:
+	"""Return the Drive file ID from a share URL, or '' if not found."""
+	import re
+	m = re.search(r'/d/([a-zA-Z0-9_-]{10,})', url)
+	return m.group(1) if m else ''
+
+
+def _download_drive_photo(file_id: str) -> bytes | None:
+	"""Download a publicly-shared Drive file and return its bytes, or None."""
+	import urllib.request
+	dl_url = f'https://drive.google.com/uc?id={file_id}&export=download'
+	try:
+		req = urllib.request.Request(dl_url, headers={'User-Agent': 'ArmGuardRDS/1.0'})
+		with urllib.request.urlopen(req, timeout=10) as resp:
+			data = resp.read()
+		# Drive returns an HTML confirm page for large files — detect it
+		if data[:5] in (b'<!DOC', b'<html'):
+			return None
+		return data
+	except Exception:
+		return None
+
+
+def _save_personnel_photo(p: 'Personnel', photo_bytes: bytes) -> None:
+	"""Write photo_bytes to a media path and set p.personnel_image."""
+	import uuid
+	rel = f'personnel_id_cards/{p.AFSN}_{uuid.uuid4().hex[:8]}.jpg'
+	abs_path = os.path.join(settings.MEDIA_ROOT, rel)
+	os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+	with open(abs_path, 'wb') as fh:
+		fh.write(photo_bytes)
+	p.personnel_image = rel
+
+
+def _import_rows(request, data_rows, group_override='', upsert=False):
+	"""
+	Process a list of dicts (header keys already normalised to lowercase_underscore).
+	Returns (created_count, updated_count, skipped_list).
+	data_rows  – list of dicts, one per data row (header row already stripped)
+	"""
+	valid_ranks  = {r for r, _ in Personnel.ALL_RANKS}
+	valid_groups = {g for g, _ in Personnel.GROUP_CHOICES}
+	valid_status = {s for s, _ in Personnel.STATUS_CHOICES}
+
+	created_count = 0
+	updated_count = 0
+	skipped = []
+
+	def g(row, key, default=''):
+		return str(row.get(key) or '').strip() or default
+
+	for i, row in enumerate(data_rows, start=2):
+		rank           = g(row, 'rank')
+		first_name     = g(row, 'first_name')
+		last_name      = g(row, 'last_name')
+		middle_initial = g(row, 'middle_initial')
+		afsn           = g(row, 'afsn')
+		group          = group_override or g(row, 'group')
+		squadron       = g(row, 'squadron')
+		tel            = g(row, 'tel')
+		status         = g(row, 'status', 'Active')
+		photo_url      = g(row, 'photo')   # optional Drive share link
+
+		if status not in valid_status:
+			status = 'Active'
+
+		# ── Validation ────────────────────────────────────────────────────────
+		row_errors = []
+		if rank not in valid_ranks:
+			row_errors.append(f'invalid rank "{rank}"')
+		if not first_name:
+			row_errors.append('first_name required')
+		if not last_name:
+			row_errors.append('last_name required')
+		if not middle_initial:
+			row_errors.append('middle_initial required')
+		if not afsn:
+			row_errors.append('afsn required')
+		if group not in valid_groups:
+			row_errors.append(f'invalid group "{group}" (valid: {", ".join(sorted(valid_groups))})')
+		if not squadron:
+			row_errors.append('squadron required')
+		if row_errors:
+			skipped.append(f'Row {i}: {"; ".join(row_errors)}')
+			continue
+
+		existing = Personnel.objects.filter(AFSN=afsn).first()
+
+		if existing and upsert:
+			if tel and Personnel.objects.filter(tel=tel).exclude(pk=existing.pk).exists():
+				skipped.append(f'Row {i}: tel {tel} already registered to another person')
+				continue
+			try:
+				existing.rank           = rank
+				existing.first_name     = first_name
+				existing.last_name      = last_name
+				existing.middle_initial = middle_initial[:1]
+				existing.group          = group
+				existing.squadron       = squadron
+				if tel:
+					existing.tel        = tel
+				existing.status         = status
+				existing.updated_by     = request.user.username
+				if photo_url:
+					fid = _extract_drive_file_id(photo_url)
+					if fid:
+						photo_bytes = _download_drive_photo(fid)
+						if photo_bytes:
+							_save_personnel_photo(existing, photo_bytes)
+				existing.save(user=request.user)
+				updated_count += 1
+			except Exception as exc:
+				skipped.append(f'Row {i}: {exc}')
+
+		elif existing and not upsert:
+			skipped.append(f'Row {i}: AFSN {afsn} already registered (use "Update existing" to overwrite)')
+
+		else:
+			if not tel:
+				skipped.append(f'Row {i}: tel required')
+				continue
+			if Personnel.objects.filter(tel=tel).exists():
+				skipped.append(f'Row {i}: tel {tel} already registered')
+				continue
+			try:
+				p = Personnel(
+					rank           = rank,
+					first_name     = first_name,
+					last_name      = last_name,
+					middle_initial = middle_initial[:1],
+					AFSN           = afsn,
+					group          = group,
+					squadron       = squadron,
+					tel            = tel or None,
+					status         = status,
+					created_by     = request.user.username,
+					updated_by     = request.user.username,
+				)
+				if photo_url:
+					fid = _extract_drive_file_id(photo_url)
+					if fid:
+						photo_bytes = _download_drive_photo(fid)
+						if photo_bytes:
+							_save_personnel_photo(p, photo_bytes)
+				p.save(user=request.user)
+				created_count += 1
+			except Exception as exc:
+				skipped.append(f'Row {i}: {exc}')
+
+	return created_count, updated_count, skipped
+
+
+def _flash_import_results(request, created_count, updated_count, skipped):
+	if created_count:
+		messages.success(request, f'Created {created_count} new personnel record(s).')
+	if updated_count:
+		messages.success(request, f'Updated {updated_count} existing personnel record(s).')
+	if skipped:
+		for msg in skipped[:20]:
+			messages.warning(request, msg)
+		if len(skipped) > 20:
+			messages.warning(request, f'…and {len(skipped) - 20} more skipped rows.')
+	if not created_count and not updated_count and not skipped:
+		messages.info(request, 'No data rows found.')
+
+
+# ── Bulk Import View ───────────────────────────────────────────────────────────
 class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
-	"""Upload an .xlsx file to bulk-create Personnel records.
+	"""Bulk-create/update Personnel records from an .xlsx file or Google Sheet.
 	Required columns (case-insensitive, order doesn't matter):
-	  rank, first_name, last_name, middle_initial, afsn, group, squadron
+	  rank, first_name, last_name, middle_initial, afsn, group, squadron, tel
 	Optional columns:
-	  tel, status
+	  status, photo  (Google Drive share URL for a 2x2 photo)
 	"""
 	template_name = 'personnel/personnel_import.html'
 
@@ -431,12 +599,21 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 		return self.request.user.is_superuser
 
 	def _ctx(self):
-		return {'group_choices': Personnel.GROUP_CHOICES}
+		from django.conf import settings as dj_settings
+		return {
+			'group_choices': Personnel.GROUP_CHOICES,
+			'gsheets_enabled': bool(getattr(dj_settings, 'GOOGLE_SA_JSON', '')),
+		}
 
 	def get(self, request):
 		return render(request, self.template_name, self._ctx())
 
+	# ── Excel upload ──────────────────────────────────────────────────────────
 	def post(self, request):
+		# Route to Google Sheet handler if that tab was submitted
+		if request.POST.get('source') == 'gsheet':
+			return self._post_gsheet(request)
+
 		xlsx_file = request.FILES.get('xlsx_file')
 		if not xlsx_file:
 			messages.error(request, 'Please upload an Excel (.xlsx) file.')
@@ -445,11 +622,11 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 			messages.error(request, 'Only .xlsx files are accepted.')
 			return render(request, self.template_name, self._ctx())
 
-		# Group override — if selected in the form, every row uses this group
 		valid_groups_set = {g for g, _ in Personnel.GROUP_CHOICES}
 		group_override = request.POST.get('group_override', '').strip()
 		if group_override not in valid_groups_set:
 			group_override = ''
+		upsert = request.POST.get('upsert') == '1'
 
 		try:
 			import openpyxl
@@ -464,7 +641,6 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 			messages.error(request, 'The Excel file is empty.')
 			return render(request, self.template_name, self._ctx())
 
-		# Normalise header row
 		headers = [str(h).strip().lower().replace(' ', '_') if h is not None else '' for h in rows[0]]
 		required = {'rank', 'first_name', 'last_name', 'middle_initial', 'afsn', 'squadron'}
 		if not group_override:
@@ -474,123 +650,69 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 			messages.error(request, f'Missing required columns: {", ".join(sorted(missing))}')
 			return render(request, self.template_name, self._ctx())
 
-		def col(row, name):
-			idx = headers.index(name)
-			val = row[idx]
-			return str(val).strip() if val is not None else ''
+		# Convert rows to list-of-dicts for _import_rows
+		data_rows = [dict(zip(headers, row)) for row in rows[1:]]
+		# Skip completely blank rows
+		data_rows = [r for r in data_rows if any(v is not None and str(v).strip() for v in r.values())]
 
-		# Upsert mode: update existing records matched by AFSN when checkbox is ticked
-		upsert = request.POST.get('upsert') == '1'
+		created, updated, skipped = _import_rows(request, data_rows, group_override=group_override, upsert=upsert)
+		_flash_import_results(request, created, updated, skipped)
+		return redirect('personnel-list')
 
-		# Valid choices sets for quick validation
-		valid_ranks  = {r for r, _ in Personnel.ALL_RANKS}
-		valid_groups = {g for g, _ in Personnel.GROUP_CHOICES}
-		valid_status = {s for s, _ in Personnel.STATUS_CHOICES}
+	# ── Google Sheet import ───────────────────────────────────────────────────
+	def _post_gsheet(self, request):
+		from django.conf import settings as dj_settings
 
-		created_count = 0
-		updated_count = 0
-		skipped = []
+		sa_json = getattr(dj_settings, 'GOOGLE_SA_JSON', '')
+		if not sa_json:
+			messages.error(request, 'Google Sheets import is not configured on this server.')
+			return render(request, self.template_name, self._ctx())
 
-		for i, row in enumerate(rows[1:], start=2):
-			if all(v is None or str(v).strip() == '' for v in row):
-				continue  # skip blank rows
+		sheet_url = request.POST.get('sheet_url', '').strip()
+		if not sheet_url:
+			messages.error(request, 'Please enter a Google Sheet URL.')
+			return render(request, self.template_name, self._ctx())
 
-			rank            = col(row, 'rank')
-			first_name      = col(row, 'first_name')
-			last_name       = col(row, 'last_name')
-			middle_initial  = col(row, 'middle_initial')
-			afsn            = col(row, 'afsn')
-			group           = group_override or col(row, 'group')
-			squadron        = col(row, 'squadron')
-			tel             = col(row, 'tel') if 'tel' in headers else ''
-			status          = col(row, 'status') if 'status' in headers else 'Active'
-			if status and status not in valid_status:
-				status = 'Active'
+		valid_groups_set = {g for g, _ in Personnel.GROUP_CHOICES}
+		group_override = request.POST.get('group_override_gs', '').strip()
+		if group_override not in valid_groups_set:
+			group_override = ''
+		upsert = request.POST.get('upsert_gs') == '1'
 
-			# ── Base validation (applies to both create and update) ───────────
-			row_errors = []
-			if rank not in valid_ranks:
-				row_errors.append(f'invalid rank "{rank}"')
-			if not first_name:
-				row_errors.append('first_name required')
-			if not last_name:
-				row_errors.append('last_name required')
-			if not middle_initial:
-				row_errors.append('middle_initial required')
-			if not afsn:
-				row_errors.append('afsn required')
-			if group not in valid_groups:
-				row_errors.append(f'invalid group "{group}" (valid: {", ".join(sorted(valid_groups))})')
-			if not squadron:
-				row_errors.append('squadron required')
+		try:
+			import gspread
+			from google.oauth2.service_account import Credentials
+			SCOPES = [
+				'https://www.googleapis.com/auth/spreadsheets.readonly',
+				'https://www.googleapis.com/auth/drive.readonly',
+			]
+			creds = Credentials.from_service_account_file(sa_json, scopes=SCOPES)
+			gc = gspread.authorize(creds)
+			sh = gc.open_by_url(sheet_url)
+			ws = sh.sheet1
+			all_records = ws.get_all_records(default_blank='')
+		except Exception as exc:
+			messages.error(request, f'Could not read Google Sheet: {exc}')
+			return render(request, self.template_name, self._ctx())
 
-			if row_errors:
-				skipped.append(f'Row {i}: {"; ".join(row_errors)}')
-				continue
+		if not all_records:
+			messages.info(request, 'The Google Sheet has no data rows.')
+			return redirect('personnel-list')
 
-			# ── Upsert path ───────────────────────────────────────────────────
-			existing = Personnel.objects.filter(AFSN=afsn).first()
+		# Normalise keys to lowercase_underscore
+		def norm_key(k):
+			return str(k).strip().lower().replace(' ', '_')
+		data_rows = [{norm_key(k): v for k, v in row.items()} for row in all_records]
 
-			if existing and upsert:
-				# tel uniqueness: only reject if the tel belongs to a DIFFERENT person
-				if tel and Personnel.objects.filter(tel=tel).exclude(pk=existing.pk).exists():
-					skipped.append(f'Row {i}: tel {tel} already registered to another person')
-					continue
-				try:
-					existing.rank           = rank
-					existing.first_name     = first_name
-					existing.last_name      = last_name
-					existing.middle_initial = middle_initial[:1]
-					existing.group          = group
-					existing.squadron       = squadron
-					if tel:
-						existing.tel        = tel
-					existing.status         = status or 'Active'
-					existing.updated_by     = request.user.username
-					existing.save(user=request.user)
-					updated_count += 1
-				except Exception as exc:
-					skipped.append(f'Row {i}: {exc}')
+		required = {'rank', 'first_name', 'last_name', 'middle_initial', 'afsn', 'squadron'}
+		if not group_override:
+			required.add('group')
+		sample_keys = set(data_rows[0].keys()) if data_rows else set()
+		missing = required - sample_keys
+		if missing:
+			messages.error(request, f'Missing required columns in sheet: {", ".join(sorted(missing))}')
+			return render(request, self.template_name, self._ctx())
 
-			elif existing and not upsert:
-				skipped.append(f'Row {i}: AFSN {afsn} already registered (use "Update existing" to overwrite)')
-
-			else:
-				# Create new
-				if not tel:
-					skipped.append(f'Row {i}: tel required')
-					continue
-				if Personnel.objects.filter(tel=tel).exists():
-					skipped.append(f'Row {i}: tel {tel} already registered')
-					continue
-				try:
-					p = Personnel(
-						rank           = rank,
-						first_name     = first_name,
-						last_name      = last_name,
-						middle_initial = middle_initial[:1],
-						AFSN           = afsn,
-						group          = group,
-						squadron       = squadron,
-						tel            = tel or None,
-						status         = status or 'Active',
-						created_by     = request.user.username,
-						updated_by     = request.user.username,
-					)
-					p.save(user=request.user)
-					created_count += 1
-				except Exception as exc:
-					skipped.append(f'Row {i}: {exc}')
-
-		if created_count:
-			messages.success(request, f'Created {created_count} new personnel record(s).')
-		if updated_count:
-			messages.success(request, f'Updated {updated_count} existing personnel record(s).')
-		if skipped:
-			for msg in skipped[:20]:
-				messages.warning(request, msg)
-			if len(skipped) > 20:
-				messages.warning(request, f'…and {len(skipped) - 20} more skipped rows.')
-		if not created_count and not updated_count and not skipped:
-			messages.info(request, 'No data rows found in the file.')
+		created, updated, skipped = _import_rows(request, data_rows, group_override=group_override, upsert=upsert)
+		_flash_import_results(request, created, updated, skipped)
 		return redirect('personnel-list')

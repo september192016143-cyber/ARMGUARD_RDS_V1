@@ -3,7 +3,7 @@
 
 {% block title %}Import Personnel — ArmGuard RDS{% endblock %}
 {% block page_title %}Import Personnel{% endblock %}
-{% block page_sub %}Bulk registration from Excel spreadsheet{% endblock %}
+{% block page_sub %}Bulk registration from Excel or Google Sheets{% endblock %}
 
 {% block topbar_actions %}
 <a href="{% url 'personnel-list' %}" class="btn btn-secondary btn-sm">
@@ -14,13 +14,25 @@
 {% block content %}
 <div style="max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:1.5rem">
 
-  {# ── Upload form ──────────────────────────────────────────── #}
-  <div class="card" style="padding:1.5rem">
-    <div style="font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem">
-      Upload Excel File
-    </div>
+  {# ── Tab switcher ─────────────────────────────────────────── #}
+  <div style="display:flex;gap:0;border-bottom:2px solid var(--border,#2d3550)">
+    <button id="tab-xlsx" onclick="switchTab('xlsx')"
+            style="padding:.5rem 1.25rem;font-size:.85rem;font-weight:600;border:none;background:none;cursor:pointer;color:var(--primary,#c9952b);border-bottom:2px solid var(--primary,#c9952b);margin-bottom:-2px">
+      <i class="fa-solid fa-file-excel"></i> Excel Upload
+    </button>
+    {% if gsheets_enabled %}
+    <button id="tab-gsheet" onclick="switchTab('gsheet')"
+            style="padding:.5rem 1.25rem;font-size:.85rem;font-weight:600;border:none;background:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px">
+      <i class="fa-brands fa-google"></i> Google Sheets
+    </button>
+    {% endif %}
+  </div>
+
+  {# ── Excel Upload form ────────────────────────────────────── #}
+  <div id="panel-xlsx" class="card" style="padding:1.5rem">
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
+      <input type="hidden" name="source" value="xlsx">
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
           <label style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
@@ -45,14 +57,14 @@
             Select a group to apply it to every row. When set, the <code>group</code> column in the spreadsheet is ignored.
           </p>
         </div>
-        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.25rem">
+        <div style="display:flex;align-items:center;gap:.6rem">
           <input type="checkbox" name="upsert" value="1" id="id_upsert"
                  style="width:1rem;height:1rem;accent-color:var(--primary,#c9952b);flex-shrink:0;cursor:pointer">
           <label for="id_upsert" style="font-size:.85rem;color:var(--text);margin:0;cursor:pointer">
             Update existing records (match by AFSN) — fields will be overwritten
           </label>
         </div>
-        <p style="font-size:.75rem;color:var(--muted);margin-top:.25rem">
+        <p style="font-size:.75rem;color:var(--muted);margin-top:-.25rem">
           When unchecked, rows whose AFSN already exists are skipped.
         </p>
         <div style="display:flex;gap:.75rem;justify-content:flex-end">
@@ -65,7 +77,58 @@
     </form>
   </div>
 
-  {# ── Download template ─────────────────────────────────────── #}
+  {# ── Google Sheet form ────────────────────────────────────── #}
+  {% if gsheets_enabled %}
+  <div id="panel-gsheet" class="card" style="padding:1.5rem;display:none">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="source" value="gsheet">
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <div>
+          <label style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
+            Google Sheet URL <span style="color:var(--red,#ef4444)">*</span>
+          </label>
+          <input type="url" name="sheet_url" required placeholder="https://docs.google.com/spreadsheets/d/…"
+                 style="width:100%;padding:.55rem .75rem;background:var(--input,#1e2540);border:1px solid var(--border,#2d3550);border-radius:.5rem;color:var(--text);font-size:.875rem">
+          <p style="font-size:.75rem;color:var(--muted);margin-top:.35rem">
+            The service account must have <strong>Viewer</strong> access to this sheet.
+            Only the first sheet (Sheet1) is read.
+          </p>
+        </div>
+        <div>
+          <label style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
+            Group Override
+          </label>
+          <select name="group_override_gs"
+                  style="width:100%;padding:.55rem .75rem;background:var(--input,#1e2540);border:1px solid var(--border,#2d3550);border-radius:.5rem;color:var(--text);font-size:.875rem">
+            <option value="">— Use group column from sheet —</option>
+            {% for val, label in group_choices %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:.6rem">
+          <input type="checkbox" name="upsert_gs" value="1" id="id_upsert_gs"
+                 style="width:1rem;height:1rem;accent-color:var(--primary,#c9952b);flex-shrink:0;cursor:pointer">
+          <label for="id_upsert_gs" style="font-size:.85rem;color:var(--text);margin:0;cursor:pointer">
+            Update existing records (match by AFSN)
+          </label>
+        </div>
+        <div style="background:var(--input,#1e2540);border-radius:.5rem;padding:.75rem 1rem;font-size:.78rem;color:var(--muted);line-height:1.7">
+          <strong style="color:var(--text)">Photo column (optional):</strong> add a <code>photo</code> column with
+          a Google Drive share link per row (e.g. <code>https://drive.google.com/file/d/FILE_ID/view</code>).
+          The photo must be shared publicly (Anyone with the link → Viewer).
+        </div>
+        <div style="display:flex;gap:.75rem;justify-content:flex-end">
+          <a href="{% url 'personnel-list' %}" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-brands fa-google"></i> Import from Sheet
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+  {% endif %}
   <div class="card" style="padding:1.5rem">
     <div style="font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">
       Excel Template — Required Columns
@@ -97,6 +160,7 @@
           <tr><td><code>squadron</code></td><td>Yes</td><td>Squadron name or designation</td></tr>
           <tr><td><code>tel</code></td><td>Yes</td><td>Digits only, max 11 chars. Must be unique.</td></tr>
           <tr><td><code>status</code></td><td>No</td><td><code>Active</code> (default) or <code>Inactive</code></td></tr>
+          <tr><td><code>photo</code></td><td>No</td><td>Google Drive share link for a 2×2 photo (file must be publicly shared)</td></tr>
         </tbody>
       </table>
     </div>
@@ -121,11 +185,27 @@
       <li>Rows with a duplicate AFSN are <strong>skipped</strong> by default. Tick <em>Update existing records</em> to overwrite them instead.</li>
       <li>Rows with a duplicate telephone number belonging to a <strong>different</strong> person are always skipped.</li>
       <li>Rows with missing required fields or invalid values are also skipped.</li>
-      <li>Personnel photos and QR codes are generated automatically after each row is saved.</li>
-      <li>The first row is always treated as the header row.</li>
-      <li>Blank rows in the middle of the sheet are ignored.</li>
+      <li>Personnel QR codes are generated automatically after each row is saved.</li>
+      <li>The first row is always treated as the header row (Excel). Google Sheets uses the first row as the header automatically.</li>
+      <li>Blank rows are ignored.</li>
+      <li>The optional <code>photo</code> column accepts a Google Drive share link. The file must be shared publicly (Anyone with the link → Viewer).</li>
     </ul>
   </div>
 
 </div>
+
+<script>
+function switchTab(tab) {
+  var tabs = ['xlsx', 'gsheet'];
+  tabs.forEach(function(t) {
+    var btn = document.getElementById('tab-' + t);
+    var panel = document.getElementById('panel-' + t);
+    if (!btn || !panel) return;
+    var active = (t === tab);
+    btn.style.color = active ? 'var(--primary,#c9952b)' : 'var(--muted)';
+    btn.style.borderBottomColor = active ? 'var(--primary,#c9952b)' : 'transparent';
+    panel.style.display = active ? '' : 'none';
+  });
+}
+</script>
 {% endblock %}

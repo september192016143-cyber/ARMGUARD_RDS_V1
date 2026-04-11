@@ -169,6 +169,13 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Card and PDF template files (not served publicly — stored outside media/)
 CARD_TEMPLATES_DIR = BASE_DIR / 'card_templates'
 
+# ── Google Sheets import ──────────────────────────────────────────────────────
+# Path to the service account JSON key file.
+# Set GOOGLE_SA_JSON=/path/to/service-account.json in your .env file.
+# If not set, the "Import from Google Sheet" feature will be disabled.
+import os as _os
+GOOGLE_SA_JSON = _os.environ.get('GOOGLE_SA_JSON', '')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = '/accounts/login/'
