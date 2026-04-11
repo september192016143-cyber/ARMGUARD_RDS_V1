@@ -69,10 +69,13 @@ cd "C:\Users\9533RDS\Desktop\hermosa\final\ARMGUARD_RDS_V1"
 .\scripts\upload-sa-key.ps1
 ```
 
-The script will:
+The script will automatically:
 - SCP the JSON key to `/var/www/armguard-sa.json` on the server
-- Set permissions: `chmod 600` + `chown armguard:armguard`
-- Print the exact `.env` line to add
+- Run `chmod 600` + `chown armguard:armguard` on the server via SSH
+- Print the exact `.env` line to add next
+
+> `chmod`/`chown` are also re-applied automatically on every `update-server.sh` run —
+> you do **not** need to set permissions manually.
 
 To use a different key file or server:
 ```powershell
@@ -83,20 +86,21 @@ To use a different key file or server:
 
 ## Step 4 — Configure the Server .env
 
-SSH into the server:
+This is the **only manual step** on the server. SSH in and run:
+
 ```bash
 ssh armguard@192.168.0.11
+echo 'GOOGLE_SA_JSON=/var/www/armguard-sa.json' | sudo tee -a /var/www/ARMGUARD_RDS_V1/.env
 ```
 
-Add the following line to `/var/www/ARMGUARD_RDS_V1/.env`:
-```
+Or edit manually with nano:
+```bash
+sudo nano /var/www/ARMGUARD_RDS_V1/.env
+# Add this line:
 GOOGLE_SA_JSON=/var/www/armguard-sa.json
 ```
 
-Using nano:
-```bash
-sudo nano /var/www/ARMGUARD_RDS_V1/.env
-```
+> This only needs to be done **once**. The path never changes even if the key is rotated.
 
 ---
 
