@@ -52,7 +52,7 @@
             Update existing records (match by AFSN) — fields will be overwritten
           </label>
         </div>
-        <p style="font-size:.75rem;color:var(--muted);margin-top:.25rem;margin-bottom:1rem">
+        <p style="font-size:.75rem;color:var(--muted);margin-top:.25rem">
           When unchecked, rows whose AFSN already exists are skipped.
         </p>
         <div style="display:flex;gap:.75rem;justify-content:flex-end">
@@ -118,7 +118,8 @@
       Import Rules
     </div>
     <ul style="font-size:.85rem;color:var(--muted);line-height:2;margin:0;padding-left:1.25rem">
-      <li>Rows with duplicate AFSN or telephone number are <strong>skipped</strong> with a warning — they do not stop the rest of the import.</li>
+      <li>Rows with a duplicate AFSN are <strong>skipped</strong> by default. Tick <em>Update existing records</em> to overwrite them instead.</li>
+      <li>Rows with a duplicate telephone number belonging to a <strong>different</strong> person are always skipped.</li>
       <li>Rows with missing required fields or invalid values are also skipped.</li>
       <li>Personnel photos and QR codes are generated automatically after each row is saved.</li>
       <li>The first row is always treated as the header row.</li>
