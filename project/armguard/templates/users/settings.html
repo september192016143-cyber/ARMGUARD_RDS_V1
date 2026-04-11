@@ -352,7 +352,8 @@
   </form>
   <form id="form-rename-{{ grp.pk }}" method="post" action="{% url 'group-rename' grp.pk %}">
     {% csrf_token %}
-    <input type="text" name="name" id="group-input-{{ grp.pk }}" maxlength="50" form="form-rename-{{ grp.pk }}">
+    <input type="text" name="name" id="group-input-{{ grp.pk }}" maxlength="50"
+           form="form-rename-{{ grp.pk }}" style="display:none" aria-hidden="true">
   </form>
   {% endfor %}
 
