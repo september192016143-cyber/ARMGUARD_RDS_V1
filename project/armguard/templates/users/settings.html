@@ -347,13 +347,12 @@
   <!-- Hidden forms live OUTSIDE the table to avoid browser HTML-parser issues -->
   {% for grp in personnel_groups %}
   <form id="form-delete-{{ grp.pk }}" method="post" action="{% url 'group-delete' grp.pk %}"
-        onsubmit="return confirmGroupDelete('{{ grp.name|escapejs }}')">
+        data-group-delete data-group-name="{{ grp.name|escapejs }}">
     {% csrf_token %}
   </form>
   <form id="form-rename-{{ grp.pk }}" method="post" action="{% url 'group-rename' grp.pk %}">
     {% csrf_token %}
-    <input type="hidden" name="name" id="group-input-{{ grp.pk }}"
-           form="form-rename-{{ grp.pk }}">
+    <input type="hidden" name="name" id="group-input-{{ grp.pk }}">
   </form>
   {% endfor %}
 
@@ -374,8 +373,8 @@
           <span id="group-name-{{ grp.pk }}">{{ grp.name }}</span>
           <input type="text" id="group-input-display-{{ grp.pk }}"
                  class="form-control" maxlength="50"
-                 style="display:none;height:30px;font-size:.85rem;padding:.15rem .5rem;min-width:140px"
-                 oninput="document.getElementById('group-input-{{ grp.pk }}').value=this.value">
+                 data-syncs-to="group-input-{{ grp.pk }}"
+                 style="display:none;height:30px;font-size:.85rem;padding:.15rem .5rem;min-width:140px">
         </td>
         <td style="text-align:center;padding:.5rem .6rem;color:var(--muted)">
           {{ grp.personnel_count }}
@@ -383,8 +382,8 @@
         <td style="text-align:right;padding:.5rem .6rem;white-space:nowrap">
           <!-- View mode -->
           <span id="group-view-{{ grp.pk }}" style="display:inline-flex;gap:.4rem">
-            <button type="button" onclick="showRename({{ grp.pk }}, '{{ grp.name|escapejs }}')"
-                    class="btn btn-secondary btn-sm" title="Rename">
+            <button type="button" class="btn btn-secondary btn-sm btn-group-rename"
+                    data-pk="{{ grp.pk }}" data-name="{{ grp.name|escapejs }}" title="Rename">
               <i class="fa-solid fa-pencil"></i>
             </button>
             <button type="submit" form="form-delete-{{ grp.pk }}"
@@ -398,8 +397,8 @@
                     class="btn btn-primary btn-sm" style="height:30px;padding:.15rem .6rem" title="Save">
               <i class="fa-solid fa-check"></i>
             </button>
-            <button type="button" onclick="hideRename({{ grp.pk }})"
-                    class="btn btn-secondary btn-sm" style="height:30px;padding:.15rem .6rem" title="Cancel">
+            <button type="button" class="btn btn-secondary btn-sm btn-group-cancel"
+                    data-pk="{{ grp.pk }}" style="height:30px;padding:.15rem .6rem" title="Cancel">
               <i class="fa-solid fa-xmark"></i>
             </button>
           </span>
@@ -504,29 +503,4 @@
 {% block extra_js %}
 {% load static %}
 <script src="{% static 'js/settings.js' %}"></script>
-<script>
-function showRename(pk, currentName) {
-  document.getElementById('group-view-' + pk).style.display = 'none';
-  var editSpan = document.getElementById('group-edit-' + pk);
-  editSpan.style.display = 'inline-flex';
-  // Show inline input in name cell, hide static text
-  document.getElementById('group-name-' + pk).style.display = 'none';
-  var disp = document.getElementById('group-input-display-' + pk);
-  disp.value = currentName;
-  disp.style.display = 'inline-block';
-  // Sync value to the hidden form input
-  document.getElementById('group-input-' + pk).value = currentName;
-  disp.focus();
-  disp.select();
-}
-function hideRename(pk) {
-  document.getElementById('group-edit-' + pk).style.display = 'none';
-  document.getElementById('group-view-' + pk).style.display = 'inline-flex';
-  document.getElementById('group-name-' + pk).style.display = '';
-  document.getElementById('group-input-display-' + pk).style.display = 'none';
-}
-function confirmGroupDelete(name) {
-  return confirm('Delete group "' + name + '"? This cannot be undone.\n(Only possible if no personnel are assigned to this group.)');
-}
-</script>
 {% endblock %}

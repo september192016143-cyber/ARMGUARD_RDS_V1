@@ -23,3 +23,57 @@
     }
   });
 })();
+
+// ── Personnel Group management ───────────────────────────────────────────────
+(function () {
+  function showRename(pk, currentName) {
+    document.getElementById('group-view-' + pk).style.display = 'none';
+    document.getElementById('group-edit-' + pk).style.display = 'inline-flex';
+    document.getElementById('group-name-' + pk).style.display = 'none';
+    var disp = document.getElementById('group-input-display-' + pk);
+    disp.value = currentName;
+    disp.style.display = 'inline-block';
+    document.getElementById('group-input-' + pk).value = currentName;
+    disp.focus();
+    disp.select();
+  }
+
+  function hideRename(pk) {
+    document.getElementById('group-edit-' + pk).style.display = 'none';
+    document.getElementById('group-view-' + pk).style.display = 'inline-flex';
+    document.getElementById('group-name-' + pk).style.display = '';
+    document.getElementById('group-input-display-' + pk).style.display = 'none';
+  }
+
+  // Rename (pencil) buttons
+  document.querySelectorAll('.btn-group-rename').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      showRename(this.dataset.pk, this.dataset.name);
+    });
+  });
+
+  // Cancel buttons
+  document.querySelectorAll('.btn-group-cancel').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      hideRename(this.dataset.pk);
+    });
+  });
+
+  // Sync display input → hidden input on every keystroke
+  document.querySelectorAll('[data-syncs-to]').forEach(function (disp) {
+    disp.addEventListener('input', function () {
+      var target = document.getElementById(this.dataset.syncsTo);
+      if (target) target.value = this.value;
+    });
+  });
+
+  // Confirm before delete
+  document.querySelectorAll('[data-group-delete]').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      var name = this.dataset.groupName;
+      if (!confirm('Delete group "' + name + '"? This cannot be undone.\n(Only possible if no personnel are assigned to this group.)')) {
+        e.preventDefault();
+      }
+    });
+  });
+})();
