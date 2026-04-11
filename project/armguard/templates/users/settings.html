@@ -56,8 +56,10 @@
       </div>
       {% endif %}
 
-      <input type="file" name="app_logo" id="id_app_logo" class="form-control"
-             accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp">
+            <label for="id_app_logo" class="form-label">Upload new logo
+         <input type="file" name="app_logo" id="id_app_logo" class="form-control"
+           accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp" autocomplete="off">
+            </label>
       <div class="form-hint">Displayed in the sidebar next to "ArmGuard". Square PNG recommended, at least 80×80 px. Leave blank to keep the current logo. If no logo is set, a default shield icon is shown.</div>
     </div>
 
@@ -71,8 +73,8 @@
 
     <div class="form-group">
       <label class="form-label" for="id_unit_name">Unit Name</label>
-      <input type="text" id="id_unit_name" name="unit_name" class="form-control"
-             value="{{ s.unit_name }}" maxlength="150" placeholder="e.g. 950th CEWW">
+            <input type="text" id="id_unit_name" name="unit_name" class="form-control"
+              value="{{ s.unit_name }}" maxlength="150" placeholder="e.g. 950th CEWW" autocomplete="organization">
       <div class="form-hint">Displayed in report headers.</div>
     </div>
   </div>
@@ -86,26 +88,26 @@
     <div class="form-row cols-2">
       <div class="form-group">
         <label class="form-label" for="id_commander_name">Name</label>
-        <input type="text" id="id_commander_name" name="commander_name" class="form-control"
-               value="{{ s.commander_name }}" maxlength="100" placeholder="Full name (ALL CAPS)">
+         <input type="text" id="id_commander_name" name="commander_name" class="form-control"
+           value="{{ s.commander_name }}" maxlength="100" placeholder="Full name (ALL CAPS)" autocomplete="name">
       </div>
       <div class="form-group">
         <label class="form-label" for="id_commander_rank">Rank</label>
-        <input type="text" id="id_commander_rank" name="commander_rank" class="form-control"
-               value="{{ s.commander_rank }}" maxlength="50" placeholder="e.g. LTC">
+         <input type="text" id="id_commander_rank" name="commander_rank" class="form-control"
+           value="{{ s.commander_rank }}" maxlength="50" placeholder="e.g. LTC" autocomplete="off">
       </div>
     </div>
 
     <div class="form-row cols-2">
       <div class="form-group">
         <label class="form-label" for="id_commander_branch">Branch / Service</label>
-        <input type="text" id="id_commander_branch" name="commander_branch" class="form-control"
-               value="{{ s.commander_branch }}" maxlength="20" placeholder="e.g. PAF">
+         <input type="text" id="id_commander_branch" name="commander_branch" class="form-control"
+           value="{{ s.commander_branch }}" maxlength="20" placeholder="e.g. PAF" autocomplete="off">
       </div>
       <div class="form-group">
         <label class="form-label" for="id_commander_designation">Designation</label>
-        <input type="text" id="id_commander_designation" name="commander_designation" class="form-control"
-               value="{{ s.commander_designation }}" maxlength="100" placeholder="e.g. Squadron Commander">
+         <input type="text" id="id_commander_designation" name="commander_designation" class="form-control"
+           value="{{ s.commander_designation }}" maxlength="100" placeholder="e.g. Squadron Commander" autocomplete="off">
       </div>
     </div>
   </div>
@@ -118,8 +120,8 @@
 
     <div class="form-group">
       <label class="form-label" for="id_armorer_branch">Armorer Branch / Service Label</label>
-      <input type="text" id="id_armorer_branch" name="armorer_branch" class="form-control"
-             value="{{ s.armorer_branch }}" maxlength="20" placeholder="e.g. PAF">
+            <input type="text" id="id_armorer_branch" name="armorer_branch" class="form-control"
+              value="{{ s.armorer_branch }}" maxlength="20" placeholder="e.g. PAF" autocomplete="off">
       <div class="form-hint">Branch label shown under the armorer's signature block on printed reports. The armorer's name and rank are read from their linked Personnel record.</div>
     </div>
   </div>
@@ -133,13 +135,13 @@
     <div class="form-row cols-2">
       <div class="form-group">
         <label class="form-label" for="id_pistol_mag">Pistol Magazine — Max Qty per Transaction</label>
-        <input type="number" id="id_pistol_mag" name="pistol_magazine_max_qty" class="form-control"
-               value="{{ s.pistol_magazine_max_qty }}" min="1" max="9999">
+         <input type="number" id="id_pistol_mag" name="pistol_magazine_max_qty" class="form-control"
+           value="{{ s.pistol_magazine_max_qty }}" min="1" max="9999" autocomplete="off">
       </div>
       <div class="form-group">
         <label class="form-label" for="id_rifle_mag">Rifle Magazine — Max Qty per Transaction</label>
-        <input type="number" id="id_rifle_mag" name="rifle_magazine_max_qty" class="form-control"
-               value="{{ s.rifle_magazine_max_qty|default:'' }}" min="1" max="9999" placeholder="Blank = no limit">
+         <input type="number" id="id_rifle_mag" name="rifle_magazine_max_qty" class="form-control"
+           value="{{ s.rifle_magazine_max_qty|default:'' }}" min="1" max="9999" placeholder="Blank = no limit" autocomplete="off">
       </div>
     </div>
   </div>
@@ -186,9 +188,9 @@
     <!-- 2FA enforcement toggle -->
     <div class="form-group" style="background:{% if s.mfa_required %}rgba(34,197,94,.07){% else %}rgba(239,68,68,.07){% endif %};border:1px solid {% if s.mfa_required %}rgba(34,197,94,.25){% else %}rgba(239,68,68,.25){% endif %};border-radius:8px;padding:.9rem 1rem;display:flex;align-items:flex-start;gap:.85rem">
       <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;flex:1">
-        <input type="checkbox" name="mfa_required" id="id_mfa_required"
-               {% if s.mfa_required %}checked{% endif %}
-               style="width:18px;height:18px;accent-color:var(--primary,#4f8ef7);cursor:pointer;flex-shrink:0">
+         <input type="checkbox" name="mfa_required" id="id_mfa_required"
+           {% if s.mfa_required %}checked{% endif %}
+           style="width:18px;height:18px;accent-color:var(--primary,#4f8ef7);cursor:pointer;flex-shrink:0" autocomplete="off">
         <span>
           <strong>Enforce 2FA for all users</strong><br>
           <span style="font-size:.8rem;color:var(--muted)">
@@ -218,14 +220,14 @@
     <div class="form-row cols-2">
       <div class="form-group">
         <label class="form-label" for="id_pw_min">Minimum Password Length</label>
-        <input type="number" id="id_pw_min" name="password_min_length" class="form-control"
-               value="{{ s.password_min_length }}" min="1" max="128">
+         <input type="number" id="id_pw_min" name="password_min_length" class="form-control"
+           value="{{ s.password_min_length }}" min="1" max="128" autocomplete="off">
         <div class="form-hint">Minimum characters required. Enforced when a user sets or changes their password.</div>
       </div>
       <div class="form-group">
         <label class="form-label" for="id_pw_history">Password History Count</label>
-        <input type="number" id="id_pw_history" name="password_history_count" class="form-control"
-               value="{{ s.password_history_count }}" min="0" max="20">
+         <input type="number" id="id_pw_history" name="password_history_count" class="form-control"
+           value="{{ s.password_history_count }}" min="0" max="20" autocomplete="off">
         <div class="form-hint">Number of previous passwords a user cannot reuse (0 = no restriction, max 20).</div>
       </div>
     </div>
@@ -244,24 +246,24 @@
       <div class="form-group">
         <label class="form-label" for="id_to_sysadmin">System Administrator</label>
         <div style="display:flex;align-items:center;gap:.5rem">
-          <input type="number" id="id_to_sysadmin" name="timeout_system_admin" class="form-control"
-                 value="{% widthratio s.timeout_system_admin 60 1 %}" min="0" max="1440">
+             <input type="number" id="id_to_sysadmin" name="timeout_system_admin" class="form-control"
+               value="{% widthratio s.timeout_system_admin 60 1 %}" min="0" max="1440" autocomplete="off">
           <span class="form-hint" style="margin:0;white-space:nowrap">min</span>
         </div>
       </div>
       <div class="form-group">
         <label class="form-label" for="id_to_adminview">Admin — View Only</label>
         <div style="display:flex;align-items:center;gap:.5rem">
-          <input type="number" id="id_to_adminview" name="timeout_admin_view_only" class="form-control"
-                 value="{% widthratio s.timeout_admin_view_only 60 1 %}" min="0" max="1440">
+             <input type="number" id="id_to_adminview" name="timeout_admin_view_only" class="form-control"
+               value="{% widthratio s.timeout_admin_view_only 60 1 %}" min="0" max="1440" autocomplete="off">
           <span class="form-hint" style="margin:0;white-space:nowrap">min</span>
         </div>
       </div>
       <div class="form-group">
         <label class="form-label" for="id_to_adminedit">Admin — Edit &amp; Add</label>
         <div style="display:flex;align-items:center;gap:.5rem">
-          <input type="number" id="id_to_adminedit" name="timeout_admin_edit_add" class="form-control"
-                 value="{% widthratio s.timeout_admin_edit_add 60 1 %}" min="0" max="1440">
+             <input type="number" id="id_to_adminedit" name="timeout_admin_edit_add" class="form-control"
+               value="{% widthratio s.timeout_admin_edit_add 60 1 %}" min="0" max="1440" autocomplete="off">
           <span class="form-hint" style="margin:0;white-space:nowrap">min</span>
         </div>
       </div>
@@ -270,16 +272,16 @@
       <div class="form-group">
         <label class="form-label" for="id_to_armorer">Armorer</label>
         <div style="display:flex;align-items:center;gap:.5rem">
-          <input type="number" id="id_to_armorer" name="timeout_armorer" class="form-control"
-                 value="{% widthratio s.timeout_armorer 60 1 %}" min="0" max="1440">
+             <input type="number" id="id_to_armorer" name="timeout_armorer" class="form-control"
+               value="{% widthratio s.timeout_armorer 60 1 %}" min="0" max="1440" autocomplete="off">
           <span class="form-hint" style="margin:0;white-space:nowrap">min</span>
         </div>
       </div>
       <div class="form-group">
         <label class="form-label" for="id_to_superuser">Superuser</label>
         <div style="display:flex;align-items:center;gap:.5rem">
-          <input type="number" id="id_to_superuser" name="timeout_superuser" class="form-control"
-                 value="{% widthratio s.timeout_superuser 60 1 %}" min="0" max="1440">
+             <input type="number" id="id_to_superuser" name="timeout_superuser" class="form-control"
+               value="{% widthratio s.timeout_superuser 60 1 %}" min="0" max="1440" autocomplete="off">
           <span class="form-hint" style="margin:0;white-space:nowrap">min</span>
         </div>
         <div class="form-hint">0 = no timeout (recommended for superuser).</div>
@@ -417,8 +419,10 @@
   <!-- Add group form -->
   <form method="post" action="{% url 'group-add' %}" style="display:flex;gap:.5rem;align-items:center">
     {% csrf_token %}
-    <input type="text" name="name" class="form-control" maxlength="50"
-           placeholder="New group name…" style="max-width:220px">
+        <label for="id_new_group_name" class="form-label" style="margin-bottom:0">New group name
+          <input type="text" id="id_new_group_name" name="name" class="form-control" maxlength="50"
+            placeholder="New group name…" style="max-width:220px" autocomplete="off">
+        </label>
     <button type="submit" class="btn btn-primary btn-sm">
       <i class="fa-solid fa-plus"></i> Add Group
     </button>
