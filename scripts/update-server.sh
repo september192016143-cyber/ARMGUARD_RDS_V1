@@ -356,6 +356,25 @@ sudo -u "$DEPLOY_USER" "$VENV_PIP" install --upgrade pip --quiet
 sudo -u "$DEPLOY_USER" "$VENV_PIP" install -r "$REQUIREMENTS" --quiet
 sudo -u "$DEPLOY_USER" "$VENV_PIP" install gunicorn --quiet  # ensure gunicorn present
 
+# Warn if Google Sheets libraries are not installed AND the feature is configured.
+_SA_JSON=$(grep -E '^GOOGLE_SA_JSON=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"\047 ' || true)
+if [[ -n "$_SA_JSON" ]]; then
+    if ! sudo -u "$DEPLOY_USER" "$VENV_PYTHON" -c "import gspread, google.auth" 2>/dev/null; then
+        warn "GOOGLE_SA_JSON is set but gspread/google-auth are missing."
+        warn "Run: $VENV_PIP install 'gspread>=6.0.0' 'google-auth>=2.29.0'"
+    else
+        info "Google Sheets import: gspread + google-auth present."
+        if [[ -f "$_SA_JSON" ]]; then
+            info "Service account key: $_SA_JSON"
+        else
+            warn "Service account key not found: $_SA_JSON (set in .env GOOGLE_SA_JSON)"
+        fi
+    fi
+else
+    info "Google Sheets import: GOOGLE_SA_JSON not set — feature disabled."
+fi
+unset _SA_JSON
+
 success "Dependencies updated."
 
 # ---------------------------------------------------------------------------

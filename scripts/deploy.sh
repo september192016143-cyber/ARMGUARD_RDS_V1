@@ -258,6 +258,8 @@ PyMuPDF==1.27.1
 qrcode==8.2
 djangorestframework==3.16.0
 django-otp==1.7.0
+gspread>=6.0.0
+google-auth>=2.29.0
 EOF
 fi
 
@@ -326,6 +328,13 @@ CSRF_TRUSTED_ORIGINS=https://$DOMAIN,http://$LAN_IP
 # SSL certificate path (used by the in-app cert download + notification feature)
 # Default is correct for standard deploy; override only if cert lives elsewhere.
 SSL_CERT_PATH=/etc/ssl/certs/armguard-selfsigned.crt
+
+# Google Sheets import (optional)
+# Set this to the absolute path of your service-account JSON key file.
+# The service-account email must have Viewer access to each sheet you import.
+# Leave blank to disable the Google Sheets import tab on /personnel/import/.
+# GOOGLE_SA_JSON=/var/www/armguard-sa.json
+
 # Gunicorn (if tuning via env vars)
 # GUNICORN_WORKERS=2
 # GUNICORN_TIMEOUT=60
