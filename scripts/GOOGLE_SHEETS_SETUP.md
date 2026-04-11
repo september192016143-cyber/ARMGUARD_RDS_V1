@@ -62,25 +62,68 @@ The sheet stays restricted — no one else can access it through the link.
 
 ## Step 3 — Upload the Key to the Server
 
-Run this from your Windows machine in PowerShell from the project root:
+Choose **one** of the two methods below.
+
+---
+
+### Option A — PowerShell script (recommended)
+
+Run this from your Windows machine:
 
 ```powershell
 cd "C:\Users\9533RDS\Desktop\hermosa\final\ARMGUARD_RDS_V1"
 .\scripts\upload-sa-key.ps1
 ```
 
-The script will automatically:
-- SCP the JSON key to `/var/www/armguard-sa.json` on the server
-- Run `chmod 600` + `chown armguard:armguard` on the server via SSH
-- Print the exact `.env` line to add next
+The script automatically:
+- SCPs the JSON key to `/var/www/armguard-sa.json`
+- Runs `chmod 600` + `chown armguard:armguard` via SSH
+- Prints the `.env` line to add next
 
-> `chmod`/`chown` are also re-applied automatically on every `update-server.sh` run —
-> you do **not** need to set permissions manually.
-
-To use a different key file or server:
+To specify a different key file or server:
 ```powershell
 .\scripts\upload-sa-key.ps1 -KeyFile "C:\path\to\key.json" -Server "192.168.0.11" -User "armguard"
 ```
+
+---
+
+### Option B — Manually paste via nano over SSH
+
+Use this if `scp` is unavailable or you prefer to stay entirely in the terminal.
+
+1. Open the downloaded JSON key file on your Windows machine (Notepad or VS Code)
+   and **copy all its contents** to your clipboard.
+
+2. SSH into the server:
+   ```bash
+   ssh armguard@192.168.0.11
+   ```
+
+3. Open a new file in nano:
+   ```bash
+   sudo nano /var/www/armguard-sa.json
+   ```
+
+4. **Paste** the JSON contents (right-click in your SSH terminal, or `Shift+Ctrl+V`)
+
+5. Save and exit: `Ctrl+O` → Enter → `Ctrl+X`
+
+6. Secure the file:
+   ```bash
+   sudo chmod 600 /var/www/armguard-sa.json
+   sudo chown armguard:armguard /var/www/armguard-sa.json
+   ```
+
+7. Verify it looks correct:
+   ```bash
+   sudo cat /var/www/armguard-sa.json | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK:', d['client_email'])"
+   ```
+   Expected output:
+   ```
+   OK: armguard-importer@personnel-data-for-armguard.iam.gserviceaccount.com
+   ```
+
+> `chmod`/`chown` are also re-applied automatically on every `update-server.sh` run.
 
 ---
 
