@@ -67,6 +67,10 @@ class PersonnelForm(forms.ModelForm):
 		# tel is explicitly optional — override the loop above
 		self.fields['tel'].required = False
 		self.fields['personnel_image'].required = False
+		# Pull group choices live from DB so newly added groups appear immediately
+		db_choices = PersonnelGroup.get_choices()
+		if db_choices:
+			self.fields['group'].choices = [('', '---------')] + db_choices
 
 	def clean_tel(self):
 		"""Convert empty string to None to avoid unique=True collisions on blank tel."""
@@ -106,7 +110,7 @@ class PersonnelListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
 	def get_context_data(self, **kwargs):
 		ctx = super().get_context_data(**kwargs)
-		ctx['groups'] = Personnel.objects.values_list('group', flat=True).distinct().exclude(group__isnull=True).exclude(group='')
+		ctx['groups'] = PersonnelGroup.objects.values_list('name', flat=True)
 		ctx['can_add'] = _can_add_personnel(self.request.user)
 		ctx['can_edit'] = _can_edit_personnel(self.request.user)
 		return ctx
