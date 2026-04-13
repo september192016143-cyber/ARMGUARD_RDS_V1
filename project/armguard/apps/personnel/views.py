@@ -50,6 +50,11 @@ class PersonnelForm(forms.ModelForm):
 		help_text="Contact telephone number (digits only, max 11 characters). Required for TR issuance.",
 	)
 
+	# Declare group explicitly as a plain ChoiceField so Django never locks it
+	# to the model's static GROUP_CHOICES. Choices are populated from the DB-backed
+	# PersonnelGroup table in __init__, so dynamically added groups are always valid.
+	group = forms.ChoiceField(choices=[], required=True)
+
 	class Meta:
 		model = Personnel
 		fields = [
@@ -67,21 +72,10 @@ class PersonnelForm(forms.ModelForm):
 		# tel is explicitly optional — override the loop above
 		self.fields['tel'].required = False
 		self.fields['personnel_image'].required = False
-		# Pull group choices live from DB so newly added groups appear immediately
+		# Build group choices from DB; fall back to static list if table is empty
 		db_choices = PersonnelGroup.get_choices()
-		if db_choices:
-			self.fields['group'].choices = [('', '---------')] + db_choices
-
-	def clean_group(self):
-		"""Validate group against the live DB list, not the legacy static choices."""
-		value = self.cleaned_data.get('group', '').strip()
-		valid = PersonnelGroup.get_names_set()
-		if value and value not in valid:
-			raise forms.ValidationError(
-				f"'{value}' is not a recognised group. "
-				"Please add it in Settings → Personnel Groups first."
-			)
-		return value
+		group_choices = db_choices if db_choices else Personnel.GROUP_CHOICES
+		self.fields['group'].choices = [('', '---------')] + list(group_choices)
 
 	def clean_tel(self):
 		"""Convert empty string to None to avoid unique=True collisions on blank tel."""
