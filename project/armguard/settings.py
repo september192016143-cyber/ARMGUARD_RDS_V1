@@ -183,9 +183,6 @@ SESSION_COOKIE_AGE = 28800  # 8 hours in seconds
 SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript from reading session cookie
 CSRF_COOKIE_HTTPONLY = True
 
-# Client-side idle auto-logout: warn after 29 min, force logout at 30 min.
-IDLE_SESSION_TIMEOUT = 1800  # seconds (30 minutes of inactivity)
-
 # L7 FIX: Production HTTPS security headers.
 # These are safe to set even in development (they only apply via HTTPS).
 # In production, also set: SECURE_SSL_REDIRECT=True, SECURE_HSTS_SECONDS=31536000

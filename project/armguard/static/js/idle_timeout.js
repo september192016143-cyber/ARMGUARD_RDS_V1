@@ -15,13 +15,14 @@
   'use strict';
 
   var body       = document.body;
-  var IDLE_LIMIT = parseInt(body.getAttribute('data-idle-timeout') || '1800', 10) * 1000;
+  var IDLE_LIMIT = parseInt(body.getAttribute('data-idle-timeout') || '0', 10) * 1000;
   var LOGOUT_URL = body.getAttribute('data-logout-url') || '/logout/';
   var WARN_BEFORE = 60 * 1000;   // show warning 60 s before forced logout
   var TICK_MS     = 1000;
 
-  // Only run when a user is actually logged in
-  if (!body.hasAttribute('data-idle-timeout')) return;
+  // Only run when a user is logged in AND a non-zero timeout is configured.
+  // 0 means "disabled" for that role — no timers should be started.
+  if (!body.hasAttribute('data-idle-timeout') || IDLE_LIMIT <= 0) return;
 
   var idleTimer    = null;
   var warnTimer    = null;
