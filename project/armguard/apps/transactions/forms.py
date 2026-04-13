@@ -94,6 +94,9 @@ class TransactionAdminForm(forms.ModelForm):
         # ── AUTO-FILL: Duty Sentinel + Glock 17 9mm ──────────────────────────────
         # When a Withdrawal is being processed for a Glock 17 9mm under Duty Sentinel,
         # automatically populate the standard loadout if the user left those fields blank.
+        # Note: if the Pistol visibility column is disabled via SystemSettings for Duty
+        # Sentinel, the JS hides the pistol field and it will not be submitted, so
+        # `pistol` will be None here and this block will not fire — safe by design.
         purpose_val = cleaned_data.get('purpose')
         if (
             transaction_type == 'Withdrawal'

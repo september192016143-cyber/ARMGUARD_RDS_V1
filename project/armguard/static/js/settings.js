@@ -131,3 +131,51 @@
     });
   });
 })();
+
+// ── Purpose Field Visibility — per-row validation ────────────────────────────
+// Highlights any purpose row where both Pistol and Rifle are unchecked so
+// operators know the transaction form would be unusable for that purpose.
+// Also blocks the settings form from saving in that state (server validates too).
+(function () {
+  var tbody = document.getElementById('purpose-vis-tbody');
+  if (!tbody) return;
+
+  function evaluateRow(row) {
+    var cbs = row.querySelectorAll('input[type="checkbox"]');
+    var bothOff = cbs.length === 2 && !cbs[0].checked && !cbs[1].checked;
+    row.style.background = bothOff ? 'rgba(239,68,68,.10)' : '';
+    var warn = row.querySelector('.purpose-vis-warn');
+    if (!warn) {
+      warn = document.createElement('span');
+      warn.className = 'purpose-vis-warn';
+      warn.style.cssText = 'font-size:.7rem;color:#ef4444;font-weight:600;margin-left:.5rem;vertical-align:middle';
+      warn.textContent = '⚠ At least one must be checked';
+      var nameTd = row.querySelector('td:first-child');
+      if (nameTd) nameTd.appendChild(warn);
+    }
+    warn.style.display = bothOff ? '' : 'none';
+  }
+
+  tbody.querySelectorAll('tr').forEach(function (row) {
+    evaluateRow(row);
+    row.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () { evaluateRow(row); });
+    });
+  });
+
+  // Block form submit when any purpose has both weapons disabled.
+  var settingsForm = document.getElementById('settings-form');
+  if (settingsForm) {
+    settingsForm.addEventListener('submit', function (e) {
+      var hasInvalid = false;
+      tbody.querySelectorAll('tr').forEach(function (row) {
+        var cbs = row.querySelectorAll('input[type="checkbox"]');
+        if (cbs.length === 2 && !cbs[0].checked && !cbs[1].checked) hasInvalid = true;
+      });
+      if (hasInvalid) {
+        e.preventDefault();
+        tbody.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }
+})();

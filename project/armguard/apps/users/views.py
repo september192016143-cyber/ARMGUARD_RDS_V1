@@ -794,6 +794,28 @@ class SystemSettingsView(LoginRequiredMixin, View):
             'purpose_orex_show_pistol',           'purpose_orex_show_rifle',
         ]:
             setattr(obj, field, field in request.POST)
+        # Guard: every purpose must expose at least one weapon column.
+        # If both pistol and rifle are unchecked for a purpose the transaction
+        # form would show no weapon fields at all, making that purpose unusable.
+        _purpose_pairs = [
+            ('Duty Sentinel',  'purpose_duty_sentinel_show_pistol',  'purpose_duty_sentinel_show_rifle'),
+            ('Duty Vigil',     'purpose_duty_vigil_show_pistol',     'purpose_duty_vigil_show_rifle'),
+            ('Duty Security',  'purpose_duty_security_show_pistol',  'purpose_duty_security_show_rifle'),
+            ('Honor Guard',    'purpose_honor_guard_show_pistol',    'purpose_honor_guard_show_rifle'),
+            ('Others',         'purpose_others_show_pistol',         'purpose_others_show_rifle'),
+            ('OREX',           'purpose_orex_show_pistol',           'purpose_orex_show_rifle'),
+        ]
+        invalid_purposes = [
+            label for label, pf, rf in _purpose_pairs
+            if not getattr(obj, pf) and not getattr(obj, rf)
+        ]
+        if invalid_purposes:
+            messages.error(
+                request,
+                'Each purpose must have at least one weapon field (Pistol or Rifle) enabled. '
+                'Both are disabled for: ' + ', '.join(invalid_purposes) + '.'
+            )
+            return redirect('system-settings')
         obj.save()
         messages.success(request, 'System settings saved.')
         return redirect('system-settings')
