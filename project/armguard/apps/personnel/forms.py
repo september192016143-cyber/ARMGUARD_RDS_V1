@@ -25,14 +25,12 @@ def _simulate_personnel_id(rank: str, afsn: str) -> str | None:
 
 
 class PersonnelForm(forms.ModelForm):
-	# tel is blank=True/null=True in the model — optional in the form so records
-	# can be created before a phone number is known. Validator fires when provided.
 	tel = forms.CharField(
 		min_length=11,
 		max_length=11,
-		required=False,
+		required=True,
 		validators=[RegexValidator(r'^\d{11}$', 'Enter exactly 11 digits (e.g. 09XXXXXXXXX).')],
-		help_text="Contact telephone number — exactly 11 digits (e.g. 09XXXXXXXXX). Required for TR issuance.",
+		help_text="Contact telephone number — exactly 11 digits (e.g. 09XXXXXXXXX).",
 	)
 
 	# Declare group explicitly as a plain ChoiceField so Django never locks it
@@ -58,8 +56,6 @@ class PersonnelForm(forms.ModelForm):
 		for name, field in self.fields.items():
 			if not isinstance(field, (forms.ImageField, forms.FileField)):
 				field.required = True
-		# tel is explicitly optional — override the loop above
-		self.fields['tel'].required = False
 		self.fields['personnel_image'].required = False
 		# Build group choices from DB; fall back to static list if table is empty
 		db_choices = PersonnelGroup.get_choices()
@@ -70,6 +66,5 @@ class PersonnelForm(forms.ModelForm):
 		self.fields['squadron'].choices = [('', '---------')] + list(sq_choices)
 
 	def clean_tel(self):
-		"""Convert empty string to None to avoid unique=True collisions on blank tel."""
-		val = self.cleaned_data.get('tel', '').strip()
-		return val if val else None
+		"""Strip whitespace from tel before saving."""
+		return self.cleaned_data.get('tel', '').strip()
