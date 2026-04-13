@@ -105,6 +105,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'armguard.context_processors.nav_permissions',
+                'armguard.context_processors.session_settings',
             ],
         },
     },
