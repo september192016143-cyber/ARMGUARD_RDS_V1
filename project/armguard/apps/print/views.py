@@ -993,9 +993,13 @@ def download_daily_report_pdf(request):
     def _rect_fill(rect, color):
         page.draw_rect(fitz.Rect(*rect), color=color, fill=color)
 
+    # ── system settings (loaded early so unit_name is available for header) ──
+    from armguard.apps.users.models import SystemSettings as _SysSettings2
+    _sys2 = _SysSettings2.get()
+
     # ── header banner ────────────────────────────────────────────────────────
     _rect_fill((30, 22, 565, 58), NAVY)
-    _text((35, 48), 'PHILIPPINE AIR FORCE — 950th CEWW', size=13, color=WHITE, bold=True)
+    _text((35, 48), _sys2.unit_name or 'PHILIPPINE AIR FORCE — 950th CEWW', size=13, color=WHITE, bold=True)
     _rect_fill((30, 59, 565, 70), ORANGE)
     _text((35, 83), 'DAILY FIREARMS EVALUATION REPORT', size=11, color=BLACK, bold=True)
     _text((35, 97), f'Date: {date_str}   Time: {time_str}', size=9, color=BLACK)
@@ -1048,8 +1052,6 @@ def download_daily_report_pdf(request):
             _armorer_designation = request.user.profile.role or ('System Administrator' if request.user.is_superuser else 'Armorer')
         except Exception:
             _armorer_designation = 'System Administrator' if request.user.is_superuser else 'Armorer'
-    from armguard.apps.users.models import SystemSettings as _SysSettings2
-    _sys2 = _SysSettings2.get()
     _commander_name = _sys2.commander_name
     _commander_rank = _sys2.commander_rank
 
