@@ -72,7 +72,10 @@ class Personnel(models.Model):
 
     ALL_RANKS = RANKS_ENLISTED + RANKS_OFFICER
 
-    # Group choices — kept as a static fallback; canonical list is PersonnelGroup (DB-backed)
+    # Legacy static group list — kept ONLY as a form fallback when the PersonnelGroup
+    # table is empty (e.g. fresh install before migrations seed data).
+    # The model field intentionally has NO choices= so that Django's full_clean()
+    # does not reject DB-backed group names that are not in this list.
     GROUP_CHOICES = [
         ('HAS', 'HAS'),
         ('951st', '951st'),
@@ -93,7 +96,7 @@ class Personnel(models.Model):
     last_name = models.CharField(max_length=20)
     middle_initial = models.CharField(max_length=1)
     AFSN = models.CharField(max_length=10, unique=True)
-    group = models.CharField(max_length=50, choices=GROUP_CHOICES)
+    group = models.CharField(max_length=50)
     squadron = models.CharField(max_length=20)
     tel = models.CharField(
         max_length=11,

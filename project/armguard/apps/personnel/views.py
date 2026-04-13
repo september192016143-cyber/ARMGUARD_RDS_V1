@@ -178,9 +178,8 @@ class PersonnelCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 		obj.created_by = self.request.user.username
 		obj.updated_by = self.request.user.username
 		# Run model-level clean() so AFSN rules & issued-item validation fire.
-		# Exclude 'group' — it is validated against the DB-backed PersonnelGroup
-		# table at the form level; the static GROUP_CHOICES on the model are a
-		# legacy fallback and would reject dynamically added groups.
+		# 'group' is excluded because the model field no longer carries choices;
+		# form-level validation (DB-backed ChoiceField) is the authority.
 		try:
 			obj.full_clean(exclude=['Personnel_ID', 'qr_code', 'qr_code_image', 'group'])
 		except ValidationError as e:
@@ -227,9 +226,8 @@ class PersonnelUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 		# Stamp audit field on every edit
 		obj.updated_by = self.request.user.username
 		# Run model-level clean() so AFSN rules & issued-item validation fire.
-		# Exclude 'group' — it is validated against the DB-backed PersonnelGroup
-		# table at the form level; the static GROUP_CHOICES on the model are a
-		# legacy fallback and would reject dynamically added groups.
+		# 'group' is excluded because the model field no longer carries choices;
+		# form-level validation (DB-backed ChoiceField) is the authority.
 		try:
 			obj.full_clean(exclude=['Personnel_ID', 'qr_code', 'qr_code_image', 'group'])
 		except ValidationError as e:
