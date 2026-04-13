@@ -72,6 +72,17 @@ class PersonnelForm(forms.ModelForm):
 		if db_choices:
 			self.fields['group'].choices = [('', '---------')] + db_choices
 
+	def clean_group(self):
+		"""Validate group against the live DB list, not the legacy static choices."""
+		value = self.cleaned_data.get('group', '').strip()
+		valid = PersonnelGroup.get_names_set()
+		if value and value not in valid:
+			raise forms.ValidationError(
+				f"'{value}' is not a recognised group. "
+				"Please add it in Settings → Personnel Groups first."
+			)
+		return value
+
 	def clean_tel(self):
 		"""Convert empty string to None to avoid unique=True collisions on blank tel."""
 		val = self.cleaned_data.get('tel', '').strip()
@@ -172,9 +183,12 @@ class PersonnelCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 		obj = form.save(commit=False)
 		obj.created_by = self.request.user.username
 		obj.updated_by = self.request.user.username
-		# Run model-level clean() so AFSN rules & issued-item validation fire
+		# Run model-level clean() so AFSN rules & issued-item validation fire.
+		# Exclude 'group' — it is validated against the DB-backed PersonnelGroup
+		# table at the form level; the static GROUP_CHOICES on the model are a
+		# legacy fallback and would reject dynamically added groups.
 		try:
-			obj.full_clean(exclude=['Personnel_ID', 'qr_code', 'qr_code_image'])
+			obj.full_clean(exclude=['Personnel_ID', 'qr_code', 'qr_code_image', 'group'])
 		except ValidationError as e:
 			form.add_error(None, e)
 			return self.form_invalid(form)
@@ -218,9 +232,12 @@ class PersonnelUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 		obj = form.save(commit=False)
 		# Stamp audit field on every edit
 		obj.updated_by = self.request.user.username
-		# Run model-level clean() so AFSN rules & issued-item validation fire
+		# Run model-level clean() so AFSN rules & issued-item validation fire.
+		# Exclude 'group' — it is validated against the DB-backed PersonnelGroup
+		# table at the form level; the static GROUP_CHOICES on the model are a
+		# legacy fallback and would reject dynamically added groups.
 		try:
-			obj.full_clean(exclude=['Personnel_ID', 'qr_code', 'qr_code_image'])
+			obj.full_clean(exclude=['Personnel_ID', 'qr_code', 'qr_code_image', 'group'])
 		except ValidationError as e:
 			form.add_error(None, e)
 			return self.form_invalid(form)
