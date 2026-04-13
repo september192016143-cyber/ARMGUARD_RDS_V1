@@ -28,10 +28,11 @@ class PersonnelForm(forms.ModelForm):
 	# tel is blank=True/null=True in the model — optional in the form so records
 	# can be created before a phone number is known. Validator fires when provided.
 	tel = forms.CharField(
+		min_length=11,
 		max_length=11,
 		required=False,
-		validators=[RegexValidator(r'^\d+$', 'Enter numbers only.')],
-		help_text="Contact telephone number (digits only, max 11 characters). Required for TR issuance.",
+		validators=[RegexValidator(r'^\d{11}$', 'Enter exactly 11 digits (e.g. 09XXXXXXXXX).')],
+		help_text="Contact telephone number — exactly 11 digits (e.g. 09XXXXXXXXX). Required for TR issuance.",
 	)
 
 	# Declare group explicitly as a plain ChoiceField so Django never locks it

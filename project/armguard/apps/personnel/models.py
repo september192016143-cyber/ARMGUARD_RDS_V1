@@ -126,8 +126,8 @@ class Personnel(models.Model):
         unique=True,
         blank=True,
         null=True,
-        validators=[RegexValidator(r'^\d+$', 'Enter numbers only.')],
-        help_text="Contact telephone number (digits only, max 11 characters). Required for TR issuance."
+        validators=[RegexValidator(r'^\d{11}$', 'Enter exactly 11 digits (e.g. 09XXXXXXXXX).')],
+        help_text="Contact telephone number — exactly 11 digits (e.g. 09XXXXXXXXX). Required for TR issuance."
     )
     personnel_image = models.ImageField(upload_to='personnel_images/', blank=True, null=True)
     qr_code = models.CharField(max_length=100, unique=True, blank=True)
