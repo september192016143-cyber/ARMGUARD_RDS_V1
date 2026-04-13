@@ -15,7 +15,7 @@ from django.views.decorators.http import require_POST
 from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
 from .models import UserProfile, ROLE_CHOICES, PasswordHistory
-from armguard.apps.personnel.models import Personnel, PersonnelGroup
+from armguard.apps.personnel.models import Personnel, PersonnelGroup, PersonnelSquadron
 # H1 FIX: Import per-module permission helpers for user management.
 from armguard.utils.permissions import can_manage_users as _can_manage_users, is_admin as _is_admin
 
@@ -708,6 +708,18 @@ class SystemSettingsView(LoginRequiredMixin, View):
                 Value(0),
             )
         )
+        personnel_squadrons = PersonnelSquadron.objects.annotate(
+            personnel_count=Coalesce(
+                Subquery(
+                    Personnel.objects.filter(squadron=OuterRef('name'))
+                        .values('squadron')
+                        .annotate(c=Count('squadron'))
+                        .values('c')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            )
+        )
         return render(request, self.template_name, {
             's':                       s,
             'total_users':             total_users,
@@ -717,6 +729,7 @@ class SystemSettingsView(LoginRequiredMixin, View):
             'enrolled_2fa_ids':        enrolled_pks,
             'purpose_visibility_rows': purpose_visibility_rows,
             'personnel_groups':        personnel_groups,
+            'personnel_squadrons':     personnel_squadrons,
         })
 
     def post(self, request):
@@ -863,6 +876,79 @@ def group_delete(request, pk):
         return redirect('system-settings')
     group.delete()
     messages.success(request, f'Group "{group.name}" deleted.')
+    return redirect('system-settings')
+
+
+# ── Personnel Squadron management (Settings page) ─────────────────────────────
+
+@login_required
+@require_POST
+def squadron_add(request):
+    resp = _group_guard(request)
+    if resp:
+        return resp
+    name = request.POST.get('name', '').strip()
+    if not name:
+        messages.error(request, 'Squadron name cannot be empty.')
+        return redirect('system-settings')
+    if len(name) > 50:
+        messages.error(request, 'Squadron name must be 50 characters or fewer.')
+        return redirect('system-settings')
+    _, created = PersonnelSquadron.objects.get_or_create(
+        name=name,
+        defaults={'order': PersonnelSquadron.objects.count()},
+    )
+    if created:
+        messages.success(request, f'Squadron "{name}" added.')
+    else:
+        messages.warning(request, f'Squadron "{name}" already exists.')
+    return redirect('system-settings')
+
+
+@login_required
+@require_POST
+def squadron_rename(request, pk):
+    resp = _group_guard(request)
+    if resp:
+        return resp
+    squadron = get_object_or_404(PersonnelSquadron, pk=pk)
+    new_name = request.POST.get('name', '').strip()
+    if not new_name:
+        messages.error(request, 'Squadron name cannot be empty.')
+        return redirect('system-settings')
+    if len(new_name) > 50:
+        messages.error(request, 'Squadron name must be 50 characters or fewer.')
+        return redirect('system-settings')
+    if PersonnelSquadron.objects.filter(name=new_name).exclude(pk=pk).exists():
+        messages.error(request, f'A squadron named "{new_name}" already exists.')
+        return redirect('system-settings')
+    old_name = squadron.name
+    from django.db import transaction
+    with transaction.atomic():
+        Personnel.objects.filter(squadron=old_name).update(squadron=new_name)
+        squadron.name = new_name
+        squadron.save()
+    messages.success(request, f'Squadron renamed from "{old_name}" to "{new_name}".')
+    return redirect('system-settings')
+
+
+@login_required
+@require_POST
+def squadron_delete(request, pk):
+    resp = _group_guard(request)
+    if resp:
+        return resp
+    squadron = get_object_or_404(PersonnelSquadron, pk=pk)
+    count = Personnel.objects.filter(squadron=squadron.name).count()
+    if count > 0:
+        messages.error(
+            request,
+            f'Cannot delete "{squadron.name}" — {count} personnel member{"s" if count != 1 else ""} '
+            f'still assigned to this squadron. Reassign them first.'
+        )
+        return redirect('system-settings')
+    squadron.delete()
+    messages.success(request, f'Squadron "{squadron.name}" deleted.')
     return redirect('system-settings')
 
 

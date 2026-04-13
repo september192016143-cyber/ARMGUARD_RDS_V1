@@ -32,6 +32,29 @@ class PersonnelGroup(models.Model):
         return set(cls.objects.values_list('name', flat=True))
 
 
+class PersonnelSquadron(models.Model):
+    """DB-backed list of squadrons, manageable from the Settings page."""
+    name = models.CharField(max_length=50, unique=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name = 'Personnel Squadron'
+        verbose_name_plural = 'Personnel Squadrons'
+
+    def __str__(self):
+        return self.name
+
+    @classmethod
+    def get_choices(cls):
+        """Return list of (name, name) tuples suitable for CharField choices."""
+        return [(s.name, s.name) for s in cls.objects.all()]
+
+    @classmethod
+    def get_names_set(cls):
+        return set(cls.objects.values_list('name', flat=True))
+
+
 class Personnel(models.Model):
     duty_type = models.CharField(max_length=50, blank=True, null=True, help_text="Duty type for this personnel (optional)")
     # Personnel model for Air Guard personnel

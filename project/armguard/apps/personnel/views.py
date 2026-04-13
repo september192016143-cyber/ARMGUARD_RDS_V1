@@ -4,7 +4,7 @@ from django.views import View
 from django.views.generic import (
 	ListView, DetailView, CreateView, UpdateView, DeleteView
 )
-from .models import Personnel, PersonnelGroup
+from .models import Personnel, PersonnelGroup, PersonnelSquadron
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django import forms
 from django.core.exceptions import ValidationError
@@ -55,6 +55,10 @@ class PersonnelForm(forms.ModelForm):
 	# PersonnelGroup table in __init__, so dynamically added groups are always valid.
 	group = forms.ChoiceField(choices=[], required=True)
 
+	# Declare squadron explicitly as a plain ChoiceField populated from the
+	# DB-backed PersonnelSquadron table in __init__.
+	squadron = forms.ChoiceField(choices=[], required=True)
+
 	class Meta:
 		model = Personnel
 		fields = [
@@ -76,6 +80,9 @@ class PersonnelForm(forms.ModelForm):
 		db_choices = PersonnelGroup.get_choices()
 		group_choices = db_choices if db_choices else Personnel.GROUP_CHOICES
 		self.fields['group'].choices = [('', '---------')] + list(group_choices)
+		# Build squadron choices from DB; no static fallback needed
+		sq_choices = PersonnelSquadron.get_choices()
+		self.fields['squadron'].choices = [('', '---------')] + list(sq_choices)
 
 	def clean_tel(self):
 		"""Convert empty string to None to avoid unique=True collisions on blank tel."""
@@ -178,10 +185,10 @@ class PersonnelCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 		obj.created_by = self.request.user.username
 		obj.updated_by = self.request.user.username
 		# Run model-level clean() so AFSN rules & issued-item validation fire.
-		# 'group' is excluded because the model field no longer carries choices;
-		# form-level validation (DB-backed ChoiceField) is the authority.
+		# 'group' and 'squadron' are excluded — both fields are validated at the
+		# form level via DB-backed ChoiceFields (PersonnelGroup / PersonnelSquadron).
 		try:
-			obj.full_clean(exclude=['Personnel_ID', 'qr_code', 'qr_code_image', 'group'])
+			obj.full_clean(exclude=['Personnel_ID', 'qr_code', 'qr_code_image', 'group', 'squadron'])
 		except ValidationError as e:
 			form.add_error(None, e)
 			return self.form_invalid(form)
@@ -226,10 +233,10 @@ class PersonnelUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 		# Stamp audit field on every edit
 		obj.updated_by = self.request.user.username
 		# Run model-level clean() so AFSN rules & issued-item validation fire.
-		# 'group' is excluded because the model field no longer carries choices;
-		# form-level validation (DB-backed ChoiceField) is the authority.
+		# 'group' and 'squadron' are excluded — both fields are validated at the
+		# form level via DB-backed ChoiceFields (PersonnelGroup / PersonnelSquadron).
 		try:
-			obj.full_clean(exclude=['Personnel_ID', 'qr_code', 'qr_code_image', 'group'])
+			obj.full_clean(exclude=['Personnel_ID', 'qr_code', 'qr_code_image', 'group', 'squadron'])
 		except ValidationError as e:
 			form.add_error(None, e)
 			return self.form_invalid(form)
@@ -615,6 +622,7 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 		from django.conf import settings as dj_settings
 		return {
 			'group_choices': PersonnelGroup.get_choices(),
+			'squadron_choices': PersonnelSquadron.get_choices(),
 			'gsheets_enabled': bool(getattr(dj_settings, 'GOOGLE_SA_JSON', '')),
 		}
 

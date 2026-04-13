@@ -77,3 +77,57 @@
     });
   });
 })();
+
+// ── Personnel Squadron management ────────────────────────────────────────────
+(function () {
+  function showSqRename(pk, currentName) {
+    document.getElementById('sq-view-' + pk).style.display = 'none';
+    document.getElementById('sq-edit-' + pk).style.display = 'inline-flex';
+    document.getElementById('sq-name-' + pk).style.display = 'none';
+    var disp = document.getElementById('sq-input-display-' + pk);
+    disp.value = currentName;
+    disp.style.display = 'inline-block';
+    document.getElementById('sq-input-' + pk).value = currentName;
+    disp.focus();
+    disp.select();
+  }
+
+  function hideSqRename(pk) {
+    document.getElementById('sq-edit-' + pk).style.display = 'none';
+    document.getElementById('sq-view-' + pk).style.display = 'inline-flex';
+    document.getElementById('sq-name-' + pk).style.display = '';
+    document.getElementById('sq-input-display-' + pk).style.display = 'none';
+  }
+
+  // Rename (pencil) buttons
+  document.querySelectorAll('.btn-sq-rename').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      showSqRename(this.dataset.pk, this.dataset.name);
+    });
+  });
+
+  // Cancel buttons
+  document.querySelectorAll('.btn-sq-cancel').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      hideSqRename(this.dataset.pk);
+    });
+  });
+
+  // Sync display input → hidden input on every keystroke
+  document.querySelectorAll('[data-sq-syncs-to]').forEach(function (disp) {
+    disp.addEventListener('input', function () {
+      var target = document.getElementById(this.dataset.sqSyncsTo);
+      if (target) target.value = this.value;
+    });
+  });
+
+  // Confirm before delete
+  document.querySelectorAll('[data-squadron-delete]').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      var name = this.dataset.squadronName;
+      if (!confirm('Delete squadron "' + name + '"? This cannot be undone.\n(Only possible if no personnel are assigned to this squadron.)')) {
+        e.preventDefault();
+      }
+    });
+  });
+})();

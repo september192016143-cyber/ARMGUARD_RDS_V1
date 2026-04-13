@@ -429,6 +429,99 @@
   </form>
 </div>
 
+<!-- ── Personnel Squadrons ────────────────────────────────────────────────── -->
+<div class="card mb-2" style="max-width:680px;margin-top:1.5rem" id="squadrons-card">
+  <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+    <span class="card-title"><i class="fa-solid fa-building-shield"></i> Personnel Squadrons</span>
+    <span style="font-size:.78rem;color:var(--muted)">{{ personnel_squadrons|length }} squadron{{ personnel_squadrons|length|pluralize }}</span>
+  </div>
+  <div style="font-size:.82rem;color:var(--muted);margin-bottom:.85rem">
+    <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+    Squadrons available when adding or importing personnel. Renaming a squadron updates all existing personnel automatically.
+  </div>
+
+  <!-- Hidden forms live OUTSIDE the table to avoid browser HTML-parser issues -->
+  {% for sq in personnel_squadrons %}
+  <form id="form-sq-delete-{{ sq.pk }}" method="post" action="{% url 'squadron-delete' sq.pk %}"
+        data-squadron-delete data-squadron-name="{{ sq.name|escapejs }}">
+    {% csrf_token %}
+  </form>
+  <form id="form-sq-rename-{{ sq.pk }}" method="post" action="{% url 'squadron-rename' sq.pk %}">
+    {% csrf_token %}
+    <input type="hidden" name="name" id="sq-input-{{ sq.pk }}">
+  </form>
+  {% endfor %}
+
+  <!-- Squadron list -->
+  <table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:1rem">
+    <thead>
+      <tr>
+        <th style="text-align:left;padding:.35rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Squadron Name</th>
+        <th style="text-align:center;padding:.35rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Personnel</th>
+        <th style="padding:.35rem .6rem;border-bottom:1px solid var(--border)"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sq in personnel_squadrons %}
+      <tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:.5rem .6rem;font-weight:500">
+          <span id="sq-name-{{ sq.pk }}">{{ sq.name }}</span>
+          <input type="text" id="sq-input-display-{{ sq.pk }}"
+                 class="form-control" maxlength="50"
+                 data-sq-syncs-to="sq-input-{{ sq.pk }}"
+                 style="display:none;height:30px;font-size:.85rem;padding:.15rem .5rem;min-width:140px">
+        </td>
+        <td style="text-align:center;padding:.5rem .6rem;color:var(--muted)">
+          {{ sq.personnel_count }}
+        </td>
+        <td style="text-align:right;padding:.5rem .6rem;white-space:nowrap">
+          <!-- View mode -->
+          <span id="sq-view-{{ sq.pk }}" style="display:inline-flex;gap:.4rem">
+            <button type="button" class="btn btn-secondary btn-sm btn-sq-rename"
+                    data-pk="{{ sq.pk }}" data-name="{{ sq.name|escapejs }}" title="Rename">
+              <i class="fa-solid fa-pencil"></i>
+            </button>
+            <button type="submit" form="form-sq-delete-{{ sq.pk }}"
+                    class="btn btn-secondary btn-sm" title="Delete" style="color:var(--danger)">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </span>
+          <!-- Edit mode -->
+          <span id="sq-edit-{{ sq.pk }}" style="display:none;gap:.4rem;align-items:center;flex-wrap:nowrap">
+            <button type="submit" form="form-sq-rename-{{ sq.pk }}"
+                    class="btn btn-primary btn-sm" style="height:30px;padding:.15rem .6rem" title="Save">
+              <i class="fa-solid fa-check"></i>
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm btn-sq-cancel"
+                    data-pk="{{ sq.pk }}" style="height:30px;padding:.15rem .6rem" title="Cancel">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </span>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3" style="text-align:center;color:var(--muted);padding:1.5rem">
+          No squadrons defined yet. Add one below.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Add squadron form -->
+  <form method="post" action="{% url 'squadron-add' %}" style="display:flex;gap:.5rem;align-items:center">
+    {% csrf_token %}
+    <label for="id_new_squadron_name" class="form-label" style="margin-bottom:0">New squadron name
+      <input type="text" id="id_new_squadron_name" name="name" class="form-control" maxlength="50"
+        placeholder="New squadron name…" style="max-width:220px" autocomplete="off">
+    </label>
+    <button type="submit" class="btn btn-primary btn-sm">
+      <i class="fa-solid fa-plus"></i> Add Squadron
+    </button>
+  </form>
+</div>
+
 <!-- ── Per-User 2FA Exemptions ─────────────────────────────────────────── -->
 <div class="card mb-2" style="max-width:680px;margin-top:1.5rem">
   <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">

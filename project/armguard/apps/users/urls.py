@@ -13,6 +13,10 @@ urlpatterns = [
     path('settings/groups/add/',             views.group_add,               name='group-add'),
     path('settings/groups/<int:pk>/rename/', views.group_rename,            name='group-rename'),
     path('settings/groups/<int:pk>/delete/', views.group_delete,            name='group-delete'),
+    # Personnel squadron management
+    path('settings/squadrons/add/',             views.squadron_add,            name='squadron-add'),
+    path('settings/squadrons/<int:pk>/rename/', views.squadron_rename,         name='squadron-rename'),
+    path('settings/squadrons/<int:pk>/delete/', views.squadron_delete,         name='squadron-delete'),
     path('storage/',       views.storage_status_json,                       name='storage-status'),
     path('storage/cleanup-orphans/', views.cleanup_orphaned_personnel_media, name='storage-cleanup-orphans'),
     path('ping/',          views.session_ping,                              name='session-ping'),
