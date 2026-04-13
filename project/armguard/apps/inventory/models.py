@@ -107,11 +107,22 @@ ACCESSORY_MAX_QTY = {
 
 
 def _get_magazine_max_qty():
-    from django.conf import settings as _s
-    return {
-        'Pistol': getattr(_s, 'ARMGUARD_PISTOL_MAGAZINE_MAX_QTY', 4),
-        'Rifle':  getattr(_s, 'ARMGUARD_RIFLE_MAGAZINE_MAX_QTY', None),
-    }
+    # L4-EXT: Read the live DB value set by the admin via System Settings.
+    # Fallback to Django settings constants if DB is unavailable (e.g. during
+    # migrations or tests that don't seed SystemSettings).
+    try:
+        from armguard.apps.users.models import SystemSettings
+        s = SystemSettings.get()
+        return {
+            'Pistol': s.pistol_magazine_max_qty or 4,
+            'Rifle':  s.rifle_magazine_max_qty,
+        }
+    except Exception:
+        from django.conf import settings as _s
+        return {
+            'Pistol': getattr(_s, 'ARMGUARD_PISTOL_MAGAZINE_MAX_QTY', 4),
+            'Rifle':  getattr(_s, 'ARMGUARD_RIFLE_MAGAZINE_MAX_QTY', None),
+        }
 MAGAZINE_MAX_QTY = {
     'Pistol': 4,  # default — overridden at runtime via _get_magazine_max_qty()
     'Rifle': None,

@@ -547,6 +547,7 @@ def print_transactions(request):
         'commander_rank':            _sys.commander_rank,
         'commander_branch':          _sys.commander_branch,
         'commander_designation':     _sys.commander_designation or 'Squadron Commander',
+        'unit_name':                 _sys.unit_name,
         # Watermark
         'watermark_user':            request.user.get_full_name() or request.user.username,
         'watermark_time':            timezone.localtime().strftime('%Y-%m-%d %H:%M PHT'),

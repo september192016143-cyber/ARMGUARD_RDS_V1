@@ -145,16 +145,16 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {'min_length': 12},
-    },
+    # G16-EXT2: Dynamic minimum length — reads the admin-configured value from
+    # SystemSettings at validation time instead of a hardcoded constant.
+    {'NAME': 'armguard.apps.users.validators.DynamicMinLengthValidator'},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
-    # G16-EXT: Prevent reuse of recent passwords (last 5).
+    # G16-EXT: Prevent reuse of recent passwords — reads history_count from
+    # SystemSettings at validation time instead of the OPTIONS constant.
     {
         'NAME': 'armguard.apps.users.validators.PasswordHistoryValidator',
-        'OPTIONS': {'history_count': 5},
+        'OPTIONS': {'history_count': 5},  # fallback if DB unavailable
     },
 ]
 

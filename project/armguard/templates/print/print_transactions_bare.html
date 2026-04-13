@@ -133,6 +133,7 @@ html, body {
 
   <div class="eval-header">
     <div class="eval-title">DAILY FIREARMS INVENTORY REPORT</div>
+    {% if unit_name %}<div style="font-size:10pt;font-weight:600;margin-top:3px">{{ unit_name }}</div>{% endif %}
     <div class="eval-date">Date: {% now "d F Y" %}</div>
   </div>
 
