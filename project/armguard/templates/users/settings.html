@@ -12,14 +12,6 @@
 {% endblock %}
 
 {% block content %}
-{% if messages %}
-  {% for msg in messages %}
-  <div class="alert alert-{{ msg.tags }}" style="margin-bottom:1rem">
-    <i class="fa-solid fa-circle-check"></i> {{ msg }}
-  </div>
-  {% endfor %}
-{% endif %}
-
 <form method="post" id="settings-form" enctype="multipart/form-data" style="max-width:680px">
   {% csrf_token %}
 
