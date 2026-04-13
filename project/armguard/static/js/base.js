@@ -509,11 +509,23 @@ document.addEventListener('DOMContentLoaded', function () {
     var _lastCertMtime = 0;
 
     function checkSslCert() {
-      // Already on HTTPS → connection is secure; hide the sidebar shortcut and stop
-      if (window.location.protocol === 'https:') {
-        hideSidebarBtn();
-        return;
+      var onHttps = window.location.protocol === 'https:';
+
+      // If on HTTPS and this device has already acked the current cert, we're done.
+      // Check acked value before the network call to avoid a flicker.
+      if (onHttps) {
+        var ackedEarly = parseFloat(localStorage.getItem(LS_KEY) || '0');
+        if (ackedEarly > 0) {
+          // Still need to verify the cert hasn't been renewed — do a lightweight
+          // fetch but only to detect renewal; if no cert file it's mtime=0 so
+          // acked(>0) >= 0 still passes the renewal check below.
+          // Fall through to fetch so renewal is caught.
+        } else {
+          // On HTTPS, acked=0: might be self-signed not yet installed on this device.
+          // Fall through to fetch and notify if needed.
+        }
       }
+
       fetch(SSL_STATUS_URL, {
         credentials: 'same-origin',
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -524,12 +536,24 @@ document.addEventListener('DOMContentLoaded', function () {
         _lastCertMtime = data.cert_mtime || 0;
         var noCert = _lastCertMtime === 0;
 
+        if (onHttps && noCert) {
+          // Server has no cert and we're somehow on HTTPS — nothing to install.
+          hideSidebarBtn();
+          return;
+        }
+
         if (!noCert) {
           // Cert file exists on server — check if this device has already acked it
           var acked = parseFloat(localStorage.getItem(LS_KEY) || '0');
-          if (acked >= _lastCertMtime) return; // already installed this version
+          if (acked >= _lastCertMtime) {
+            // Cert is installed and current → hide sidebar and clear any stale notif
+            hideSidebarBtn();
+            window.removeNotifById('ssl-cert');
+            return;
+          }
         }
-        // noCert === true: no cert configured → connection is always insecure → always notify
+        // noCert === true and on HTTP: no cert → always warn
+        // noCert === false and not acked: self-signed not yet installed → warn
 
         var acked2 = _lastCertMtime > 0 ? parseFloat(localStorage.getItem(LS_KEY) || '0') : 0;
         var isRenewal = !noCert && acked2 > 0;
@@ -542,6 +566,17 @@ document.addEventListener('DOMContentLoaded', function () {
           ? 'A new security certificate was issued for this server. Reinstall it on this device to keep the secure padlock.'
           : 'This server uses a self-signed certificate. Install it on this device to remove the \u201cNot secure\u201d warning.';
         var actionUrl = noCert ? null : '#ssl-install';
+        // Update existing ssl-cert notif if already present (e.g. renewal updates the message)
+        var existing = getNotifs().filter(function (n) { return n.id === 'ssl-cert'; });
+        if (existing.length > 0) {
+          saveNotifs(getNotifs().map(function (n) {
+            return n.id === 'ssl-cert'
+              ? Object.assign({}, n, { title: title, msg: msg, unread: true })
+              : n;
+          }));
+          renderNotifs();
+          return;
+        }
         var added = window.addNotif(
           title, msg, 'warning', 'fa-certificate', 'ssl-cert', actionUrl
         );
@@ -563,11 +598,15 @@ document.addEventListener('DOMContentLoaded', function () {
       hideSidebarBtn();
     };
 
-    // Hide sidebar button immediately if already acked OR already on HTTPS
+    // Hide sidebar button immediately only when cert is acked AND on HTTPS
+    // (cert already installed — no action needed). On HTTP or unacked HTTPS,
+    // leave it visible until the async cert-status fetch decides.
     (function () {
-      if (window.location.protocol === 'https:') { hideSidebarBtn(); return; }
-      var acked = parseFloat(localStorage.getItem(LS_KEY) || '0');
-      if (acked > 0) hideSidebarBtn();
+      if (window.location.protocol === 'https:') {
+        var acked = parseFloat(localStorage.getItem(LS_KEY) || '0');
+        if (acked > 0) hideSidebarBtn(); // may be overridden after fetch if cert renewed
+      }
+      // On HTTP: never hide the sidebar button upfront — always leave it accessible
     })();
 
     setTimeout(checkSslCert, 2000);
