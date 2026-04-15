@@ -256,13 +256,16 @@ def print_item_tags_view(request):
     if show_all:
         items_qs = sorted(
             list(Pistol.objects.all()) + list(Rifle.objects.all()),
-            key=lambda i: (i.item_type, i.serial_number)
+            key=lambda i: (i.item_type, i.model, i.item_number or '')
         )
     elif ids_param:
         id_list = [i.strip() for i in ids_param.split(',') if i.strip()]
         pistols  = list(Pistol.objects.filter(item_id__in=id_list))
         rifles   = list(Rifle.objects.filter(item_id__in=id_list))
-        items_qs = pistols + rifles
+        items_qs = sorted(
+            pistols + rifles,
+            key=lambda i: (i.item_type, i.model, i.item_number or '')
+        )
     else:
         items_qs = []
 
