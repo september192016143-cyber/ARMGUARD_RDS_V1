@@ -823,6 +823,8 @@ def print_id_cards(request):
         'officers_count': officers_count,
         'enlisted_count': enlisted_count,
     }
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return render(request, 'print/print_id_cards_grid.html', context)
     return render(request, 'print/print_id_cards.html', context)
 
 

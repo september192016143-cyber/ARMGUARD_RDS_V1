@@ -25,6 +25,67 @@
   var PRINT_VIEW_URL     = cfg.printViewUrl;
   var GEN_MISSING_URL    = cfg.genMissingUrl;
   var CSRF_TOKEN         = cfg.csrfToken;  var _sig               = window.pjaxController ? { signal: window.pjaxController.signal } : undefined;
+
+  // ── Real-time filter (PJAX) ───────────────────────────────────────────────
+  var filterForm   = document.getElementById('id-cards-filter-form');
+  var qInput       = document.getElementById('id-cards-q');
+  var categorySel  = document.getElementById('id-cards-category');
+  var gridOuter    = document.getElementById('card-grid-outer');
+  var clearBtn     = document.getElementById('id-cards-clear-btn');
+  var debounceTimer;
+
+  function hasFilters() {
+    return !!((qInput && qInput.value.trim()) || (categorySel && categorySel.value));
+  }
+
+  function doFilterFetch() {
+    if (!filterForm || !gridOuter) return;
+    var baseUrl = filterForm.dataset.url || window.location.pathname;
+    var params = new URLSearchParams();
+    if (qInput && qInput.value.trim()) params.set('q', qInput.value.trim());
+    if (categorySel && categorySel.value) params.set('category', categorySel.value);
+    fetch(baseUrl + '?' + params.toString(), {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(function (r) { return r.text(); })
+    .then(function (html) {
+      gridOuter.innerHTML = html;
+      // Update stat counters from the hidden span in the partial
+      var statsEl = document.getElementById('id-cards-ajax-stats');
+      if (statsEl) {
+        var el;
+        el = document.querySelector('.stat-card.accent-blue .stat-value');   if (el) el.textContent = statsEl.dataset.total;
+        el = document.querySelector('.stat-card.accent-green .stat-value');  if (el) el.textContent = statsEl.dataset.withCard;
+        el = document.querySelector('.stat-card.accent-red .stat-value');    if (el) el.textContent = statsEl.dataset.withoutCard;
+      }
+      // Reset select-all checkbox and print buttons
+      var selectAllCb = document.getElementById('select-all');
+      if (selectAllCb) selectAllCb.checked = false;
+      updatePrintBtn();
+      if (clearBtn) clearBtn.style.display = hasFilters() ? '' : 'none';
+    });
+  }
+
+  if (qInput) {
+    qInput.addEventListener('input', function () {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(doFilterFetch, 400);
+    }, _sig);
+  }
+  if (categorySel) {
+    categorySel.addEventListener('change', function () {
+      clearTimeout(debounceTimer);
+      doFilterFetch();
+    }, _sig);
+  }
+  if (filterForm) {
+    filterForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      clearTimeout(debounceTimer);
+      doFilterFetch();
+    }, _sig);
+  }
+  // ─────────────────────────────────────────────────────────────────────────
   // ── Flip ─────────────────────────────────────────────────────────────────
   document.addEventListener('click', function (e) {
     var scene = e.target.closest('[data-action="flip"]');
