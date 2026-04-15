@@ -617,11 +617,7 @@ function _attachSelectStyles(el) {
       var newType = key === 'w' ? 'Withdrawal' : 'Return';
       if (tbType && tbType.value !== newType) {
         tbType.value = newType;
-        // Call UI functions directly — avoids dispatchEvent firing unrelated
-        // listeners (re-run checks, autoFill) that can race or interfere.
-        toggleReturnMode();
-        toggleWeaponSections();
-        toggleTrPreview();
+        tbType.dispatchEvent(new Event('change'));
       }
     } else if (key === 't' || key === 'a') {
       e.preventDefault();
