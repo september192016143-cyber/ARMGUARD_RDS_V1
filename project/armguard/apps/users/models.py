@@ -403,11 +403,15 @@ class SystemSettings(models.Model):
     max_bandoleer_qty       = models.PositiveSmallIntegerField(
         default=1, help_text='Maximum bandoleers issuable in a single withdrawal.')
 
-    # ── Printing behaviour ────────────────────────────────────────────────────
-    auto_print_tr = models.BooleanField(
-        default=False,
-        help_text='Automatically open the TR print page after a TR Withdrawal is saved.',
-    )
+    # ── Per-purpose auto TR print ─────────────────────────────────────────────
+    # When True the TR print page opens automatically after saving a TR Withdrawal
+    # for that purpose.
+    auto_print_tr_duty_sentinel = models.BooleanField(default=False, help_text='Auto-print TR for Duty Sentinel withdrawals.')
+    auto_print_tr_duty_vigil    = models.BooleanField(default=False, help_text='Auto-print TR for Duty Vigil withdrawals.')
+    auto_print_tr_duty_security = models.BooleanField(default=False, help_text='Auto-print TR for Duty Security withdrawals.')
+    auto_print_tr_honor_guard   = models.BooleanField(default=False, help_text='Auto-print TR for Honor Guard withdrawals.')
+    auto_print_tr_others        = models.BooleanField(default=False, help_text='Auto-print TR for Others withdrawals.')
+    auto_print_tr_orex          = models.BooleanField(default=False, help_text='Auto-print TR for OREX withdrawals.')
 
     class Meta:
         verbose_name        = "System Settings"

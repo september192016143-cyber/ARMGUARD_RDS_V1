@@ -687,12 +687,12 @@ class SystemSettingsView(LoginRequiredMixin, View):
             .order_by('username')
         )
         purpose_visibility_rows = [
-            {'label': 'Duty Sentinel',  'pistol_field': 'purpose_duty_sentinel_show_pistol',  'pistol_value': s.purpose_duty_sentinel_show_pistol,  'rifle_field': 'purpose_duty_sentinel_show_rifle',  'rifle_value': s.purpose_duty_sentinel_show_rifle},
-            {'label': 'Duty Vigil',     'pistol_field': 'purpose_duty_vigil_show_pistol',     'pistol_value': s.purpose_duty_vigil_show_pistol,     'rifle_field': 'purpose_duty_vigil_show_rifle',     'rifle_value': s.purpose_duty_vigil_show_rifle},
-            {'label': 'Duty Security',  'pistol_field': 'purpose_duty_security_show_pistol',  'pistol_value': s.purpose_duty_security_show_pistol,  'rifle_field': 'purpose_duty_security_show_rifle',  'rifle_value': s.purpose_duty_security_show_rifle},
-            {'label': 'Honor Guard',    'pistol_field': 'purpose_honor_guard_show_pistol',    'pistol_value': s.purpose_honor_guard_show_pistol,    'rifle_field': 'purpose_honor_guard_show_rifle',    'rifle_value': s.purpose_honor_guard_show_rifle},
-            {'label': 'Others',         'pistol_field': 'purpose_others_show_pistol',         'pistol_value': s.purpose_others_show_pistol,         'rifle_field': 'purpose_others_show_rifle',         'rifle_value': s.purpose_others_show_rifle},
-            {'label': 'OREX',           'pistol_field': 'purpose_orex_show_pistol',           'pistol_value': s.purpose_orex_show_pistol,           'rifle_field': 'purpose_orex_show_rifle',           'rifle_value': s.purpose_orex_show_rifle},
+            {'label': 'Duty Sentinel',  'pistol_field': 'purpose_duty_sentinel_show_pistol',  'pistol_value': s.purpose_duty_sentinel_show_pistol,  'rifle_field': 'purpose_duty_sentinel_show_rifle',  'rifle_value': s.purpose_duty_sentinel_show_rifle,  'auto_print_field': 'auto_print_tr_duty_sentinel', 'auto_print_value': s.auto_print_tr_duty_sentinel},
+            {'label': 'Duty Vigil',     'pistol_field': 'purpose_duty_vigil_show_pistol',     'pistol_value': s.purpose_duty_vigil_show_pistol,     'rifle_field': 'purpose_duty_vigil_show_rifle',     'rifle_value': s.purpose_duty_vigil_show_rifle,     'auto_print_field': 'auto_print_tr_duty_vigil',    'auto_print_value': s.auto_print_tr_duty_vigil},
+            {'label': 'Duty Security',  'pistol_field': 'purpose_duty_security_show_pistol',  'pistol_value': s.purpose_duty_security_show_pistol,  'rifle_field': 'purpose_duty_security_show_rifle',  'rifle_value': s.purpose_duty_security_show_rifle,  'auto_print_field': 'auto_print_tr_duty_security', 'auto_print_value': s.auto_print_tr_duty_security},
+            {'label': 'Honor Guard',    'pistol_field': 'purpose_honor_guard_show_pistol',    'pistol_value': s.purpose_honor_guard_show_pistol,    'rifle_field': 'purpose_honor_guard_show_rifle',    'rifle_value': s.purpose_honor_guard_show_rifle,    'auto_print_field': 'auto_print_tr_honor_guard',   'auto_print_value': s.auto_print_tr_honor_guard},
+            {'label': 'Others',         'pistol_field': 'purpose_others_show_pistol',         'pistol_value': s.purpose_others_show_pistol,         'rifle_field': 'purpose_others_show_rifle',         'rifle_value': s.purpose_others_show_rifle,         'auto_print_field': 'auto_print_tr_others',        'auto_print_value': s.auto_print_tr_others},
+            {'label': 'OREX',           'pistol_field': 'purpose_orex_show_pistol',           'pistol_value': s.purpose_orex_show_pistol,           'rifle_field': 'purpose_orex_show_rifle',           'rifle_value': s.purpose_orex_show_rifle,           'auto_print_field': 'auto_print_tr_orex',          'auto_print_value': s.auto_print_tr_orex},
         ]
         auto_consumable_rows = [
             {'label': 'Duty Vigil',   'field': 'purpose_duty_vigil_auto_consumables',  'value': s.purpose_duty_vigil_auto_consumables},
@@ -790,8 +790,13 @@ class SystemSettingsView(LoginRequiredMixin, View):
             if obj.app_logo:
                 obj.app_logo.delete(save=False)
             obj.app_logo = request.FILES['app_logo']
-        # ── Printing behaviour ─────────────────────────────────────────────────
-        obj.auto_print_tr = 'auto_print_tr' in request.POST
+        # ── Per-purpose auto TR print ─────────────────────────────────────────
+        for field in [
+            'auto_print_tr_duty_sentinel', 'auto_print_tr_duty_vigil',
+            'auto_print_tr_duty_security', 'auto_print_tr_honor_guard',
+            'auto_print_tr_others',        'auto_print_tr_orex',
+        ]:
+            setattr(obj, field, field in request.POST)
 
         # Per-purpose weapon field visibility
         for field in [

@@ -467,16 +467,6 @@
       <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
       Choose which weapon fields (Pistol / Rifle) are shown when each Purpose is selected on the New Transaction form.
     </div>
-    <!-- Auto TR Print toggle -->
-    <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem .2rem 1rem">
-      <input type="checkbox" id="id_auto_print_tr" name="auto_print_tr"
-             {% if s.auto_print_tr %}checked{% endif %}
-             style="width:17px;height:17px;accent-color:var(--primary,#4f8ef7);cursor:pointer;flex-shrink:0">
-      <label for="id_auto_print_tr" style="margin:0;cursor:pointer;font-size:.87rem">
-        <strong>Auto TR Print</strong>
-        <span style="color:var(--muted);font-size:.8rem;margin-left:.4rem">— Automatically open the TR print page after a TR Withdrawal is saved.</span>
-      </label>
-    </div>
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
         <thead>
@@ -484,6 +474,7 @@
             <th style="text-align:left;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Purpose</th>
             <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-gun" style="font-size:.8rem;margin-right:.3rem"></i>Pistol</th>
             <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-rifle" style="font-size:.8rem;margin-right:.3rem"></i>Rifle</th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-print" style="font-size:.8rem;margin-right:.3rem"></i>Auto Print</th>
           </tr>
         </thead>
         <tbody id="purpose-vis-tbody">
@@ -496,6 +487,10 @@
             </td>
             <td style="text-align:center;padding:.5rem .6rem">
               <input type="checkbox" name="{{ row.rifle_field }}" {% if row.rifle_value %}checked{% endif %}
+                     style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
+            </td>
+            <td style="text-align:center;padding:.5rem .6rem">
+              <input type="checkbox" name="{{ row.auto_print_field }}" {% if row.auto_print_value %}checked{% endif %}
                      style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
             </td>
           </tr>

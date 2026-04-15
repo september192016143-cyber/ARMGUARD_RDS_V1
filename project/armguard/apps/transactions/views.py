@@ -384,11 +384,21 @@ def create_transaction(request):
                             )  # Error must never block the Return
 
             messages.success(request, f'Transaction #{txn.transaction_id} recorded successfully.')
-            # Auto-print: if the setting is enabled and this is a TR Withdrawal,
+            # Auto-print: if the per-purpose setting is enabled and this is a TR Withdrawal,
             # redirect straight to the print page instead of the detail page.
             try:
                 from armguard.apps.users.models import SystemSettings as _SS_print
-                _auto = _SS_print.get().auto_print_tr
+                _ss_print = _SS_print.get()
+                _purpose_auto_map = {
+                    'Duty Sentinel': 'auto_print_tr_duty_sentinel',
+                    'Duty Vigil':    'auto_print_tr_duty_vigil',
+                    'Duty Security': 'auto_print_tr_duty_security',
+                    'Honor Guard':   'auto_print_tr_honor_guard',
+                    'Others':        'auto_print_tr_others',
+                    'OREX':          'auto_print_tr_orex',
+                }
+                _auto_field = _purpose_auto_map.get(txn.purpose, '')
+                _auto = bool(_auto_field and getattr(_ss_print, _auto_field, False))
             except Exception:
                 _auto = False
             if (_auto
