@@ -94,13 +94,31 @@ AMMO_WEAPON_COMPATIBILITY = {
     ],
 }
 # Standard maximum quantities per accessory type when paired with a weapon.
-# Withdrawal validation uses these to cap quantities at the doctrinal limit.
+# L4-EXT: Values are read live from SystemSettings so they can be changed
+# without a code or server restart.  The module-level dict is kept as a
+# fallback for migrations and tests that run without a seeded DB.
 ACCESSORY_MAX_QTY = {
     'Pistol Holster': 1,
     'Pistol Magazine Pouch': 3,
     'Rifle Sling': 1,
     'Bandoleer': 1,
 }
+
+
+def _get_accessory_max_qty():
+    """Return the live accessory-per-withdrawal caps from SystemSettings."""
+    try:
+        from armguard.apps.users.models import SystemSettings
+        s = SystemSettings.get()
+        return {
+            'Pistol Holster':        s.max_pistol_holster_qty or 1,
+            'Pistol Magazine Pouch': s.max_magazine_pouch_qty or 3,
+            'Rifle Sling':           s.max_rifle_sling_qty    or 1,
+            'Bandoleer':             s.max_bandoleer_qty      or 1,
+        }
+    except Exception:
+        return dict(ACCESSORY_MAX_QTY)
+
 # Maximum magazines issuable per weapon type in a single withdrawal.
 # L4 FIX: Values are sourced from Django settings so they can be changed
 # per deployment without touching model code.

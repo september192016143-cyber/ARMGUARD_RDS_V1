@@ -287,6 +287,177 @@
     </div>
   </div>
 
+  <!-- ── Transaction Settings ──────────────────────────────────────────────── -->
+  <div class="card mb-2">
+    <div class="card-header">
+      <span class="card-title"><i class="fa-solid fa-right-left"></i> Transaction Settings</span>
+    </div>
+
+    <!-- TR / PAR Defaults -->
+    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem">TR / PAR Defaults</div>
+
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_tr_default_return_hours">TR Return Deadline Default (hours)</label>
+        <input type="number" id="id_tr_default_return_hours" name="tr_default_return_hours" class="form-control"
+               value="{{ s.tr_default_return_hours }}" min="1" max="8760" autocomplete="off">
+        <div class="form-hint">Number of hours from issuance pre-filled in the Return Deadline field when Issuance Type is TR. Default: 24.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_default_issuance_type">Default Issuance Type</label>
+        <select id="id_default_issuance_type" name="default_issuance_type" class="form-control" autocomplete="off">
+          <option value="TR (Temporary Receipt)"{% if s.default_issuance_type == "TR (Temporary Receipt)" %} selected{% endif %}>TR (Temporary Receipt)</option>
+          <option value="PAR (Property Acknowledgement Receipt)"{% if s.default_issuance_type == "PAR (Property Acknowledgement Receipt)" %} selected{% endif %}>PAR (Property Acknowledgement Receipt)</option>
+        </select>
+        <div class="form-hint">Pre-selected Issuance Type when the New Transaction form first opens.</div>
+      </div>
+    </div>
+
+    <div class="form-group" style="background:{% if s.require_par_document %}rgba(34,197,94,.07){% else %}rgba(239,68,68,.07){% endif %};border:1px solid {% if s.require_par_document %}rgba(34,197,94,.25){% else %}rgba(239,68,68,.25){% endif %};border-radius:8px;padding:.9rem 1rem;display:flex;align-items:flex-start;gap:.85rem">
+      <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;flex:1">
+        <input type="checkbox" name="require_par_document" id="id_require_par_document"
+               {% if s.require_par_document %}checked{% endif %}
+               style="width:18px;height:18px;accent-color:var(--primary,#4f8ef7);cursor:pointer;flex-shrink:0" autocomplete="off">
+        <span>
+          <strong>Require signed PAR document for PAR issuances</strong><br>
+          <span style="font-size:.8rem;color:var(--muted)">When enabled, a signed PAR PDF must be uploaded before a PAR withdrawal can be submitted.{% if not s.require_par_document %} <span style="color:#f59e0b;font-weight:600">— Currently DISABLED.</span>{% endif %}</span>
+        </span>
+      </label>
+      <span style="flex-shrink:0;padding:.2rem .65rem;border-radius:12px;font-size:.75rem;font-weight:700;{% if s.require_par_document %}background:rgba(34,197,94,.15);color:#22c55e{% else %}background:rgba(239,68,68,.15);color:#ef4444{% endif %}">
+        {% if s.require_par_document %}ON{% else %}OFF{% endif %}
+      </span>
+    </div>
+
+    <!-- Divider -->
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0 1rem">
+
+    <!-- Purpose Auto-Consumable Assignment -->
+    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Purpose — Auto-Consumable Assignment</div>
+    <div class="form-hint" style="margin-bottom:.75rem">
+      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+      When enabled for a purpose, magazines &amp; ammunition are auto-assigned on withdrawal. Duty Sentinel, Duty Security, and OREX always receive auto-consumables.
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Purpose</th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Auto-Consumables</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:.5rem .6rem;font-weight:500;color:var(--muted)">Duty Sentinel</td>
+            <td style="text-align:center;padding:.5rem .6rem"><span style="font-size:.75rem;color:var(--muted)">Always enabled</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:.5rem .6rem;font-weight:500;color:var(--muted)">Duty Security</td>
+            <td style="text-align:center;padding:.5rem .6rem"><span style="font-size:.75rem;color:var(--muted)">Always enabled</span></td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:.5rem .6rem;font-weight:500;color:var(--muted)">OREX</td>
+            <td style="text-align:center;padding:.5rem .6rem"><span style="font-size:.75rem;color:var(--muted)">Always enabled</span></td>
+          </tr>
+          {% for row in auto_consumable_rows %}
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:.5rem .6rem;font-weight:500">{{ row.label }}</td>
+            <td style="text-align:center;padding:.5rem .6rem">
+              <input type="checkbox" name="{{ row.field }}" {% if row.value %}checked{% endif %}
+                     style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Divider -->
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0 1rem">
+
+    <!-- Standard Loadout Defaults -->
+    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Standard Loadout Auto-Fill — Duty Sentinel</div>
+    <div class="form-hint" style="margin-bottom:.75rem">
+      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+      Quantities auto-filled when a Duty Sentinel withdrawal is submitted with a Glock 17 9mm and the fields are left blank.
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_ds_holster">Pistol Holsters</label>
+        <input type="number" id="id_ds_holster" name="duty_sentinel_holster_qty" class="form-control"
+               value="{{ s.duty_sentinel_holster_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_ds_magpouch">Magazine Pouches</label>
+        <input type="number" id="id_ds_magpouch" name="duty_sentinel_mag_pouch_qty" class="form-control"
+               value="{{ s.duty_sentinel_mag_pouch_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_ds_pistol_mag">Pistol Magazines (qty)</label>
+        <input type="number" id="id_ds_pistol_mag" name="duty_sentinel_pistol_mag_qty" class="form-control"
+               value="{{ s.duty_sentinel_pistol_mag_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_ds_pistol_ammo">Pistol Ammunition (rounds)</label>
+        <input type="number" id="id_ds_pistol_ammo" name="duty_sentinel_pistol_ammo_qty" class="form-control"
+               value="{{ s.duty_sentinel_pistol_ammo_qty }}" min="1" max="9999" autocomplete="off">
+      </div>
+    </div>
+
+    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.75rem;margin-bottom:.5rem">Standard Loadout Auto-Fill — Duty Security</div>
+    <div class="form-hint" style="margin-bottom:.75rem">
+      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+      Quantities auto-filled when a Duty Security withdrawal is submitted with a Rifle and the fields are left blank.
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_dsc_rifle_mag">Rifle Magazines (qty)</label>
+        <input type="number" id="id_dsc_rifle_mag" name="duty_security_rifle_mag_qty" class="form-control"
+               value="{{ s.duty_security_rifle_mag_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_dsc_rifle_ammo">Rifle Ammunition (rounds)</label>
+        <input type="number" id="id_dsc_rifle_ammo" name="duty_security_rifle_ammo_qty" class="form-control"
+               value="{{ s.duty_security_rifle_ammo_qty }}" min="1" max="9999" autocomplete="off">
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0 1rem">
+
+    <!-- Accessory Max Quantities -->
+    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Accessory Max Quantities per Withdrawal</div>
+    <div class="form-hint" style="margin-bottom:.75rem">
+      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+      Maximum units of each accessory type issuable in a single withdrawal. Validation rejects entries above these limits.
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_max_holster">Pistol Holster — Max Qty</label>
+        <input type="number" id="id_max_holster" name="max_pistol_holster_qty" class="form-control"
+               value="{{ s.max_pistol_holster_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_max_magpouch">Magazine Pouch — Max Qty</label>
+        <input type="number" id="id_max_magpouch" name="max_magazine_pouch_qty" class="form-control"
+               value="{{ s.max_magazine_pouch_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_max_sling">Rifle Sling — Max Qty</label>
+        <input type="number" id="id_max_sling" name="max_rifle_sling_qty" class="form-control"
+               value="{{ s.max_rifle_sling_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_max_bandoleer">Bandoleer — Max Qty</label>
+        <input type="number" id="id_max_bandoleer" name="max_bandoleer_qty" class="form-control"
+               value="{{ s.max_bandoleer_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+    </div>
+  </div>
+
   <!-- ── Transaction Form — Purpose Field Visibility ─────────────────────── -->
   <div class="card mb-2">
     <div class="card-header">

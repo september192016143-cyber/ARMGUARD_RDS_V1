@@ -293,7 +293,8 @@ class Transaction(models.Model):
                 if not ok:
                     raise ValidationError(reason)
             # Accessories: each type validated independently by type-name pool lookup
-            from armguard.apps.inventory.models import ACCESSORY_MAX_QTY, Accessory
+            from armguard.apps.inventory.models import _get_accessory_max_qty, Accessory
+            _live_acc_max = _get_accessory_max_qty()
             _acc_type_qty = [
                 ('Pistol Holster',        self.pistol_holster_quantity),
                 ('Pistol Magazine Pouch', self.magazine_pouch_quantity),
@@ -307,7 +308,7 @@ class Transaction(models.Model):
                         ok, reason = acc_pool.can_be_withdrawn(acc_qty)
                         if not ok:
                             raise ValidationError(reason)
-                    max_qty = ACCESSORY_MAX_QTY.get(acc_type)
+                    max_qty = _live_acc_max.get(acc_type)
                     if max_qty is not None and acc_qty > max_qty:
                         raise ValidationError(
                             f"Maximum {max_qty} unit(s) of '{acc_type}' may be issued "
@@ -592,13 +593,18 @@ class Transaction(models.Model):
         # M6: Inherit issuance_type from the matching Withdrawal when not set
         propagate_issuance_type(self)
 
-        # Auto-set return_by to 24 hours after creation for TR withdrawals
+        # Auto-set return_by for TR withdrawals using the configured default hours
         if (self.transaction_type == 'Withdrawal' and
                 self.issuance_type and 'TR' in self.issuance_type and
                 not self.return_by):
             from datetime import timedelta
             from django.utils import timezone as _tz
-            self.return_by = (self.timestamp or _tz.now()) + timedelta(hours=24)
+            try:
+                from armguard.apps.users.models import SystemSettings as _SS
+                _tr_hours = _SS.get().tr_default_return_hours or 24
+            except Exception:
+                _tr_hours = 24
+            self.return_by = (self.timestamp or _tz.now()) + timedelta(hours=_tr_hours)
         elif self.transaction_type == 'Return':
             # Return transactions have no deadline of their own; the deadline
             # lives on the originating Withdrawal.  Clear any accidental value

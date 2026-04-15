@@ -318,6 +318,11 @@ def create_transaction(request):
         'Others':        {'pistol': _s.purpose_others_show_pistol,         'rifle': _s.purpose_others_show_rifle},
         'OREX':          {'pistol': _s.purpose_orex_show_pistol,           'rifle': _s.purpose_orex_show_rifle},
     })
+    _txn_context = {
+        'purpose_config':          _purpose_config,
+        'tr_default_return_hours': _s.tr_default_return_hours,
+        'default_issuance_type':   _s.default_issuance_type,
+    }
     if request.method == 'POST':
         form = WithdrawalReturnTransactionForm(request.POST, request.FILES)
         if form.is_valid():
@@ -330,7 +335,7 @@ def create_transaction(request):
                 err_msgs = ve.messages if hasattr(ve, 'messages') else [str(ve)]
                 for msg in err_msgs:
                     form.add_error(None, msg)
-                return render(request, 'transactions/transaction_form.html', {'form': form, 'purpose_config': _purpose_config})
+                return render(request, 'transactions/transaction_form.html', {**_txn_context, 'form': form})
             # Invalidate dashboard caches so counts and table reflect the new transaction immediately.
             from django.utils import timezone as _tz
             cache.delete(f'dashboard_stats_{_tz.localdate()}')
@@ -382,7 +387,7 @@ def create_transaction(request):
             return redirect('transaction-detail', transaction_id=txn.transaction_id)
     else:
         form = WithdrawalReturnTransactionForm()
-    return render(request, 'transactions/transaction_form.html', {'form': form, 'purpose_config': _purpose_config})
+    return render(request, 'transactions/transaction_form.html', {**_txn_context, 'form': form})
 
 
 # Legacy stub kept for import compatibility
@@ -456,7 +461,10 @@ def tr_preview(request):
         rifle_sling_quantity=_safe_int(cd.get('rifle_sling_quantity')),
         bandoleer_quantity=_safe_int(cd.get('bandoleer_quantity')),
         notes=cd.get('notes', ''),
-        return_by=cd.get('return_by') or (timezone.now() + __import__('datetime').timedelta(hours=24)),
+        return_by=cd.get('return_by') or (timezone.now() + __import__('datetime').timedelta(
+            hours=(__import__('armguard.apps.users.models', fromlist=['SystemSettings'])
+                   .SystemSettings.get().tr_default_return_hours)
+        )),
     )
 
     filler = TransactionFormFiller()

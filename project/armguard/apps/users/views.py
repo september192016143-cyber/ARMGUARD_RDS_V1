@@ -694,6 +694,11 @@ class SystemSettingsView(LoginRequiredMixin, View):
             {'label': 'Others',         'pistol_field': 'purpose_others_show_pistol',         'pistol_value': s.purpose_others_show_pistol,         'rifle_field': 'purpose_others_show_rifle',         'rifle_value': s.purpose_others_show_rifle},
             {'label': 'OREX',           'pistol_field': 'purpose_orex_show_pistol',           'pistol_value': s.purpose_orex_show_pistol,           'rifle_field': 'purpose_orex_show_rifle',           'rifle_value': s.purpose_orex_show_rifle},
         ]
+        auto_consumable_rows = [
+            {'label': 'Duty Vigil',   'field': 'purpose_duty_vigil_auto_consumables',  'value': s.purpose_duty_vigil_auto_consumables},
+            {'label': 'Honor Guard',  'field': 'purpose_honor_guard_auto_consumables', 'value': s.purpose_honor_guard_auto_consumables},
+            {'label': 'Others',       'field': 'purpose_others_auto_consumables',      'value': s.purpose_others_auto_consumables},
+        ]
         from django.db.models import Count, Value, IntegerField, Subquery, OuterRef
         from django.db.models.functions import Coalesce
         personnel_groups = PersonnelGroup.objects.annotate(
@@ -728,6 +733,7 @@ class SystemSettingsView(LoginRequiredMixin, View):
             'non_super_users':         non_super_users,
             'enrolled_2fa_ids':        enrolled_pks,
             'purpose_visibility_rows': purpose_visibility_rows,
+            'auto_consumable_rows':    auto_consumable_rows,
             'personnel_groups':        personnel_groups,
             'personnel_squadrons':     personnel_squadrons,
         })
@@ -816,6 +822,45 @@ class SystemSettingsView(LoginRequiredMixin, View):
                 'Both are disabled for: ' + ', '.join(invalid_purposes) + '.'
             )
             return redirect('system-settings')
+
+        # ── TR / PAR defaults ─────────────────────────────────────────────────
+        try:
+            obj.tr_default_return_hours = max(1, int(request.POST.get('tr_default_return_hours', 24)))
+        except (ValueError, TypeError):
+            obj.tr_default_return_hours = 24
+        obj.require_par_document = 'require_par_document' in request.POST
+        _dit = request.POST.get('default_issuance_type', 'TR (Temporary Receipt)')
+        obj.default_issuance_type = _dit if _dit in (
+            'TR (Temporary Receipt)', 'PAR (Property Acknowledgement Receipt)'
+        ) else 'TR (Temporary Receipt)'
+
+        # ── Per-purpose auto-consumables ──────────────────────────────────────
+        for field in [
+            'purpose_duty_vigil_auto_consumables',
+            'purpose_honor_guard_auto_consumables',
+            'purpose_others_auto_consumables',
+        ]:
+            setattr(obj, field, field in request.POST)
+
+        # ── Duty Sentinel loadout defaults ────────────────────────────────────
+        _psi_fields = {
+            'duty_sentinel_holster_qty':     1,
+            'duty_sentinel_mag_pouch_qty':   3,
+            'duty_sentinel_pistol_mag_qty':  4,
+            'duty_sentinel_pistol_ammo_qty': 42,
+            'duty_security_rifle_mag_qty':   7,
+            'duty_security_rifle_ammo_qty':  210,
+            'max_pistol_holster_qty':        1,
+            'max_magazine_pouch_qty':        3,
+            'max_rifle_sling_qty':           1,
+            'max_bandoleer_qty':             1,
+        }
+        for field, default in _psi_fields.items():
+            try:
+                setattr(obj, field, max(1, int(request.POST.get(field, default))))
+            except (ValueError, TypeError):
+                setattr(obj, field, default)
+
         obj.save()
         messages.success(request, 'System settings saved.')
         return redirect('system-settings')

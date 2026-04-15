@@ -1006,16 +1006,28 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
   var tbType      = document.getElementById('tb_transaction_type');
   var tbIssuance  = document.getElementById('tb_issuance_type');
   var returnBySection = document.getElementById('return-by-section');
+  var _form = document.getElementById('txn-form');
+  var _trDefaultHours = _form ? (parseInt(_form.dataset.trDefaultHours, 10) || 24) : 24;
+  var _defaultIssuance = _form ? (_form.dataset.defaultIssuance || '') : '';
+  // Pre-select the configured default issuance type on initial load (only when blank)
+  if (tbIssuance && !tbIssuance.value && _defaultIssuance) {
+    for (var i = 0; i < tbIssuance.options.length; i++) {
+      if (tbIssuance.options[i].value === _defaultIssuance) {
+        tbIssuance.selectedIndex = i;
+        break;
+      }
+    }
+  }
   function toggleReturnBy() {
     if (!returnBySection) return;
     var isWithdrawal = tbType && tbType.value === 'Withdrawal';
     var isTR = tbIssuance && (tbIssuance.value || '').toUpperCase().startsWith('TR');
     returnBySection.style.display = (isWithdrawal && isTR) ? '' : 'none';
-    // Pre-fill with now+24h when TR is selected and field is still empty
+    // Pre-fill with now + configured TR return hours when TR is selected and field is still empty
     if (isWithdrawal && isTR) {
       var inp = document.getElementById('id_return_by');
       if (inp && !inp.value) {
-        var d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        var d = new Date(Date.now() + _trDefaultHours * 60 * 60 * 1000);
         var pad = function(n) { return String(n).padStart(2, '0'); };
         inp.value = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
                     'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());

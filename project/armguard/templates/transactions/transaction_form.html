@@ -79,7 +79,9 @@
       data-tr-preview-url="{% url 'transaction-tr-preview' %}"
       data-pdfjs-url="{% static 'js/pdfjs/pdf.min.mjs' %}"
       data-pdfjs-worker="{% static 'js/pdfjs/pdf.worker.min.mjs' %}"
-      data-purpose-config="{{ purpose_config|escape }}">
+      data-purpose-config="{{ purpose_config|escape }}"
+      data-tr-default-hours="{{ tr_default_return_hours|default:24 }}"
+      data-default-issuance="{{ default_issuance_type|default:'TR (Temporary Receipt)'|escape }}">
   {% csrf_token %}
 
   {% if form.non_field_errors %}

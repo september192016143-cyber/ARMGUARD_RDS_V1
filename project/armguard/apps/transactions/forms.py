@@ -110,6 +110,8 @@ class TransactionAdminForm(forms.ModelForm):
         # Sentinel, the JS hides the pistol field and it will not be submitted, so
         # `pistol` will be None here and this block will not fire — safe by design.
         purpose_val = cleaned_data.get('purpose')
+        from armguard.apps.users.models import SystemSettings as _SS
+        _s = _SS.get()
         if (
             transaction_type == 'Withdrawal'
             and purpose_val == 'Duty Sentinel'
@@ -117,34 +119,34 @@ class TransactionAdminForm(forms.ModelForm):
             and getattr(pistol, 'model', None) == 'Glock 17 9mm'
         ):
             from armguard.apps.inventory.models import Accessory, Magazine, Ammunition
-            # Pistol Holster — 1 unit
+            # Pistol Holster
             if not pistol_holster_quantity:
-                cleaned_data['pistol_holster_quantity'] = 1
-                pistol_holster_quantity = 1
+                cleaned_data['pistol_holster_quantity'] = _s.duty_sentinel_holster_qty
+                pistol_holster_quantity = _s.duty_sentinel_holster_qty
                 cleaned_data['include_pistol_holster'] = True
-            # Magazine Pouch — 3 units
+            # Magazine Pouch
             if not magazine_pouch_quantity:
-                cleaned_data['magazine_pouch_quantity'] = 3
-                magazine_pouch_quantity = 3
+                cleaned_data['magazine_pouch_quantity'] = _s.duty_sentinel_mag_pouch_qty
+                magazine_pouch_quantity = _s.duty_sentinel_mag_pouch_qty
                 cleaned_data['include_magazine_pouch'] = True
-            # Pistol Magazine — 4 units
+            # Pistol Magazine
             if not pistol_magazine:
                 mag_pool = Magazine.objects.filter(weapon_type='Pistol').first()
                 if mag_pool:
                     cleaned_data['pistol_magazine'] = mag_pool
                     pistol_magazine = mag_pool
             if not pistol_magazine_quantity:
-                cleaned_data['pistol_magazine_quantity'] = 4
-                pistol_magazine_quantity = 4
-            # Pistol Ammunition — M882, 42 rounds
+                cleaned_data['pistol_magazine_quantity'] = _s.duty_sentinel_pistol_mag_qty
+                pistol_magazine_quantity = _s.duty_sentinel_pistol_mag_qty
+            # Pistol Ammunition — M882
             if not pistol_ammunition:
                 ammo_pool = Ammunition.objects.filter(type='M882 9x19mm Ball 435 Ctg').first()
                 if ammo_pool:
                     cleaned_data['pistol_ammunition'] = ammo_pool
                     pistol_ammunition = ammo_pool
             if not pistol_ammunition_quantity:
-                cleaned_data['pistol_ammunition_quantity'] = 42
-                pistol_ammunition_quantity = 42
+                cleaned_data['pistol_ammunition_quantity'] = _s.duty_sentinel_pistol_ammo_qty
+                pistol_ammunition_quantity = _s.duty_sentinel_pistol_ammo_qty
         # ── AUTO-FILL: Duty Security + Rifle ─────────────────────────────────────
         # When a Withdrawal is processed for any Rifle under Duty Security,
         # automatically populate the standard loadout if the user left those fields blank.
@@ -154,28 +156,31 @@ class TransactionAdminForm(forms.ModelForm):
             and rifle
         ):
             from armguard.apps.inventory.models import Magazine, Ammunition
-            # Rifle Magazine — Long type, 7 units
+            # Rifle Magazine — Long type
             if not rifle_magazine:
                 mag_pool = Magazine.objects.filter(weapon_type='Rifle', type='Long').first()
                 if mag_pool:
                     cleaned_data['rifle_magazine'] = mag_pool
                     rifle_magazine = mag_pool
             if not rifle_magazine_quantity:
-                cleaned_data['rifle_magazine_quantity'] = 7
-                rifle_magazine_quantity = 7
-            # Rifle Ammunition — M193 5.56mm, 210 rounds
+                cleaned_data['rifle_magazine_quantity'] = _s.duty_security_rifle_mag_qty
+                rifle_magazine_quantity = _s.duty_security_rifle_mag_qty
+            # Rifle Ammunition — M193 5.56mm
             if not rifle_ammunition:
                 ammo_pool = Ammunition.objects.filter(type='M193 5.56mm Ball 428 Ctg').first()
                 if ammo_pool:
                     cleaned_data['rifle_ammunition'] = ammo_pool
                     rifle_ammunition = ammo_pool
             if not rifle_ammunition_quantity:
-                cleaned_data['rifle_ammunition_quantity'] = 210
-                rifle_ammunition_quantity = 210
+                cleaned_data['rifle_ammunition_quantity'] = _s.duty_security_rifle_ammo_qty
+                rifle_ammunition_quantity = _s.duty_security_rifle_ammo_qty
         # ── AUTO-ASSIGN: Pistol magazine pool whenever quantity is given ───────────
-        # Only auto-link the pool for purposes that require magazines.
-        # Duty Vigil, Honor Guard, and Others allow firearm-only withdrawal.
-        _no_auto_consumables = purpose_val in ('Duty Vigil', 'Honor Guard', 'Others')
+        # Purposes with auto-consumables disabled get firearm-only withdrawal by default.
+        _no_auto_consumables = (
+            (purpose_val == 'Duty Vigil'   and not _s.purpose_duty_vigil_auto_consumables) or
+            (purpose_val == 'Honor Guard'  and not _s.purpose_honor_guard_auto_consumables) or
+            (purpose_val == 'Others'       and not _s.purpose_others_auto_consumables)
+        )
         if not _no_auto_consumables and pistol_magazine_quantity and not pistol_magazine:
             from armguard.apps.inventory.models import Magazine
             mag_pool = Magazine.objects.filter(weapon_type='Pistol').first()
@@ -288,7 +293,8 @@ class TransactionAdminForm(forms.ModelForm):
                     if not ok and reason not in errors:
                         errors.append(reason)
             # Accessory quantity checks — each type validated independently by type lookup
-            from armguard.apps.inventory.models import ACCESSORY_MAX_QTY, Accessory
+            from armguard.apps.inventory.models import _get_accessory_max_qty, Accessory
+            _live_acc_max = _get_accessory_max_qty()
             _form_accs = [
                 (pistol_holster_quantity,  'Pistol Holster'),
                 (magazine_pouch_quantity,  'Pistol Magazine Pouch'),
@@ -302,7 +308,7 @@ class TransactionAdminForm(forms.ModelForm):
                         ok, reason = acc_pool.can_be_withdrawn(acc_qty)
                         if not ok and reason not in errors:
                             errors.append(reason)
-                    max_qty = ACCESSORY_MAX_QTY.get(acc_label)
+                    max_qty = _live_acc_max.get(acc_label)
                     if max_qty is not None and acc_qty > max_qty:
                         msg = f"Maximum {max_qty} unit(s) of '{acc_label}' allowed per withdrawal."
                         if msg not in errors:
@@ -568,4 +574,9 @@ class WithdrawalReturnTransactionForm(TransactionAdminForm):
         return_by = cleaned_data.get('return_by')
         if txn_type == 'Withdrawal' and 'TR' in (issuance or '') and not return_by:
             self.add_error('return_by', 'Return deadline is required for TR withdrawals.')
+        # Require PAR document for PAR issuances if setting is enabled
+        if txn_type == 'Withdrawal' and 'PAR' in (issuance or ''):
+            from armguard.apps.users.models import SystemSettings as _SS2
+            if _SS2.get().require_par_document and not cleaned_data.get('par_document'):
+                self.add_error('par_document', 'A signed PAR document (PDF) is required for PAR issuances.')
         return cleaned_data
