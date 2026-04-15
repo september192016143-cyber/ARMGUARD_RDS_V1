@@ -67,6 +67,14 @@
     .badge-missing { background:rgba(239,68,68,.15);  color:#f87171; font-size:.65rem; padding:.15rem .45rem; border-radius:999px; font-weight:600; letter-spacing:.04em; }
     .regen-spinner { display:none; }
     .regen-icon    { display:inline; }
+    /* Lazy-load placeholder shimmer */
+    @keyframes tag-shimmer { 0%,100% { opacity:.4; } 50% { opacity:.8; } }
+    img.lazy-tag {
+        display:block; width:100%; height:100%;
+        background: linear-gradient(90deg, var(--bg) 0%, var(--border) 50%, var(--bg) 100%);
+        background-size:200% 100%;
+        animation: tag-shimmer 1.4s ease-in-out infinite;
+    }
     .toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; }
     .toolbar-right { margin-left:auto; display:flex; gap:.5rem; flex-wrap:wrap; }
     .btn-amber { background:rgba(245,158,11,.15); border:1px solid var(--primary); color:var(--primary); }

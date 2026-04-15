@@ -8,6 +8,32 @@
   var PRINT_URL  = cfg.printUrl;
   var CSRF       = cfg.csrf;
 
+  // ── Lazy image loading (IntersectionObserver) ─────────────────────────────
+  var lazyObserver = null;
+  function observeLazyImages(root) {
+    var imgs = (root || document).querySelectorAll('img.lazy-tag[data-src]');
+    if (!imgs.length) return;
+    if (!('IntersectionObserver' in window)) {
+      imgs.forEach(function (img) { img.src = img.dataset.src; img.removeAttribute('data-src'); img.classList.remove('lazy-tag'); });
+      return;
+    }
+    if (!lazyObserver) {
+      lazyObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          var img = entry.target;
+          img.src = img.dataset.src;
+          img.removeAttribute('data-src');
+          img.classList.remove('lazy-tag');
+          lazyObserver.unobserve(img);
+        });
+      }, { rootMargin: '200px 0px' });
+    }
+    imgs.forEach(function (img) { lazyObserver.observe(img); });
+  }
+  observeLazyImages();
+  // ─────────────────────────────────────────────────────────────────────────
+
   // ── Real-time filter (PJAX) ───────────────────────────────────────────────
   var filterForm = document.getElementById('tags-filter-form');
   var qInput     = document.getElementById('tags-q');
@@ -47,6 +73,7 @@
         var sc = document.getElementById('selCount');
         if (sc) sc.textContent = '0';
         if (clearBtn) clearBtn.style.display = hasFilters() ? '' : 'none';
+        observeLazyImages(tagGrid);
       });
     }
 
@@ -114,6 +141,10 @@
         if (data.success) {
           var img = wrap ? wrap.querySelector('img') : null;
           if (img) {
+            // Clear any pending lazy state before forcing the new src.
+            img.removeAttribute('data-src');
+            img.classList.remove('lazy-tag');
+            if (lazyObserver) lazyObserver.unobserve(img);
             img.src = data.thumb_url + '?v=' + Date.now();
           } else {
             var div = wrap ? wrap.querySelector('.tag-no-thumb') : null;

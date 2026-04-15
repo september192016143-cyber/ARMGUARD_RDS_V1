@@ -51,8 +51,9 @@ def _item_tag_img_url(request, item_id):
 @login_required
 def serve_item_tag_image(request, item_id):
     """Serve an item tag PNG file directly through Django."""
-    from django.http import FileResponse, Http404
+    from django.http import FileResponse, Http404, HttpResponseNotModified
     from pathlib import Path
+    import time
     if not _can_print(request.user):
         raise Http404('Item not found')
     # Validate item exists in DB before serving any file (prevents path-based enumeration)
@@ -66,7 +67,15 @@ def serve_item_tag_image(request, item_id):
         raise Http404('Invalid path')
     if not filepath.exists():
         raise Http404('Item tag image not found')
-    return FileResponse(open(filepath, 'rb'), content_type='image/png')
+    # Return 304 if the browser already has a fresh copy (based on file mtime).
+    mtime = filepath.stat().st_mtime
+    etag = f'"{int(mtime)}"'
+    if request.META.get('HTTP_IF_NONE_MATCH') == etag:
+        return HttpResponseNotModified()
+    response = FileResponse(open(filepath, 'rb'), content_type='image/png')
+    response['ETag'] = etag
+    response['Cache-Control'] = 'private, max-age=3600'
+    return response
 
 
 @login_required
