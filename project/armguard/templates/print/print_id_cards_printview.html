@@ -143,13 +143,23 @@
             .card-set {
                 box-shadow: none;
                 border-radius: 0;
-                padding: 0;
+                padding: 0 0 2mm 0;
                 background: transparent;
                 page-break-inside: avoid;
                 break-inside: avoid;
             }
 
-            .card-set .label { display: none; }
+            .card-set .label {
+                display: block;
+                font-size: 7pt;
+                font-weight: 700;
+                text-align: center;
+                color: #000;
+                margin-bottom: 1mm;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
 
             .card-set .sides { gap: 3mm; }
 
