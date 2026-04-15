@@ -211,7 +211,7 @@
 <div class="print-page">
     {% for card in cards %}
     <div class="card-set">
-        <div class="label">{{ card.personnel.rank }} {{ card.personnel.get_full_name }}</div>
+        <div class="label">{{ card.personnel.rank }} {{ card.personnel.last_name }}, {{ card.personnel.first_name }}</div>
         <div class="sides">
             {% if side != 'back' %}
             <img src="{{ card.front_url }}" alt="Front – {{ card.personnel.get_full_name }}">
