@@ -134,24 +134,29 @@
 
             .print-page {
                 padding: 0;
-                gap: 6mm;
+                gap: 4mm;
                 display: flex;
                 flex-wrap: wrap;
+                align-content: flex-start;
             }
 
             /* Each card-set: front + back side by side, credit-card size */
             .card-set {
                 box-shadow: none;
                 border-radius: 0;
-                padding: 0 0 2mm 0;
+                padding: 0;
                 background: transparent;
                 page-break-inside: avoid;
                 break-inside: avoid;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
             }
 
             .card-set .label {
                 display: block;
                 font-size: 7pt;
+                line-height: 1;
                 font-weight: 700;
                 text-align: center;
                 color: #000;
@@ -159,13 +164,15 @@
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
+                max-width: 100%;
             }
 
-            .card-set .sides { gap: 3mm; }
+            .card-set .sides { gap: 3mm; flex-shrink: 0; }
 
             .card-set img {
                 height: 85.6mm;
                 width: auto;
+                flex-shrink: 0;
                 border-radius: 3.48mm; /* standard CR80 corner */
                 border: none;
             }
