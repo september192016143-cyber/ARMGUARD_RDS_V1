@@ -91,6 +91,18 @@ class TransactionAdminForm(forms.ModelForm):
         rifle_ammunition_quantity = cleaned_data.get('rifle_ammunition_quantity')
         personnel = cleaned_data.get('personnel')
 
+        # ── AUTO-DETERMINE transaction_type from personnel's open withdrawal state ─
+        # The value submitted from the UI dropdown is ignored entirely; the type is
+        # derived from whether the personnel has any open TransactionLogs so operators
+        # never have to manually select "Return" — the system detects it automatically.
+        if personnel:
+            _has_open = TransactionLogs.objects.filter(
+                personnel_id=personnel,
+                log_status__in=['Open', 'Partially Returned'],
+            ).exists()
+            transaction_type = 'Return' if _has_open else 'Withdrawal'
+            cleaned_data['transaction_type'] = transaction_type
+
         # ── AUTO-FILL: Duty Sentinel + Glock 17 9mm ──────────────────────────────
         # When a Withdrawal is being processed for a Glock 17 9mm under Duty Sentinel,
         # automatically populate the standard loadout if the user left those fields blank.
@@ -439,26 +451,35 @@ class TransactionAdminForm(forms.ModelForm):
                         f"personnel {personnel.Personnel_ID}."
                     )
             # Validate each accessory type return against open TransactionLogs using qty-based lookup
+            # MINOR FIX: also compare return qty vs originally withdrawn qty (mirrors model-level check).
             _form_acc_returns = [
-                (pistol_holster_quantity,  'withdraw_pistol_holster_quantity', 'return_pistol_holster_quantity', 'Pistol Holster'),
-                (magazine_pouch_quantity,  'withdraw_magazine_pouch_quantity', 'return_magazine_pouch_quantity', 'Pistol Magazine Pouch'),
-                (rifle_sling_quantity,     'withdraw_rifle_sling_quantity',    'return_rifle_sling_quantity',    'Rifle Sling'),
-                (bandoleer_quantity,       'withdraw_bandoleer_quantity',      'return_bandoleer_quantity',      'Bandoleer'),
+                (pistol_holster_quantity,  'withdraw_pistol_holster_quantity', 'return_pistol_holster_quantity', 'withdraw_pistol_holster_timestamp',  'Pistol Holster'),
+                (magazine_pouch_quantity,  'withdraw_magazine_pouch_quantity', 'return_magazine_pouch_quantity',  'withdraw_magazine_pouch_timestamp',  'Pistol Magazine Pouch'),
+                (rifle_sling_quantity,     'withdraw_rifle_sling_quantity',    'return_rifle_sling_quantity',     'withdraw_rifle_sling_timestamp',     'Rifle Sling'),
+                (bandoleer_quantity,       'withdraw_bandoleer_quantity',      'return_bandoleer_quantity',       'withdraw_bandoleer_timestamp',       'Bandoleer'),
             ]
-            for acc_qty, w_qty_field, r_qty_field, acc_label in _form_acc_returns:
+            for acc_qty, w_qty_field, r_qty_field, ts_field, acc_label in _form_acc_returns:
                 if acc_qty and personnel:
                     filter_kw = {
                         'personnel_id': personnel,
                         f'{w_qty_field}__isnull': False,
                         f'{r_qty_field}__isnull': True,
                     }
-                    has_open = TransactionLogs.objects.filter(**filter_kw).exists()
-                    if not has_open:
+                    open_log = TransactionLogs.objects.filter(**filter_kw).order_by(f'-{ts_field}').first()
+                    if not open_log:
                         errors.append(
                             f"No open withdrawal record found for '{acc_label}' for "
                             f"personnel {personnel.Personnel_ID}. "
                             "Cannot return an item with no matching withdrawal on record."
                         )
+                    else:
+                        withdrawn_qty = getattr(open_log, w_qty_field) or 0
+                        if acc_qty > withdrawn_qty:
+                            errors.append(
+                                f"Return quantity ({acc_qty}) exceeds the originally withdrawn quantity "
+                                f"({withdrawn_qty}) for '{acc_label}'. "
+                                "You cannot return more accessories than were issued."
+                            )
 
         # PAR document required when issuance type is PAR
         issuance_type_val = cleaned_data.get('issuance_type')

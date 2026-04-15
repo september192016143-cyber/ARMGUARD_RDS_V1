@@ -22,10 +22,15 @@ def propagate_issuance_type(transaction):
     For new Return transactions with no explicit issuance_type, copy it from the
     most-recent matching Withdrawal so list views never need a correlated subquery.
     No-op for Withdrawals or when issuance_type is already set.
+
+    FIX: For accessories-only returns (no pistol or rifle), use the open
+    TransactionLogs record for the specific consumable being returned to resolve
+    the issuance_type.  This avoids picking the wrong type when a personnel has
+    multiple simultaneous open cycles (e.g. a PAR pistol and a TR-only accessory).
     """
     if transaction.pk or transaction.transaction_type != 'Return' or transaction.issuance_type:
         return
-    from armguard.apps.transactions.models import Transaction
+    from armguard.apps.transactions.models import Transaction, TransactionLogs
     qs = (
         Transaction.objects
         .filter(transaction_type='Withdrawal', personnel=transaction.personnel)
@@ -36,6 +41,64 @@ def propagate_issuance_type(transaction):
         qs = qs.filter(pistol=transaction.pistol)
     elif transaction.rifle:
         qs = qs.filter(rifle=transaction.rifle)
+    else:
+        # Accessories-only return: resolve via the open TransactionLogs row for the
+        # specific consumable, so personnel with mixed PAR/TR open cycles get the
+        # correct issuance_type rather than whichever Withdrawal is most recent.
+        log = None
+        if transaction.pistol_magazine:
+            log = TransactionLogs.objects.filter(
+                personnel_id=transaction.personnel,
+                withdraw_pistol_magazine=transaction.pistol_magazine,
+                return_pistol_magazine__isnull=True,
+            ).order_by('-withdraw_pistol_magazine_timestamp').first()
+        elif transaction.rifle_magazine:
+            log = TransactionLogs.objects.filter(
+                personnel_id=transaction.personnel,
+                withdraw_rifle_magazine=transaction.rifle_magazine,
+                return_rifle_magazine__isnull=True,
+            ).order_by('-withdraw_rifle_magazine_timestamp').first()
+        elif transaction.pistol_ammunition:
+            log = TransactionLogs.objects.filter(
+                personnel_id=transaction.personnel,
+                withdraw_pistol_ammunition=transaction.pistol_ammunition,
+                return_pistol_ammunition__isnull=True,
+            ).order_by('-withdraw_pistol_ammunition_timestamp').first()
+        elif transaction.rifle_ammunition:
+            log = TransactionLogs.objects.filter(
+                personnel_id=transaction.personnel,
+                withdraw_rifle_ammunition=transaction.rifle_ammunition,
+                return_rifle_ammunition__isnull=True,
+            ).order_by('-withdraw_rifle_ammunition_timestamp').first()
+        elif transaction.pistol_holster_quantity:
+            log = TransactionLogs.objects.filter(
+                personnel_id=transaction.personnel,
+                withdraw_pistol_holster_quantity__isnull=False,
+                return_pistol_holster_quantity__isnull=True,
+            ).order_by('-withdraw_pistol_holster_timestamp').first()
+        elif transaction.magazine_pouch_quantity:
+            log = TransactionLogs.objects.filter(
+                personnel_id=transaction.personnel,
+                withdraw_magazine_pouch_quantity__isnull=False,
+                return_magazine_pouch_quantity__isnull=True,
+            ).order_by('-withdraw_magazine_pouch_timestamp').first()
+        elif transaction.rifle_sling_quantity:
+            log = TransactionLogs.objects.filter(
+                personnel_id=transaction.personnel,
+                withdraw_rifle_sling_quantity__isnull=False,
+                return_rifle_sling_quantity__isnull=True,
+            ).order_by('-withdraw_rifle_sling_timestamp').first()
+        elif transaction.bandoleer_quantity:
+            log = TransactionLogs.objects.filter(
+                personnel_id=transaction.personnel,
+                withdraw_bandoleer_quantity__isnull=False,
+                return_bandoleer_quantity__isnull=True,
+            ).order_by('-withdraw_bandoleer_timestamp').first()
+        if log and log.issuance_type:
+            transaction.issuance_type = log.issuance_type
+            return
+        # Fall back to the most recent Withdrawal for this personnel when no
+        # specific log row can be identified.
     match = qs.order_by('-timestamp').first()
     if match:
         transaction.issuance_type = match.issuance_type
@@ -272,7 +335,7 @@ def update_return_logs(transaction, username, user, TransactionLogs):
     logs_to_save = {}  # record_id → TransactionLogs instance
 
     if txn.pistol:
-        obj = TransactionLogs.objects.filter(
+        obj = TransactionLogs.objects.select_for_update().filter(
             personnel_id=txn.personnel, withdraw_pistol=txn.pistol,
             return_pistol__isnull=True,
         ).order_by('-withdraw_pistol_timestamp').first()
@@ -284,7 +347,7 @@ def update_return_logs(transaction, username, user, TransactionLogs):
         })
 
     if txn.rifle:
-        obj = TransactionLogs.objects.filter(
+        obj = TransactionLogs.objects.select_for_update().filter(
             personnel_id=txn.personnel, withdraw_rifle=txn.rifle,
             return_rifle__isnull=True,
         ).order_by('-withdraw_rifle_timestamp').first()
@@ -296,7 +359,7 @@ def update_return_logs(transaction, username, user, TransactionLogs):
         })
 
     if txn.pistol_magazine:
-        obj = TransactionLogs.objects.filter(
+        obj = TransactionLogs.objects.select_for_update().filter(
             personnel_id=txn.personnel, withdraw_pistol_magazine=txn.pistol_magazine,
             return_pistol_magazine__isnull=True,
         ).order_by('-withdraw_pistol_magazine_timestamp').first()
@@ -309,7 +372,7 @@ def update_return_logs(transaction, username, user, TransactionLogs):
         })
 
     if txn.rifle_magazine:
-        obj = TransactionLogs.objects.filter(
+        obj = TransactionLogs.objects.select_for_update().filter(
             personnel_id=txn.personnel, withdraw_rifle_magazine=txn.rifle_magazine,
             return_rifle_magazine__isnull=True,
         ).order_by('-withdraw_rifle_magazine_timestamp').first()
@@ -322,7 +385,7 @@ def update_return_logs(transaction, username, user, TransactionLogs):
         })
 
     if txn.pistol_ammunition:
-        obj = TransactionLogs.objects.filter(
+        obj = TransactionLogs.objects.select_for_update().filter(
             personnel_id=txn.personnel, withdraw_pistol_ammunition=txn.pistol_ammunition,
             return_pistol_ammunition__isnull=True,
         ).order_by('-withdraw_pistol_ammunition_timestamp').first()
@@ -335,7 +398,7 @@ def update_return_logs(transaction, username, user, TransactionLogs):
         })
 
     if txn.rifle_ammunition:
-        obj = TransactionLogs.objects.filter(
+        obj = TransactionLogs.objects.select_for_update().filter(
             personnel_id=txn.personnel, withdraw_rifle_ammunition=txn.rifle_ammunition,
             return_rifle_ammunition__isnull=True,
         ).order_by('-withdraw_rifle_ammunition_timestamp').first()
@@ -360,7 +423,7 @@ def update_return_logs(transaction, username, user, TransactionLogs):
     ]:
         if not acc_qty:
             continue
-        obj = TransactionLogs.objects.filter(**{
+        obj = TransactionLogs.objects.select_for_update().filter(**{
             'personnel_id': txn.personnel,
             f'{w_qty_field}__isnull': False,
             f'{r_field}_quantity__isnull': True,

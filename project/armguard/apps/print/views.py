@@ -213,11 +213,16 @@ def delete_item_tag(request, item_id):
     if not _can_delete(request.user):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
 
-    filepath = os.path.join(settings.MEDIA_ROOT, 'item_id_tags', f"{item_id}.png")
+    from pathlib import Path
+    media_root = Path(settings.MEDIA_ROOT).resolve()
+    filepath = (media_root / 'item_id_tags' / f"{item_id}.png").resolve()
+    # 4.6 FIX: Prevent path traversal — reject any path that escapes MEDIA_ROOT.
+    if not str(filepath).startswith(str(media_root)):
+        return JsonResponse({'success': False, 'error': 'Invalid item ID'}, status=400)
     deleted = False
-    if os.path.exists(filepath):
+    if filepath.exists():
         try:
-            os.remove(filepath)
+            filepath.unlink()
             deleted = True
         except Exception as exc:
             return JsonResponse({'success': False, 'error': str(exc)}, status=500)

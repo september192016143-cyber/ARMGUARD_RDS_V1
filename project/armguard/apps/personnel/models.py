@@ -666,7 +666,7 @@ class Personnel(models.Model):
             from armguard.apps.inventory.models import Pistol
             try:
                 pistol = Pistol.objects.get(pk=self.pistol_item_issued)
-                if pistol.item_status != 'Issued' or pistol.item_issued_to != self.Personnel_ID:
+                if pistol.item_status != 'Issued' or pistol.item_issued_to_id != self.Personnel_ID:
                     raise ValidationError({
                         'pistol_item_issued': (
                             f"Pistol {self.pistol_item_issued} is not currently issued to this personnel. "
@@ -681,7 +681,7 @@ class Personnel(models.Model):
             from armguard.apps.inventory.models import Rifle
             try:
                 rifle = Rifle.objects.get(pk=self.rifle_item_issued)
-                if rifle.item_status != 'Issued' or rifle.item_issued_to != self.Personnel_ID:
+                if rifle.item_status != 'Issued' or rifle.item_issued_to_id != self.Personnel_ID:
                     raise ValidationError({
                         'rifle_item_issued': (
                             f"Rifle {self.rifle_item_issued} is not currently issued to this personnel. "

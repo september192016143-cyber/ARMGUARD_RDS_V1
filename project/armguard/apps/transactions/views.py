@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 import json
+import logging
 from django.contrib import messages
 from django.views.generic import ListView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -19,6 +20,46 @@ from armguard.utils.permissions import (
     can_view_transactions as _can_view_transactions,
     can_create_transaction as _can_create_transaction,
 )
+
+_logger = logging.getLogger(__name__)
+
+# Maximum allowed size for a single discrepancy photo upload.
+_DISC_IMAGE_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+def _validate_discrepancy_image(f):
+    """
+    SECURITY FIX: Validate a discrepancy image upload against MIME magic bytes
+    and a maximum file-size cap before it is stored.  The HTML accept="image/*"
+    attribute is client-side only and trivially bypassed.
+
+    Returns the file object unchanged if it passes all checks, or None if it
+    fails.  Failures are logged as warnings but never raise — a bad image must
+    never block the underlying Return transaction.
+
+    Allowed formats: JPEG, PNG, GIF, WebP.
+    """
+    if f is None:
+        return None
+    if f.size > _DISC_IMAGE_MAX_BYTES:
+        _logger.warning(
+            'Discrepancy image rejected (size %d > %d bytes): %r',
+            f.size, _DISC_IMAGE_MAX_BYTES, getattr(f, 'name', ''),
+        )
+        return None
+    magic = f.read(12)
+    f.seek(0)
+    is_jpeg = magic[:3] == b'\xff\xd8\xff'
+    is_png  = magic[:8] == b'\x89PNG\r\n\x1a\n'
+    is_gif  = magic[:6] in (b'GIF87a', b'GIF89a')
+    is_webp = magic[:4] == b'RIFF' and magic[8:12] == b'WEBP'
+    if not (is_jpeg or is_png or is_gif or is_webp):
+        _logger.warning(
+            'Discrepancy image rejected (unrecognised magic bytes %r): %r',
+            magic[:4], getattr(f, 'name', ''),
+        )
+        return None
+    return f
 
 
 class TransactionListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
@@ -310,11 +351,11 @@ def create_transaction(request):
                         _firearms.append({'pistol_id': None, 'rifle_id': txn.rifle_id})
                     for _fw in _firearms:
                         try:
-                            _disc_image   = request.FILES.get('discrepancy_image')   or None
-                            _disc_image_2 = request.FILES.get('discrepancy_image_2') or None
-                            _disc_image_3 = request.FILES.get('discrepancy_image_3') or None
-                            _disc_image_4 = request.FILES.get('discrepancy_image_4') or None
-                            _disc_image_5 = request.FILES.get('discrepancy_image_5') or None
+                            _disc_image   = _validate_discrepancy_image(request.FILES.get('discrepancy_image'))
+                            _disc_image_2 = _validate_discrepancy_image(request.FILES.get('discrepancy_image_2'))
+                            _disc_image_3 = _validate_discrepancy_image(request.FILES.get('discrepancy_image_3'))
+                            _disc_image_4 = _validate_discrepancy_image(request.FILES.get('discrepancy_image_4'))
+                            _disc_image_5 = _validate_discrepancy_image(request.FILES.get('discrepancy_image_5'))
                             FirearmDiscrepancy.objects.create(
                                 pistol_id=_fw['pistol_id'],
                                 rifle_id=_fw['rifle_id'],

@@ -615,6 +615,24 @@ class Transaction(models.Model):
                 Pistol.objects.select_for_update().filter(pk=self.pistol_id).get()
             if self.rifle_id:
                 Rifle.objects.select_for_update().filter(pk=self.rifle_id).get()
+            # L10-EXT: Lock consumable pool rows to prevent double-adjustment race
+            # conditions on Magazine, Ammunition, and Accessory pools.
+            if self.pistol_magazine_id:
+                Magazine.objects.select_for_update().filter(pk=self.pistol_magazine_id).get()
+            if self.rifle_magazine_id and self.rifle_magazine_id != self.pistol_magazine_id:
+                Magazine.objects.select_for_update().filter(pk=self.rifle_magazine_id).get()
+            if self.pistol_ammunition_id:
+                Ammunition.objects.select_for_update().filter(pk=self.pistol_ammunition_id).get()
+            if self.rifle_ammunition_id and self.rifle_ammunition_id != self.pistol_ammunition_id:
+                Ammunition.objects.select_for_update().filter(pk=self.rifle_ammunition_id).get()
+            for _acc_type, _acc_qty in [
+                ('Pistol Holster',        self.pistol_holster_quantity),
+                ('Pistol Magazine Pouch', self.magazine_pouch_quantity),
+                ('Rifle Sling',           self.rifle_sling_quantity),
+                ('Bandoleer',             self.bandoleer_quantity),
+            ]:
+                if _acc_qty:
+                    Accessory.objects.select_for_update().filter(type=_acc_type).first()
 
             super().save(*args, **kwargs)
 
@@ -1008,48 +1026,55 @@ class TransactionLogs(models.Model):
         direct admin edits or any other save() call would leave log_status unchanged.
         """
         user = kwargs.pop('user', None)
-        # Allow passing user to override transaction_personnel fields for both old and new columns.
+        # BUG 1 FIX: Only stamp *withdrawal* operator fields on NEW log rows.
+        # When update_return_logs() calls lobj.save(user=return_operator), the
+        # passed user is the return operator — overwriting withdraw_*_transaction_personnel
+        # with that username corrupts the original withdrawal audit trail.
         if user and hasattr(user, 'username'):
-            if self.withdraw_pistol is not None:
-                self.withdraw_pistol_transaction_personnel = user.username
-            if self.withdraw_rifle is not None:
-                self.withdraw_rifle_transaction_personnel = user.username
-            if self.withdraw_pistol_magazine is not None:
-                self.withdraw_pistol_magazine_transaction_personnel = user.username
-            if self.withdraw_rifle_magazine is not None:
-                self.withdraw_rifle_magazine_transaction_personnel = user.username
-            if self.withdraw_pistol_ammunition is not None:
-                self.withdraw_pistol_ammunition_transaction_personnel = user.username
-            if self.withdraw_rifle_ammunition is not None:
-                self.withdraw_rifle_ammunition_transaction_personnel = user.username
-            if self.withdraw_pistol_holster_quantity is not None:
-                self.withdraw_pistol_holster_transaction_personnel = user.username
-            if self.withdraw_magazine_pouch_quantity is not None:
-                self.withdraw_magazine_pouch_transaction_personnel = user.username
-            if self.withdraw_rifle_sling_quantity is not None:
-                self.withdraw_rifle_sling_transaction_personnel = user.username
-            if self.withdraw_bandoleer_quantity is not None:
-                self.withdraw_bandoleer_transaction_personnel = user.username
+            uname = user.username
+            if not self.pk:
+                # New log row: record the withdrawal operator for all withdrawal fields.
+                if self.withdraw_pistol is not None:
+                    self.withdraw_pistol_transaction_personnel = uname
+                if self.withdraw_rifle is not None:
+                    self.withdraw_rifle_transaction_personnel = uname
+                if self.withdraw_pistol_magazine is not None:
+                    self.withdraw_pistol_magazine_transaction_personnel = uname
+                if self.withdraw_rifle_magazine is not None:
+                    self.withdraw_rifle_magazine_transaction_personnel = uname
+                if self.withdraw_pistol_ammunition is not None:
+                    self.withdraw_pistol_ammunition_transaction_personnel = uname
+                if self.withdraw_rifle_ammunition is not None:
+                    self.withdraw_rifle_ammunition_transaction_personnel = uname
+                if self.withdraw_pistol_holster_quantity is not None:
+                    self.withdraw_pistol_holster_transaction_personnel = uname
+                if self.withdraw_magazine_pouch_quantity is not None:
+                    self.withdraw_magazine_pouch_transaction_personnel = uname
+                if self.withdraw_rifle_sling_quantity is not None:
+                    self.withdraw_rifle_sling_transaction_personnel = uname
+                if self.withdraw_bandoleer_quantity is not None:
+                    self.withdraw_bandoleer_transaction_personnel = uname
+            # Return operator fields are always stamped when return data is present.
             if self.return_pistol is not None:
-                self.return_pistol_transaction_personnel = user.username
+                self.return_pistol_transaction_personnel = uname
             if self.return_rifle is not None:
-                self.return_rifle_transaction_personnel = user.username
+                self.return_rifle_transaction_personnel = uname
             if self.return_pistol_magazine is not None:
-                self.return_pistol_magazine_transaction_personnel = user.username
+                self.return_pistol_magazine_transaction_personnel = uname
             if self.return_rifle_magazine is not None:
-                self.return_rifle_magazine_transaction_personnel = user.username
+                self.return_rifle_magazine_transaction_personnel = uname
             if self.return_pistol_ammunition is not None:
-                self.return_pistol_ammunition_transaction_personnel = user.username
+                self.return_pistol_ammunition_transaction_personnel = uname
             if self.return_rifle_ammunition is not None:
-                self.return_rifle_ammunition_transaction_personnel = user.username
+                self.return_rifle_ammunition_transaction_personnel = uname
             if self.return_pistol_holster_quantity is not None:
-                self.return_pistol_holster_transaction_personnel = user.username
+                self.return_pistol_holster_transaction_personnel = uname
             if self.return_magazine_pouch_quantity is not None:
-                self.return_magazine_pouch_transaction_personnel = user.username
+                self.return_magazine_pouch_transaction_personnel = uname
             if self.return_rifle_sling_quantity is not None:
-                self.return_rifle_sling_transaction_personnel = user.username
+                self.return_rifle_sling_transaction_personnel = uname
             if self.return_bandoleer_quantity is not None:
-                self.return_bandoleer_transaction_personnel = user.username
+                self.return_bandoleer_transaction_personnel = uname
         # Auto-copy issuance_type from the first available withdrawal Transaction FK.
         # Only set if not already populated — preserves any manual override.
         if not self.issuance_type:

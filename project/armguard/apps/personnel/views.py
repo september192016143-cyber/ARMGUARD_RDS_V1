@@ -272,7 +272,7 @@ class AssignWeaponView(LoginRequiredMixin, UserPassesTestMixin, View):
 	template_name = 'personnel/assign_weapon.html'
 
 	def test_func(self):
-		return _can_manage_personnel(self.request.user)
+		return _can_edit_personnel(self.request.user)
 
 	def get(self, request, pk):
 		from armguard.apps.inventory.models import Pistol, Rifle
@@ -379,13 +379,21 @@ def _extract_drive_file_id(url: str) -> str:
 def _download_drive_photo(file_id: str) -> bytes | None:
 	"""Download a publicly-shared Drive file and return its bytes, or None."""
 	import urllib.request
+	_DRIVE_PHOTO_MAX_BYTES = 10 * 1024 * 1024  # 10 MB cap
 	dl_url = f'https://drive.google.com/uc?id={file_id}&export=download'
 	try:
 		req = urllib.request.Request(dl_url, headers={'User-Agent': 'ArmGuardRDS/1.0'})
 		with urllib.request.urlopen(req, timeout=10) as resp:
-			data = resp.read()
+			data = resp.read(_DRIVE_PHOTO_MAX_BYTES + 1)
+		# Reject oversized downloads silently
+		if len(data) > _DRIVE_PHOTO_MAX_BYTES:
+			return None
 		# Drive returns an HTML confirm page for large files — detect it
 		if data[:5] in (b'<!DOC', b'<html'):
+			return None
+		# REC-08: Verify magic bytes before accepting the download as an image.
+		_IMAGE_SIGS = (b'\xff\xd8\xff', b'\x89PNG', b'GIF8', b'RIFF', b'\x00\x00\x01\x00')
+		if not any(data.startswith(sig) for sig in _IMAGE_SIGS):
 			return None
 		return data
 	except Exception:

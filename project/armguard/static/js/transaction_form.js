@@ -448,7 +448,17 @@ function checkPersonnel(val) {
     .then(function (d) {
       if (d.error) { setBanner('personnel-status-banner', 'err', escHtml(d.error)); return; }
       var txnType = document.getElementById('tb_transaction_type');
-      var type = txnType ? txnType.value : 'Withdrawal';
+      // Auto-determine transaction type from the personnel's current issuance state.
+      // If any item is currently issued, this must be a Return; otherwise Withdrawal.
+      var hasIssuedItems = !!(d.pistol_issued || d.rifle_issued || d.pistol_mag_issued
+        || d.rifle_mag_issued || d.pistol_ammo_issued || d.rifle_ammo_issued
+        || d.holster_issued || d.mag_pouch_issued || d.rifle_sling_issued || d.bandoleer_issued);
+      var autoType = hasIssuedItems ? 'Return' : 'Withdrawal';
+      if (txnType && txnType.value !== autoType) {
+        txnType.value = autoType;
+        txnType.dispatchEvent(new Event('change'));
+      }
+      var type = autoType;
       var lines = [];
       if (type === 'Withdrawal') {
         // F2 FIX: d.pistol_issued / d.rifle_issued are escaped before concatenation.
@@ -565,11 +575,6 @@ function _attachSelectStyles(el) {
     tbPurpose.addEventListener('change', toggleWeaponSections);
   }
 
-  // Persist type selection across refresh / PJAX navigation
-  if (tbType) tbType.addEventListener('change', function () {
-    sessionStorage.setItem('txn_form_type', this.value);
-  });
-
   // Buttons (replaces inline onclick=)
   var previewBtn = document.getElementById('btn-tr-preview');
   var submitBtn  = document.getElementById('btn-tr-submit');
@@ -596,19 +601,27 @@ function _attachSelectStyles(el) {
 
   // Alt+W → Withdrawal  |  Alt+R → Return  |  Alt+T → TR  |  Alt+A → PAR  |  Alt+V → TR Preview
   // Alt+1…6 → Purpose (Duty Sentinel, Duty Vigil, Duty Security, Honor Guard, Others, OREX)
+  // Note: Alt+W / Alt+R only apply when NO personnel is selected. Once a personnel is chosen,
+  // the transaction type is locked to their open withdrawal state (Return if they have issued
+  // items, Withdrawal otherwise) and cannot be manually overridden via hotkey.
+  // Alt+T / Alt+A / Alt+1–6 are no-ops in Return mode (issuance and purpose don't apply to returns).
   document.addEventListener('keydown', function (e) {
     if (!e.altKey) return;
     var key = e.key.toLowerCase();
+    var _isReturn = tbType && tbType.value === 'Return';
     if (key === 'w' || key === 'r') {
       e.preventDefault();
+      // Type is auto-determined when a personnel is selected — hotkey is a no-op in that case.
+      var _pSel = document.querySelector('[name="personnel"]');
+      if (_pSel && _pSel.value) return;
       var newType = key === 'w' ? 'Withdrawal' : 'Return';
       if (tbType && tbType.value !== newType) {
         tbType.value = newType;
-        sessionStorage.setItem('txn_form_type', newType);
         tbType.dispatchEvent(new Event('change'));
       }
     } else if (key === 't' || key === 'a') {
       e.preventDefault();
+      if (_isReturn) return; // issuance type not applicable on returns
       var newIssuance = key === 't'
         ? 'TR (Temporary Receipt)'
         : 'PAR (Property Acknowledgement Receipt)';
@@ -622,6 +635,7 @@ function _attachSelectStyles(el) {
       if (btn && btn.style.display !== 'none') openTrPreview();
     } else if (e.key >= '1' && e.key <= '6') {
       e.preventDefault();
+      if (_isReturn) return; // purpose not applicable on returns
       var purposes = ['Duty Sentinel', 'Duty Vigil', 'Duty Security', 'Honor Guard', 'Others', 'OREX'];
       var newPurpose = purposes[parseInt(e.key, 10) - 1];
       if (tbPurpose && tbPurpose.value !== newPurpose) {
@@ -630,12 +644,6 @@ function _attachSelectStyles(el) {
       }
     }
   }, window.pjaxController ? { signal: window.pjaxController.signal } : {});
-
-  // Restore persisted type (survives page refresh and PJAX navigation)
-  var _savedType = sessionStorage.getItem('txn_form_type');
-  if (_savedType && tbType && (_savedType === 'Withdrawal' || _savedType === 'Return')) {
-    tbType.value = _savedType;
-  }
 
   // Initial state
   toggleReturnMode();
@@ -729,7 +737,6 @@ function _attachSelectStyles(el) {
   // Form submit — sync topbar selects into hidden inputs; clear persisted type
   if (form) {
     form.addEventListener('submit', function () {
-      sessionStorage.removeItem('txn_form_type');
       var isReturn = tbType && tbType.value === 'Return';
       ['transaction_type', 'issuance_type', 'purpose', 'purpose_other'].forEach(function (name) {
         var sel = document.getElementById('tb_' + name);
