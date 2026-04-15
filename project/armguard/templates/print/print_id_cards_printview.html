@@ -196,7 +196,7 @@
 <div class="print-watermark">ARMGUARD RDS<br>{{ request.user.get_full_name|default:request.user.username }}</div>
 
 <div class="no-print">
-    <h2>🖨️ ID Card Print – {{ cards|length }} card{{ cards|length|pluralize }}</h2>
+    <h2>🖨️ ID Card Print – {{ cards|length }} card{{ cards|length|pluralize }}{% if side == 'back' %} (Back Side Only){% elif side == 'front' %} (Front Side Only){% endif %}</h2>
     <span class="info">Recommended: A4 Landscape · Actual Size · No scaling</span>
     <button id="print-now-btn" data-action="print">🖨️ Print Now</button>
     <a href="{% url 'print_handler:print_id_cards' %}" class="back-link">← Back to Manager</a>
@@ -204,7 +204,8 @@
 
 {% if cards %}
 <div class="count-info">
-    Printing {{ cards|length }} personnel ID card{{ cards|length|pluralize }} — front and back sides
+    Printing {{ cards|length }} personnel ID card{{ cards|length|pluralize }}
+    {% if side == 'back' %}— back side only{% elif side == 'front' %}— front side only{% else %}— front and back sides{% endif %}
 </div>
 
 <div class="print-page">
@@ -212,11 +213,15 @@
     <div class="card-set">
         <div class="label">{{ card.personnel.rank }} {{ card.personnel.get_full_name }}</div>
         <div class="sides">
+            {% if side != 'back' %}
             <img src="{{ card.front_url }}" alt="Front – {{ card.personnel.get_full_name }}">
+            {% endif %}
+            {% if side != 'front' %}
             {% if card.back_url %}
             <img src="{{ card.back_url }}" alt="Back – {{ card.personnel.get_full_name }}">
             {% else %}
             <div class="no-back">Back N/A</div>
+            {% endif %}
             {% endif %}
         </div>
     </div>

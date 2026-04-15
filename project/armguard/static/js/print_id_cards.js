@@ -56,9 +56,15 @@
   function updatePrintBtn() {
     var count = document.querySelectorAll('.card-checkbox:checked').length;
     var btn = document.getElementById('btn-print-selected');
-    if (!btn) return;
-    btn.disabled = count === 0;
-    btn.innerHTML = '<i class="fas fa-print"></i> Print Selected' + (count ? ' (' + count + ')' : '');
+    if (btn) {
+      btn.disabled = count === 0;
+      btn.innerHTML = '<i class="fas fa-print"></i> Print Selected' + (count ? ' (' + count + ')' : '');
+    }
+    var backBtn = document.getElementById('btn-print-back-selected');
+    if (backBtn) {
+      backBtn.disabled = count === 0;
+      backBtn.innerHTML = '<i class="fas fa-print"></i> Print Back Selected' + (count ? ' (' + count + ')' : '');
+    }
   }
 
   // ── Print Selected ────────────────────────────────────────────────────────
@@ -69,6 +75,16 @@
                      .map(function (cb) { return cb.value; });
       if (!ids.length) return;
       window.open(PRINT_VIEW_URL + '?ids=' + ids.join(','), '_blank');
+    });
+  }
+
+  var printBackSelBtn = document.getElementById('btn-print-back-selected');
+  if (printBackSelBtn) {
+    printBackSelBtn.addEventListener('click', function () {
+      var ids = Array.from(document.querySelectorAll('.card-checkbox:checked'))
+                     .map(function (cb) { return cb.value; });
+      if (!ids.length) return;
+      window.open(PRINT_VIEW_URL + '?ids=' + ids.join(',') + '&side=back', '_blank');
     });
   }
 

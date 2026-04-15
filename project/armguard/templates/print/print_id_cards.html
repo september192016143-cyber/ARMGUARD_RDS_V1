@@ -165,8 +165,14 @@
       <button id="btn-print-selected" class="btn btn-primary btn-sm" disabled>
         <i class="fas fa-print"></i> Print Selected
       </button>
+      <button id="btn-print-back-selected" class="btn btn-secondary btn-sm" disabled title="Print back side only for selected">
+        <i class="fas fa-print"></i> Print Back Selected
+      </button>
       <a href="{% url 'print_handler:print_id_cards_view' %}?all=1" class="btn btn-success btn-sm" target="_blank">
         <i class="fas fa-print"></i> Print All
+      </a>
+      <a href="{% url 'print_handler:print_id_cards_view' %}?all=1&side=back" class="btn btn-secondary btn-sm" target="_blank" title="Print back side only for all">
+        <i class="fas fa-print"></i> Print All Back
       </a>
       <button id="btn-regen-missing" class="btn btn-sm btn-amber">
         <i class="fas fa-sync-alt"></i> Generate Missing
@@ -249,6 +255,10 @@
           <a href="{% url 'print_handler:print_id_cards_view' %}?ids={{ entry.personnel.Personnel_ID }}"
              target="_blank" class="btn btn-primary" title="Print this card">
             <i class="fas fa-print"></i> Print
+          </a>
+          <a href="{% url 'print_handler:print_id_cards_view' %}?ids={{ entry.personnel.Personnel_ID }}&side=back"
+             target="_blank" class="btn btn-secondary" title="Print back side only">
+            <i class="fas fa-print"></i> Back
           </a>
           {% else %}
           <button id="print-card-disabled-btn" class="btn btn-primary" disabled title="Generate card first">

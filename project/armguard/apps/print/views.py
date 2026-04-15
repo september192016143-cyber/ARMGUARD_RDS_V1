@@ -881,12 +881,16 @@ def print_id_cards_view(request):
     """
     Print-ready page for selected (or all) personnel ID cards.
     Accepts ?ids=PO-xxx,PE-xxx,... or ?all=1
+    Optional ?side=front|back|both (default: both)
     """
     if not _can_print(request.user):
         from django.core.exceptions import PermissionDenied
         raise PermissionDenied
     ids_param = request.GET.get('ids', '')
     show_all  = request.GET.get('all', '')
+    side      = request.GET.get('side', 'both').lower()
+    if side not in ('front', 'back', 'both'):
+        side = 'both'
 
     if show_all:
         personnel_qs = Personnel.objects.filter(status='Active').order_by('last_name', 'first_name')
@@ -914,7 +918,7 @@ def print_id_cards_view(request):
         if front_url:
             cards.append({'personnel': p, 'front_url': front_url, 'back_url': back_url})
 
-    return render(request, 'print/print_id_cards_printview.html', {'cards': cards})
+    return render(request, 'print/print_id_cards_printview.html', {'cards': cards, 'side': side})
 
 
 # ---------------------------------------------------------------------------
