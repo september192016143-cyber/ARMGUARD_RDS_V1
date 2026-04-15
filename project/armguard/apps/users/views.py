@@ -687,18 +687,14 @@ class SystemSettingsView(LoginRequiredMixin, View):
             .order_by('username')
         )
         purpose_visibility_rows = [
-            {'label': 'Duty Sentinel',  'pistol_field': 'purpose_duty_sentinel_show_pistol',  'pistol_value': s.purpose_duty_sentinel_show_pistol,  'rifle_field': 'purpose_duty_sentinel_show_rifle',  'rifle_value': s.purpose_duty_sentinel_show_rifle,  'auto_print_field': 'auto_print_tr_duty_sentinel', 'auto_print_value': s.auto_print_tr_duty_sentinel},
-            {'label': 'Duty Vigil',     'pistol_field': 'purpose_duty_vigil_show_pistol',     'pistol_value': s.purpose_duty_vigil_show_pistol,     'rifle_field': 'purpose_duty_vigil_show_rifle',     'rifle_value': s.purpose_duty_vigil_show_rifle,     'auto_print_field': 'auto_print_tr_duty_vigil',    'auto_print_value': s.auto_print_tr_duty_vigil},
-            {'label': 'Duty Security',  'pistol_field': 'purpose_duty_security_show_pistol',  'pistol_value': s.purpose_duty_security_show_pistol,  'rifle_field': 'purpose_duty_security_show_rifle',  'rifle_value': s.purpose_duty_security_show_rifle,  'auto_print_field': 'auto_print_tr_duty_security', 'auto_print_value': s.auto_print_tr_duty_security},
-            {'label': 'Honor Guard',    'pistol_field': 'purpose_honor_guard_show_pistol',    'pistol_value': s.purpose_honor_guard_show_pistol,    'rifle_field': 'purpose_honor_guard_show_rifle',    'rifle_value': s.purpose_honor_guard_show_rifle,    'auto_print_field': 'auto_print_tr_honor_guard',   'auto_print_value': s.auto_print_tr_honor_guard},
-            {'label': 'Others',         'pistol_field': 'purpose_others_show_pistol',         'pistol_value': s.purpose_others_show_pistol,         'rifle_field': 'purpose_others_show_rifle',         'rifle_value': s.purpose_others_show_rifle,         'auto_print_field': 'auto_print_tr_others',        'auto_print_value': s.auto_print_tr_others},
-            {'label': 'OREX',           'pistol_field': 'purpose_orex_show_pistol',           'pistol_value': s.purpose_orex_show_pistol,           'rifle_field': 'purpose_orex_show_rifle',           'rifle_value': s.purpose_orex_show_rifle,           'auto_print_field': 'auto_print_tr_orex',          'auto_print_value': s.auto_print_tr_orex},
+            {'label': 'Duty Sentinel',  'pistol_field': 'purpose_duty_sentinel_show_pistol',  'pistol_value': s.purpose_duty_sentinel_show_pistol,  'rifle_field': 'purpose_duty_sentinel_show_rifle',  'rifle_value': s.purpose_duty_sentinel_show_rifle,  'auto_consumables_field': 'purpose_duty_sentinel_auto_consumables', 'auto_consumables_value': s.purpose_duty_sentinel_auto_consumables, 'auto_accessories_field': 'purpose_duty_sentinel_auto_accessories', 'auto_accessories_value': s.purpose_duty_sentinel_auto_accessories, 'auto_print_field': 'auto_print_tr_duty_sentinel', 'auto_print_value': s.auto_print_tr_duty_sentinel},
+            {'label': 'Duty Vigil',     'pistol_field': 'purpose_duty_vigil_show_pistol',     'pistol_value': s.purpose_duty_vigil_show_pistol,     'rifle_field': 'purpose_duty_vigil_show_rifle',     'rifle_value': s.purpose_duty_vigil_show_rifle,     'auto_consumables_field': 'purpose_duty_vigil_auto_consumables',    'auto_consumables_value': s.purpose_duty_vigil_auto_consumables,    'auto_accessories_field': 'purpose_duty_vigil_auto_accessories',    'auto_accessories_value': s.purpose_duty_vigil_auto_accessories,    'auto_print_field': 'auto_print_tr_duty_vigil',    'auto_print_value': s.auto_print_tr_duty_vigil},
+            {'label': 'Duty Security',  'pistol_field': 'purpose_duty_security_show_pistol',  'pistol_value': s.purpose_duty_security_show_pistol,  'rifle_field': 'purpose_duty_security_show_rifle',  'rifle_value': s.purpose_duty_security_show_rifle,  'auto_consumables_field': 'purpose_duty_security_auto_consumables', 'auto_consumables_value': s.purpose_duty_security_auto_consumables, 'auto_accessories_field': 'purpose_duty_security_auto_accessories', 'auto_accessories_value': s.purpose_duty_security_auto_accessories, 'auto_print_field': 'auto_print_tr_duty_security', 'auto_print_value': s.auto_print_tr_duty_security},
+            {'label': 'Honor Guard',    'pistol_field': 'purpose_honor_guard_show_pistol',    'pistol_value': s.purpose_honor_guard_show_pistol,    'rifle_field': 'purpose_honor_guard_show_rifle',    'rifle_value': s.purpose_honor_guard_show_rifle,    'auto_consumables_field': 'purpose_honor_guard_auto_consumables',   'auto_consumables_value': s.purpose_honor_guard_auto_consumables,   'auto_accessories_field': 'purpose_honor_guard_auto_accessories',   'auto_accessories_value': s.purpose_honor_guard_auto_accessories,   'auto_print_field': 'auto_print_tr_honor_guard',   'auto_print_value': s.auto_print_tr_honor_guard},
+            {'label': 'Others',         'pistol_field': 'purpose_others_show_pistol',         'pistol_value': s.purpose_others_show_pistol,         'rifle_field': 'purpose_others_show_rifle',         'rifle_value': s.purpose_others_show_rifle,         'auto_consumables_field': 'purpose_others_auto_consumables',        'auto_consumables_value': s.purpose_others_auto_consumables,        'auto_accessories_field': 'purpose_others_auto_accessories',        'auto_accessories_value': s.purpose_others_auto_accessories,        'auto_print_field': 'auto_print_tr_others',        'auto_print_value': s.auto_print_tr_others},
+            {'label': 'OREX',           'pistol_field': 'purpose_orex_show_pistol',           'pistol_value': s.purpose_orex_show_pistol,           'rifle_field': 'purpose_orex_show_rifle',           'rifle_value': s.purpose_orex_show_rifle,           'auto_consumables_field': 'purpose_orex_auto_consumables',          'auto_consumables_value': s.purpose_orex_auto_consumables,          'auto_accessories_field': 'purpose_orex_auto_accessories',          'auto_accessories_value': s.purpose_orex_auto_accessories,          'auto_print_field': 'auto_print_tr_orex',          'auto_print_value': s.auto_print_tr_orex},
         ]
-        auto_consumable_rows = [
-            {'label': 'Duty Vigil',   'field': 'purpose_duty_vigil_auto_consumables',  'value': s.purpose_duty_vigil_auto_consumables},
-            {'label': 'Honor Guard',  'field': 'purpose_honor_guard_auto_consumables', 'value': s.purpose_honor_guard_auto_consumables},
-            {'label': 'Others',       'field': 'purpose_others_auto_consumables',      'value': s.purpose_others_auto_consumables},
-        ]
+        auto_consumable_rows = []  # retired — now in purpose_visibility_rows
         from django.db.models import Count, Value, IntegerField, Subquery, OuterRef
         from django.db.models.functions import Coalesce
         personnel_groups = PersonnelGroup.objects.annotate(
@@ -842,11 +838,14 @@ class SystemSettingsView(LoginRequiredMixin, View):
             'TR (Temporary Receipt)', 'PAR (Property Acknowledgement Receipt)'
         ) else 'TR (Temporary Receipt)'
 
-        # ── Per-purpose auto-consumables ──────────────────────────────────────
+        # ── Per-purpose auto-consumables & accessories ────────────────────────
         for field in [
-            'purpose_duty_vigil_auto_consumables',
-            'purpose_honor_guard_auto_consumables',
-            'purpose_others_auto_consumables',
+            'purpose_duty_sentinel_auto_consumables', 'purpose_duty_vigil_auto_consumables',
+            'purpose_duty_security_auto_consumables', 'purpose_honor_guard_auto_consumables',
+            'purpose_others_auto_consumables',        'purpose_orex_auto_consumables',
+            'purpose_duty_sentinel_auto_accessories', 'purpose_duty_vigil_auto_accessories',
+            'purpose_duty_security_auto_accessories', 'purpose_honor_guard_auto_accessories',
+            'purpose_others_auto_accessories',        'purpose_orex_auto_accessories',
         ]:
             setattr(obj, field, field in request.POST)
 

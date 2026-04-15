@@ -362,20 +362,22 @@ class SystemSettings(models.Model):
 
     # ── Per-purpose auto-consumable assignment ────────────────────────────────
     # When True the form auto-assigns magazines and ammunition for that purpose.
-    # Duty Sentinel, Duty Security, and OREX always receive auto-consumables.
-    # Duty Vigil, Honor Guard, and Others default to firearm-only issuance.
-    purpose_duty_vigil_auto_consumables  = models.BooleanField(
-        default=False,
-        help_text='Auto-assign magazines & ammunition for Duty Vigil withdrawals.',
-    )
-    purpose_honor_guard_auto_consumables = models.BooleanField(
-        default=False,
-        help_text='Auto-assign magazines & ammunition for Honor Guard withdrawals.',
-    )
-    purpose_others_auto_consumables      = models.BooleanField(
-        default=False,
-        help_text='Auto-assign magazines & ammunition for Others withdrawals.',
-    )
+    purpose_duty_sentinel_auto_consumables = models.BooleanField(default=True,  help_text='Auto-assign magazines & ammunition for Duty Sentinel withdrawals.')
+    purpose_duty_vigil_auto_consumables    = models.BooleanField(default=False, help_text='Auto-assign magazines & ammunition for Duty Vigil withdrawals.')
+    purpose_duty_security_auto_consumables = models.BooleanField(default=True,  help_text='Auto-assign magazines & ammunition for Duty Security withdrawals.')
+    purpose_honor_guard_auto_consumables   = models.BooleanField(default=False, help_text='Auto-assign magazines & ammunition for Honor Guard withdrawals.')
+    purpose_others_auto_consumables        = models.BooleanField(default=False, help_text='Auto-assign magazines & ammunition for Others withdrawals.')
+    purpose_orex_auto_consumables          = models.BooleanField(default=True,  help_text='Auto-assign magazines & ammunition for OREX withdrawals.')
+
+    # ── Per-purpose auto-accessory assignment ────────────────────────────────
+    # When True the form auto-assigns standard accessories for the weapon type
+    # being issued (pistol → holster + mag pouch; rifle → sling).
+    purpose_duty_sentinel_auto_accessories = models.BooleanField(default=True,  help_text='Auto-assign accessories for Duty Sentinel withdrawals.')
+    purpose_duty_vigil_auto_accessories    = models.BooleanField(default=False, help_text='Auto-assign accessories for Duty Vigil withdrawals.')
+    purpose_duty_security_auto_accessories = models.BooleanField(default=False, help_text='Auto-assign accessories for Duty Security withdrawals.')
+    purpose_honor_guard_auto_accessories   = models.BooleanField(default=False, help_text='Auto-assign accessories for Honor Guard withdrawals.')
+    purpose_others_auto_accessories        = models.BooleanField(default=False, help_text='Auto-assign accessories for Others withdrawals.')
+    purpose_orex_auto_accessories          = models.BooleanField(default=False, help_text='Auto-assign accessories for OREX withdrawals.')
 
     # ── Standard loadout defaults — Duty Sentinel ─────────────────────────────
     duty_sentinel_holster_qty     = models.PositiveSmallIntegerField(

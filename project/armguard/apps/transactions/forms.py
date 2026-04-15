@@ -117,36 +117,39 @@ class TransactionAdminForm(forms.ModelForm):
             and purpose_val == 'Duty Sentinel'
             and pistol
             and getattr(pistol, 'model', None) == 'Glock 17 9mm'
+            and (_s.purpose_duty_sentinel_auto_accessories or _s.purpose_duty_sentinel_auto_consumables)
         ):
-            from armguard.apps.inventory.models import Accessory, Magazine, Ammunition
-            # Pistol Holster
-            if not pistol_holster_quantity:
-                cleaned_data['pistol_holster_quantity'] = _s.duty_sentinel_holster_qty
-                pistol_holster_quantity = _s.duty_sentinel_holster_qty
-                cleaned_data['include_pistol_holster'] = True
-            # Magazine Pouch
-            if not magazine_pouch_quantity:
-                cleaned_data['magazine_pouch_quantity'] = _s.duty_sentinel_mag_pouch_qty
-                magazine_pouch_quantity = _s.duty_sentinel_mag_pouch_qty
-                cleaned_data['include_magazine_pouch'] = True
-            # Pistol Magazine
-            if not pistol_magazine:
-                mag_pool = Magazine.objects.filter(weapon_type='Pistol').first()
-                if mag_pool:
-                    cleaned_data['pistol_magazine'] = mag_pool
-                    pistol_magazine = mag_pool
-            if not pistol_magazine_quantity:
-                cleaned_data['pistol_magazine_quantity'] = _s.duty_sentinel_pistol_mag_qty
-                pistol_magazine_quantity = _s.duty_sentinel_pistol_mag_qty
-            # Pistol Ammunition — M882
-            if not pistol_ammunition:
-                ammo_pool = Ammunition.objects.filter(type='M882 9x19mm Ball 435 Ctg').first()
-                if ammo_pool:
-                    cleaned_data['pistol_ammunition'] = ammo_pool
-                    pistol_ammunition = ammo_pool
-            if not pistol_ammunition_quantity:
-                cleaned_data['pistol_ammunition_quantity'] = _s.duty_sentinel_pistol_ammo_qty
-                pistol_ammunition_quantity = _s.duty_sentinel_pistol_ammo_qty
+            from armguard.apps.inventory.models import Magazine, Ammunition
+            if _s.purpose_duty_sentinel_auto_accessories:
+                # Pistol Holster
+                if not pistol_holster_quantity:
+                    cleaned_data['pistol_holster_quantity'] = _s.duty_sentinel_holster_qty
+                    pistol_holster_quantity = _s.duty_sentinel_holster_qty
+                    cleaned_data['include_pistol_holster'] = True
+                # Magazine Pouch
+                if not magazine_pouch_quantity:
+                    cleaned_data['magazine_pouch_quantity'] = _s.duty_sentinel_mag_pouch_qty
+                    magazine_pouch_quantity = _s.duty_sentinel_mag_pouch_qty
+                    cleaned_data['include_magazine_pouch'] = True
+            if _s.purpose_duty_sentinel_auto_consumables:
+                # Pistol Magazine
+                if not pistol_magazine:
+                    mag_pool = Magazine.objects.filter(weapon_type='Pistol').first()
+                    if mag_pool:
+                        cleaned_data['pistol_magazine'] = mag_pool
+                        pistol_magazine = mag_pool
+                if not pistol_magazine_quantity:
+                    cleaned_data['pistol_magazine_quantity'] = _s.duty_sentinel_pistol_mag_qty
+                    pistol_magazine_quantity = _s.duty_sentinel_pistol_mag_qty
+                # Pistol Ammunition — M882
+                if not pistol_ammunition:
+                    ammo_pool = Ammunition.objects.filter(type='M882 9x19mm Ball 435 Ctg').first()
+                    if ammo_pool:
+                        cleaned_data['pistol_ammunition'] = ammo_pool
+                        pistol_ammunition = ammo_pool
+                if not pistol_ammunition_quantity:
+                    cleaned_data['pistol_ammunition_quantity'] = _s.duty_sentinel_pistol_ammo_qty
+                    pistol_ammunition_quantity = _s.duty_sentinel_pistol_ammo_qty
         # ── AUTO-FILL: Duty Security + Rifle ─────────────────────────────────────
         # When a Withdrawal is processed for any Rifle under Duty Security,
         # automatically populate the standard loadout if the user left those fields blank.
@@ -154,33 +157,45 @@ class TransactionAdminForm(forms.ModelForm):
             transaction_type == 'Withdrawal'
             and purpose_val == 'Duty Security'
             and rifle
+            and (_s.purpose_duty_security_auto_accessories or _s.purpose_duty_security_auto_consumables)
         ):
             from armguard.apps.inventory.models import Magazine, Ammunition
-            # Rifle Magazine — Long type
-            if not rifle_magazine:
-                mag_pool = Magazine.objects.filter(weapon_type='Rifle', type='Long').first()
-                if mag_pool:
-                    cleaned_data['rifle_magazine'] = mag_pool
-                    rifle_magazine = mag_pool
-            if not rifle_magazine_quantity:
-                cleaned_data['rifle_magazine_quantity'] = _s.duty_security_rifle_mag_qty
-                rifle_magazine_quantity = _s.duty_security_rifle_mag_qty
-            # Rifle Ammunition — M193 5.56mm
-            if not rifle_ammunition:
-                ammo_pool = Ammunition.objects.filter(type='M193 5.56mm Ball 428 Ctg').first()
-                if ammo_pool:
-                    cleaned_data['rifle_ammunition'] = ammo_pool
-                    rifle_ammunition = ammo_pool
-            if not rifle_ammunition_quantity:
-                cleaned_data['rifle_ammunition_quantity'] = _s.duty_security_rifle_ammo_qty
-                rifle_ammunition_quantity = _s.duty_security_rifle_ammo_qty
-        # ── AUTO-ASSIGN: Pistol magazine pool whenever quantity is given ───────────
-        # Purposes with auto-consumables disabled get firearm-only withdrawal by default.
-        _no_auto_consumables = (
-            (purpose_val == 'Duty Vigil'   and not _s.purpose_duty_vigil_auto_consumables) or
-            (purpose_val == 'Honor Guard'  and not _s.purpose_honor_guard_auto_consumables) or
-            (purpose_val == 'Others'       and not _s.purpose_others_auto_consumables)
-        )
+            if _s.purpose_duty_security_auto_accessories:
+                # Rifle Sling — standard issue for Duty Security
+                if not rifle_sling_quantity:
+                    cleaned_data['rifle_sling_quantity'] = 1
+                    rifle_sling_quantity = 1
+                    cleaned_data['include_rifle_sling'] = True
+            if _s.purpose_duty_security_auto_consumables:
+                # Rifle Magazine — Long type
+                if not rifle_magazine:
+                    mag_pool = Magazine.objects.filter(weapon_type='Rifle', type='Long').first()
+                    if mag_pool:
+                        cleaned_data['rifle_magazine'] = mag_pool
+                        rifle_magazine = mag_pool
+                if not rifle_magazine_quantity:
+                    cleaned_data['rifle_magazine_quantity'] = _s.duty_security_rifle_mag_qty
+                    rifle_magazine_quantity = _s.duty_security_rifle_mag_qty
+                # Rifle Ammunition — M193 5.56mm
+                if not rifle_ammunition:
+                    ammo_pool = Ammunition.objects.filter(type='M193 5.56mm Ball 428 Ctg').first()
+                    if ammo_pool:
+                        cleaned_data['rifle_ammunition'] = ammo_pool
+                        rifle_ammunition = ammo_pool
+                if not rifle_ammunition_quantity:
+                    cleaned_data['rifle_ammunition_quantity'] = _s.duty_security_rifle_ammo_qty
+                    rifle_ammunition_quantity = _s.duty_security_rifle_ammo_qty
+        # ── AUTO-ASSIGN: Pistol magazine pool whenever quantity is given ──────────
+        # All 6 purposes are now independently configurable for auto-consumables.
+        _purpose_consumables_map = {
+            'Duty Sentinel': _s.purpose_duty_sentinel_auto_consumables,
+            'Duty Vigil':    _s.purpose_duty_vigil_auto_consumables,
+            'Duty Security': _s.purpose_duty_security_auto_consumables,
+            'Honor Guard':   _s.purpose_honor_guard_auto_consumables,
+            'Others':        _s.purpose_others_auto_consumables,
+            'OREX':          _s.purpose_orex_auto_consumables,
+        }
+        _no_auto_consumables = not bool(_purpose_consumables_map.get(purpose_val, False))
         if not _no_auto_consumables and pistol_magazine_quantity and not pistol_magazine:
             from armguard.apps.inventory.models import Magazine
             mag_pool = Magazine.objects.filter(weapon_type='Pistol').first()
@@ -188,10 +203,6 @@ class TransactionAdminForm(forms.ModelForm):
                 cleaned_data['pistol_magazine'] = mag_pool
                 pistol_magazine = mag_pool
         # ── AUTO-ASSIGN: Ammunition pool based on selected weapon model ──────────
-        # Derives the correct ammo type from AMMO_WEAPON_COMPATIBILITY so the
-        # operator only needs to enter a quantity — no dropdown selection needed.
-        # For 5.56mm rifles (M193 / M855 both valid), defaults to M193.
-        # Skipped for Duty Vigil / Honor Guard / Others (firearm-only purposes).
         from armguard.apps.inventory.models import Ammunition, AMMO_WEAPON_COMPATIBILITY
         if not _no_auto_consumables and pistol and not pistol_ammunition:
             pistol_model = getattr(pistol, 'model', '')
@@ -211,9 +222,26 @@ class TransactionAdminForm(forms.ModelForm):
                         cleaned_data['rifle_ammunition'] = ammo_pool
                         rifle_ammunition = ammo_pool
                     break
-        # ── AUTO-ASSIGN: Accessory pools from checkboxes ─────────────────────────
-        # Checkbox checked = include standard qty; mag pouch qty is user-specified.
-        from armguard.apps.inventory.models import Accessory
+        # ── AUTO-ASSIGN: Accessories ──────────────────────────────────────────────
+        # If auto_accessories is True for this purpose, auto-flag the standard
+        # accessories for the weapon type (pistol → holster + mag pouch; rifle → sling).
+        _purpose_accessories_map = {
+            'Duty Sentinel': _s.purpose_duty_sentinel_auto_accessories,
+            'Duty Vigil':    _s.purpose_duty_vigil_auto_accessories,
+            'Duty Security': _s.purpose_duty_security_auto_accessories,
+            'Honor Guard':   _s.purpose_honor_guard_auto_accessories,
+            'Others':        _s.purpose_others_auto_accessories,
+            'OREX':          _s.purpose_orex_auto_accessories,
+        }
+        _auto_accessories = bool(_purpose_accessories_map.get(purpose_val, False))
+        if _auto_accessories:
+            if pistol and not pistol_holster_quantity:
+                cleaned_data['include_pistol_holster'] = True
+            if (pistol or rifle) and not magazine_pouch_quantity:
+                cleaned_data['include_magazine_pouch'] = True
+            if rifle and not rifle_sling_quantity:
+                cleaned_data['include_rifle_sling'] = True
+        # Apply standard quantities for all checked or auto-flagged accessories
         if cleaned_data.get('include_pistol_holster') and not pistol_holster_quantity:
             cleaned_data['pistol_holster_quantity'] = 1
             pistol_holster_quantity = 1

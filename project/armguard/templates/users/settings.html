@@ -331,49 +331,6 @@
     <!-- Divider -->
     <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0 1rem">
 
-    <!-- Purpose Auto-Consumable Assignment -->
-    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Purpose — Auto-Consumable Assignment</div>
-    <div class="form-hint" style="margin-bottom:.75rem">
-      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
-      When enabled for a purpose, magazines &amp; ammunition are auto-assigned on withdrawal. Duty Sentinel, Duty Security, and OREX always receive auto-consumables.
-    </div>
-    <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
-        <thead>
-          <tr>
-            <th style="text-align:left;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Purpose</th>
-            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Auto-Consumables</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:.5rem .6rem;font-weight:500;color:var(--muted)">Duty Sentinel</td>
-            <td style="text-align:center;padding:.5rem .6rem"><span style="font-size:.75rem;color:var(--muted)">Always enabled</span></td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:.5rem .6rem;font-weight:500;color:var(--muted)">Duty Security</td>
-            <td style="text-align:center;padding:.5rem .6rem"><span style="font-size:.75rem;color:var(--muted)">Always enabled</span></td>
-          </tr>
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:.5rem .6rem;font-weight:500;color:var(--muted)">OREX</td>
-            <td style="text-align:center;padding:.5rem .6rem"><span style="font-size:.75rem;color:var(--muted)">Always enabled</span></td>
-          </tr>
-          {% for row in auto_consumable_rows %}
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:.5rem .6rem;font-weight:500">{{ row.label }}</td>
-            <td style="text-align:center;padding:.5rem .6rem">
-              <input type="checkbox" name="{{ row.field }}" {% if row.value %}checked{% endif %}
-                     style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Divider -->
-    <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0 1rem">
-
     <!-- Standard Loadout Defaults -->
     <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Standard Loadout Auto-Fill — Duty Sentinel</div>
     <div class="form-hint" style="margin-bottom:.75rem">
@@ -465,7 +422,7 @@
     </div>
     <div class="form-hint" style="margin-bottom:.85rem">
       <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
-      Choose which weapon fields (Pistol / Rifle) are shown when each Purpose is selected on the New Transaction form.
+      Configure per-purpose: weapon visibility (Pistol / Rifle), auto-consumables (mags &amp; ammo), auto-accessories (holster, mag pouch, rifle sling), and auto TR print.
     </div>
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
@@ -474,6 +431,8 @@
             <th style="text-align:left;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Purpose</th>
             <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-gun" style="font-size:.8rem;margin-right:.3rem"></i>Pistol</th>
             <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-rifle" style="font-size:.8rem;margin-right:.3rem"></i>Rifle</th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-fire-flame-curved" style="font-size:.8rem;margin-right:.3rem"></i>Auto Consumables</th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-briefcase" style="font-size:.8rem;margin-right:.3rem"></i>Auto Accessories</th>
             <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-print" style="font-size:.8rem;margin-right:.3rem"></i>Auto Print</th>
           </tr>
         </thead>
@@ -487,6 +446,14 @@
             </td>
             <td style="text-align:center;padding:.5rem .6rem">
               <input type="checkbox" name="{{ row.rifle_field }}" {% if row.rifle_value %}checked{% endif %}
+                     style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
+            </td>
+            <td style="text-align:center;padding:.5rem .6rem">
+              <input type="checkbox" name="{{ row.auto_consumables_field }}" {% if row.auto_consumables_value %}checked{% endif %}
+                     style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
+            </td>
+            <td style="text-align:center;padding:.5rem .6rem">
+              <input type="checkbox" name="{{ row.auto_accessories_field }}" {% if row.auto_accessories_value %}checked{% endif %}
                      style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
             </td>
             <td style="text-align:center;padding:.5rem .6rem">
