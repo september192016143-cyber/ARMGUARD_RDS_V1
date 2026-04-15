@@ -150,8 +150,13 @@
     <form method="get" style="display:flex; gap:.5rem; flex:1; min-width:220px; max-width:380px;">
       <input type="text" name="q" value="{{ search_q }}"
              placeholder="Search name, ID, rank…" class="form-control">
+      <select name="category" class="form-control" style="max-width:140px;background:#1e293b;color:#e2e8f0;" onchange="this.form.submit()">
+        <option value="" style="background:#1e293b;color:#e2e8f0;" {% if not category %}selected{% endif %}>All Personnel</option>
+        <option value="officer" style="background:#1e293b;color:#e2e8f0;" {% if category == 'officer' %}selected{% endif %}>Officers</option>
+        <option value="enlisted" style="background:#1e293b;color:#e2e8f0;" {% if category == 'enlisted' %}selected{% endif %}>Enlisted</option>
+      </select>
       <button type="submit" id="id-cards-search-submit" name="search" class="btn btn-secondary btn-sm" aria-label="Search"><i class="fas fa-search"></i></button>
-      {% if search_q %}
+      {% if search_q or category %}
       <a href="{% url 'print_handler:print_id_cards' %}" class="btn btn-secondary btn-sm" aria-label="Clear search"><i class="fas fa-times"></i></a>
       {% endif %}
     </form>
