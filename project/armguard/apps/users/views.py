@@ -790,6 +790,9 @@ class SystemSettingsView(LoginRequiredMixin, View):
             if obj.app_logo:
                 obj.app_logo.delete(save=False)
             obj.app_logo = request.FILES['app_logo']
+        # ── Printing behaviour ─────────────────────────────────────────────────
+        obj.auto_print_tr = 'auto_print_tr' in request.POST
+
         # Per-purpose weapon field visibility
         for field in [
             'purpose_duty_sentinel_show_pistol',  'purpose_duty_sentinel_show_rifle',

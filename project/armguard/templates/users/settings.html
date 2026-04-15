@@ -467,6 +467,16 @@
       <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
       Choose which weapon fields (Pistol / Rifle) are shown when each Purpose is selected on the New Transaction form.
     </div>
+    <!-- Auto TR Print toggle -->
+    <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem .2rem 1rem">
+      <input type="checkbox" id="id_auto_print_tr" name="auto_print_tr"
+             {% if s.auto_print_tr %}checked{% endif %}
+             style="width:17px;height:17px;accent-color:var(--primary,#4f8ef7);cursor:pointer;flex-shrink:0">
+      <label for="id_auto_print_tr" style="margin:0;cursor:pointer;font-size:.87rem">
+        <strong>Auto TR Print</strong>
+        <span style="color:var(--muted);font-size:.8rem;margin-left:.4rem">— Automatically open the TR print page after a TR Withdrawal is saved.</span>
+      </label>
+    </div>
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
         <thead>

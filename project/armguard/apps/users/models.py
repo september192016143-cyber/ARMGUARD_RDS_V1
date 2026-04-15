@@ -403,6 +403,12 @@ class SystemSettings(models.Model):
     max_bandoleer_qty       = models.PositiveSmallIntegerField(
         default=1, help_text='Maximum bandoleers issuable in a single withdrawal.')
 
+    # ── Printing behaviour ────────────────────────────────────────────────────
+    auto_print_tr = models.BooleanField(
+        default=False,
+        help_text='Automatically open the TR print page after a TR Withdrawal is saved.',
+    )
+
     class Meta:
         verbose_name        = "System Settings"
         verbose_name_plural = "System Settings"

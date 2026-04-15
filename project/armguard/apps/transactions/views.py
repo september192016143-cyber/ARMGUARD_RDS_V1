@@ -384,6 +384,20 @@ def create_transaction(request):
                             )  # Error must never block the Return
 
             messages.success(request, f'Transaction #{txn.transaction_id} recorded successfully.')
+            # Auto-print: if the setting is enabled and this is a TR Withdrawal,
+            # redirect straight to the print page instead of the detail page.
+            try:
+                from armguard.apps.users.models import SystemSettings as _SS_print
+                _auto = _SS_print.get().auto_print_tr
+            except Exception:
+                _auto = False
+            if (_auto
+                    and txn.transaction_type == 'Withdrawal'
+                    and txn.issuance_type
+                    and 'TR' in txn.issuance_type):
+                from django.urls import reverse
+                return redirect(reverse('print_handler:print_transaction_pdf',
+                                        kwargs={'transaction_id': txn.transaction_id}))
             return redirect('transaction-detail', transaction_id=txn.transaction_id)
     else:
         form = WithdrawalReturnTransactionForm()
