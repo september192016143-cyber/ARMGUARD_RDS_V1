@@ -355,7 +355,13 @@ def create_transaction(request):
     }
     if request.method == 'POST':
         form = WithdrawalReturnTransactionForm(request.POST, request.FILES)
-        if form.is_valid():
+        try:
+            _form_ok = form.is_valid()
+        except Exception as _exc:
+            _logger.exception('create_transaction: unexpected exception during form validation: %s', _exc)
+            form.add_error(None, 'Form validation failed unexpectedly. Please try again.')
+            _form_ok = False
+        if _form_ok:
             txn = form.save(commit=False)
             txn.transaction_personnel = request.user.get_full_name() or request.user.username
             try:
@@ -474,8 +480,12 @@ def tr_preview(request):
         _form_valid = form.is_valid()
     except Exception as exc:
         _log.exception('TR preview: unexpected exception during form validation: %s', exc)
+        from django.conf import settings as _dj_settings
+        _err_msg = 'Form validation failed unexpectedly. Please try again.'
+        if _dj_settings.DEBUG:
+            _err_msg += f' [{type(exc).__name__}: {exc}]'
         return JsonResponse(
-            {'field_errors': {}, 'non_field_errors': ['Form validation failed unexpectedly. Please try again.']},
+            {'field_errors': {}, 'non_field_errors': [_err_msg]},
             status=400,
         )
 

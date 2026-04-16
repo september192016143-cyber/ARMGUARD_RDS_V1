@@ -111,7 +111,12 @@ class TransactionAdminForm(forms.ModelForm):
         # `pistol` will be None here and this block will not fire — safe by design.
         purpose_val = cleaned_data.get('purpose')
         from armguard.apps.users.models import SystemSettings as _SS
-        _s = _SS.get()
+        try:
+            _s = _SS.get()
+        except Exception as _ss_exc:
+            raise forms.ValidationError(
+                'System settings are unavailable — ensure all database migrations have been applied.'
+            ) from _ss_exc
         if (
             transaction_type == 'Withdrawal'
             and purpose_val == 'Duty Sentinel'
