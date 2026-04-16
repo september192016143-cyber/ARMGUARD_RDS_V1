@@ -524,7 +524,8 @@ def tr_preview(request):
     filler = TransactionFormFiller()
     try:
         pdf_bytes = filler.fill_transaction_form(mock_txn)
-    except (OSError, RuntimeError, ValueError) as exc:
+        pdf_data  = pdf_bytes.read()
+    except Exception as exc:
         import logging
         logging.getLogger(__name__).exception('TR preview PDF generation failed: %s', exc)
         return JsonResponse(
@@ -535,7 +536,7 @@ def tr_preview(request):
     from utils.pdf_viewer import serve_pdf_bytes
     return serve_pdf_bytes(
         request,
-        pdf_bytes=pdf_bytes.read(),
+        pdf_bytes=pdf_data,
         filename='TR_Preview.pdf',
         label='TR Preview (in-progress transaction)',
     )
