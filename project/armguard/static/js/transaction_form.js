@@ -57,26 +57,40 @@ function toggleDutyOther() {
 
 function updateRifleMagQtyHint(pcfg) {
   var hint = document.getElementById('rifle-mag-qty-hint');
-  if (!hint) return;
   var shortQty = pcfg.rifle_short_mag_qty;
   var longQty  = pcfg.rifle_long_mag_qty;
-  if (shortQty === undefined && longQty === undefined) { hint.textContent = ''; return; }
   // Detect selected magazine type from the dropdown option text (contains 'Short' or 'Long').
   var magSel = document.getElementById('id_rifle_magazine') || document.querySelector('[name="rifle_magazine"]');
   var selText = (magSel && magSel.options && magSel.selectedIndex >= 0)
     ? (magSel.options[magSel.selectedIndex].text || '') : '';
-  var isLong = /\blong\b/i.test(selText);
+  var isLong  = /\blong\b/i.test(selText);
   var isShort = /\bshort\b/i.test(selText);
-  if (isLong && longQty !== undefined) {
-    hint.textContent = '\u2014 default: ' + longQty + ' (Long)';
-  } else if (isShort && shortQty !== undefined) {
-    hint.textContent = '\u2014 default: ' + shortQty + ' (Short)';
-  } else {
-    // No selection yet — show both.
-    var parts = [];
-    if (shortQty !== undefined) parts.push('Short: ' + shortQty);
-    if (longQty  !== undefined) parts.push('Long: ' + longQty);
-    hint.textContent = parts.length ? '\u2014 default ' + parts.join(' / ') : '';
+
+  // Update hint label.
+  if (hint) {
+    if (shortQty === undefined && longQty === undefined) {
+      hint.textContent = '';
+    } else if (isLong && longQty !== undefined) {
+      hint.textContent = '\u2014 default: ' + longQty + ' (Long)';
+    } else if (isShort && shortQty !== undefined) {
+      hint.textContent = '\u2014 default: ' + shortQty + ' (Short)';
+    } else {
+      var parts = [];
+      if (shortQty !== undefined) parts.push('Short: ' + shortQty);
+      if (longQty  !== undefined) parts.push('Long: ' + longQty);
+      hint.textContent = parts.length ? '\u2014 default ' + parts.join(' / ') : '';
+    }
+  }
+
+  // Auto-fill rifle magazine qty input when a magazine type is selected.
+  var rmq = document.querySelector('[name="rifle_magazine_quantity"]');
+  if (rmq) {
+    if (isLong && longQty !== undefined) {
+      rmq.value = longQty;
+    } else if (isShort && shortQty !== undefined) {
+      rmq.value = shortQty;
+    }
+    // If no magazine selected, leave the field as-is (don't overwrite a manual entry).
   }
 }
 
@@ -108,6 +122,14 @@ function toggleWeaponSections() {
 
   // Rifle magazine qty hint: update based on selected magazine type (Short/Long).
   updateRifleMagQtyHint(pcfg);
+
+  // Auto-check rifle sling and bandoleer based on purpose config qty.
+  if (!isReturn) {
+    var _rs = document.querySelector('[name="include_rifle_sling"]');
+    var _bd = document.querySelector('[name="include_bandoleer"]');
+    if (_rs && pcfg.rifle_sling_qty !== undefined) _rs.checked = pcfg.rifle_sling_qty > 0;
+    if (_bd && pcfg.bandoleer_qty   !== undefined) _bd.checked = pcfg.bandoleer_qty   > 0;
+  }
 
   // Pistol column + related accessories
   var pistolCol  = document.getElementById('pistol-col');
