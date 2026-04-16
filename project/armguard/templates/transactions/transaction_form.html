@@ -161,7 +161,7 @@
               {% if form.rifle_magazine.errors %}<div class="form-error">{{ form.rifle_magazine.errors|join:", " }}</div>{% endif %}
             </div>
             <div class="form-group" style="margin-bottom:0;">
-              <label for="id_rifle_magazine_quantity" class="form-label">Qty</label>
+              <label for="id_rifle_magazine_quantity" class="form-label">Qty <span id="rifle-mag-qty-hint" style="font-size:.72rem;font-weight:400;color:var(--muted);"></span></label>
               {{ form.rifle_magazine_quantity }}
               {% if form.rifle_magazine_quantity.errors %}<div class="form-error">{{ form.rifle_magazine_quantity.errors|join:", " }}</div>{% endif %}
             </div>

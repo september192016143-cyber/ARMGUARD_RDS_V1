@@ -173,9 +173,11 @@ class TransactionAdminForm(forms.ModelForm):
                     if mag_pool:
                         cleaned_data['rifle_magazine'] = mag_pool
                         rifle_magazine = mag_pool
-                if not rifle_magazine_quantity and _s.duty_security_rifle_mag_qty > 0:
-                    cleaned_data['rifle_magazine_quantity'] = _s.duty_security_rifle_mag_qty
-                    rifle_magazine_quantity = _s.duty_security_rifle_mag_qty
+                if not rifle_magazine_quantity:
+                    _long_qty = _s.duty_security_rifle_long_mag_qty
+                    if _long_qty > 0:
+                        cleaned_data['rifle_magazine_quantity'] = _long_qty
+                        rifle_magazine_quantity = _long_qty
                 # Rifle Ammunition — M193 5.56mm
                 if not rifle_ammunition:
                     ammo_pool = Ammunition.objects.filter(type='M193 5.56mm Ball 428 Ctg').first()
@@ -228,15 +230,21 @@ class TransactionAdminForm(forms.ModelForm):
                     cleaned_data['pistol_magazine'] = mag_pool
                     pistol_magazine = mag_pool
         # ── AUTO-FILL: Rifle magazine quantity when blank ─────────────────────────
-        if not _no_auto_consumables and rifle and not rifle_magazine_quantity and _lq('rifle_mag_qty') > 0:
-            cleaned_data['rifle_magazine_quantity'] = _lq('rifle_mag_qty')
-            rifle_magazine_quantity = _lq('rifle_mag_qty')
-            if not rifle_magazine:
-                from armguard.apps.inventory.models import Magazine
-                mag_pool = Magazine.objects.filter(weapon_type='Rifle').first()
-                if mag_pool:
-                    cleaned_data['rifle_magazine'] = mag_pool
-                    rifle_magazine = mag_pool
+        if not _no_auto_consumables and rifle and not rifle_magazine_quantity:
+            _rm_type = getattr(cleaned_data.get('rifle_magazine'), 'type', None)
+            _rm_qty = _lq('rifle_long_mag_qty') if _rm_type == 'Long' else _lq('rifle_short_mag_qty')
+            if _rm_qty > 0:
+                cleaned_data['rifle_magazine_quantity'] = _rm_qty
+                rifle_magazine_quantity = _rm_qty
+                if not cleaned_data.get('rifle_magazine'):
+                    from armguard.apps.inventory.models import Magazine
+                    _preferred_type = _rm_type or 'Short'
+                    mag_pool = Magazine.objects.filter(weapon_type='Rifle', type=_preferred_type).first()
+                    if not mag_pool:
+                        mag_pool = Magazine.objects.filter(weapon_type='Rifle').first()
+                    if mag_pool:
+                        cleaned_data['rifle_magazine'] = mag_pool
+                        rifle_magazine = mag_pool
         # ── AUTO-ASSIGN: Ammunition pool based on selected weapon model ──────────
         from armguard.apps.inventory.models import Ammunition, AMMO_WEAPON_COMPATIBILITY
         if not _no_auto_consumables and pistol and not pistol_ammunition:

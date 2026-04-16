@@ -55,6 +55,31 @@ function toggleDutyOther() {
   if (other) other.style.display = sel && sel.value === 'Others' ? '' : 'none';
 }
 
+function updateRifleMagQtyHint(pcfg) {
+  var hint = document.getElementById('rifle-mag-qty-hint');
+  if (!hint) return;
+  var shortQty = pcfg.rifle_short_mag_qty;
+  var longQty  = pcfg.rifle_long_mag_qty;
+  if (shortQty === undefined && longQty === undefined) { hint.textContent = ''; return; }
+  // Detect selected magazine type from the dropdown option text (contains 'Short' or 'Long').
+  var magSel = document.getElementById('id_rifle_magazine') || document.querySelector('[name="rifle_magazine"]');
+  var selText = (magSel && magSel.options && magSel.selectedIndex >= 0)
+    ? (magSel.options[magSel.selectedIndex].text || '') : '';
+  var isLong = /\blong\b/i.test(selText);
+  var isShort = /\bshort\b/i.test(selText);
+  if (isLong && longQty !== undefined) {
+    hint.textContent = '\u2014 default: ' + longQty + ' (Long)';
+  } else if (isShort && shortQty !== undefined) {
+    hint.textContent = '\u2014 default: ' + shortQty + ' (Short)';
+  } else {
+    // No selection yet — show both.
+    var parts = [];
+    if (shortQty !== undefined) parts.push('Short: ' + shortQty);
+    if (longQty  !== undefined) parts.push('Long: ' + longQty);
+    hint.textContent = parts.length ? '\u2014 default ' + parts.join(' / ') : '';
+  }
+}
+
 function toggleWeaponSections() {
   var form    = document.getElementById('txn-form');
   var purpose = document.getElementById('tb_purpose');
@@ -72,14 +97,17 @@ function toggleWeaponSections() {
     if (n === undefined || n === null) return '';
     return n === 1 ? ' \u2014 1 unit' : ' \u2014 ' + n + ' units';
   }
-  var holsterQtyLabel   = document.getElementById('holster-qty-label');
-  var magpouchQtyLabel  = document.getElementById('magpouch-qty-label');
+  var holsterQtyLabel    = document.getElementById('holster-qty-label');
+  var magpouchQtyLabel   = document.getElementById('magpouch-qty-label');
   var rifleslingQtyLabel = document.getElementById('riflesling-qty-label');
   var bandoleerQtyLabel  = document.getElementById('bandoleer-qty-label');
-  if (holsterQtyLabel   && pcfg.holster_qty    !== undefined) holsterQtyLabel.textContent   = _qtyText(pcfg.holster_qty);
-  if (magpouchQtyLabel  && pcfg.mag_pouch_qty  !== undefined) magpouchQtyLabel.textContent  = _qtyText(pcfg.mag_pouch_qty);
+  if (holsterQtyLabel    && pcfg.holster_qty     !== undefined) holsterQtyLabel.textContent    = _qtyText(pcfg.holster_qty);
+  if (magpouchQtyLabel   && pcfg.mag_pouch_qty   !== undefined) magpouchQtyLabel.textContent   = _qtyText(pcfg.mag_pouch_qty);
   if (rifleslingQtyLabel && pcfg.rifle_sling_qty !== undefined) rifleslingQtyLabel.textContent = _qtyText(pcfg.rifle_sling_qty);
-  if (bandoleerQtyLabel  && pcfg.bandoleer_qty  !== undefined) bandoleerQtyLabel.textContent  = _qtyText(pcfg.bandoleer_qty);
+  if (bandoleerQtyLabel  && pcfg.bandoleer_qty   !== undefined) bandoleerQtyLabel.textContent  = _qtyText(pcfg.bandoleer_qty);
+
+  // Rifle magazine qty hint: update based on selected magazine type (Short/Long).
+  updateRifleMagQtyHint(pcfg);
 
   // Pistol column + related accessories
   var pistolCol  = document.getElementById('pistol-col');
@@ -587,6 +615,19 @@ function _attachSelectStyles(el) {
   if (tbPurpose) {
     tbPurpose.addEventListener('change', toggleDutyOther);
     tbPurpose.addEventListener('change', toggleWeaponSections);
+  }
+
+  // Rifle magazine selection → update the qty hint in real-time.
+  var rifMagSel = document.getElementById('id_rifle_magazine') || document.querySelector('[name="rifle_magazine"]');
+  if (rifMagSel) {
+    rifMagSel.addEventListener('change', function () {
+      var form2 = document.getElementById('txn-form');
+      var purpose2 = document.getElementById('tb_purpose');
+      var cfg2 = {};
+      try { cfg2 = JSON.parse((form2 && form2.dataset.purposeConfig) || '{}'); } catch (e) {}
+      var pcfg2 = cfg2[(purpose2 && purpose2.value) || ''] || {};
+      updateRifleMagQtyHint(pcfg2);
+    });
   }
 
   // Buttons (replaces inline onclick=)
