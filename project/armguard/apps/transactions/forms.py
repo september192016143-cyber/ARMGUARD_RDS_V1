@@ -674,7 +674,7 @@ class WithdrawalReturnTransactionForm(TransactionAdminForm):
             _log_mod.getLogger(__name__).exception(
                 '_post_clean: unexpected exception during model validation: %s', _exc
             )
-            self.add_error(None, f'Model validation error [{type(_exc).__name__}: {_exc}]. Please try again.')
+            self.add_error(None, 'Form submission failed unexpectedly. Please try again.')
 
     def clean(self):
         cleaned_data = super().clean()

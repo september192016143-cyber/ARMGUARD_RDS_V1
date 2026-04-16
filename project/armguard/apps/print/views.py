@@ -666,7 +666,10 @@ def print_transaction_pdf(request, transaction_id):
         return redirect('transaction-detail', transaction_id=transaction_id)
 
     pdf_url  = reverse('print_handler:download_transaction_pdf', kwargs={'transaction_id': transaction_id})
-    next_url = request.GET.get('next', '')
+    # Allow a ?next= redirect only to safe relative paths (starts with /) to
+    # prevent open redirect attacks where an attacker supplies an absolute URL.
+    _raw_next = request.GET.get('next', '')
+    next_url  = _raw_next if (_raw_next.startswith('/') and not _raw_next.startswith('//')) else ''
     return render(request, 'print/pdf_print.html', {
         'transaction': transaction,
         'pdf_url':     pdf_url,
