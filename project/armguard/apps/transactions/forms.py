@@ -219,6 +219,18 @@ class TransactionAdminForm(forms.ModelForm):
             if mag_pool:
                 cleaned_data['pistol_magazine'] = mag_pool
                 pistol_magazine = mag_pool
+        # ── AUTO-ASSIGN: Rifle magazine pool when qty is given but no magazine selected ──
+        # Covers the case where the JS pre-fills the quantity field before the user picks a
+        # magazine from the dropdown — qty arrives but FK is still blank.
+        if rifle_magazine_quantity and not rifle_magazine:
+            from armguard.apps.inventory.models import Magazine
+            _rm_type = getattr(cleaned_data.get('rifle_magazine'), 'type', None)
+            _preferred = _rm_type or 'Short'
+            mag_pool = (Magazine.objects.filter(weapon_type='Rifle', type=_preferred).first()
+                        or Magazine.objects.filter(weapon_type='Rifle').first())
+            if mag_pool:
+                cleaned_data['rifle_magazine'] = mag_pool
+                rifle_magazine = mag_pool
         # ── AUTO-FILL: Pistol magazine quantity when blank ────────────────────────
         if not _no_auto_consumables and pistol and not pistol_magazine_quantity and _lq('pistol_mag_qty') > 0:
             cleaned_data['pistol_magazine_quantity'] = _lq('pistol_mag_qty')
