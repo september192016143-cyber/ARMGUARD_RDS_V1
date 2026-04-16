@@ -111,10 +111,10 @@ def _get_accessory_max_qty():
         from armguard.apps.users.models import SystemSettings
         s = SystemSettings.get()
         return {
-            'Pistol Holster':        s.max_pistol_holster_qty or 1,
-            'Pistol Magazine Pouch': s.max_magazine_pouch_qty or 3,
-            'Rifle Sling':           s.max_rifle_sling_qty    or 1,
-            'Bandoleer':             s.max_bandoleer_qty      or 1,
+            'Pistol Holster':        s.max_pistol_holster_qty,
+            'Pistol Magazine Pouch': s.max_magazine_pouch_qty,
+            'Rifle Sling':           s.max_rifle_sling_qty,
+            'Bandoleer':             s.max_bandoleer_qty,
         }
     except Exception:
         return dict(ACCESSORY_MAX_QTY)

@@ -122,12 +122,12 @@ class TransactionAdminForm(forms.ModelForm):
             from armguard.apps.inventory.models import Magazine, Ammunition
             if _s.purpose_duty_sentinel_auto_accessories:
                 # Pistol Holster
-                if not pistol_holster_quantity:
+                if not pistol_holster_quantity and _s.duty_sentinel_holster_qty > 0:
                     cleaned_data['pistol_holster_quantity'] = _s.duty_sentinel_holster_qty
                     pistol_holster_quantity = _s.duty_sentinel_holster_qty
                     cleaned_data['include_pistol_holster'] = True
                 # Magazine Pouch
-                if not magazine_pouch_quantity:
+                if not magazine_pouch_quantity and _s.duty_sentinel_mag_pouch_qty > 0:
                     cleaned_data['magazine_pouch_quantity'] = _s.duty_sentinel_mag_pouch_qty
                     magazine_pouch_quantity = _s.duty_sentinel_mag_pouch_qty
                     cleaned_data['include_magazine_pouch'] = True
@@ -138,7 +138,7 @@ class TransactionAdminForm(forms.ModelForm):
                     if mag_pool:
                         cleaned_data['pistol_magazine'] = mag_pool
                         pistol_magazine = mag_pool
-                if not pistol_magazine_quantity:
+                if not pistol_magazine_quantity and _s.duty_sentinel_pistol_mag_qty > 0:
                     cleaned_data['pistol_magazine_quantity'] = _s.duty_sentinel_pistol_mag_qty
                     pistol_magazine_quantity = _s.duty_sentinel_pistol_mag_qty
                 # Pistol Ammunition — M882
@@ -147,7 +147,7 @@ class TransactionAdminForm(forms.ModelForm):
                     if ammo_pool:
                         cleaned_data['pistol_ammunition'] = ammo_pool
                         pistol_ammunition = ammo_pool
-                if not pistol_ammunition_quantity:
+                if not pistol_ammunition_quantity and _s.duty_sentinel_pistol_ammo_qty > 0:
                     cleaned_data['pistol_ammunition_quantity'] = _s.duty_sentinel_pistol_ammo_qty
                     pistol_ammunition_quantity = _s.duty_sentinel_pistol_ammo_qty
         # ── AUTO-FILL: Duty Security + Rifle ─────────────────────────────────────
@@ -162,7 +162,7 @@ class TransactionAdminForm(forms.ModelForm):
             from armguard.apps.inventory.models import Magazine, Ammunition
             if _s.purpose_duty_security_auto_accessories:
                 # Rifle Sling — standard issue for Duty Security
-                if not rifle_sling_quantity:
+                if not rifle_sling_quantity and _s.duty_security_rifle_sling_qty > 0:
                     cleaned_data['rifle_sling_quantity'] = _s.duty_security_rifle_sling_qty
                     rifle_sling_quantity = _s.duty_security_rifle_sling_qty
                     cleaned_data['include_rifle_sling'] = True
@@ -173,7 +173,7 @@ class TransactionAdminForm(forms.ModelForm):
                     if mag_pool:
                         cleaned_data['rifle_magazine'] = mag_pool
                         rifle_magazine = mag_pool
-                if not rifle_magazine_quantity:
+                if not rifle_magazine_quantity and _s.duty_security_rifle_mag_qty > 0:
                     cleaned_data['rifle_magazine_quantity'] = _s.duty_security_rifle_mag_qty
                     rifle_magazine_quantity = _s.duty_security_rifle_mag_qty
                 # Rifle Ammunition — M193 5.56mm
@@ -182,7 +182,7 @@ class TransactionAdminForm(forms.ModelForm):
                     if ammo_pool:
                         cleaned_data['rifle_ammunition'] = ammo_pool
                         rifle_ammunition = ammo_pool
-                if not rifle_ammunition_quantity:
+                if not rifle_ammunition_quantity and _s.duty_security_rifle_ammo_qty > 0:
                     cleaned_data['rifle_ammunition_quantity'] = _s.duty_security_rifle_ammo_qty
                     rifle_ammunition_quantity = _s.duty_security_rifle_ammo_qty
         # ── AUTO-ASSIGN: Pistol magazine pool whenever quantity is given ──────────
@@ -206,9 +206,10 @@ class TransactionAdminForm(forms.ModelForm):
             'OREX':          'orex',
         }
         _pfx = _purpose_prefix_map.get(purpose_val, '')
-        def _lq(field_suffix, fallback=1):
+        def _lq(field_suffix, fallback=0):
             if _pfx:
-                return int(getattr(_s, f'{_pfx}_{field_suffix}', fallback) or fallback)
+                val = getattr(_s, f'{_pfx}_{field_suffix}', fallback)
+                return int(val) if val is not None else fallback
             return fallback
         if not _no_auto_consumables and pistol_magazine_quantity and not pistol_magazine:
             from armguard.apps.inventory.models import Magazine
@@ -217,7 +218,7 @@ class TransactionAdminForm(forms.ModelForm):
                 cleaned_data['pistol_magazine'] = mag_pool
                 pistol_magazine = mag_pool
         # ── AUTO-FILL: Pistol magazine quantity when blank ────────────────────────
-        if not _no_auto_consumables and pistol and not pistol_magazine_quantity:
+        if not _no_auto_consumables and pistol and not pistol_magazine_quantity and _lq('pistol_mag_qty') > 0:
             cleaned_data['pistol_magazine_quantity'] = _lq('pistol_mag_qty')
             pistol_magazine_quantity = _lq('pistol_mag_qty')
             if not pistol_magazine:
@@ -227,7 +228,7 @@ class TransactionAdminForm(forms.ModelForm):
                     cleaned_data['pistol_magazine'] = mag_pool
                     pistol_magazine = mag_pool
         # ── AUTO-FILL: Rifle magazine quantity when blank ─────────────────────────
-        if not _no_auto_consumables and rifle and not rifle_magazine_quantity:
+        if not _no_auto_consumables and rifle and not rifle_magazine_quantity and _lq('rifle_mag_qty') > 0:
             cleaned_data['rifle_magazine_quantity'] = _lq('rifle_mag_qty')
             rifle_magazine_quantity = _lq('rifle_mag_qty')
             if not rifle_magazine:
@@ -257,10 +258,10 @@ class TransactionAdminForm(forms.ModelForm):
                         rifle_ammunition = ammo_pool
                     break
         # ── AUTO-FILL: Ammo quantities when blank ─────────────────────────────────
-        if not _no_auto_consumables and pistol and not pistol_ammunition_quantity:
+        if not _no_auto_consumables and pistol and not pistol_ammunition_quantity and _lq('pistol_ammo_qty') > 0:
             cleaned_data['pistol_ammunition_quantity'] = _lq('pistol_ammo_qty')
             pistol_ammunition_quantity = _lq('pistol_ammo_qty')
-        if not _no_auto_consumables and rifle and not rifle_ammunition_quantity:
+        if not _no_auto_consumables and rifle and not rifle_ammunition_quantity and _lq('rifle_ammo_qty') > 0:
             cleaned_data['rifle_ammunition_quantity'] = _lq('rifle_ammo_qty')
             rifle_ammunition_quantity = _lq('rifle_ammo_qty')
         # ── AUTO-ASSIGN: Accessories ──────────────────────────────────────────────
@@ -276,22 +277,28 @@ class TransactionAdminForm(forms.ModelForm):
         }
         _auto_accessories = bool(_purpose_accessories_map.get(purpose_val, False))
         if _auto_accessories:
-            if pistol and not pistol_holster_quantity:
+            if pistol and not pistol_holster_quantity and _lq('holster_qty') > 0:
                 cleaned_data['include_pistol_holster'] = True
-            if (pistol or rifle) and not magazine_pouch_quantity:
+            if (pistol or rifle) and not magazine_pouch_quantity and _lq('mag_pouch_qty') > 0:
                 cleaned_data['include_magazine_pouch'] = True
-            if rifle and not rifle_sling_quantity:
+            if rifle and not rifle_sling_quantity and _lq('rifle_sling_qty') > 0:
                 cleaned_data['include_rifle_sling'] = True
         # Apply standard quantities for all checked or auto-flagged accessories
         if cleaned_data.get('include_pistol_holster') and not pistol_holster_quantity:
-            cleaned_data['pistol_holster_quantity'] = _lq('holster_qty')
-            pistol_holster_quantity = _lq('holster_qty')
+            _qty = _lq('holster_qty')
+            if _qty > 0:
+                cleaned_data['pistol_holster_quantity'] = _qty
+                pistol_holster_quantity = _qty
         if cleaned_data.get('include_magazine_pouch') and not magazine_pouch_quantity:
-            cleaned_data['magazine_pouch_quantity'] = _lq('mag_pouch_qty')
-            magazine_pouch_quantity = _lq('mag_pouch_qty')
+            _qty = _lq('mag_pouch_qty')
+            if _qty > 0:
+                cleaned_data['magazine_pouch_quantity'] = _qty
+                magazine_pouch_quantity = _qty
         if cleaned_data.get('include_rifle_sling') and not rifle_sling_quantity:
-            cleaned_data['rifle_sling_quantity'] = _lq('rifle_sling_qty')
-            rifle_sling_quantity = _lq('rifle_sling_qty')
+            _qty = _lq('rifle_sling_qty')
+            if _qty > 0:
+                cleaned_data['rifle_sling_quantity'] = _qty
+                rifle_sling_quantity = _qty
         if cleaned_data.get('include_bandoleer') and not bandoleer_quantity:
             cleaned_data['bandoleer_quantity'] = 1
             bandoleer_quantity = 1

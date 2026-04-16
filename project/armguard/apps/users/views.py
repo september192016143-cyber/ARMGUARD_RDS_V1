@@ -907,7 +907,7 @@ class SystemSettingsView(LoginRequiredMixin, View):
         }
         for field, default in _psi_fields.items():
             try:
-                setattr(obj, field, max(1, int(request.POST.get(field, default))))
+                setattr(obj, field, max(0, int(request.POST.get(field, default))))
             except (ValueError, TypeError):
                 setattr(obj, field, default)
 
