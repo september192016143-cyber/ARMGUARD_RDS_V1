@@ -311,12 +311,36 @@ def create_transaction(request):
     from armguard.apps.users.models import SystemSettings
     _s = SystemSettings.get()
     _purpose_config = json.dumps({
-        'Duty Sentinel': {'pistol': _s.purpose_duty_sentinel_show_pistol,  'rifle': _s.purpose_duty_sentinel_show_rifle},
-        'Duty Vigil':    {'pistol': _s.purpose_duty_vigil_show_pistol,     'rifle': _s.purpose_duty_vigil_show_rifle},
-        'Duty Security': {'pistol': _s.purpose_duty_security_show_pistol,  'rifle': _s.purpose_duty_security_show_rifle},
-        'Honor Guard':   {'pistol': _s.purpose_honor_guard_show_pistol,    'rifle': _s.purpose_honor_guard_show_rifle},
-        'Others':        {'pistol': _s.purpose_others_show_pistol,         'rifle': _s.purpose_others_show_rifle},
-        'OREX':          {'pistol': _s.purpose_orex_show_pistol,           'rifle': _s.purpose_orex_show_rifle},
+        'Duty Sentinel': {
+            'pistol': _s.purpose_duty_sentinel_show_pistol,  'rifle': _s.purpose_duty_sentinel_show_rifle,
+            'holster_qty': _s.duty_sentinel_holster_qty, 'mag_pouch_qty': _s.duty_sentinel_mag_pouch_qty,
+            'rifle_sling_qty': _s.duty_sentinel_rifle_sling_qty, 'bandoleer_qty': _s.duty_sentinel_bandoleer_qty,
+        },
+        'Duty Vigil': {
+            'pistol': _s.purpose_duty_vigil_show_pistol,     'rifle': _s.purpose_duty_vigil_show_rifle,
+            'holster_qty': _s.duty_vigil_holster_qty, 'mag_pouch_qty': _s.duty_vigil_mag_pouch_qty,
+            'rifle_sling_qty': _s.duty_vigil_rifle_sling_qty, 'bandoleer_qty': _s.duty_vigil_bandoleer_qty,
+        },
+        'Duty Security': {
+            'pistol': _s.purpose_duty_security_show_pistol,  'rifle': _s.purpose_duty_security_show_rifle,
+            'holster_qty': _s.duty_security_holster_qty, 'mag_pouch_qty': _s.duty_security_mag_pouch_qty,
+            'rifle_sling_qty': _s.duty_security_rifle_sling_qty, 'bandoleer_qty': _s.duty_security_bandoleer_qty,
+        },
+        'Honor Guard': {
+            'pistol': _s.purpose_honor_guard_show_pistol,    'rifle': _s.purpose_honor_guard_show_rifle,
+            'holster_qty': _s.honor_guard_holster_qty, 'mag_pouch_qty': _s.honor_guard_mag_pouch_qty,
+            'rifle_sling_qty': _s.honor_guard_rifle_sling_qty, 'bandoleer_qty': _s.honor_guard_bandoleer_qty,
+        },
+        'Others': {
+            'pistol': _s.purpose_others_show_pistol,         'rifle': _s.purpose_others_show_rifle,
+            'holster_qty': _s.others_holster_qty, 'mag_pouch_qty': _s.others_mag_pouch_qty,
+            'rifle_sling_qty': _s.others_rifle_sling_qty, 'bandoleer_qty': _s.others_bandoleer_qty,
+        },
+        'OREX': {
+            'pistol': _s.purpose_orex_show_pistol,           'rifle': _s.purpose_orex_show_rifle,
+            'holster_qty': _s.orex_holster_qty, 'mag_pouch_qty': _s.orex_mag_pouch_qty,
+            'rifle_sling_qty': _s.orex_rifle_sling_qty, 'bandoleer_qty': _s.orex_bandoleer_qty,
+        },
     })
     _txn_context = {
         'purpose_config':          _purpose_config,

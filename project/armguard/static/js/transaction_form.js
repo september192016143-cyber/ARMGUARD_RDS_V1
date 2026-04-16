@@ -67,6 +67,20 @@ function toggleWeaponSections() {
   var showPistol = pcfg.pistol !== false;
   var showRifle  = pcfg.rifle  !== false;
 
+  // Update accessory quantity hint labels from per-purpose settings config.
+  function _qtyText(n) {
+    if (n === undefined || n === null) return '';
+    return n === 1 ? ' \u2014 1 unit' : ' \u2014 ' + n + ' units';
+  }
+  var holsterQtyLabel   = document.getElementById('holster-qty-label');
+  var magpouchQtyLabel  = document.getElementById('magpouch-qty-label');
+  var rifleslingQtyLabel = document.getElementById('riflesling-qty-label');
+  var bandoleerQtyLabel  = document.getElementById('bandoleer-qty-label');
+  if (holsterQtyLabel   && pcfg.holster_qty    !== undefined) holsterQtyLabel.textContent   = _qtyText(pcfg.holster_qty);
+  if (magpouchQtyLabel  && pcfg.mag_pouch_qty  !== undefined) magpouchQtyLabel.textContent  = _qtyText(pcfg.mag_pouch_qty);
+  if (rifleslingQtyLabel && pcfg.rifle_sling_qty !== undefined) rifleslingQtyLabel.textContent = _qtyText(pcfg.rifle_sling_qty);
+  if (bandoleerQtyLabel  && pcfg.bandoleer_qty  !== undefined) bandoleerQtyLabel.textContent  = _qtyText(pcfg.bandoleer_qty);
+
   // Pistol column + related accessories
   var pistolCol  = document.getElementById('pistol-col');
   var holsterRow = document.getElementById('pistol-holster-row');
