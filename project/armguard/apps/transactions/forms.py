@@ -514,9 +514,12 @@ class TransactionAdminForm(forms.ModelForm):
             # FIX ISSUE 14: Validate magazine/ammo/accessory returns have a matching open log.
             # This mirrors the model-level validation in Transaction.clean() but runs at
             # form level so errors are shown cleanly in the admin UI before any DB write.
-            from .models import TransactionLogs
+            # NOTE: uses _TL alias (imported at the top of this block) — do NOT re-import
+            # TransactionLogs as a bare name here; that creates an UnboundLocalError on the
+            # module-level usage at line ~99 because Python treats bare-name imports as local
+            # for the entire function scope, even when the import is inside an if-branch.
             if pistol_magazine and personnel:
-                has_open = TransactionLogs.objects.filter(
+                has_open = _TL.objects.filter(
                     personnel_id=personnel,
                     withdraw_pistol_magazine=pistol_magazine,
                     return_pistol_magazine__isnull=True,
@@ -527,7 +530,7 @@ class TransactionAdminForm(forms.ModelForm):
                         f"personnel {personnel.Personnel_ID}."
                     )
             if rifle_magazine and personnel:
-                has_open = TransactionLogs.objects.filter(
+                has_open = _TL.objects.filter(
                     personnel_id=personnel,
                     withdraw_rifle_magazine=rifle_magazine,
                     return_rifle_magazine__isnull=True,
@@ -538,7 +541,7 @@ class TransactionAdminForm(forms.ModelForm):
                         f"personnel {personnel.Personnel_ID}."
                     )
             if pistol_ammunition and personnel:
-                has_open = TransactionLogs.objects.filter(
+                has_open = _TL.objects.filter(
                     personnel_id=personnel,
                     withdraw_pistol_ammunition=pistol_ammunition,
                     return_pistol_ammunition__isnull=True,
@@ -549,7 +552,7 @@ class TransactionAdminForm(forms.ModelForm):
                         f"personnel {personnel.Personnel_ID}."
                     )
             if rifle_ammunition and personnel:
-                has_open = TransactionLogs.objects.filter(
+                has_open = _TL.objects.filter(
                     personnel_id=personnel,
                     withdraw_rifle_ammunition=rifle_ammunition,
                     return_rifle_ammunition__isnull=True,
@@ -574,7 +577,7 @@ class TransactionAdminForm(forms.ModelForm):
                         f'{w_qty_field}__isnull': False,
                         f'{r_qty_field}__isnull': True,
                     }
-                    open_log = TransactionLogs.objects.filter(**filter_kw).order_by(f'-{ts_field}').first()
+                    open_log = _TL.objects.filter(**filter_kw).order_by(f'-{ts_field}').first()
                     if not open_log:
                         errors.append(
                             f"No open withdrawal record found for '{acc_label}' for "
