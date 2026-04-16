@@ -335,7 +335,7 @@
     <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Standard Loadout Auto-Fill — Duty Sentinel</div>
     <div class="form-hint" style="margin-bottom:.75rem">
       <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
-      Quantities auto-filled when a Duty Sentinel withdrawal is submitted with a Glock 17 9mm and the fields are left blank.
+      Quantities auto-filled when a Duty Sentinel withdrawal is submitted with the fields left blank.
     </div>
     <div class="form-row cols-2">
       <div class="form-group">
@@ -361,22 +361,268 @@
                value="{{ s.duty_sentinel_pistol_ammo_qty }}" min="1" max="9999" autocomplete="off">
       </div>
     </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_ds_rifle_sling">Rifle Slings</label>
+        <input type="number" id="id_ds_rifle_sling" name="duty_sentinel_rifle_sling_qty" class="form-control"
+               value="{{ s.duty_sentinel_rifle_sling_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_ds_rifle_mag">Rifle Magazines (qty)</label>
+        <input type="number" id="id_ds_rifle_mag" name="duty_sentinel_rifle_mag_qty" class="form-control"
+               value="{{ s.duty_sentinel_rifle_mag_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_ds_rifle_ammo">Rifle Ammunition (rounds)</label>
+        <input type="number" id="id_ds_rifle_ammo" name="duty_sentinel_rifle_ammo_qty" class="form-control"
+               value="{{ s.duty_sentinel_rifle_ammo_qty }}" min="1" max="9999" autocomplete="off">
+      </div>
+    </div>
+
+    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.75rem;margin-bottom:.5rem">Standard Loadout Auto-Fill — Duty Vigil</div>
+    <div class="form-hint" style="margin-bottom:.75rem">
+      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+      Quantities auto-filled when a Duty Vigil withdrawal is submitted with the fields left blank.
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_dv_holster">Pistol Holsters</label>
+        <input type="number" id="id_dv_holster" name="duty_vigil_holster_qty" class="form-control"
+               value="{{ s.duty_vigil_holster_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_dv_magpouch">Magazine Pouches</label>
+        <input type="number" id="id_dv_magpouch" name="duty_vigil_mag_pouch_qty" class="form-control"
+               value="{{ s.duty_vigil_mag_pouch_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_dv_pistol_mag">Pistol Magazines (qty)</label>
+        <input type="number" id="id_dv_pistol_mag" name="duty_vigil_pistol_mag_qty" class="form-control"
+               value="{{ s.duty_vigil_pistol_mag_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_dv_pistol_ammo">Pistol Ammunition (rounds)</label>
+        <input type="number" id="id_dv_pistol_ammo" name="duty_vigil_pistol_ammo_qty" class="form-control"
+               value="{{ s.duty_vigil_pistol_ammo_qty }}" min="1" max="9999" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_dv_rifle_sling">Rifle Slings</label>
+        <input type="number" id="id_dv_rifle_sling" name="duty_vigil_rifle_sling_qty" class="form-control"
+               value="{{ s.duty_vigil_rifle_sling_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_dv_rifle_mag">Rifle Magazines (qty)</label>
+        <input type="number" id="id_dv_rifle_mag" name="duty_vigil_rifle_mag_qty" class="form-control"
+               value="{{ s.duty_vigil_rifle_mag_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_dv_rifle_ammo">Rifle Ammunition (rounds)</label>
+        <input type="number" id="id_dv_rifle_ammo" name="duty_vigil_rifle_ammo_qty" class="form-control"
+               value="{{ s.duty_vigil_rifle_ammo_qty }}" min="1" max="9999" autocomplete="off">
+      </div>
+    </div>
 
     <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.75rem;margin-bottom:.5rem">Standard Loadout Auto-Fill — Duty Security</div>
     <div class="form-hint" style="margin-bottom:.75rem">
       <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
-      Quantities auto-filled when a Duty Security withdrawal is submitted with a Rifle and the fields are left blank.
+      Quantities auto-filled when a Duty Security withdrawal is submitted with the fields left blank.
     </div>
     <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_dsc_holster">Pistol Holsters</label>
+        <input type="number" id="id_dsc_holster" name="duty_security_holster_qty" class="form-control"
+               value="{{ s.duty_security_holster_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_dsc_magpouch">Magazine Pouches</label>
+        <input type="number" id="id_dsc_magpouch" name="duty_security_mag_pouch_qty" class="form-control"
+               value="{{ s.duty_security_mag_pouch_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_dsc_pistol_mag">Pistol Magazines (qty)</label>
+        <input type="number" id="id_dsc_pistol_mag" name="duty_security_pistol_mag_qty" class="form-control"
+               value="{{ s.duty_security_pistol_mag_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_dsc_pistol_ammo">Pistol Ammunition (rounds)</label>
+        <input type="number" id="id_dsc_pistol_ammo" name="duty_security_pistol_ammo_qty" class="form-control"
+               value="{{ s.duty_security_pistol_ammo_qty }}" min="1" max="9999" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_dsc_rifle_sling">Rifle Slings</label>
+        <input type="number" id="id_dsc_rifle_sling" name="duty_security_rifle_sling_qty" class="form-control"
+               value="{{ s.duty_security_rifle_sling_qty }}" min="1" max="9" autocomplete="off">
+      </div>
       <div class="form-group">
         <label class="form-label" for="id_dsc_rifle_mag">Rifle Magazines (qty)</label>
         <input type="number" id="id_dsc_rifle_mag" name="duty_security_rifle_mag_qty" class="form-control"
                value="{{ s.duty_security_rifle_mag_qty }}" min="1" max="99" autocomplete="off">
       </div>
+    </div>
+    <div class="form-row cols-2">
       <div class="form-group">
         <label class="form-label" for="id_dsc_rifle_ammo">Rifle Ammunition (rounds)</label>
         <input type="number" id="id_dsc_rifle_ammo" name="duty_security_rifle_ammo_qty" class="form-control"
                value="{{ s.duty_security_rifle_ammo_qty }}" min="1" max="9999" autocomplete="off">
+      </div>
+    </div>
+
+    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.75rem;margin-bottom:.5rem">Standard Loadout Auto-Fill — Honor Guard</div>
+    <div class="form-hint" style="margin-bottom:.75rem">
+      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+      Quantities auto-filled when an Honor Guard withdrawal is submitted with the fields left blank.
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_hg_holster">Pistol Holsters</label>
+        <input type="number" id="id_hg_holster" name="honor_guard_holster_qty" class="form-control"
+               value="{{ s.honor_guard_holster_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_hg_magpouch">Magazine Pouches</label>
+        <input type="number" id="id_hg_magpouch" name="honor_guard_mag_pouch_qty" class="form-control"
+               value="{{ s.honor_guard_mag_pouch_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_hg_pistol_mag">Pistol Magazines (qty)</label>
+        <input type="number" id="id_hg_pistol_mag" name="honor_guard_pistol_mag_qty" class="form-control"
+               value="{{ s.honor_guard_pistol_mag_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_hg_pistol_ammo">Pistol Ammunition (rounds)</label>
+        <input type="number" id="id_hg_pistol_ammo" name="honor_guard_pistol_ammo_qty" class="form-control"
+               value="{{ s.honor_guard_pistol_ammo_qty }}" min="1" max="9999" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_hg_rifle_sling">Rifle Slings</label>
+        <input type="number" id="id_hg_rifle_sling" name="honor_guard_rifle_sling_qty" class="form-control"
+               value="{{ s.honor_guard_rifle_sling_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_hg_rifle_mag">Rifle Magazines (qty)</label>
+        <input type="number" id="id_hg_rifle_mag" name="honor_guard_rifle_mag_qty" class="form-control"
+               value="{{ s.honor_guard_rifle_mag_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_hg_rifle_ammo">Rifle Ammunition (rounds)</label>
+        <input type="number" id="id_hg_rifle_ammo" name="honor_guard_rifle_ammo_qty" class="form-control"
+               value="{{ s.honor_guard_rifle_ammo_qty }}" min="1" max="9999" autocomplete="off">
+      </div>
+    </div>
+
+    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.75rem;margin-bottom:.5rem">Standard Loadout Auto-Fill — Others</div>
+    <div class="form-hint" style="margin-bottom:.75rem">
+      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+      Quantities auto-filled when an Others withdrawal is submitted with the fields left blank.
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_oth_holster">Pistol Holsters</label>
+        <input type="number" id="id_oth_holster" name="others_holster_qty" class="form-control"
+               value="{{ s.others_holster_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_oth_magpouch">Magazine Pouches</label>
+        <input type="number" id="id_oth_magpouch" name="others_mag_pouch_qty" class="form-control"
+               value="{{ s.others_mag_pouch_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_oth_pistol_mag">Pistol Magazines (qty)</label>
+        <input type="number" id="id_oth_pistol_mag" name="others_pistol_mag_qty" class="form-control"
+               value="{{ s.others_pistol_mag_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_oth_pistol_ammo">Pistol Ammunition (rounds)</label>
+        <input type="number" id="id_oth_pistol_ammo" name="others_pistol_ammo_qty" class="form-control"
+               value="{{ s.others_pistol_ammo_qty }}" min="1" max="9999" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_oth_rifle_sling">Rifle Slings</label>
+        <input type="number" id="id_oth_rifle_sling" name="others_rifle_sling_qty" class="form-control"
+               value="{{ s.others_rifle_sling_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_oth_rifle_mag">Rifle Magazines (qty)</label>
+        <input type="number" id="id_oth_rifle_mag" name="others_rifle_mag_qty" class="form-control"
+               value="{{ s.others_rifle_mag_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_oth_rifle_ammo">Rifle Ammunition (rounds)</label>
+        <input type="number" id="id_oth_rifle_ammo" name="others_rifle_ammo_qty" class="form-control"
+               value="{{ s.others_rifle_ammo_qty }}" min="1" max="9999" autocomplete="off">
+      </div>
+    </div>
+
+    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.75rem;margin-bottom:.5rem">Standard Loadout Auto-Fill — OREX</div>
+    <div class="form-hint" style="margin-bottom:.75rem">
+      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
+      Quantities auto-filled when an OREX withdrawal is submitted with the fields left blank.
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_orex_holster">Pistol Holsters</label>
+        <input type="number" id="id_orex_holster" name="orex_holster_qty" class="form-control"
+               value="{{ s.orex_holster_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_orex_magpouch">Magazine Pouches</label>
+        <input type="number" id="id_orex_magpouch" name="orex_mag_pouch_qty" class="form-control"
+               value="{{ s.orex_mag_pouch_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_orex_pistol_mag">Pistol Magazines (qty)</label>
+        <input type="number" id="id_orex_pistol_mag" name="orex_pistol_mag_qty" class="form-control"
+               value="{{ s.orex_pistol_mag_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_orex_pistol_ammo">Pistol Ammunition (rounds)</label>
+        <input type="number" id="id_orex_pistol_ammo" name="orex_pistol_ammo_qty" class="form-control"
+               value="{{ s.orex_pistol_ammo_qty }}" min="1" max="9999" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_orex_rifle_sling">Rifle Slings</label>
+        <input type="number" id="id_orex_rifle_sling" name="orex_rifle_sling_qty" class="form-control"
+               value="{{ s.orex_rifle_sling_qty }}" min="1" max="9" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="id_orex_rifle_mag">Rifle Magazines (qty)</label>
+        <input type="number" id="id_orex_rifle_mag" name="orex_rifle_mag_qty" class="form-control"
+               value="{{ s.orex_rifle_mag_qty }}" min="1" max="99" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="form-group">
+        <label class="form-label" for="id_orex_rifle_ammo">Rifle Ammunition (rounds)</label>
+        <input type="number" id="id_orex_rifle_ammo" name="orex_rifle_ammo_qty" class="form-control"
+               value="{{ s.orex_rifle_ammo_qty }}" min="1" max="9999" autocomplete="off">
       </div>
     </div>
 

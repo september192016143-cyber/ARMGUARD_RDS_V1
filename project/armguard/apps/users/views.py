@@ -849,14 +849,57 @@ class SystemSettingsView(LoginRequiredMixin, View):
         ]:
             setattr(obj, field, field in request.POST)
 
-        # ── Duty Sentinel loadout defaults ────────────────────────────────────
+        # ── Per-purpose loadout defaults + accessory max quantities ──────────
         _psi_fields = {
+            # Duty Sentinel
             'duty_sentinel_holster_qty':     1,
             'duty_sentinel_mag_pouch_qty':   3,
             'duty_sentinel_pistol_mag_qty':  4,
             'duty_sentinel_pistol_ammo_qty': 42,
+            'duty_sentinel_rifle_sling_qty': 1,
+            'duty_sentinel_rifle_mag_qty':   7,
+            'duty_sentinel_rifle_ammo_qty':  210,
+            # Duty Vigil
+            'duty_vigil_holster_qty':        1,
+            'duty_vigil_mag_pouch_qty':      1,
+            'duty_vigil_pistol_mag_qty':     2,
+            'duty_vigil_pistol_ammo_qty':    21,
+            'duty_vigil_rifle_sling_qty':    1,
+            'duty_vigil_rifle_mag_qty':      7,
+            'duty_vigil_rifle_ammo_qty':     210,
+            # Duty Security
+            'duty_security_holster_qty':     1,
+            'duty_security_mag_pouch_qty':   1,
+            'duty_security_pistol_mag_qty':  2,
+            'duty_security_pistol_ammo_qty': 21,
+            'duty_security_rifle_sling_qty': 1,
             'duty_security_rifle_mag_qty':   7,
             'duty_security_rifle_ammo_qty':  210,
+            # Honor Guard
+            'honor_guard_holster_qty':       1,
+            'honor_guard_mag_pouch_qty':     1,
+            'honor_guard_pistol_mag_qty':    2,
+            'honor_guard_pistol_ammo_qty':   21,
+            'honor_guard_rifle_sling_qty':   1,
+            'honor_guard_rifle_mag_qty':     7,
+            'honor_guard_rifle_ammo_qty':    210,
+            # Others
+            'others_holster_qty':            1,
+            'others_mag_pouch_qty':          1,
+            'others_pistol_mag_qty':         4,
+            'others_pistol_ammo_qty':        42,
+            'others_rifle_sling_qty':        1,
+            'others_rifle_mag_qty':          7,
+            'others_rifle_ammo_qty':         210,
+            # OREX
+            'orex_holster_qty':              1,
+            'orex_mag_pouch_qty':            1,
+            'orex_pistol_mag_qty':           4,
+            'orex_pistol_ammo_qty':          42,
+            'orex_rifle_sling_qty':          1,
+            'orex_rifle_mag_qty':            7,
+            'orex_rifle_ammo_qty':           210,
+            # Accessory max quantities
             'max_pistol_holster_qty':        1,
             'max_magazine_pouch_qty':        3,
             'max_rifle_sling_qty':           1,
