@@ -82,15 +82,19 @@ function updateRifleMagQtyHint(pcfg) {
     }
   }
 
-  // Auto-fill rifle magazine qty input when a magazine type is selected.
+  // Auto-fill rifle magazine qty input based on selected type, or default to short qty.
   var rmq = document.querySelector('[name="rifle_magazine_quantity"]');
   if (rmq) {
     if (isLong && longQty !== undefined) {
       rmq.value = longQty;
     } else if (isShort && shortQty !== undefined) {
       rmq.value = shortQty;
+    } else if (shortQty !== undefined) {
+      // No magazine type selected yet — pre-fill with short qty as default.
+      rmq.value = shortQty;
+    } else if (longQty !== undefined) {
+      rmq.value = longQty;
     }
-    // If no magazine selected, leave the field as-is (don't overwrite a manual entry).
   }
 }
 
