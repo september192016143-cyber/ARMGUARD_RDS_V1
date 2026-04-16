@@ -100,6 +100,17 @@
   }
 
   window.onafterprint = function () {
-    setTimeout(function () { window.close(); }, 1000);
+    var nextUrl = container && container.getAttribute('data-next-url');
+    setTimeout(function () {
+      if (nextUrl) {
+        window.location.href = nextUrl;
+      } else {
+        // Try to close if this was opened as a popup; fall back to history back.
+        try { window.close(); } catch (e) {}
+        setTimeout(function () {
+          if (!window.closed) window.history.back();
+        }, 300);
+      }
+    }, 800);
   };
 })();

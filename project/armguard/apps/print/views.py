@@ -665,10 +665,12 @@ def print_transaction_pdf(request, transaction_id):
         messages.error(request, f'Transaction #{transaction_id} has no issuance type — cannot print a PDF form.')
         return redirect('transaction-detail', transaction_id=transaction_id)
 
-    pdf_url = reverse('print_handler:download_transaction_pdf', kwargs={'transaction_id': transaction_id})
+    pdf_url  = reverse('print_handler:download_transaction_pdf', kwargs={'transaction_id': transaction_id})
+    next_url = request.GET.get('next', '')
     return render(request, 'print/pdf_print.html', {
         'transaction': transaction,
-        'pdf_url': pdf_url,
+        'pdf_url':     pdf_url,
+        'next_url':    next_url,
     })
 
 

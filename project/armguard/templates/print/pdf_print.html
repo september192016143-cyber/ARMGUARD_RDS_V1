@@ -98,21 +98,22 @@
 <body>
     <!-- Print instructions overlay -->
     <div id="print-instructions">
-        <h3>⚠️ IMPORTANT Print Settings</h3>
+        <h3>🖨️ Print dialog opened automatically</h3>
         <ul>
-            <li><strong>Paper Size:</strong> Legal (8.5" × 14") - NOT A4!</li>
-            <li><strong>Quality:</strong> Fast / Standard</li>
+            <li><strong>Paper Size:</strong> Legal (8.5" × 14") — NOT A4!</li>
             <li><strong>Scaling:</strong> None / 100% / Actual size</li>
             <li><strong>Orientation:</strong> Portrait</li>
-            <li><strong>Headers and footers:</strong> Uncheck to remove URL &amp; date from printout</li>
+            <li><strong>Headers &amp; footers:</strong> Uncheck to hide URL &amp; date</li>
         </ul>
-        <p style="color: #d32f2f; font-weight: bold; margin-top: 10px;">⚠️ If using A4 paper, content will be cut off!</p>
+        <p style="color:#155724;font-weight:bold;margin-top:8px;">✔ Click <strong>Print</strong> above to complete.</p>
+        {% if next_url %}<p style="color:#6c757d;font-size:12px;margin-top:4px;">Page will return to New Transaction automatically after printing.</p>{% endif %}
     </div>
     
     <div id="pdfContainer"
          data-pdf-url="{{ pdf_url }}"
          data-pdfjs-url="{% static 'js/pdfjs/pdf.min.mjs' %}"
          data-pdfjs-worker="{% static 'js/pdfjs/pdf.worker.min.mjs' %}"
+         data-next-url="{{ next_url|default:''|escapejs }}"
          style="width:100%;"></div>
     
     <script src="{% static 'js/pdf_print.js' %}"></script>
