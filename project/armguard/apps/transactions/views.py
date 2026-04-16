@@ -359,7 +359,7 @@ def create_transaction(request):
             _form_ok = form.is_valid()
         except Exception as _exc:
             _logger.exception('create_transaction: unexpected exception during form validation: %s', _exc)
-            form.add_error(None, 'Form validation failed unexpectedly. Please try again.')
+            form.add_error(None, f'Form validation failed unexpectedly [{type(_exc).__name__}: {_exc}]. Please try again.')
             _form_ok = False
         if _form_ok:
             txn = form.save(commit=False)
@@ -480,10 +480,7 @@ def tr_preview(request):
         _form_valid = form.is_valid()
     except Exception as exc:
         _log.exception('TR preview: unexpected exception during form validation: %s', exc)
-        from django.conf import settings as _dj_settings
-        _err_msg = 'Form validation failed unexpectedly. Please try again.'
-        if _dj_settings.DEBUG:
-            _err_msg += f' [{type(exc).__name__}: {exc}]'
+        _err_msg = f'Form validation failed unexpectedly [{type(exc).__name__}: {exc}]. Please try again.'
         return JsonResponse(
             {'field_errors': {}, 'non_field_errors': [_err_msg]},
             status=400,

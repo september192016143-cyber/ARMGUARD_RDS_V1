@@ -662,6 +662,17 @@ class WithdrawalReturnTransactionForm(TransactionAdminForm):
             'notes': forms.Textarea(attrs={'rows': 3}),
         }
 
+    def _post_clean(self):
+        """Override to convert any unexpected model-level exception into a form error."""
+        try:
+            super()._post_clean()
+        except Exception as _exc:
+            import logging as _log_mod
+            _log_mod.getLogger(__name__).exception(
+                '_post_clean: unexpected exception during model validation: %s', _exc
+            )
+            self.add_error(None, f'Model validation error [{type(_exc).__name__}: {_exc}]. Please try again.')
+
     def clean(self):
         cleaned_data = super().clean()
         purpose = cleaned_data.get('purpose')
