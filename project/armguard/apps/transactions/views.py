@@ -456,13 +456,30 @@ def tr_preview(request):
     Validate the in-progress transaction form exactly as Submit does,
     then generate and return a filled TR PDF preview without saving.
     """
+    import logging
+    import datetime as _dt
     from types import SimpleNamespace
     from django.utils import timezone
     from armguard.apps.print.pdf_filler.form_filler import TransactionFormFiller
+    from armguard.apps.users.models import SystemSettings
 
-    # Run the exact same form validation as create_transaction/Submit
+    _log = logging.getLogger(__name__)
+
+    # ── Step 1: form validation ───────────────────────────────────────────────
+    # Wrap is_valid() separately so an unexpected exception inside _post_clean()
+    # (e.g. Transaction.clean() raising a non-ValidationError) still returns JSON
+    # instead of a raw HTML 500 page.
     form = WithdrawalReturnTransactionForm(request.POST, request.FILES)
-    if not form.is_valid():
+    try:
+        _form_valid = form.is_valid()
+    except Exception as exc:
+        _log.exception('TR preview: unexpected exception during form validation: %s', exc)
+        return JsonResponse(
+            {'field_errors': {}, 'non_field_errors': ['Form validation failed unexpectedly. Please try again.']},
+            status=400,
+        )
+
+    if not _form_valid:
         field_errors = {}
         non_field_errors = []
         for field, errs in form.errors.items():
@@ -474,63 +491,67 @@ def tr_preview(request):
                 non_field_errors.extend([f"{label}: {e}" for e in errs])
         return JsonResponse({'field_errors': field_errors, 'non_field_errors': non_field_errors}, status=400)
 
-    # Form is valid — extract the cleaned (possibly auto-filled) data
-    cd = form.cleaned_data
-    personnel = cd['personnel']
-    pistol     = cd.get('pistol')
-    rifle      = cd.get('rifle')
-
-    purpose = cd.get('purpose') or ''
-
-    # Try to find the armorer's Personnel record via the User OneToOne link
+    # ── Step 2: build mock_txn and generate PDF ───────────────────────────────
+    # Everything from cleaned-data extraction through PDF generation is inside
+    # one broad try so that any unexpected exception produces a clean JSON
+    # response rather than an HTML 500 page.
     try:
-        from armguard.apps.personnel.models import Personnel as PersonnelModel
-        armorer_personnel = PersonnelModel.objects.get(user=request.user)
-    except (PersonnelModel.DoesNotExist, AttributeError):
-        armorer_personnel = None
+        cd = form.cleaned_data
+        personnel = cd['personnel']
+        pistol     = cd.get('pistol')
+        rifle      = cd.get('rifle')
+        purpose    = cd.get('purpose') or ''
 
-    def _safe_int(val):
         try:
-            return int(val or 0)
-        except (TypeError, ValueError):
-            return 0
+            from armguard.apps.personnel.models import Personnel as PersonnelModel
+            armorer_personnel = PersonnelModel.objects.get(user=request.user)
+        except Exception:
+            armorer_personnel = None
 
-    mock_txn = SimpleNamespace(
-        transaction_id='PREVIEW',
-        transaction_type=cd.get('transaction_type', 'Withdrawal'),
-        issuance_type='TR (Temporary Receipt)',
-        personnel=personnel,
-        pistol=pistol,
-        rifle=rifle,
-        pistol_magazine_quantity=_safe_int(cd.get('pistol_magazine_quantity')),
-        rifle_magazine_quantity=_safe_int(cd.get('rifle_magazine_quantity')),
-        pistol_ammunition_quantity=_safe_int(cd.get('pistol_ammunition_quantity')),
-        rifle_ammunition_quantity=_safe_int(cd.get('rifle_ammunition_quantity')),
-        purpose=purpose,
-        timestamp=timezone.now(),
-        transaction_personnel=request.user.get_full_name() or request.user.username,
-        armorer_personnel=armorer_personnel,
-        pistol_holster_quantity=_safe_int(cd.get('pistol_holster_quantity')),
-        magazine_pouch_quantity=_safe_int(cd.get('magazine_pouch_quantity')),
-        rifle_sling_quantity=_safe_int(cd.get('rifle_sling_quantity')),
-        bandoleer_quantity=_safe_int(cd.get('bandoleer_quantity')),
-        notes=cd.get('notes', ''),
-        return_by=cd.get('return_by') or (timezone.now() + __import__('datetime').timedelta(
-            hours=(__import__('armguard.apps.users.models', fromlist=['SystemSettings'])
-                   .SystemSettings.get().tr_default_return_hours)
-        )),
-    )
+        def _safe_int(val):
+            try:
+                return int(val or 0)
+            except (TypeError, ValueError):
+                return 0
 
-    filler = TransactionFormFiller()
-    try:
+        try:
+            _default_hours = int(SystemSettings.get().tr_default_return_hours or 24)
+        except Exception:
+            _default_hours = 24
+        _default_return_by = timezone.now() + _dt.timedelta(hours=_default_hours)
+
+        mock_txn = SimpleNamespace(
+            transaction_id='PREVIEW',
+            transaction_type=cd.get('transaction_type', 'Withdrawal'),
+            issuance_type='TR (Temporary Receipt)',
+            personnel=personnel,
+            pistol=pistol,
+            rifle=rifle,
+            pistol_magazine_quantity=_safe_int(cd.get('pistol_magazine_quantity')),
+            rifle_magazine_quantity=_safe_int(cd.get('rifle_magazine_quantity')),
+            pistol_ammunition_quantity=_safe_int(cd.get('pistol_ammunition_quantity')),
+            rifle_ammunition_quantity=_safe_int(cd.get('rifle_ammunition_quantity')),
+            purpose=purpose,
+            timestamp=timezone.now(),
+            transaction_personnel=request.user.get_full_name() or request.user.username,
+            armorer_personnel=armorer_personnel,
+            pistol_holster_quantity=_safe_int(cd.get('pistol_holster_quantity')),
+            magazine_pouch_quantity=_safe_int(cd.get('magazine_pouch_quantity')),
+            rifle_sling_quantity=_safe_int(cd.get('rifle_sling_quantity')),
+            bandoleer_quantity=_safe_int(cd.get('bandoleer_quantity')),
+            notes=cd.get('notes', ''),
+            return_by=cd.get('return_by') or _default_return_by,
+        )
+
+        filler = TransactionFormFiller()
         pdf_bytes = filler.fill_transaction_form(mock_txn)
         pdf_data  = pdf_bytes.read()
+
     except Exception as exc:
-        import logging
-        logging.getLogger(__name__).exception('TR preview PDF generation failed: %s', exc)
+        _log.exception('TR preview: failed during PDF generation: %s', exc)
         return JsonResponse(
-            {'field_errors': {}, 'non_field_errors': ['PDF generation failed. Please try again.']},
-            status=500,
+            {'field_errors': {}, 'non_field_errors': ['Preview generation failed. Please try again.']},
+            status=400,
         )
 
     from utils.pdf_viewer import serve_pdf_bytes
