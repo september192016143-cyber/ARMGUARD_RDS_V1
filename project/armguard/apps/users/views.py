@@ -899,6 +899,12 @@ class SystemSettingsView(LoginRequiredMixin, View):
             'orex_rifle_sling_qty':          1,
             'orex_rifle_mag_qty':            7,
             'orex_rifle_ammo_qty':           210,
+            'duty_sentinel_bandoleer_qty':    0,
+            'duty_vigil_bandoleer_qty':       0,
+            'duty_security_bandoleer_qty':    0,
+            'honor_guard_bandoleer_qty':      0,
+            'others_bandoleer_qty':           0,
+            'orex_bandoleer_qty':             0,
             # Accessory max quantities
             'max_pistol_holster_qty':        1,
             'max_magazine_pouch_qty':        3,

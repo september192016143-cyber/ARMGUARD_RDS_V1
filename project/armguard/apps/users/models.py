@@ -387,6 +387,7 @@ class SystemSettings(models.Model):
     duty_sentinel_rifle_sling_qty = models.PositiveSmallIntegerField(default=1,   help_text='Rifle slings auto-issued per Duty Sentinel withdrawal.')
     duty_sentinel_rifle_mag_qty   = models.PositiveSmallIntegerField(default=7,   help_text='Rifle magazines auto-issued per Duty Sentinel withdrawal.')
     duty_sentinel_rifle_ammo_qty  = models.PositiveSmallIntegerField(default=210, help_text='Rifle ammunition rounds auto-issued per Duty Sentinel withdrawal.')
+    duty_sentinel_bandoleer_qty   = models.PositiveSmallIntegerField(default=0,   help_text='Bandoleers auto-issued per Duty Sentinel withdrawal.')
 
     # ── Standard loadout defaults — Duty Vigil ────────────────────────────────
     duty_vigil_holster_qty     = models.PositiveSmallIntegerField(default=1,   help_text='Pistol holsters auto-issued per Duty Vigil withdrawal.')
@@ -396,6 +397,7 @@ class SystemSettings(models.Model):
     duty_vigil_rifle_sling_qty = models.PositiveSmallIntegerField(default=1,   help_text='Rifle slings auto-issued per Duty Vigil withdrawal.')
     duty_vigil_rifle_mag_qty   = models.PositiveSmallIntegerField(default=7,   help_text='Rifle magazines auto-issued per Duty Vigil withdrawal.')
     duty_vigil_rifle_ammo_qty  = models.PositiveSmallIntegerField(default=210, help_text='Rifle ammunition rounds auto-issued per Duty Vigil withdrawal.')
+    duty_vigil_bandoleer_qty   = models.PositiveSmallIntegerField(default=0,   help_text='Bandoleers auto-issued per Duty Vigil withdrawal.')
 
     # ── Standard loadout defaults — Duty Security ─────────────────────────────
     duty_security_holster_qty     = models.PositiveSmallIntegerField(default=1,   help_text='Pistol holsters auto-issued per Duty Security withdrawal.')
@@ -405,6 +407,7 @@ class SystemSettings(models.Model):
     duty_security_rifle_sling_qty = models.PositiveSmallIntegerField(default=1,   help_text='Rifle slings auto-issued per Duty Security withdrawal.')
     duty_security_rifle_mag_qty   = models.PositiveSmallIntegerField(default=7,   help_text='Rifle magazines auto-issued per Duty Security withdrawal.')
     duty_security_rifle_ammo_qty  = models.PositiveSmallIntegerField(default=210, help_text='Rifle ammunition rounds auto-issued per Duty Security withdrawal.')
+    duty_security_bandoleer_qty   = models.PositiveSmallIntegerField(default=0,   help_text='Bandoleers auto-issued per Duty Security withdrawal.')
 
     # ── Standard loadout defaults — Honor Guard ───────────────────────────────
     honor_guard_holster_qty     = models.PositiveSmallIntegerField(default=1,   help_text='Pistol holsters auto-issued per Honor Guard withdrawal.')
@@ -414,6 +417,7 @@ class SystemSettings(models.Model):
     honor_guard_rifle_sling_qty = models.PositiveSmallIntegerField(default=1,   help_text='Rifle slings auto-issued per Honor Guard withdrawal.')
     honor_guard_rifle_mag_qty   = models.PositiveSmallIntegerField(default=7,   help_text='Rifle magazines auto-issued per Honor Guard withdrawal.')
     honor_guard_rifle_ammo_qty  = models.PositiveSmallIntegerField(default=210, help_text='Rifle ammunition rounds auto-issued per Honor Guard withdrawal.')
+    honor_guard_bandoleer_qty   = models.PositiveSmallIntegerField(default=0,   help_text='Bandoleers auto-issued per Honor Guard withdrawal.')
 
     # ── Standard loadout defaults — Others ────────────────────────────────────
     others_holster_qty     = models.PositiveSmallIntegerField(default=1,   help_text='Pistol holsters auto-issued per Others withdrawal.')
@@ -423,6 +427,7 @@ class SystemSettings(models.Model):
     others_rifle_sling_qty = models.PositiveSmallIntegerField(default=1,   help_text='Rifle slings auto-issued per Others withdrawal.')
     others_rifle_mag_qty   = models.PositiveSmallIntegerField(default=7,   help_text='Rifle magazines auto-issued per Others withdrawal.')
     others_rifle_ammo_qty  = models.PositiveSmallIntegerField(default=210, help_text='Rifle ammunition rounds auto-issued per Others withdrawal.')
+    others_bandoleer_qty   = models.PositiveSmallIntegerField(default=0,   help_text='Bandoleers auto-issued per Others withdrawal.')
 
     # ── Standard loadout defaults — OREX ─────────────────────────────────────
     orex_holster_qty     = models.PositiveSmallIntegerField(default=1,   help_text='Pistol holsters auto-issued per OREX withdrawal.')
@@ -432,6 +437,7 @@ class SystemSettings(models.Model):
     orex_rifle_sling_qty = models.PositiveSmallIntegerField(default=1,   help_text='Rifle slings auto-issued per OREX withdrawal.')
     orex_rifle_mag_qty   = models.PositiveSmallIntegerField(default=7,   help_text='Rifle magazines auto-issued per OREX withdrawal.')
     orex_rifle_ammo_qty  = models.PositiveSmallIntegerField(default=210, help_text='Rifle ammunition rounds auto-issued per OREX withdrawal.')
+    orex_bandoleer_qty   = models.PositiveSmallIntegerField(default=0,   help_text='Bandoleers auto-issued per OREX withdrawal.')
 
     # ── Accessory max quantities per single withdrawal ─────────────────────────
     max_pistol_holster_qty  = models.PositiveSmallIntegerField(

@@ -300,8 +300,10 @@ class TransactionAdminForm(forms.ModelForm):
                 cleaned_data['rifle_sling_quantity'] = _qty
                 rifle_sling_quantity = _qty
         if cleaned_data.get('include_bandoleer') and not bandoleer_quantity:
-            cleaned_data['bandoleer_quantity'] = 1
-            bandoleer_quantity = 1
+            _qty = _lq('bandoleer_qty')
+            if _qty > 0:
+                cleaned_data['bandoleer_quantity'] = _qty
+                bandoleer_quantity = _qty
         # ── END AUTO-FILL ─────────────────────────────────────────────────────────
 
         # At least one item must be present
