@@ -926,16 +926,50 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
           showQrToast('\u26A0 Pistol is not used for this purpose', false);
           matched = true;
         } else {
-          var _isReturnScan = (document.getElementById('tb_transaction_type') || {}).value === 'Return';
-          pistolSel.value = piOpt.value;
-          // On Withdrawal, selecting a pistol clears any rifle (one-weapon-per-transaction rule).
-          // On Return, both weapons can be returned together — do not clear the rifle.
-          if (rifleSel && !_isReturnScan) { rifleSel.value = ''; rifleSel.dispatchEvent(new Event('change')); }
-          pistolSel.dispatchEvent(new Event('change'));
-          var qrIEl = document.getElementById('fe_qr_item_id');
-          if (qrIEl) qrIEl.value = val;
-          showQrToast('\u2713 Pistol: ' + piOpt.text.trim(), true);
+          // Mark matched synchronously so the rifle block and "No match" fallback are skipped.
           matched = true;
+          var _piIsReturn = (document.getElementById('tb_transaction_type') || {}).value === 'Return';
+          var _piForm    = document.getElementById('txn-form');
+          var _piUrl     = _piForm ? _piForm.dataset.itemUrl : '';
+          var _piPSel    = document.querySelector('[name="personnel"]');
+          var _piPId     = _piPSel ? _piPSel.value : '';
+          // Validate BEFORE populating the field.
+          fetch(_piUrl + '?type=pistol&item_id=' + encodeURIComponent(piOpt.value), { credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+              if (d.error) { showQrToast('\u2717 Pistol: ' + d.error, false); return; }
+              var _piLabel = d.model + ' (' + d.serial_number + ')';
+              if (_piIsReturn) {
+                // Return: item must be Issued to the selected personnel.
+                if (!_piPId) {
+                  showQrToast('\u26A0 Select personnel first before scanning', false);
+                } else if (d.item_status === 'Issued' && String(d.issued_to) === String(_piPId)) {
+                  pistolSel.value = piOpt.value;
+                  pistolSel.dispatchEvent(new Event('change'));
+                  var _piQr = document.getElementById('fe_qr_item_id');
+                  if (_piQr) _piQr.value = val;
+                  showQrToast('\u2713 Pistol: ' + _piLabel, true);
+                } else if (d.item_status === 'Issued') {
+                  showQrToast('\u2717 Pistol: Issued to a different personnel \u2014 cannot return', false);
+                } else {
+                  showQrToast('\u2717 Pistol: Not currently issued \u2014 cannot return', false);
+                }
+              } else {
+                // Withdrawal: item must be available.
+                if (d.available) {
+                  pistolSel.value = piOpt.value;
+                  // Mutual exclusion on Withdrawal — one weapon per transaction.
+                  if (rifleSel) { rifleSel.value = ''; rifleSel.dispatchEvent(new Event('change')); }
+                  pistolSel.dispatchEvent(new Event('change'));
+                  var _piQr2 = document.getElementById('fe_qr_item_id');
+                  if (_piQr2) _piQr2.value = val;
+                  showQrToast('\u2713 Pistol: ' + _piLabel, true);
+                } else {
+                  showQrToast('\u2717 Pistol: ' + (d.reason || 'Not available \u2014 cannot withdraw'), false);
+                }
+              }
+            })
+            .catch(function() { showQrToast('\u2717 Pistol: Could not validate item', false); });
         }
       }
     }
@@ -950,16 +984,50 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
           showQrToast('\u26A0 Rifle is not used for this purpose', false);
           matched = true;
         } else {
-          var _isReturnScan2 = (document.getElementById('tb_transaction_type') || {}).value === 'Return';
-          rifleSel.value = riOpt.value;
-          // On Withdrawal, selecting a rifle clears any pistol (one-weapon-per-transaction rule).
-          // On Return, both weapons can be returned together — do not clear the pistol.
-          if (pistolSel && !_isReturnScan2) { pistolSel.value = ''; pistolSel.dispatchEvent(new Event('change')); }
-          rifleSel.dispatchEvent(new Event('change'));
-          var qrIEl2 = document.getElementById('fe_qr_item_id');
-          if (qrIEl2) qrIEl2.value = val;
-          showQrToast('\u2713 Rifle: ' + riOpt.text.trim(), true);
+          // Mark matched synchronously so the "No match" fallback is skipped.
           matched = true;
+          var _riIsReturn = (document.getElementById('tb_transaction_type') || {}).value === 'Return';
+          var _riForm    = document.getElementById('txn-form');
+          var _riUrl     = _riForm ? _riForm.dataset.itemUrl : '';
+          var _riPSel    = document.querySelector('[name="personnel"]');
+          var _riPId     = _riPSel ? _riPSel.value : '';
+          // Validate BEFORE populating the field.
+          fetch(_riUrl + '?type=rifle&item_id=' + encodeURIComponent(riOpt.value), { credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+              if (d.error) { showQrToast('\u2717 Rifle: ' + d.error, false); return; }
+              var _riLabel = d.model + ' (' + d.serial_number + ')';
+              if (_riIsReturn) {
+                // Return: item must be Issued to the selected personnel.
+                if (!_riPId) {
+                  showQrToast('\u26A0 Select personnel first before scanning', false);
+                } else if (d.item_status === 'Issued' && String(d.issued_to) === String(_riPId)) {
+                  rifleSel.value = riOpt.value;
+                  rifleSel.dispatchEvent(new Event('change'));
+                  var _riQr = document.getElementById('fe_qr_item_id');
+                  if (_riQr) _riQr.value = val;
+                  showQrToast('\u2713 Rifle: ' + _riLabel, true);
+                } else if (d.item_status === 'Issued') {
+                  showQrToast('\u2717 Rifle: Issued to a different personnel \u2014 cannot return', false);
+                } else {
+                  showQrToast('\u2717 Rifle: Not currently issued \u2014 cannot return', false);
+                }
+              } else {
+                // Withdrawal: item must be available.
+                if (d.available) {
+                  rifleSel.value = riOpt.value;
+                  // Mutual exclusion on Withdrawal — one weapon per transaction.
+                  if (pistolSel) { pistolSel.value = ''; pistolSel.dispatchEvent(new Event('change')); }
+                  rifleSel.dispatchEvent(new Event('change'));
+                  var _riQr2 = document.getElementById('fe_qr_item_id');
+                  if (_riQr2) _riQr2.value = val;
+                  showQrToast('\u2713 Rifle: ' + _riLabel, true);
+                } else {
+                  showQrToast('\u2717 Rifle: ' + (d.reason || 'Not available \u2014 cannot withdraw'), false);
+                }
+              }
+            })
+            .catch(function() { showQrToast('\u2717 Rifle: Could not validate item', false); });
         }
       }
     }
