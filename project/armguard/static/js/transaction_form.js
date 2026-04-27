@@ -236,6 +236,10 @@ function toggleReturnMode() {
     var bd = document.querySelector('[name="include_bandoleer"]');
     if (bd) bd.checked = false;
   }
+  // Re-evaluate weapon column visibility whenever the transaction type changes.
+  // Without this, switching to Return after selecting a purpose that hides Rifle
+  // leaves the rifle column hidden even though Returns always show both columns.
+  toggleWeaponSections();
 }
 
 // ── PDF.js render helper (shared by openTrPreview) ────────────────────────────────────
