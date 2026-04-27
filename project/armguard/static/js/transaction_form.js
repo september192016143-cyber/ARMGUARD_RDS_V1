@@ -520,14 +520,16 @@ function checkPersonnel(val) {
     .then(function (d) {
       if (d.error) { setBanner('personnel-status-banner', 'err', escHtml(d.error)); return; }
       var txnType = document.getElementById('tb_transaction_type');
-      // Show personnel status in the banner without changing the transaction type.
-      // The operator controls Withdrawal vs Return via the dropdown.
+      // Use the actual transaction type the operator selected — not a computed guess.
+      // Previously the code derived type from hasIssuedItems, which caused the
+      // Withdrawal-branch ("allowed to withdraw") to show on a Return form whenever
+      // a personnel had no items issued.
+      var isReturnMode = txnType && txnType.value === 'Return';
       var hasIssuedItems = !!(d.pistol_issued || d.rifle_issued || d.pistol_mag_issued
         || d.rifle_mag_issued || d.pistol_ammo_issued || d.rifle_ammo_issued
         || d.holster_issued || d.mag_pouch_issued || d.rifle_sling_issued || d.bandoleer_issued);
-      var type = hasIssuedItems ? 'Return' : 'Withdrawal';
       var lines = [];
-      if (type === 'Withdrawal') {
+      if (!isReturnMode) {
         // F2 FIX: d.pistol_issued / d.rifle_issued are escaped before concatenation.
         if (d.pistol_issued)  lines.push('<b style="color:#ef4444">Pistol already issued:</b> ' + escHtml(d.pistol_issued) + ' \u2014 cannot withdraw another');
         else                  lines.push('<b style="color:#22c55e">No pistol currently issued</b> \u2014 allowed to withdraw');
