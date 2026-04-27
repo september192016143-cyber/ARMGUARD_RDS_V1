@@ -926,8 +926,11 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
           showQrToast('\u26A0 Pistol is not used for this purpose', false);
           matched = true;
         } else {
+          var _isReturnScan = (document.getElementById('tb_transaction_type') || {}).value === 'Return';
           pistolSel.value = piOpt.value;
-          if (rifleSel) { rifleSel.value = ''; rifleSel.dispatchEvent(new Event('change')); }
+          // On Withdrawal, selecting a pistol clears any rifle (one-weapon-per-transaction rule).
+          // On Return, both weapons can be returned together — do not clear the rifle.
+          if (rifleSel && !_isReturnScan) { rifleSel.value = ''; rifleSel.dispatchEvent(new Event('change')); }
           pistolSel.dispatchEvent(new Event('change'));
           var qrIEl = document.getElementById('fe_qr_item_id');
           if (qrIEl) qrIEl.value = val;
@@ -947,8 +950,11 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
           showQrToast('\u26A0 Rifle is not used for this purpose', false);
           matched = true;
         } else {
+          var _isReturnScan2 = (document.getElementById('tb_transaction_type') || {}).value === 'Return';
           rifleSel.value = riOpt.value;
-          if (pistolSel) { pistolSel.value = ''; pistolSel.dispatchEvent(new Event('change')); }
+          // On Withdrawal, selecting a rifle clears any pistol (one-weapon-per-transaction rule).
+          // On Return, both weapons can be returned together — do not clear the pistol.
+          if (pistolSel && !_isReturnScan2) { pistolSel.value = ''; pistolSel.dispatchEvent(new Event('change')); }
           rifleSel.dispatchEvent(new Event('change'));
           var qrIEl2 = document.getElementById('fe_qr_item_id');
           if (qrIEl2) qrIEl2.value = val;
