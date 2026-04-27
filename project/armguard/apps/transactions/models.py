@@ -7,6 +7,7 @@ from django.db import models
 from django.db import transaction as db_transaction
 from django.core.exceptions import ValidationError
 from django.apps import apps
+from django.utils import timezone
 # Import item and personnel models for transaction logic
 from armguard.apps.inventory.models import Pistol, Rifle, Magazine, Ammunition, Accessory
 from armguard.apps.personnel.models import Personnel
@@ -197,7 +198,6 @@ class Transaction(models.Model):
         """
         String representation showing type and timestamp in local timezone.
         """
-        from django.utils import timezone
         # Convert timestamp to local timezone (Asia/Manila)
         local_timestamp = timezone.localtime(self.timestamp)
         return f"{self.transaction_type} - {local_timestamp}"
@@ -555,7 +555,7 @@ class Transaction(models.Model):
                             f"personnel {self.personnel.Personnel_ID}. "
                             "Cannot return an item that has no matching withdrawal on record."
                         )
-                    withdrawn_qty = getattr(open_log, w_qty_field) or 1
+                    withdrawn_qty = getattr(open_log, w_qty_field) or 0
                     if acc_qty > withdrawn_qty:
                         raise ValidationError(
                             f"Return quantity ({acc_qty}) exceeds the originally withdrawn quantity "
@@ -586,8 +586,10 @@ class Transaction(models.Model):
         if username and not self.transaction_personnel:
             self.transaction_personnel = username
 
-        # Enforce business rules (model-level safety net for direct save() calls)
-        if not self.pk:
+        # Enforce business rules (safety net for direct save() calls not going through
+        # a form; form's _post_clean() sets _validated_from_form=True to skip this
+        # redundant run and avoid triple execution of the same DB validation queries).
+        if not self.pk and not getattr(self, '_validated_from_form', False):
             self.clean()
 
         # M6: Inherit issuance_type from the matching Withdrawal when not set
@@ -614,23 +616,29 @@ class Transaction(models.Model):
         TransactionLogs = apps.get_model('transactions', 'TransactionLogs')
 
         with db_transaction.atomic():
-            # L10: Row-level locks prevent double-issuance race under PostgreSQL
+            # L10: Row-level locks prevent double-issuance race under PostgreSQL.
+            # SQLite serialises all writers at the file level inside atomic(), so
+            # select_for_update() is skipped — it raises NotSupportedError on SQLite.
+            from django.db import connection as _conn
+            def _lock(qs):
+                return qs.select_for_update() if _conn.vendor != 'sqlite' else qs
+
             if self.personnel_id:
-                Personnel.objects.select_for_update().filter(pk=self.personnel_id).get()
+                _lock(Personnel.objects.filter(pk=self.personnel_id)).get()
             if self.pistol_id:
-                Pistol.objects.select_for_update().filter(pk=self.pistol_id).get()
+                _lock(Pistol.objects.filter(pk=self.pistol_id)).get()
             if self.rifle_id:
-                Rifle.objects.select_for_update().filter(pk=self.rifle_id).get()
+                _lock(Rifle.objects.filter(pk=self.rifle_id)).get()
             # L10-EXT: Lock consumable pool rows to prevent double-adjustment race
             # conditions on Magazine, Ammunition, and Accessory pools.
             if self.pistol_magazine_id:
-                Magazine.objects.select_for_update().filter(pk=self.pistol_magazine_id).get()
+                _lock(Magazine.objects.filter(pk=self.pistol_magazine_id)).get()
             if self.rifle_magazine_id and self.rifle_magazine_id != self.pistol_magazine_id:
-                Magazine.objects.select_for_update().filter(pk=self.rifle_magazine_id).get()
+                _lock(Magazine.objects.filter(pk=self.rifle_magazine_id)).get()
             if self.pistol_ammunition_id:
-                Ammunition.objects.select_for_update().filter(pk=self.pistol_ammunition_id).get()
+                _lock(Ammunition.objects.filter(pk=self.pistol_ammunition_id)).get()
             if self.rifle_ammunition_id and self.rifle_ammunition_id != self.pistol_ammunition_id:
-                Ammunition.objects.select_for_update().filter(pk=self.rifle_ammunition_id).get()
+                _lock(Ammunition.objects.filter(pk=self.rifle_ammunition_id)).get()
             for _acc_type, _acc_qty in [
                 ('Pistol Holster',        self.pistol_holster_quantity),
                 ('Pistol Magazine Pouch', self.magazine_pouch_quantity),
@@ -638,7 +646,7 @@ class Transaction(models.Model):
                 ('Bandoleer',             self.bandoleer_quantity),
             ]:
                 if _acc_qty:
-                    Accessory.objects.select_for_update().filter(type=_acc_type).first()
+                    _lock(Accessory.objects.filter(type=_acc_type)).first()
 
             super().save(*args, **kwargs)
 

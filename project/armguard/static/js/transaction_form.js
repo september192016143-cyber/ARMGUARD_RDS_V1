@@ -969,6 +969,22 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
     var now = Date.now();
     var gap = now - lastKey;
 
+    // Do not intercept when a text input or textarea is focused — the user is
+    // typing manually and their keystrokes must reach the focused element unchanged.
+    var _active = document.activeElement;
+    var _isTextFocus = _active && (
+      _active.tagName === 'TEXTAREA' ||
+      (_active.tagName === 'INPUT' &&
+        _active.type !== 'checkbox' && _active.type !== 'radio' &&
+        _active.type !== 'button'   && _active.type !== 'submit' &&
+        _active.type !== 'hidden')
+    );
+    if (_isTextFocus) {
+      buf = '';
+      scanning = false;
+      return;
+    }
+
     if (e.key === 'Enter') {
       if (scanning && buf.length >= MIN_LEN) {
         e.preventDefault();

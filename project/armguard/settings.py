@@ -1,3 +1,17 @@
+# =============================================================================
+# DEAD CODE — DO NOT USE
+# =============================================================================
+# This flat settings.py is NEVER loaded.  Django resolves `armguard.settings`
+# to the armguard/settings/ PACKAGE (directory), not this file.
+#
+# Active settings modules:
+#   - Development: armguard.settings.development  (default in manage.py)
+#   - Production:  armguard.settings.production   (set in wsgi.py)
+#   - Base:        armguard.settings.base          (shared by both)
+#
+# If accidentally set as DJANGO_SETTINGS_MODULE, this file will crash because
+# it lacks ADMIN_URL (defined only in base.py).
+# =============================================================================
 import os
 from pathlib import Path
 from dotenv import load_dotenv

@@ -654,9 +654,16 @@ class WithdrawalReturnTransactionForm(TransactionAdminForm):
         }
 
     def _post_clean(self):
-        """Override to convert any unexpected model-level exception into a form error."""
+        """Override to convert any unexpected model-level exception into a form error.
+
+        After successful validation, marks the instance with _validated_from_form=True
+        so Transaction.save() can skip its redundant self.clean() call and avoid
+        running the same DB validation queries three times per form submission.
+        """
         try:
             super()._post_clean()
+            # Signal save() that model.clean() was already run by the form layer.
+            self.instance._validated_from_form = True
         except Exception as _exc:
             import logging as _log_mod
             _log_mod.getLogger(__name__).exception(

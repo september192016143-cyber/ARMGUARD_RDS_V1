@@ -384,6 +384,25 @@ def create_transaction(request):
                 _disc_type = request.POST.get('discrepancy_type', '').strip()
                 _disc_desc = request.POST.get('discrepancy_description', '').strip()
                 if _disc_type and _disc_desc:
+                    # Validate images once before the loop; warn if any were rejected.
+                    _disc_uploads = [
+                        request.FILES.get('discrepancy_image'),
+                        request.FILES.get('discrepancy_image_2'),
+                        request.FILES.get('discrepancy_image_3'),
+                        request.FILES.get('discrepancy_image_4'),
+                        request.FILES.get('discrepancy_image_5'),
+                    ]
+                    _disc_validated = [_validate_discrepancy_image(f) for f in _disc_uploads]
+                    _rejected = sum(
+                        1 for orig, val in zip(_disc_uploads, _disc_validated)
+                        if orig is not None and val is None
+                    )
+                    if _rejected:
+                        messages.warning(
+                            request,
+                            f'{_rejected} discrepancy image(s) were rejected (invalid format or '
+                            'exceeded 5 MB limit). The discrepancy record was saved without those images.',
+                        )
                     # Create one record per firearm involved in this return.
                     _firearms = []
                     if txn.pistol_id:
@@ -392,11 +411,6 @@ def create_transaction(request):
                         _firearms.append({'pistol_id': None, 'rifle_id': txn.rifle_id})
                     for _fw in _firearms:
                         try:
-                            _disc_image   = _validate_discrepancy_image(request.FILES.get('discrepancy_image'))
-                            _disc_image_2 = _validate_discrepancy_image(request.FILES.get('discrepancy_image_2'))
-                            _disc_image_3 = _validate_discrepancy_image(request.FILES.get('discrepancy_image_3'))
-                            _disc_image_4 = _validate_discrepancy_image(request.FILES.get('discrepancy_image_4'))
-                            _disc_image_5 = _validate_discrepancy_image(request.FILES.get('discrepancy_image_5'))
                             FirearmDiscrepancy.objects.create(
                                 pistol_id=_fw['pistol_id'],
                                 rifle_id=_fw['rifle_id'],
@@ -404,11 +418,11 @@ def create_transaction(request):
                                 related_transaction=txn,
                                 discrepancy_type=_disc_type,
                                 description=_disc_desc,
-                                image=_disc_image,
-                                image_2=_disc_image_2,
-                                image_3=_disc_image_3,
-                                image_4=_disc_image_4,
-                                image_5=_disc_image_5,
+                                image=_disc_validated[0],
+                                image_2=_disc_validated[1],
+                                image_3=_disc_validated[2],
+                                image_4=_disc_validated[3],
+                                image_5=_disc_validated[4],
                                 status='Open',
                                 reported_by=request.user,
                             )
@@ -453,10 +467,6 @@ def create_transaction(request):
         form = WithdrawalReturnTransactionForm()
     return render(request, 'transactions/transaction_form.html', {**_txn_context, 'form': form})
 
-
-# Legacy stub kept for import compatibility
-def create_withdrawal_return_transaction(request):
-    return create_transaction(request)
 
 
 @login_required
@@ -533,7 +543,7 @@ def tr_preview(request):
         mock_txn = SimpleNamespace(
             transaction_id='PREVIEW',
             transaction_type=cd.get('transaction_type', 'Withdrawal'),
-            issuance_type='TR (Temporary Receipt)',
+            issuance_type=cd.get('issuance_type') or 'TR (Temporary Receipt)',
             personnel=personnel,
             pistol=pistol,
             rifle=rifle,
