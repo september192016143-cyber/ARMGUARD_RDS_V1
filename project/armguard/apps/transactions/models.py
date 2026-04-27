@@ -387,6 +387,7 @@ class Transaction(models.Model):
                     personnel_id=self.personnel,
                     withdraw_pistol=self.pistol,
                     return_pistol__isnull=True,
+                    log_status__in=['Open', 'Partially Returned'],
                 ).order_by('-withdraw_pistol_timestamp').first()
                 if _pistol_open_log:
                     _missing = []
@@ -426,6 +427,7 @@ class Transaction(models.Model):
                     personnel_id=self.personnel,
                     withdraw_rifle=self.rifle,
                     return_rifle__isnull=True,
+                    log_status__in=['Open', 'Partially Returned'],
                 ).order_by('-withdraw_rifle_timestamp').first()
                 if _rifle_open_log:
                     _missing = []

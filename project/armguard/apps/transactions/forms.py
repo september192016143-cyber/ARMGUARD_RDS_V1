@@ -182,6 +182,8 @@ class TransactionAdminForm(forms.ModelForm):
                     rifle_ammunition_quantity = _s.duty_security_rifle_ammo_qty
         # ── AUTO-ASSIGN: Pistol magazine pool whenever quantity is given ──────────
         # All 6 purposes are now independently configurable for auto-consumables.
+        # NOTE: all blocks below are Withdrawal-only; the transaction_type guard is
+        # applied individually so Returns never receive auto-filled FKs or quantities.
         _purpose_consumables_map = {
             'Duty Sentinel': _s.purpose_duty_sentinel_auto_consumables,
             'Duty Vigil':    _s.purpose_duty_vigil_auto_consumables,
@@ -206,7 +208,7 @@ class TransactionAdminForm(forms.ModelForm):
                 val = getattr(_s, f'{_pfx}_{field_suffix}', fallback)
                 return int(val) if val is not None else fallback
             return fallback
-        if not _no_auto_consumables and pistol_magazine_quantity and not pistol_magazine:
+        if transaction_type == 'Withdrawal' and not _no_auto_consumables and pistol_magazine_quantity and not pistol_magazine:
             from armguard.apps.inventory.models import Magazine
             mag_pool = Magazine.objects.filter(weapon_type='Pistol').first()
             if mag_pool:
@@ -215,9 +217,9 @@ class TransactionAdminForm(forms.ModelForm):
         # ── AUTO-ASSIGN: Rifle magazine pool when qty is given but no magazine selected ──
         # Covers the case where the JS pre-fills the quantity field before the user picks a
         # magazine from the dropdown — qty arrives but FK is still blank.
-        # No _no_auto_consumables guard: a qty-without-FK is a data-integrity issue regardless
-        # of the purpose auto-consumables setting, so always resolve it here.
-        if rifle_magazine_quantity and not rifle_magazine:
+        # Withdrawal-only: a Return operator must explicitly select the magazine FK so the
+        # open-log lookup in update_return_logs() matches the correct withdrawn record.
+        if transaction_type == 'Withdrawal' and rifle_magazine_quantity and not rifle_magazine:
             from armguard.apps.inventory.models import Magazine
             mag_pool = (Magazine.objects.filter(weapon_type='Rifle', type='Short').first()
                         or Magazine.objects.filter(weapon_type='Rifle').first())
@@ -225,7 +227,7 @@ class TransactionAdminForm(forms.ModelForm):
                 cleaned_data['rifle_magazine'] = mag_pool
                 rifle_magazine = mag_pool
         # ── AUTO-FILL: Pistol magazine quantity when blank ────────────────────────
-        if not _no_auto_consumables and pistol and not pistol_magazine_quantity and _lq('pistol_mag_qty') > 0:
+        if transaction_type == 'Withdrawal' and not _no_auto_consumables and pistol and not pistol_magazine_quantity and _lq('pistol_mag_qty') > 0:
             cleaned_data['pistol_magazine_quantity'] = _lq('pistol_mag_qty')
             pistol_magazine_quantity = _lq('pistol_mag_qty')
             if not pistol_magazine:
@@ -235,7 +237,7 @@ class TransactionAdminForm(forms.ModelForm):
                     cleaned_data['pistol_magazine'] = mag_pool
                     pistol_magazine = mag_pool
         # ── AUTO-FILL: Rifle magazine quantity when blank ─────────────────────────
-        if not _no_auto_consumables and rifle and not rifle_magazine_quantity:
+        if transaction_type == 'Withdrawal' and not _no_auto_consumables and rifle and not rifle_magazine_quantity:
             _rm_type = getattr(cleaned_data.get('rifle_magazine'), 'type', None)
             _rm_qty = _lq('rifle_long_mag_qty') if _rm_type == 'Long' else _lq('rifle_short_mag_qty')
             if _rm_qty > 0:
@@ -252,7 +254,7 @@ class TransactionAdminForm(forms.ModelForm):
                         rifle_magazine = mag_pool
         # ── AUTO-ASSIGN: Ammunition pool based on selected weapon model ──────────
         from armguard.apps.inventory.models import Ammunition, AMMO_WEAPON_COMPATIBILITY
-        if not _no_auto_consumables and pistol and not pistol_ammunition:
+        if transaction_type == 'Withdrawal' and not _no_auto_consumables and pistol and not pistol_ammunition:
             pistol_model = getattr(pistol, 'model', '')
             for ammo_type, weapons in AMMO_WEAPON_COMPATIBILITY.items():
                 if pistol_model in weapons:
@@ -261,7 +263,7 @@ class TransactionAdminForm(forms.ModelForm):
                         cleaned_data['pistol_ammunition'] = ammo_pool
                         pistol_ammunition = ammo_pool
                     break
-        if not _no_auto_consumables and rifle and not rifle_ammunition:
+        if transaction_type == 'Withdrawal' and not _no_auto_consumables and rifle and not rifle_ammunition:
             rifle_model = getattr(rifle, 'model', '')
             for ammo_type, weapons in AMMO_WEAPON_COMPATIBILITY.items():
                 if rifle_model in weapons:
@@ -271,10 +273,10 @@ class TransactionAdminForm(forms.ModelForm):
                         rifle_ammunition = ammo_pool
                     break
         # ── AUTO-FILL: Ammo quantities when blank ─────────────────────────────────
-        if not _no_auto_consumables and pistol and not pistol_ammunition_quantity and _lq('pistol_ammo_qty') > 0:
+        if transaction_type == 'Withdrawal' and not _no_auto_consumables and pistol and not pistol_ammunition_quantity and _lq('pistol_ammo_qty') > 0:
             cleaned_data['pistol_ammunition_quantity'] = _lq('pistol_ammo_qty')
             pistol_ammunition_quantity = _lq('pistol_ammo_qty')
-        if not _no_auto_consumables and rifle and not rifle_ammunition_quantity and _lq('rifle_ammo_qty') > 0:
+        if transaction_type == 'Withdrawal' and not _no_auto_consumables and rifle and not rifle_ammunition_quantity and _lq('rifle_ammo_qty') > 0:
             cleaned_data['rifle_ammunition_quantity'] = _lq('rifle_ammo_qty')
             rifle_ammunition_quantity = _lq('rifle_ammo_qty')
         # ── AUTO-ASSIGN: Accessories ──────────────────────────────────────────────
@@ -289,7 +291,7 @@ class TransactionAdminForm(forms.ModelForm):
             'OREX':          _s.purpose_orex_auto_accessories,
         }
         _auto_accessories = bool(_purpose_accessories_map.get(purpose_val, False))
-        if _auto_accessories:
+        if transaction_type == 'Withdrawal' and _auto_accessories:
             if pistol and not pistol_holster_quantity and _lq('holster_qty') > 0:
                 cleaned_data['include_pistol_holster'] = True
             if (pistol or rifle) and not magazine_pouch_quantity and _lq('mag_pouch_qty') > 0:
@@ -297,22 +299,23 @@ class TransactionAdminForm(forms.ModelForm):
             if rifle and not rifle_sling_quantity and _lq('rifle_sling_qty') > 0:
                 cleaned_data['include_rifle_sling'] = True
         # Apply standard quantities for all checked or auto-flagged accessories
-        if cleaned_data.get('include_pistol_holster') and not pistol_holster_quantity:
+        # (Withdrawal-only: on Returns the user explicitly states what they're returning)
+        if transaction_type == 'Withdrawal' and cleaned_data.get('include_pistol_holster') and not pistol_holster_quantity:
             _qty = _lq('holster_qty')
             if _qty > 0:
                 cleaned_data['pistol_holster_quantity'] = _qty
                 pistol_holster_quantity = _qty
-        if cleaned_data.get('include_magazine_pouch') and not magazine_pouch_quantity:
+        if transaction_type == 'Withdrawal' and cleaned_data.get('include_magazine_pouch') and not magazine_pouch_quantity:
             _qty = _lq('mag_pouch_qty')
             if _qty > 0:
                 cleaned_data['magazine_pouch_quantity'] = _qty
                 magazine_pouch_quantity = _qty
-        if cleaned_data.get('include_rifle_sling') and not rifle_sling_quantity:
+        if transaction_type == 'Withdrawal' and cleaned_data.get('include_rifle_sling') and not rifle_sling_quantity:
             _qty = _lq('rifle_sling_qty')
             if _qty > 0:
                 cleaned_data['rifle_sling_quantity'] = _qty
                 rifle_sling_quantity = _qty
-        if cleaned_data.get('include_bandoleer') and not bandoleer_quantity:
+        if transaction_type == 'Withdrawal' and cleaned_data.get('include_bandoleer') and not bandoleer_quantity:
             _qty = _lq('bandoleer_qty')
             if _qty > 0:
                 cleaned_data['bandoleer_quantity'] = _qty
@@ -434,6 +437,7 @@ class TransactionAdminForm(forms.ModelForm):
                     personnel_id=personnel,
                     withdraw_pistol=pistol,
                     return_pistol__isnull=True,
+                    log_status__in=['Open', 'Partially Returned'],
                 ).order_by('-withdraw_pistol_timestamp').first()
                 if _pistol_open_log:
                     _missing = []
@@ -470,6 +474,7 @@ class TransactionAdminForm(forms.ModelForm):
                     personnel_id=personnel,
                     withdraw_rifle=rifle,
                     return_rifle__isnull=True,
+                    log_status__in=['Open', 'Partially Returned'],
                 ).order_by('-withdraw_rifle_timestamp').first()
                 if _rifle_open_log:
                     _missing = []
@@ -507,48 +512,72 @@ class TransactionAdminForm(forms.ModelForm):
             # module-level usage at line ~99 because Python treats bare-name imports as local
             # for the entire function scope, even when the import is inside an if-branch.
             if pistol_magazine and personnel:
-                has_open = _TL.objects.filter(
+                open_log = _TL.objects.filter(
                     personnel_id=personnel,
                     withdraw_pistol_magazine=pistol_magazine,
                     return_pistol_magazine__isnull=True,
-                ).exists()
-                if not has_open:
+                ).order_by('-withdraw_pistol_magazine_timestamp').first()
+                if not open_log:
                     errors.append(
                         f"No open withdrawal record found for pistol magazine '{pistol_magazine}' for "
                         f"personnel {personnel.Personnel_ID}."
                     )
+                elif (pistol_magazine_quantity or 0) > (open_log.withdraw_pistol_magazine_quantity or 0):
+                    errors.append(
+                        f"Return quantity ({pistol_magazine_quantity}) exceeds the originally withdrawn "
+                        f"quantity ({open_log.withdraw_pistol_magazine_quantity}) for pistol magazine "
+                        f"'{pistol_magazine}'. You cannot return more than was issued."
+                    )
             if rifle_magazine and personnel:
-                has_open = _TL.objects.filter(
+                open_log = _TL.objects.filter(
                     personnel_id=personnel,
                     withdraw_rifle_magazine=rifle_magazine,
                     return_rifle_magazine__isnull=True,
-                ).exists()
-                if not has_open:
+                ).order_by('-withdraw_rifle_magazine_timestamp').first()
+                if not open_log:
                     errors.append(
                         f"No open withdrawal record found for rifle magazine '{rifle_magazine}' for "
                         f"personnel {personnel.Personnel_ID}."
                     )
+                elif (rifle_magazine_quantity or 0) > (open_log.withdraw_rifle_magazine_quantity or 0):
+                    errors.append(
+                        f"Return quantity ({rifle_magazine_quantity}) exceeds the originally withdrawn "
+                        f"quantity ({open_log.withdraw_rifle_magazine_quantity}) for rifle magazine "
+                        f"'{rifle_magazine}'. You cannot return more than was issued."
+                    )
             if pistol_ammunition and personnel:
-                has_open = _TL.objects.filter(
+                open_log = _TL.objects.filter(
                     personnel_id=personnel,
                     withdraw_pistol_ammunition=pistol_ammunition,
                     return_pistol_ammunition__isnull=True,
-                ).exists()
-                if not has_open:
+                ).order_by('-withdraw_pistol_ammunition_timestamp').first()
+                if not open_log:
                     errors.append(
                         f"No open withdrawal record found for pistol ammunition '{pistol_ammunition}' for "
                         f"personnel {personnel.Personnel_ID}."
                     )
+                elif (pistol_ammunition_quantity or 0) > (open_log.withdraw_pistol_ammunition_quantity or 0):
+                    errors.append(
+                        f"Return quantity ({pistol_ammunition_quantity}) exceeds the originally withdrawn "
+                        f"quantity ({open_log.withdraw_pistol_ammunition_quantity}) for pistol ammunition "
+                        f"'{pistol_ammunition}'. You cannot return more rounds than were issued."
+                    )
             if rifle_ammunition and personnel:
-                has_open = _TL.objects.filter(
+                open_log = _TL.objects.filter(
                     personnel_id=personnel,
                     withdraw_rifle_ammunition=rifle_ammunition,
                     return_rifle_ammunition__isnull=True,
-                ).exists()
-                if not has_open:
+                ).order_by('-withdraw_rifle_ammunition_timestamp').first()
+                if not open_log:
                     errors.append(
                         f"No open withdrawal record found for rifle ammunition '{rifle_ammunition}' for "
                         f"personnel {personnel.Personnel_ID}."
+                    )
+                elif (rifle_ammunition_quantity or 0) > (open_log.withdraw_rifle_ammunition_quantity or 0):
+                    errors.append(
+                        f"Return quantity ({rifle_ammunition_quantity}) exceeds the originally withdrawn "
+                        f"quantity ({open_log.withdraw_rifle_ammunition_quantity}) for rifle ammunition "
+                        f"'{rifle_ammunition}'. You cannot return more rounds than were issued."
                     )
             # Validate each accessory type return against open TransactionLogs using qty-based lookup
             # MINOR FIX: also compare return qty vs originally withdrawn qty (mirrors model-level check).
@@ -581,11 +610,14 @@ class TransactionAdminForm(forms.ModelForm):
                                 "You cannot return more accessories than were issued."
                             )
 
-        # PAR document required when issuance type is PAR
+        # PAR document required when issuance type is PAR — Withdrawal only.
+        # Returns inherit the issuance_type from the originating Withdrawal but do not
+        # need to re-upload the PAR document that was already filed at issuance.
         issuance_type_val = cleaned_data.get('issuance_type')
         par_document = cleaned_data.get('par_document')
         if (
-            issuance_type_val
+            transaction_type == 'Withdrawal'
+            and issuance_type_val
             and issuance_type_val.startswith('PAR')
             and not par_document
             and not (self.instance and self.instance.pk and self.instance.par_document)

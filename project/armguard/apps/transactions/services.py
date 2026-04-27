@@ -316,6 +316,13 @@ def _apply_return_fields(logs_to_save, obj, fields):
     combined log record are mutated together rather than fetched twice from DB.
     """
     if obj is None:
+        # No matching open log row found for this item.  Form validation should
+        # have blocked this, but log a warning so the omission is visible in the
+        # audit trail rather than silently ignored.
+        logger.warning(
+            'update_return_logs: no open log row found for fields %s — return item skipped.',
+            list(fields.keys()),
+        )
         return
     existing = logs_to_save.get(obj.record_id, obj)
     for attr, val in fields.items():
@@ -330,12 +337,17 @@ def update_return_logs(transaction, username, user, TransactionLogs):
     All mutations accumulate in logs_to_save (keyed by record_id) so a combined
     pistol+rifle log row is updated cohesively by both item queries.
     """
+    # SQLite does not support SELECT FOR UPDATE — mirror the guard in Transaction.save().
+    from django.db import connection as _conn
+    def _lock(qs):
+        return qs.select_for_update() if _conn.vendor != 'sqlite' else qs
+
     txn = transaction
     ts = txn.timestamp
     logs_to_save = {}  # record_id → TransactionLogs instance
 
     if txn.pistol:
-        obj = TransactionLogs.objects.select_for_update().filter(
+        obj = _lock(TransactionLogs.objects).filter(
             personnel_id=txn.personnel, withdraw_pistol=txn.pistol,
             return_pistol__isnull=True,
         ).order_by('-withdraw_pistol_timestamp').first()
@@ -347,7 +359,7 @@ def update_return_logs(transaction, username, user, TransactionLogs):
         })
 
     if txn.rifle:
-        obj = TransactionLogs.objects.select_for_update().filter(
+        obj = _lock(TransactionLogs.objects).filter(
             personnel_id=txn.personnel, withdraw_rifle=txn.rifle,
             return_rifle__isnull=True,
         ).order_by('-withdraw_rifle_timestamp').first()
@@ -359,7 +371,7 @@ def update_return_logs(transaction, username, user, TransactionLogs):
         })
 
     if txn.pistol_magazine:
-        obj = TransactionLogs.objects.select_for_update().filter(
+        obj = _lock(TransactionLogs.objects).filter(
             personnel_id=txn.personnel, withdraw_pistol_magazine=txn.pistol_magazine,
             return_pistol_magazine__isnull=True,
         ).order_by('-withdraw_pistol_magazine_timestamp').first()
@@ -372,7 +384,7 @@ def update_return_logs(transaction, username, user, TransactionLogs):
         })
 
     if txn.rifle_magazine:
-        obj = TransactionLogs.objects.select_for_update().filter(
+        obj = _lock(TransactionLogs.objects).filter(
             personnel_id=txn.personnel, withdraw_rifle_magazine=txn.rifle_magazine,
             return_rifle_magazine__isnull=True,
         ).order_by('-withdraw_rifle_magazine_timestamp').first()
@@ -385,7 +397,7 @@ def update_return_logs(transaction, username, user, TransactionLogs):
         })
 
     if txn.pistol_ammunition:
-        obj = TransactionLogs.objects.select_for_update().filter(
+        obj = _lock(TransactionLogs.objects).filter(
             personnel_id=txn.personnel, withdraw_pistol_ammunition=txn.pistol_ammunition,
             return_pistol_ammunition__isnull=True,
         ).order_by('-withdraw_pistol_ammunition_timestamp').first()
@@ -398,7 +410,7 @@ def update_return_logs(transaction, username, user, TransactionLogs):
         })
 
     if txn.rifle_ammunition:
-        obj = TransactionLogs.objects.select_for_update().filter(
+        obj = _lock(TransactionLogs.objects).filter(
             personnel_id=txn.personnel, withdraw_rifle_ammunition=txn.rifle_ammunition,
             return_rifle_ammunition__isnull=True,
         ).order_by('-withdraw_rifle_ammunition_timestamp').first()
@@ -423,7 +435,7 @@ def update_return_logs(transaction, username, user, TransactionLogs):
     ]:
         if not acc_qty:
             continue
-        obj = TransactionLogs.objects.select_for_update().filter(**{
+        obj = _lock(TransactionLogs.objects).filter(**{
             'personnel_id': txn.personnel,
             f'{w_qty_field}__isnull': False,
             f'{r_field}_quantity__isnull': True,
