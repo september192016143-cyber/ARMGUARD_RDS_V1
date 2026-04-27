@@ -62,7 +62,7 @@ class TransactionAdminForm(forms.ModelForm):
                     cleaned_data['rifle'] = rifle
                     cleaned_data['pistol'] = None
                 except Rifle.DoesNotExist:
-                    pass
+                    self.add_error('qr_item_id', f'No item found matching scanned ID "{qr_item_id}".')
         qr_personnel_id = cleaned_data.get('qr_personnel_id')
         if qr_personnel_id:
             try:
@@ -90,18 +90,6 @@ class TransactionAdminForm(forms.ModelForm):
         rifle_ammunition = cleaned_data.get('rifle_ammunition')
         rifle_ammunition_quantity = cleaned_data.get('rifle_ammunition_quantity')
         personnel = cleaned_data.get('personnel')
-
-        # ── AUTO-DETERMINE transaction_type from personnel's open withdrawal state ─
-        # The value submitted from the UI dropdown is ignored entirely; the type is
-        # derived from whether the personnel has any open TransactionLogs so operators
-        # never have to manually select "Return" — the system detects it automatically.
-        if personnel:
-            _has_open = TransactionLogs.objects.filter(
-                personnel_id=personnel,
-                log_status__in=['Open', 'Partially Returned'],
-            ).exists()
-            transaction_type = 'Return' if _has_open else 'Withdrawal'
-            cleaned_data['transaction_type'] = transaction_type
 
         # ── AUTO-FILL: Duty Sentinel + Glock 17 9mm ──────────────────────────────
         # When a Withdrawal is being processed for a Glock 17 9mm under Duty Sentinel,

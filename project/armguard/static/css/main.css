@@ -530,3 +530,5 @@ body.sidebar-collapsed .theme-label-day,body.sidebar-collapsed .theme-label-nigh
 .ssl-modal-cancel:hover{border-color:var(--text);color:var(--text)}
 .ssl-modal-download-btn{display:inline-flex;align-items:center;background:var(--primary);color:#000;font-weight:700;font-size:.83rem;padding:.45rem 1.1rem;border-radius:.4rem;text-decoration:none;transition:background .15s}
 .ssl-modal-download-btn:hover{background:var(--primary-d)}
+/* Transaction form: notes textarea text color */
+#id_notes{color:#ffffff}

@@ -516,17 +516,12 @@ function checkPersonnel(val) {
     .then(function (d) {
       if (d.error) { setBanner('personnel-status-banner', 'err', escHtml(d.error)); return; }
       var txnType = document.getElementById('tb_transaction_type');
-      // Auto-determine transaction type from the personnel's current issuance state.
-      // If any item is currently issued, this must be a Return; otherwise Withdrawal.
+      // Show personnel status in the banner without changing the transaction type.
+      // The operator controls Withdrawal vs Return via the dropdown.
       var hasIssuedItems = !!(d.pistol_issued || d.rifle_issued || d.pistol_mag_issued
         || d.rifle_mag_issued || d.pistol_ammo_issued || d.rifle_ammo_issued
         || d.holster_issued || d.mag_pouch_issued || d.rifle_sling_issued || d.bandoleer_issued);
-      var autoType = hasIssuedItems ? 'Return' : 'Withdrawal';
-      if (txnType && txnType.value !== autoType) {
-        txnType.value = autoType;
-        txnType.dispatchEvent(new Event('change'));
-      }
-      var type = autoType;
+      var type = hasIssuedItems ? 'Return' : 'Withdrawal';
       var lines = [];
       if (type === 'Withdrawal') {
         // F2 FIX: d.pistol_issued / d.rifle_issued are escaped before concatenation.

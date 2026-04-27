@@ -442,10 +442,12 @@ def create_transaction(request):
                     and txn.issuance_type
                     and 'TR' in txn.issuance_type):
                 from django.urls import reverse
-                return redirect(
-                    reverse('transaction-create')
-                    + '?print_tx=' + str(txn.transaction_id)
+                _print_url = (
+                    reverse('print_handler:print_transaction_pdf',
+                            kwargs={'transaction_id': txn.transaction_id})
+                    + '?next=/transactions/new/'
                 )
+                return redirect(_print_url)
             return redirect('transaction-detail', transaction_id=txn.transaction_id)
     else:
         form = WithdrawalReturnTransactionForm()
@@ -711,6 +713,7 @@ def item_status_check(request):
 
 @login_required
 @require_GET
+@ratelimit(rate='60/m')
 def overdue_tr_check(request):
     """
     Returns open/partially-returned TR logs grouped into two tiers:

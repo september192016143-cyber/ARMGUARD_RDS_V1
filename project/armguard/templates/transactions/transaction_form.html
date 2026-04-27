@@ -142,7 +142,7 @@
                 {{ form.pistol_ammunition_quantity }}
                 {% if form.pistol_ammunition_quantity.errors %}<div class="form-error">{{ form.pistol_ammunition_quantity.errors|join:", " }}</div>{% endif %}
               </div>
-              <span id="pistol-ammo-type-label" style="font-weight:400;color:var(--blue);font-size:.78rem;"></span>
+
             </div>
           </div>
         </div>
@@ -173,7 +173,7 @@
                 {{ form.rifle_ammunition_quantity }}
                 {% if form.rifle_ammunition_quantity.errors %}<div class="form-error">{{ form.rifle_ammunition_quantity.errors|join:", " }}</div>{% endif %}
               </div>
-              <span id="rifle-ammo-type-label" style="font-weight:400;color:var(--blue);font-size:.78rem;"></span>
+
             </div>
           </div>
         </div>
@@ -224,7 +224,6 @@
 
     <!-- Notes -->
     <div>
-      <style>#id_notes { color: #ffffff; }</style>
       <div class="form-group" style="margin-bottom:0;position:relative;">
         {{ form.notes }}
         <span id="notes-placeholder" style="position:absolute;top:.6rem;left:.75rem;font-size:.8rem;font-weight:500;color:#475569;pointer-events:none;transition:opacity .2s;letter-spacing:.04em;text-transform:uppercase;">Remarks</span>
@@ -393,25 +392,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-/* Auto-print popup: if redirected back with ?print_tx=<id>, open the print
-   page in a small popup window so the user stays on New Transaction.
-   Falls back to direct navigation if popups are blocked. */
-(function () {
-  var params  = new URLSearchParams(window.location.search);
-  var printTx = params.get('print_tx');
-  if (!printTx) return;
-  /* Remove param from the address bar so F5 doesn't re-open the popup. */
-  window.history.replaceState({}, '', window.location.pathname);
-  var printUrl = '/print/transaction/' + encodeURIComponent(printTx) + '/pdf/';
-  var popup = window.open(printUrl, '_blank',
-    'width=960,height=720,scrollbars=yes,resizable=yes');
-  if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-    /* Popup blocked — navigate directly with ?next= so user can still print. */
-    window.location.href = printUrl + '?next=/transactions/new/';
-  }
-}());
-</script>
 <script src="{% static 'js/transaction_form.js' %}" defer></script>
 <script type="application/json" id="disc-capture-config">{"initUrl": "{% url 'serial-capture-init' %}", "phoneBtnId": "txn-disc-phone-btn", "overlayId": "txn-disc-phone-overlay", "closeBtnId": "txn-disc-phone-close", "qrImgId": "txn-disc-phone-qr", "statusElId": "txn-disc-phone-status", "linkElId": "txn-disc-phone-link", "slots": [{"inputId": "dis_image", "chooseBtnId": "txn-disc-choose-1", "clearBtnId": "txn-disc-clear-1", "thumbId": "txn-disc-thumb-1", "emptyIconId": "txn-disc-empty-1"}, {"inputId": "dis_image_2", "chooseBtnId": "txn-disc-choose-2", "clearBtnId": "txn-disc-clear-2", "thumbId": "txn-disc-thumb-2", "emptyIconId": "txn-disc-empty-2"}, {"inputId": "dis_image_3", "chooseBtnId": "txn-disc-choose-3", "clearBtnId": "txn-disc-clear-3", "thumbId": "txn-disc-thumb-3", "emptyIconId": "txn-disc-empty-3"}, {"inputId": "dis_image_4", "chooseBtnId": "txn-disc-choose-4", "clearBtnId": "txn-disc-clear-4", "thumbId": "txn-disc-thumb-4", "emptyIconId": "txn-disc-empty-4"}, {"inputId": "dis_image_5", "chooseBtnId": "txn-disc-choose-5", "clearBtnId": "txn-disc-clear-5", "thumbId": "txn-disc-thumb-5", "emptyIconId": "txn-disc-empty-5"}]}</script>
 <script src="{% static 'js/discrepancy_phone_capture.js' %}" defer></script>

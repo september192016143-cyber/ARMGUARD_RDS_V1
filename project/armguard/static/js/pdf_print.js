@@ -102,13 +102,10 @@
   window.onafterprint = function () {
     var nextUrl = container && container.getAttribute('data-next-url');
     setTimeout(function () {
-      /* If opened as a popup by the New Transaction page, just close this
-         window — the opener already shows the blank New Transaction form. */
-      if (window.opener && !window.opener.closed) {
-        window.close();
-      } else if (nextUrl) {
+      if (nextUrl) {
         window.location.href = nextUrl;
       } else {
+        // Try to close if this was opened as a popup; fall back to history back.
         try { window.close(); } catch (e) {}
         setTimeout(function () {
           if (!window.closed) window.history.back();
