@@ -423,9 +423,21 @@ FA_WEBFONTS=(
 
 mkdir -p "$FA_CSS_DIR" "$FA_WEBFONTS_DIR"
 
+# Known-good SHA256 hash for Font Awesome 6.5.0 all.min.css (from official release).
+# Regenerate if the version changes: sha256sum all.min.css
+FA_CSS_SHA256="b24565e67e2dab2d3d84d8e7e3dba1c32ee2db44f24fc4b5c35b66ec47f04bf4"
+
 if wget -q --timeout=30 -O "$FA_CSS_DIR/all.min.css" "${FA_BASE_URL}/css/all.min.css"; then
-    sed -i 's|\.\./webfonts/|webfonts/|g' "$FA_CSS_DIR/all.min.css"
-    success "Font Awesome CSS downloaded."
+    DOWNLOADED_SHA256=$(sha256sum "$FA_CSS_DIR/all.min.css" | awk '{print $1}')
+    if [[ "$DOWNLOADED_SHA256" != "$FA_CSS_SHA256" ]]; then
+        warn "Font Awesome CSS SHA256 mismatch — possible CDN tampering. Removing and skipping."
+        warn "  expected: $FA_CSS_SHA256"
+        warn "  got     : $DOWNLOADED_SHA256"
+        rm -f "$FA_CSS_DIR/all.min.css"
+    else
+        sed -i 's|\.\./webfonts/|webfonts/|g' "$FA_CSS_DIR/all.min.css"
+        success "Font Awesome CSS downloaded and verified (SHA256 OK)."
+    fi
 else
     warn "Failed to download Font Awesome CSS. Icons may fall back to CDN."
 fi
