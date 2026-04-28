@@ -217,35 +217,7 @@ info "Hostname set to: $MDNS_HOSTNAME (broadcasts as ${MDNS_HOSTNAME}.local via 
 # Write a hardened avahi config — disable OS fingerprinting, workstation
 # advertisement, wide-area DNS-SD, and IPv6 multicast (LAN-only deployment).
 mkdir -p /etc/avahi
-cat > /etc/avahi/avahi-daemon.conf <<'AVAHI_CONF'
-[server]
-host-name=armguard
-domain-name=local
-use-ipv4=yes
-use-ipv6=no
-ratelimit-interval-usec=1000000
-ratelimit-burst=1000
-
-[wide-area]
-enable-wide-area=no
-
-[publish]
-publish-addresses=yes
-publish-hinfo=no
-publish-workstation=no
-publish-domain=yes
-
-[reflector]
-enable-reflector=no
-
-[rlimits]
-rlimit-core=0
-rlimit-data=4194304
-rlimit-fsize=0
-rlimit-nofile=768
-rlimit-stack=4194304
-rlimit-nproc=3
-AVAHI_CONF
+cp "$SCRIPT_DIR/avahi-daemon.conf" /etc/avahi/avahi-daemon.conf
 
 systemctl enable avahi-daemon
 systemctl restart avahi-daemon
@@ -382,7 +354,7 @@ else
 # Django core
 DJANGO_SECRET_KEY=$SECRET_KEY
 DJANGO_DEBUG=False
-DJANGO_ALLOWED_HOSTS=$DOMAIN,$LAN_IP,localhost,127.0.0.1
+DJANGO_ALLOWED_HOSTS=$DOMAIN,$LAN_IP,armguard.local,localhost,127.0.0.1
 
 # Custom admin URL (change this to something not guessable)
 DJANGO_ADMIN_URL=secure-admin-$(python3 -c "import secrets; print(secrets.token_hex(4))")
@@ -402,7 +374,7 @@ SECURE_SSL_REDIRECT=False
 SESSION_COOKIE_SECURE=False
 CSRF_COOKIE_SECURE=False
 SECURE_HSTS_SECONDS=31536000
-CSRF_TRUSTED_ORIGINS=https://$DOMAIN,http://$LAN_IP
+CSRF_TRUSTED_ORIGINS=https://$DOMAIN,https://armguard.local,https://$LAN_IP
 # SSL certificate path (used by the in-app cert download + notification feature)
 # Default is correct for standard deploy; override only if cert lives elsewhere.
 SSL_CERT_PATH=/etc/ssl/certs/armguard-selfsigned.crt
