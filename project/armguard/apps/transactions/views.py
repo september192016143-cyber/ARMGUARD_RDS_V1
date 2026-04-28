@@ -374,7 +374,9 @@ def create_transaction(request):
                 return render(request, 'transactions/transaction_form.html', {**_txn_context, 'form': form})
             # Invalidate dashboard caches so counts and table reflect the new transaction immediately.
             from django.utils import timezone as _tz
-            cache.delete(f'dashboard_stats_{_tz.localdate()}')
+            _today = _tz.localdate()
+            cache.delete(f'dashboard_stats_{_today}')
+            cache.delete(f'dashboard_cards_{_today}')
             cache.delete('dashboard_inventory_tables')
 
             # Create discrepancy record if the operator flagged one on Return.

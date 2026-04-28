@@ -518,7 +518,13 @@ def ssl_cert_status(request):
 
 @login_required
 def dashboard_cards_json(request):
-    """Return live counts for all four stat cards — no cache — for real-time polling."""
+    """Return live counts for all four stat cards, cached for 10 s.
+
+    10 s matches the JS poll interval in dashboard_cards.js so the DB is hit
+    at most ~6 times/minute regardless of how many workers or open tabs exist.
+    create_transaction() invalidates 'dashboard_cards_{date}' immediately after
+    a new transaction so counts stay accurate within one poll cycle.
+    """
     from django.http import JsonResponse
     from armguard.apps.personnel.models import Personnel
     from armguard.apps.inventory.models import Magazine
@@ -526,6 +532,10 @@ def dashboard_cards_json(request):
     from django.db.models import Sum
 
     today = timezone.localdate()
+    cards_cache_key = f'dashboard_cards_{today}'
+    cached = cache.get(cards_cache_key)
+    if cached is not None:
+        return JsonResponse(cached)
 
     _officer_ranks = {'2LT', '1LT', 'CPT', 'MAJ', 'LTCOL', 'COL',
                       'BGEN', 'MGEN', 'LTGEN', 'GEN'}
@@ -561,7 +571,7 @@ def dashboard_cards_json(request):
     returns_today = Transaction.objects.filter(
         transaction_type='Return', timestamp__date=today).count()
 
-    return JsonResponse({
+    data = {
         # Personnel card
         'total_personnel':          Personnel.objects.filter(status='Active').count(),
         'officers_count':           Personnel.objects.filter(status='Active', rank__in=list(_officer_ranks)).count(),
@@ -586,18 +596,49 @@ def dashboard_cards_json(request):
         'total_transactions_today': withdrawals_today + returns_today,
         'withdrawals_today':        withdrawals_today,
         'returns_today':            returns_today,
-    })
+    }
+    cache.set(cards_cache_key, data, 10)  # 10 s matches the JS poll interval
+    return JsonResponse(data)
 
 
 @login_required
 def dashboard_tables_json(request):
-    """Return live analytics table data for all four tables — used by real-time poller."""
+    """Return analytics table data — uses the shared 'dashboard_inventory_tables' cache.
+
+    Previously called all four _build_*_table() functions directly with no caching.
+    Now reads from the same FileBasedCache key that dashboard_view() writes, so the
+    expensive aggregate queries run at most once per 30 s regardless of how many
+    workers or open tabs are polling.
+    """
     from django.http import JsonResponse
 
-    inventory_rows, inventory_totals = _build_inventory_table()
-    ammo_rows,      ammo_totals      = _build_ammo_table()
-    magazine_rows,  magazine_totals  = _build_magazine_table()
-    accessory_rows, accessory_totals = _build_accessory_table()
+    inv_cache_key = 'dashboard_inventory_tables'
+    tables = cache.get(inv_cache_key)
+    if tables is None:
+        tables = {
+            'inventory_rows':   None,
+            'inventory_totals': None,
+            'ammo_rows':        None,
+            'ammo_totals':      None,
+            'magazine_rows':    None,
+            'magazine_totals':  None,
+            'accessory_rows':   None,
+            'accessory_totals': None,
+        }
+        tables['inventory_rows'], tables['inventory_totals'] = _build_inventory_table()
+        tables['ammo_rows'],      tables['ammo_totals']      = _build_ammo_table()
+        tables['magazine_rows'],  tables['magazine_totals']  = _build_magazine_table()
+        tables['accessory_rows'], tables['accessory_totals'] = _build_accessory_table()
+        cache.set(inv_cache_key, tables, 30)
+
+    inventory_rows  = tables['inventory_rows']
+    inventory_totals = tables['inventory_totals']
+    ammo_rows       = tables['ammo_rows']
+    ammo_totals     = tables['ammo_totals']
+    magazine_rows   = tables['magazine_rows']
+    magazine_totals = tables['magazine_totals']
+    accessory_rows  = tables['accessory_rows']
+    accessory_totals = tables['accessory_totals']
 
     def _row_fields(row, keys):
         return {k: row.get(k, 0) for k in keys}

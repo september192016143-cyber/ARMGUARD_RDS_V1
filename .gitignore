@@ -50,6 +50,7 @@ project/armguard/static/css/fontawesome/webfonts/
 
 # General cache directories
 .cache/
+cache/
 
 # Log files (created by the LOGGING config in settings.py)
 project/logs/

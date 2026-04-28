@@ -102,6 +102,9 @@ step "1/8 Pre-update database backup"
 
 BACKUP_DIR="$DEPLOY_DIR/backups"
 mkdir -p "$BACKUP_DIR"
+# Ensure FileBasedCache directory exists (added in performance update).
+mkdir -p "$DEPLOY_DIR/cache"
+chmod 750 "$DEPLOY_DIR/cache"
 
 if [[ -f "$PROJECT_DIR/db.sqlite3" ]]; then
     BACKUP_FILE="$BACKUP_DIR/pre-update-$TIMESTAMP.sqlite3"

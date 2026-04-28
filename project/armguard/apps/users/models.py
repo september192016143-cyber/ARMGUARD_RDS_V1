@@ -474,7 +474,17 @@ class SystemSettings(models.Model):
 
     @classmethod
     def get(cls):
-        """Return the singleton instance, seeding defaults from settings.py on first use."""
+        """Return the singleton instance, seeding defaults from settings.py on first use.
+
+        Cached for 60 s — SystemSettings changes maybe once a month; hitting the DB
+        on every request (twice, from both context_processors) adds unnecessary load.
+        The cache is invalidated by save() so any admin change takes effect within 60 s.
+        """
+        from django.core.cache import cache as _cache
+        _CACHE_KEY = 'armguard_system_settings'
+        cached = _cache.get(_CACHE_KEY)
+        if cached is not None:
+            return cached
         obj, _ = cls.objects.get_or_create(pk=1, defaults={
             'commander_name':          getattr(settings, 'ARMGUARD_COMMANDER_NAME',        ''),
             'commander_rank':          getattr(settings, 'ARMGUARD_COMMANDER_RANK',        ''),
@@ -487,7 +497,14 @@ class SystemSettings(models.Model):
             'password_min_length':     8,
             'password_history_count':  5,
         })
+        _cache.set(_CACHE_KEY, obj, 60)
         return obj
+
+    def save(self, *args, **kwargs):
+        """Invalidate the SystemSettings cache whenever the record is updated."""
+        from django.core.cache import cache as _cache
+        super().save(*args, **kwargs)
+        _cache.delete('armguard_system_settings')
 
 
 # ── Group → UserProfile sync ─────────────────────────────────────────────────

@@ -274,8 +274,11 @@ step "Creating deployment directories"
 
 mkdir -p "$DEPLOY_DIR"/{project,venv,backups}
 mkdir -p "$LOG_DIR"
+# FileBasedCache directory — shared by all Gunicorn workers (see CACHES in base.py).
+mkdir -p "$DEPLOY_DIR/cache"
 chown -R "$DEPLOY_USER:$DEPLOY_USER" "$DEPLOY_DIR" "$LOG_DIR"
 chmod 750 "$DEPLOY_DIR"
+chmod 750 "$DEPLOY_DIR/cache"
 success "Directories created."
 
 # ---------------------------------------------------------------------------

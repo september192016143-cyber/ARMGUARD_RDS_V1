@@ -114,15 +114,29 @@ TEMPLATES = [
 WSGI_APPLICATION = 'armguard.wsgi.application'
 
 # ---------------------------------------------------------------------------
-# Cache — LocMemCache (per-process, in-memory).
-# Fast enough for LAN deployments; upgrade to FileBasedCache or Redis if
-# multi-process cross-worker consistency ever becomes required.
+# Cache — FileBasedCache (shared across all Gunicorn workers).
+#
+# WHY NOT LocMemCache: each Gunicorn worker has its own separate in-memory
+# cache.  Workers recycle every ~1000 requests (max_requests in gunicorn.conf.py),
+# wiping their caches.  With 3 workers, the dashboard_inventory_tables, card
+# stats, and SystemSettings caches are NEVER warm across all workers simultaneously,
+# causing repeated expensive DB queries — the root cause of "slow after long use".
+#
+# FileBasedCache writes to a shared directory on disk so every worker reads
+# the same cached values.  It survives worker recycles and process restarts.
+# Overhead is minimal: a single file-stat + read is far cheaper than running
+# 12–30 aggregate SQL queries per poll cycle.
 # ---------------------------------------------------------------------------
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'armguard-default',
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        # Resolves to /var/www/ARMGUARD_RDS_V1/cache/ on the server.
+        # Outside the project dir so rsync/git never touch it.
+        'LOCATION': str(BASE_DIR.parent / 'cache'),
         'TIMEOUT': 300,  # 5 minutes default; individual cache.set() calls override as needed
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        },
     }
 }
 
