@@ -46,15 +46,23 @@ RUN pip install --no-index --find-links=/wheels /wheels/*.whl \
 COPY project/ .
 
 # Collect static files so WhiteNoise can serve them.
-RUN python manage.py collectstatic --noinput --settings=armguard.settings.production 2>/dev/null || true
+# DJANGO_SECRET_KEY must be provided as a build arg for collectstatic to run.
+# Use: docker build --build-arg DJANGO_SECRET_KEY=<dummy-build-key> -t armguard-rds .
+# A dummy key is acceptable at build time — it is never used at runtime; the
+# real key is supplied via --env-file .env when starting the container.
+ARG DJANGO_SECRET_KEY=dummy-build-time-key-replace-at-runtime
+ENV DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+RUN python manage.py collectstatic --noinput --settings=armguard.settings.production
 
 USER armguard
 
 EXPOSE 8000
 
-# Gunicorn: 2 workers per CPU core.  Override CMD in docker-compose for dev.
+# Gunicorn: bind to loopback only — Nginx (or a Docker port mapping) should be
+# in front. If you need to expose the port directly (testing only), override:
+#   docker run --env-file .env -e GUNICORN_BIND=0.0.0.0:8000 -p 8000:8000 armguard-rds
 CMD ["python", "-m", "gunicorn", \
-     "--bind", "0.0.0.0:8000", \
+     "--bind", "127.0.0.1:8000", \
      "--workers", "2", \
      "--timeout", "60", \
      "armguard.wsgi:application"]

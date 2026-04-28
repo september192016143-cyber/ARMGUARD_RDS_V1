@@ -94,6 +94,12 @@ done
 [[ -f "$VENV_PYTHON" ]] || die "Python venv not found at $VENV_PYTHON"
 [[ -d "$PROJECT_DIR" ]] || die "Project dir not found: $PROJECT_DIR"
 
+# Ensure backup root exists with tight permissions (0700 — root-only read/write).
+# This protects the plaintext .env copy (contains DJANGO_SECRET_KEY) when GPG
+# encryption is not configured.
+mkdir -p "$BACKUP_ROOT"
+chmod 700 "$BACKUP_ROOT"
+
 TIMESTAMP_DISPLAY="$(date '+%Y-%m-%d %H:%M:%S')"
 echo
 echo -e "${BOLD}╔═══════════════════════════════════════════════════════════╗${NC}"
@@ -105,6 +111,10 @@ log "Retention : $KEEP_DAYS days"
 [[ "$DRY_RUN" == "true" ]] && warn "DRY-RUN MODE — nothing will be written"
 
 # Load .env for GPG recipient and other settings
+# Security warning: if GPG encryption is not configured the .env backup (which
+# contains DJANGO_SECRET_KEY) will be stored as plaintext. The backup root is
+# chmod 700 so root-only access applies, but enabling GPG is strongly recommended.
+# Set ARMGUARD_BACKUP_GPG_RECIPIENT=<key-id> in .env to encrypt all output.
 if [[ -f "$ENV_FILE" ]]; then
     set -a
     # shellcheck source=/dev/null
@@ -193,6 +203,12 @@ fi
 # Set ARMGUARD_BACKUP_GPG_RECIPIENT in .env to enable.
 # The plaintext files are shredded after encryption.
 # ---------------------------------------------------------------------------
+if [[ "$DRY_RUN" == "false" && -z "${ARMGUARD_BACKUP_GPG_RECIPIENT:-}" ]]; then
+    warn "GPG encryption is NOT configured — backup directory contains plaintext secrets."
+    warn "Set ARMGUARD_BACKUP_GPG_RECIPIENT=<key-id> in .env to encrypt backups."
+    warn "Backup root is chmod 700 (root-only), but encryption is strongly recommended."
+fi
+
 if [[ "$DRY_RUN" == "false" && -n "${ARMGUARD_BACKUP_GPG_RECIPIENT:-}" ]]; then
     log "GPG-encrypting backup for: $ARMGUARD_BACKUP_GPG_RECIPIENT"
     if ! command -v gpg &>/dev/null; then

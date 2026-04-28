@@ -166,13 +166,24 @@ port     = http,https
 filter   = nginx-http-auth
 logpath  = /var/log/nginx/error.log
 
+FAIL2BAN
+
+# Add nginx-botsearch jail only if the filter file exists (may be absent on
+# minimal Ubuntu installs). Avoids a fail2ban startup failure.
+if [[ -f /etc/fail2ban/filter.d/nginx-botsearch.conf ]]; then
+    cat >> /etc/fail2ban/jail.local <<'EOF_BOTSEARCH'
+
 [nginx-botsearch]
 enabled  = true
 port     = http,https
 filter   = nginx-botsearch
 logpath  = /var/log/nginx/access.log
 maxretry = 2
-FAIL2BAN
+EOF_BOTSEARCH
+    info "nginx-botsearch jail enabled."
+else
+    warn "nginx-botsearch filter not found — jail skipped. Install with: apt install fail2ban"
+fi
 
 systemctl enable fail2ban
 systemctl restart fail2ban

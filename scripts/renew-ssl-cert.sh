@@ -77,10 +77,11 @@ log "Renewing — expires in $DAYS_LEFT day(s), within the ${RENEW_BEFORE_DAYS}-
 # ---------------------------------------------------------------------------
 # Generate new certificate
 # ---------------------------------------------------------------------------
+RENEW_YEAR=$(date +%Y)
 openssl req -x509 -nodes -days "$CERT_VALIDITY_DAYS" -newkey rsa:2048 \
     -keyout "$KEY" \
     -out    "$CERT" \
-    -subj   "/C=PH/ST=Metro Manila/L=Manila/O=ArmGuard RDS 2025/OU=Security/CN=ArmGuard RDS 2025" \
+    -subj   "/C=PH/ST=Metro Manila/L=Manila/O=ArmGuard RDS ${RENEW_YEAR}/OU=Security/CN=ArmGuard RDS ${RENEW_YEAR}" \
     -addext "subjectAltName=IP:$SERVER_IP" \
     2>&1 | tee -a "$LOG"
 
