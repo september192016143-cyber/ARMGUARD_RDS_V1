@@ -37,7 +37,9 @@ if not ALLOWED_HOSTS:
 SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False') == 'True'
 SECURE_HSTS_SECONDS = 31536000          # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
+# HSTS preload submits the domain to browser preload lists — irreversible.
+# Only enable after HTTPS is confirmed permanently deployed.
+SECURE_HSTS_PRELOAD = os.environ.get('SECURE_HSTS_PRELOAD', 'False') == 'True'
 # SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE are tied to SECURE_SSL_REDIRECT so
 # enabling SSL (one env var) automatically secures all cookies. During the initial
 # HTTP-only deployment phase both are False; after SSL is confirmed set

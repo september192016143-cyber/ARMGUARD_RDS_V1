@@ -326,9 +326,9 @@
 {% endblock %}
 
 {% block extra_js %}
-{% if personnel_json %}
-<script type="application/json" id="personnel-map-data">{{ personnel_json|safe }}</script>
-<script type="application/json" id="personnel-pid-map-data">{% if personnel_pid_json %}{{ personnel_pid_json|safe }}{% else %}{}{% endif %}</script>
+{% if personnel_map %}
+{{ personnel_map|json_script:"personnel-map-data" }}
+{{ personnel_pid_map|json_script:"personnel-pid-map-data" }}
 {% endif %}
 <script src="{% static 'js/user_form.js' %}"></script>
 {% endblock %}

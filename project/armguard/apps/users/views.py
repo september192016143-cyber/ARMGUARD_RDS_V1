@@ -1,4 +1,3 @@
-import json
 import os
 import shutil
 
@@ -29,20 +28,24 @@ def logout_view(request):
 User = get_user_model()
 
 
-def _personnel_map_json(qs):
-    """Return a JSON string mapping pk -> {first, last, pid, afsn} for auto-fill."""
-    return json.dumps({
+def _personnel_map(qs):
+    """Return a dict mapping pk -> {first, last, pid, afsn} for auto-fill.
+    Returned as a plain dict so the template uses |json_script (XSS-safe).
+    """
+    return {
         str(p['pk']): {'first': p['first_name'], 'last': p['last_name'], 'pid': p['Personnel_ID'], 'afsn': p['AFSN'] or ''}
         for p in qs.values('pk', 'first_name', 'last_name', 'Personnel_ID', 'AFSN')
-    })
+    }
 
 
-def _personnel_pid_map_json(qs):
-    """Return a JSON string mapping Personnel_ID -> pk for QR scan / ID search."""
-    return json.dumps({
+def _personnel_pid_map(qs):
+    """Return a dict mapping Personnel_ID -> pk for QR scan / ID search.
+    Returned as a plain dict so the template uses |json_script (XSS-safe).
+    """
+    return {
         p['Personnel_ID']: str(p['pk'])
         for p in qs.values('pk', 'Personnel_ID')
-    })
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -212,8 +215,8 @@ class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         qs = Personnel.objects.filter(user__isnull=True)
         return self.render_to_response({
             'form': UserCreateForm(), 'action': 'Add',
-            'personnel_json':     _personnel_map_json(qs),
-            'personnel_pid_json': _personnel_pid_map_json(qs),
+            'personnel_map':     _personnel_map(qs),
+            'personnel_pid_map': _personnel_pid_map(qs),
         })
 
     def post(self, request, *args, **kwargs):
@@ -314,8 +317,8 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         ) if current_linked_pk else Personnel.objects.filter(user__isnull=True)
         return self.render_to_response({
             'form': self._make_form(), 'action': 'Edit', 'edit_user': self.object,
-            'personnel_json':     _personnel_map_json(qs),
-            'personnel_pid_json': _personnel_pid_map_json(qs),
+            'personnel_map':     _personnel_map(qs),
+            'personnel_pid_map': _personnel_pid_map(qs),
         })
 
     def post(self, request, *args, **kwargs):

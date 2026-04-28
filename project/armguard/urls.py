@@ -31,7 +31,7 @@ class _RateLimitedLoginView(auth_views.LoginView):
     """LoginView with per-IP/per-user rate limiting on POST (login attempts)."""
     template_name = 'registration/login.html'
 
-    @method_decorator(_ratelimit(rate='30/m'))
+    @method_decorator(_ratelimit(rate='5/m'))
     def post(self, *args, **kwargs):
         return super().post(*args, **kwargs)
 

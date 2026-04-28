@@ -64,8 +64,14 @@ def ratelimit(rate: str = '60/m', block: bool = True):
 
 
 def _client_ip(request) -> str:
-    """Return the client's real IP, respecting X-Forwarded-For if present."""
+    """Return the client's real IP, respecting X-Forwarded-For if present.
+
+    SECURITY: Use the LAST entry, not the first.  The first entry is
+    client-controlled and trivially spoofed (attacker sends their own
+    X-Forwarded-For header).  The last entry is set by the immediate
+    upstream proxy (nginx) and cannot be forged by the client.
+    """
     forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
     if forwarded:
-        return forwarded.split(',')[0].strip()
+        return forwarded.split(',')[-1].strip()
     return request.META.get('REMOTE_ADDR', 'unknown')
