@@ -188,9 +188,14 @@ _git_pull_repo() {
     # ── Ensure project/media/ is never tracked in the local index ────────────
     # The remote repo removed all media/.gitkeep files from tracking (commit
     # f941329). If the server's local index still has any media/ file tracked,
-    # git pull will produce modify/delete conflicts. Running rm --cached here
-    # is idempotent — silently does nothing if already untracked.
+    # git pull will produce modify/delete conflicts on stash pop.
+    # Steps:
+    #   1. rm --cached  — removes media/ paths from index (stages as deletions)
+    #   2. reset HEAD   — unstages those deletions so files become "untracked"
+    # Untracked files are never captured by git stash (no -u flag), so stash
+    # pop can never conflict on them again.
     sudo -u "$DEPLOY_USER" git -C "$repo_dir" rm -r --cached project/media/ 2>/dev/null || true
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" reset HEAD project/media/ 2>/dev/null || true
 
     # ── KEY FIX: remove test-generated QR files BEFORE stash ─────────────────
     # If Django tests ran on this server, they created P-TEST-*.png, P-MAG-*.png,
