@@ -185,6 +185,13 @@ _git_pull_repo() {
     sudo -u "$DEPLOY_USER" git -C "$repo_dir" config core.autocrlf false
     sudo -u "$DEPLOY_USER" git -C "$repo_dir" checkout -- . 2>/dev/null || true
 
+    # ── Ensure project/media/ is never tracked in the local index ────────────
+    # The remote repo removed all media/.gitkeep files from tracking (commit
+    # f941329). If the server's local index still has any media/ file tracked,
+    # git pull will produce modify/delete conflicts. Running rm --cached here
+    # is idempotent — silently does nothing if already untracked.
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" rm -r --cached project/media/ 2>/dev/null || true
+
     # ── KEY FIX: remove test-generated QR files BEFORE stash ─────────────────
     # If Django tests ran on this server, they created P-TEST-*.png, P-MAG-*.png,
     # etc. in media/. Git sees these as untracked/modified and stashes them.
