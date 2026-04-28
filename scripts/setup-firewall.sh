@@ -106,6 +106,12 @@ ufw allow 80/tcp comment "HTTP (Nginx → HTTPS redirect)"
 # HTTPS — Nginx with SSL
 ufw allow 443/tcp comment "HTTPS (Nginx)"
 
+# mDNS — allow LAN devices to resolve armguard.local via Avahi
+# UDP 5353 to multicast 224.0.0.251 is used by all mDNS clients.
+# UFW default deny incoming does not block multicast by itself, so
+# this explicit rule ensures avahi-daemon responses are not dropped.
+ufw allow 5353/udp comment "mDNS (Avahi — armguard.local)"
+
 # Block direct Gunicorn access from external hosts
 # Gunicorn binds to 127.0.0.1:8000 so external access is already blocked
 # by binding, but deny at UFW too as defence-in-depth.

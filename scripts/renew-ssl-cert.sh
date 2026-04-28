@@ -22,6 +22,7 @@ set -euo pipefail
 CERT="/etc/ssl/certs/armguard-selfsigned.crt"
 KEY="/etc/ssl/private/armguard-selfsigned.key"
 SERVER_IP="192.168.0.11"
+MDNS_HOST="armguard.local"          # mDNS hostname broadcast by avahi-daemon
 RENEW_BEFORE_DAYS=45          # Renew this many days before expiry
 CERT_VALIDITY_DAYS=1095       # 3 years for new cert
 
@@ -82,7 +83,7 @@ openssl req -x509 -nodes -days "$CERT_VALIDITY_DAYS" -newkey rsa:2048 \
     -keyout "$KEY" \
     -out    "$CERT" \
     -subj   "/C=PH/ST=Metro Manila/L=Manila/O=ArmGuard RDS ${RENEW_YEAR}/OU=Security/CN=ArmGuard RDS ${RENEW_YEAR}" \
-    -addext "subjectAltName=IP:$SERVER_IP" \
+    -addext "subjectAltName=IP:$SERVER_IP,DNS:$MDNS_HOST" \
     2>&1 | tee -a "$LOG"
 
 chmod 644 "$CERT"

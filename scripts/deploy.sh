@@ -197,12 +197,90 @@ PACKAGES=(
     git curl wget unzip
     logrotate
     ufw
+    avahi-daemon libnss-mdns
 )
 
 apt-get install -y --no-install-recommends "${PACKAGES[@]}" \
     | grep -E "^(Setting up|Already installed)" || true
 
 success "System packages installed."
+
+# ---------------------------------------------------------------------------
+# 1b. Avahi mDNS — enable armguard.local hostname resolution on LAN
+# ---------------------------------------------------------------------------
+step "Configuring Avahi mDNS (armguard.local)"
+
+MDNS_HOSTNAME="armguard"
+hostnamectl set-hostname "$MDNS_HOSTNAME"
+info "Hostname set to: $MDNS_HOSTNAME (broadcasts as ${MDNS_HOSTNAME}.local via mDNS)"
+
+# Write a hardened avahi config — disable OS fingerprinting, workstation
+# advertisement, wide-area DNS-SD, and IPv6 multicast (LAN-only deployment).
+mkdir -p /etc/avahi
+cat > /etc/avahi/avahi-daemon.conf <<'AVAHI_CONF'
+[server]
+host-name=armguard
+domain-name=local
+use-ipv4=yes
+use-ipv6=no
+ratelimit-interval-usec=1000000
+ratelimit-burst=1000
+
+[wide-area]
+enable-wide-area=no
+
+[publish]
+publish-addresses=yes
+publish-hinfo=no
+publish-workstation=no
+publish-domain=yes
+
+[reflector]
+enable-reflector=no
+
+[rlimits]
+rlimit-core=0
+rlimit-data=4194304
+rlimit-fsize=0
+rlimit-nofile=768
+rlimit-stack=4194304
+rlimit-nproc=3
+AVAHI_CONF
+
+systemctl enable avahi-daemon
+systemctl restart avahi-daemon
+success "Avahi started — server reachable as ${MDNS_HOSTNAME}.local on the LAN."
+
+# ---------------------------------------------------------------------------
+# 1c. Generate self-signed SSL certificate (IP + armguard.local DNS SAN)
+# ---------------------------------------------------------------------------
+step "Generating self-signed SSL certificate"
+
+SSL_CERT="/etc/ssl/certs/armguard-selfsigned.crt"
+SSL_KEY="/etc/ssl/private/armguard-selfsigned.key"
+DH_PARAM="/etc/ssl/certs/dhparam.pem"
+SSL_YEAR=$(date +%Y)
+
+if [[ ! -f "$SSL_CERT" ]]; then
+    openssl req -x509 -nodes -days 1095 -newkey rsa:2048 \
+        -keyout "$SSL_KEY" \
+        -out    "$SSL_CERT" \
+        -subj   "/C=PH/ST=Metro Manila/L=Manila/O=ArmGuard RDS ${SSL_YEAR}/OU=Security/CN=${MDNS_HOSTNAME}.local" \
+        -addext "subjectAltName=IP:${LAN_IP},DNS:${MDNS_HOSTNAME}.local"
+    chmod 644 "$SSL_CERT"
+    chmod 600 "$SSL_KEY"
+    success "SSL certificate generated (CN=${MDNS_HOSTNAME}.local, SAN: IP:${LAN_IP} + DNS:${MDNS_HOSTNAME}.local)"
+else
+    info "SSL certificate already exists at $SSL_CERT — skipping generation."
+fi
+
+if [[ ! -f "$DH_PARAM" ]]; then
+    info "Generating DH parameters (~30–60 s)…"
+    openssl dhparam -out "$DH_PARAM" 2048
+    success "DH parameters generated."
+else
+    info "DH parameters already exist at $DH_PARAM — skipping."
+fi
 
 # ---------------------------------------------------------------------------
 # 2. Create system user
@@ -757,18 +835,19 @@ echo -e "${GREEN}${BOLD}╔═════════════════�
 echo -e "${GREEN}${BOLD}║        ARMGUARD RDS V1 — Deployment Complete             ║${NC}"
 echo -e "${GREEN}${BOLD}╚══════════════════════════════════════════════════════════╝${NC}"
 echo
-echo -e "  Application URL   : http://$DOMAIN"
-echo -e "  Deploy directory  : $DEPLOY_DIR"
-echo -e "  Logs              : $LOG_DIR"
-echo -e "  .env file         : $ENV_FILE"
-echo -e "  Systemd service   : $SERVICE_NAME"
+echo -e "  Application URL   : https://armguard.local  (also https://${LAN_IP})"
+  echo -e "  Deploy directory  : $DEPLOY_DIR"
+  echo -e "  Logs              : $LOG_DIR"
+  echo -e "  .env file         : $ENV_FILE"
+  echo -e "  Systemd service   : $SERVICE_NAME"
 echo
 echo -e "  ${YELLOW}Next steps:${NC}"
 echo -e "  1. Review .env at $ENV_FILE"
 echo -e "  2. Create a superuser:"
 echo -e "     sudo -u $DEPLOY_USER $VENV_PYTHON $PROJECT_DIR/manage.py createsuperuser"
-echo -e "  3. For SSL: obtain a cert and update $NGINX_AVAILABLE"
-echo -e "     (Let's Encrypt: sudo apt install certbot python3-certbot-nginx)"
-echo -e "     sudo certbot --nginx -d $DOMAIN"
-echo -e "  4. Enable SECURE_SSL_REDIRECT in .env once SSL is working"
+echo -e "  3. Install the SSL cert on each client device so the browser trusts it:"
+echo -e "     Download from https://armguard.local/download/ssl-cert/ and install as"
+echo -e "     Trusted Root CA (see scripts/SSL_SELFSIGNED.md, Section 8)"
+echo -e "  4. Enable SECURE_SSL_REDIRECT in .env once SSL is confirmed working"
+echo -e "     (copy the nginx-armguard-ssl-lan.conf to /etc/nginx/sites-available/armguard)"
 echo
