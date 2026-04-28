@@ -433,7 +433,7 @@ if wget -q --timeout=30 -O "$FA_CSS_DIR/all.min.css" "${FA_BASE_URL}/css/all.min
         warn "  got     : $DOWNLOADED_SHA256"
         rm -f "$FA_CSS_DIR/all.min.css"
     else
-        sed -i 's|\.\.\./webfonts/|webfonts/|g' "$FA_CSS_DIR/all.min.css"
+        sed -i 's|\.\./webfonts/|webfonts/|g' "$FA_CSS_DIR/all.min.css"
         success "Font Awesome CSS downloaded and verified (SHA256 OK)."
     fi
 else
