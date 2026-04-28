@@ -357,6 +357,11 @@ def _activate_sqlite_wal(sender, connection, **kwargs):
     if connection.vendor == 'sqlite':
         connection.cursor().execute('PRAGMA journal_mode=WAL;')
         connection.cursor().execute('PRAGMA synchronous=NORMAL;')
+        # 32 MB in-memory page cache per connection (negative = kibibytes).
+        # Reduces disk I/O on repeated queries against the same pages.
+        connection.cursor().execute('PRAGMA cache_size=-32768;')
+        # Store temp tables / indices in RAM rather than a temp file.
+        connection.cursor().execute('PRAGMA temp_store=MEMORY;')
 
 
 _db_conn_created.connect(_activate_sqlite_wal)

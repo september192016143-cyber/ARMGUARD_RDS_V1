@@ -240,7 +240,7 @@ class Pistol(SmallArm):
     remarks_updated_by = models.CharField(max_length=100, blank=True, null=True)
     # -- Condition and operational status -------------------------------------
     item_condition = models.CharField(max_length=20, default='Serviceable', choices=CONDITION_CHOICES)
-    item_status = models.CharField(max_length=20, default='Available', choices=STATUS_CHOICES)
+    item_status = models.CharField(max_length=20, default='Available', choices=STATUS_CHOICES, db_index=True)
     # -- Assignment tracking (FK ? Personnel with SET_NULL) --------------------
     # C1: Converted from CharField to ForeignKey — DB-enforced referential integrity.
     # SET_NULL on Personnel delete clears the FK automatically (no orphaned string values).
@@ -470,7 +470,7 @@ class Rifle(SmallArm):
     remarks_updated_by = models.CharField(max_length=100, blank=True, null=True)
     # -- Condition and operational status --------------------------------------
     item_condition = models.CharField(max_length=20, default='Serviceable', choices=CONDITION_CHOICES)
-    item_status = models.CharField(max_length=20, default='Available', choices=STATUS_CHOICES)
+    item_status = models.CharField(max_length=20, default='Available', choices=STATUS_CHOICES, db_index=True)
     # -- Assignment tracking (FK ? Personnel with SET_NULL) --------------------
     # C1: Converted from CharField to ForeignKey — DB-enforced referential integrity.
     # SET_NULL on Personnel delete clears the FK automatically (no orphaned string values).

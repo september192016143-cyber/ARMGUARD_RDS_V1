@@ -137,7 +137,8 @@ class Personnel(models.Model):
     updated = models.DateTimeField(blank=True, null=True)
     updated_by = models.CharField(max_length=50, blank=True, null=True)
     # Status Active, Inactive
-    status = models.CharField(max_length=10, default='Active', choices=STATUS_CHOICES)
+    # db_index: status is filtered on every dashboard count query and personnel list.
+    status = models.CharField(max_length=10, default='Active', choices=STATUS_CHOICES, db_index=True)
     # User foreign key
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     # Primary weapon and item tracking fields

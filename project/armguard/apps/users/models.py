@@ -154,7 +154,7 @@ class AuditLog(models.Model):
         blank=True,
         help_text="SHA-256 of (timestamp + username + action + message) — set on save.",
     )
-    timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         verbose_name = "Audit Log"

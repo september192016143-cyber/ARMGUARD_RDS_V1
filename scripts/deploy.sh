@@ -598,6 +598,16 @@ server {
 
     client_max_body_size 20M;
 
+    # Gzip compression — cuts HTML/JSON transfer size ~70 % on a LAN.
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/json application/javascript
+               text/xml application/xml text/javascript
+               application/x-font-ttf font/opentype image/svg+xml;
+
     # Rate limit login endpoint
     limit_req_zone \$binary_remote_addr zone=login_zone:10m rate=5r/m;
 
