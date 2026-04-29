@@ -627,22 +627,35 @@ def personnel_status(request):
         'bandoleer_issued': p.bandoleer_issued or None,
         'bandoleer_qty': p.bandoleer_issued_quantity or None,
     }
-    # For Return form auto-fill: resolve open TransactionLog to get actual FKs
-    # (Personnel stores magazine/ammo as strings, not PKs — we need PKs for dropdowns)
-    _open_log = (
+    # For Return form auto-fill: resolve the open log per weapon so FK PKs
+    # come from the actual withdrawal that issued that specific pistol/rifle,
+    # not just the most-recent open log (which may belong to the other weapon).
+    _pistol_log = (
         TransactionLogs.objects
-        .filter(personnel_id=p, log_status__in=['Open', 'Partially Returned'])
-        .order_by('-record_id')
+        .filter(
+            personnel_id=p,
+            withdraw_pistol__isnull=False,
+            return_pistol__isnull=True,
+            log_status__in=['Open', 'Partially Returned'],
+        )
+        .order_by('-withdraw_pistol_timestamp')
         .first()
     )
-    if _open_log:
-        data['open_rifle_mag_id']   = _open_log.withdraw_rifle_magazine_id
-        data['open_pistol_mag_id']  = _open_log.withdraw_pistol_magazine_id
-        data['open_pistol_ammo_id'] = _open_log.withdraw_pistol_ammunition_id
-        data['open_rifle_ammo_id']  = _open_log.withdraw_rifle_ammunition_id
-    else:
-        data['open_rifle_mag_id'] = data['open_pistol_mag_id'] = None
-        data['open_pistol_ammo_id'] = data['open_rifle_ammo_id'] = None
+    _rifle_log = (
+        TransactionLogs.objects
+        .filter(
+            personnel_id=p,
+            withdraw_rifle__isnull=False,
+            return_rifle__isnull=True,
+            log_status__in=['Open', 'Partially Returned'],
+        )
+        .order_by('-withdraw_rifle_timestamp')
+        .first()
+    )
+    data['open_pistol_mag_id']  = _pistol_log.withdraw_pistol_magazine_id  if _pistol_log else None
+    data['open_pistol_ammo_id'] = _pistol_log.withdraw_pistol_ammunition_id if _pistol_log else None
+    data['open_rifle_mag_id']   = _rifle_log.withdraw_rifle_magazine_id    if _rifle_log  else None
+    data['open_rifle_ammo_id']  = _rifle_log.withdraw_rifle_ammunition_id  if _rifle_log  else None
     # ID card front image
     import os
     from django.conf import settings as _settings
