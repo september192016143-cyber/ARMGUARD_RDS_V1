@@ -637,12 +637,41 @@ function _attachSelectStyles(el) {
   _attachSelectStyles(tbIssuance);
   _attachSelectStyles(tbPurpose);
 
+  // ── Persist last-selected Type / Issuance / Purpose across page refreshes ──
+  // Only restore when the form has no server-side pre-fill (i.e. it's a fresh
+  // blank form, not a re-display after a validation error that already has values).
+  var _LS_TYPE     = 'armguard_txn_type';
+  var _LS_ISSUANCE = 'armguard_txn_issuance';
+  var _LS_PURPOSE  = 'armguard_txn_purpose';
+  var _isNewForm   = !(form && form.dataset.hasErrors === 'true');
+  try {
+    if (_isNewForm) {
+      var _savedType     = localStorage.getItem(_LS_TYPE);
+      var _savedIssuance = localStorage.getItem(_LS_ISSUANCE);
+      var _savedPurpose  = localStorage.getItem(_LS_PURPOSE);
+      if (_savedType     && tbType     && tbType.querySelector('option[value="'     + _savedType     + '"]')) tbType.value     = _savedType;
+      if (_savedIssuance && tbIssuance && tbIssuance.querySelector('option[value="' + _savedIssuance + '"]')) tbIssuance.value = _savedIssuance;
+      if (_savedPurpose  && tbPurpose  && tbPurpose.querySelector('option[value="'  + _savedPurpose  + '"]')) tbPurpose.value  = _savedPurpose;
+    }
+  } catch (e) { /* localStorage unavailable — ignore */ }
+  function _saveTopbarState() {
+    try {
+      if (tbType)     localStorage.setItem(_LS_TYPE,     tbType.value);
+      if (tbIssuance) localStorage.setItem(_LS_ISSUANCE, tbIssuance.value);
+      if (tbPurpose)  localStorage.setItem(_LS_PURPOSE,  tbPurpose.value);
+    } catch (e) {}
+  }
+
   if (tbType)     tbType.addEventListener('change',     toggleReturnMode);
   if (tbIssuance) tbIssuance.addEventListener('change', toggleTrPreview);
   if (tbPurpose) {
     tbPurpose.addEventListener('change', toggleDutyOther);
     tbPurpose.addEventListener('change', toggleWeaponSections);
   }
+  // Save state whenever any topbar dropdown changes
+  if (tbType)     tbType.addEventListener('change',     _saveTopbarState);
+  if (tbIssuance) tbIssuance.addEventListener('change', _saveTopbarState);
+  if (tbPurpose)  tbPurpose.addEventListener('change',  _saveTopbarState);
 
   // Rifle magazine selection → update the qty hint in real-time.
   var rifMagSel = document.getElementById('id_rifle_magazine') || document.querySelector('[name="rifle_magazine"]');
