@@ -35,6 +35,13 @@ if not ALLOWED_HOSTS:
 # in the production .env file.  Nginx handles the HTTP→HTTPS redirect itself until
 # then (see the HTTP server block in nginx-armguard.conf).
 SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False') == 'True'
+if not SECURE_SSL_REDIRECT and not DEBUG:
+    import warnings
+    warnings.warn(
+        "SECURE_SSL_REDIRECT is False in production. Session and CSRF cookies will NOT be "
+        "marked Secure. Set SECURE_SSL_REDIRECT=True in .env once HTTPS is configured.",
+        stacklevel=1,
+    )
 SECURE_HSTS_SECONDS = 31536000          # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 # HSTS preload submits the domain to browser preload lists — irreversible.

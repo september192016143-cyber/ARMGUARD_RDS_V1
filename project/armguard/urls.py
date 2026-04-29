@@ -63,9 +63,12 @@ urlpatterns = [
     path('download/ssl-cert-status/', ssl_cert_status, name='ssl-cert-status'),
     path('robots.txt', TemplateView.as_view(template_name='robots.txt', content_type='text/plain'), name='robots_txt'),
     path('.well-known/security.txt', TemplateView.as_view(template_name='security.txt', content_type='text/plain'), name='security_txt'),
-    # G12 FIX: Read-only REST API v1 (DRF). All endpoints require authentication.
-    path('api/v1/', include('armguard.apps.api.urls')),
 ]
+
+# G12 FIX: Read-only REST API v1 (DRF). Only registered when ARMGUARD_API_ENABLED=True.
+# Set ARMGUARD_API_ENABLED=True in .env to expose /api/v1/ (disabled by default).
+if getattr(settings, 'ARMGUARD_API_ENABLED', False):
+    urlpatterns += [path('api/v1/', include('armguard.apps.api.urls'))]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

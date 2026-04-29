@@ -344,6 +344,20 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                     user=self.object, password_hash=self.object.password
                 )
             profile, _ = UserProfile.objects.get_or_create(user=self.object)
+
+            # Capture old permission values BEFORE applying changes so we can diff them.
+            _PERM_FIELDS = [
+                'role',
+                'perm_inventory_view', 'perm_inventory_add',
+                'perm_inventory_edit', 'perm_inventory_delete',
+                'perm_personnel_view', 'perm_personnel_add',
+                'perm_personnel_edit', 'perm_personnel_delete',
+                'perm_transaction_view', 'perm_transaction_create',
+                'perm_reports', 'perm_print', 'perm_users_manage',
+                'require_2fa',
+            ]
+            old_values = {f: getattr(profile, f) for f in _PERM_FIELDS}
+
             profile.role = cd['role']
             profile.perm_inventory_view   = cd.get('perm_inventory_view', False)
             profile.perm_inventory_add    = cd.get('perm_inventory_add', False)
@@ -360,6 +374,29 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             profile.perm_users_manage  = cd.get('perm_users_manage', False)
             profile.require_2fa = cd.get('require_2fa', True)
             profile.save()
+
+            # Write an AuditLog entry for every permission/role change.
+            new_values = {f: getattr(profile, f) for f in _PERM_FIELDS}
+            changed = {f: (old_values[f], new_values[f]) for f in _PERM_FIELDS if old_values[f] != new_values[f]}
+            if changed:
+                import logging as _log
+                from armguard.apps.users.models import AuditLog as _AuditLog
+                change_detail = '; '.join(
+                    f"{f}: {ov!r} → {nv!r}" for f, (ov, nv) in changed.items()
+                )
+                try:
+                    _AuditLog.objects.create(
+                        user=request.user,
+                        action='UPDATE',
+                        model_name='UserProfile',
+                        object_pk=str(self.object.pk),
+                        message=f"Permission changes on '{self.object.username}': {change_detail}",
+                    )
+                except Exception:
+                    _log.getLogger(__name__).exception(
+                        "Failed to write AuditLog for permission change on user %s",
+                        self.object.pk,
+                    )
             # Update personnel link: clear old link, set new one
             old_linked = getattr(self.object, 'personnel', None)
             new_linked = cd.get('linked_personnel')   # Personnel instance or None

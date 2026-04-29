@@ -229,6 +229,19 @@ class Transaction(models.Model):
         if not getattr(self, "personnel", None):
             raise ValidationError('Personnel is required for every transaction.')
 
+        # --- Purpose validation (always enforced) ---
+        # purpose must be one of the known choices, OR 'Others' with a non-empty purpose_other.
+        _valid_purposes = {p for p, _ in PURPOSE_CHOICES}
+        purpose = (self.purpose or '').strip()
+        if not purpose:
+            raise ValidationError("Purpose is required.")
+        if purpose not in _valid_purposes:
+            raise ValidationError(
+                f"Invalid purpose '{purpose}'. Choose one of: {', '.join(sorted(_valid_purposes))}."
+            )
+        if purpose == 'Others' and not (self.purpose_other or '').strip():
+            raise ValidationError("Please specify the purpose when 'Others' is selected.")
+
         # --- Business rules (only for new transactions) ---
         # Only enforce business rules for new records (not edits)
         if self.pk:
