@@ -10,10 +10,13 @@ Three levels of restriction:
 All are plain function decorators compatible with Django's FBV pattern.
 """
 import functools
+import logging
 
 from django.conf import settings
 from django.http import HttpResponseForbidden, HttpResponseBadRequest
 from django.shortcuts import redirect
+
+logger = logging.getLogger(__name__)
 
 # Roles permitted to use the camera upload feature.
 CAMERA_ALLOWED_ROLES = frozenset({'System Administrator', 'Armorer'})
@@ -67,6 +70,7 @@ def _has_camera_role(user) -> bool:
     try:
         return user.profile.role in CAMERA_ALLOWED_ROLES
     except Exception:
+        logger.exception("Error reading camera role for user %s", getattr(user, 'pk', '?'))
         return False
 
 
@@ -79,6 +83,7 @@ def _is_camera_admin(user) -> bool:
     try:
         return user.profile.role == 'System Administrator'
     except Exception:
+        logger.exception("Error reading camera admin role for user %s", getattr(user, 'pk', '?'))
         return False
 
 

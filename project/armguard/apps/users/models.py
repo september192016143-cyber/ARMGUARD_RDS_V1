@@ -8,11 +8,14 @@ Models:
 """
 import hashlib
 import json
+import logging
 from django.db import models
 from django.conf import settings
 from django.db.models.signals import post_save, m2m_changed
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.dispatch import receiver
+
+logger = logging.getLogger(__name__)
 
 
 ROLE_CHOICES = [
@@ -31,12 +34,17 @@ def _get_user_agent(request):
 
 
 def _get_client_ip(request):
-    """Extract the real client IP, handling reverse-proxy X-Forwarded-For headers."""
+    """Extract the real client IP, handling reverse-proxy X-Forwarded-For headers.
+
+    Uses the LAST entry in X-Forwarded-For, which is written by the immediate
+    upstream proxy (Nginx) and cannot be forged by the client.  The first entry
+    is client-controlled and trivially spoofed.
+    """
     if request is None:
         return None
     xff = request.META.get('HTTP_X_FORWARDED_FOR')
     if xff:
-        return xff.split(',')[0].strip()
+        return xff.split(',')[-1].strip()
     return request.META.get('REMOTE_ADDR')
 
 
@@ -623,7 +631,7 @@ def on_user_logged_in(sender, request, user, **kwargs):
         profile.last_session_key = request.session.session_key
         profile.save(update_fields=['last_session_key'])
     except Exception:
-        pass  # Never block a login due to profile errors.
+        logger.warning("Could not update last_session_key on login for user %s", getattr(user, 'pk', '?'))
 
     try:
         AuditLog.objects.create(
@@ -636,7 +644,7 @@ def on_user_logged_in(sender, request, user, **kwargs):
             user_agent=_get_user_agent(request),
         )
     except Exception:
-        pass
+        logger.warning("Failed to write LOGIN AuditLog for user %s", getattr(user, 'pk', '?'))
 
 
 @receiver(user_logged_out)
@@ -653,7 +661,7 @@ def on_user_logged_out(sender, request, user, **kwargs):
         profile.last_session_key = None
         profile.save(update_fields=['last_session_key'])
     except Exception:
-        pass
+        logger.warning("Could not clear last_session_key on logout for user %s", getattr(user, 'pk', '?'))
 
     try:
         AuditLog.objects.create(
@@ -666,4 +674,4 @@ def on_user_logged_out(sender, request, user, **kwargs):
             user_agent=_get_user_agent(request),
         )
     except Exception:
-        pass
+        logger.warning("Failed to write LOGOUT AuditLog for user %s", getattr(user, 'pk', '?'))

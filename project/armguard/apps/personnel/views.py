@@ -224,8 +224,16 @@ class PersonnelCardPreviewView(LoginRequiredMixin, UserPassesTestMixin, View):
 			if existing:
 				p.personnel_image = existing
 		if photo_file:
-			ext = os.path.splitext(photo_file.name)[1] or '.jpg'
-			tmp_rel = f"personnel_id_cards/preview_{uuid.uuid4().hex[:12]}{ext}"
+			# Validate extension against allowed image types
+			_ALLOWED_EXTS = {'.jpg', '.jpeg', '.png'}
+			ext = os.path.splitext(photo_file.name)[1].lower()
+			if ext not in _ALLOWED_EXTS:
+				return HttpResponse(status=400)
+			# Enforce 5 MB size cap
+			if photo_file.size > 5 * 1024 * 1024:
+				return HttpResponse(status=400)
+			# Use uuid4 for temp filename to prevent path-separator injection
+			tmp_rel = f"personnel_id_cards/preview_{uuid.uuid4().hex}{ext}"
 			tmp_abs = os.path.join(settings.MEDIA_ROOT, tmp_rel)
 			os.makedirs(os.path.dirname(tmp_abs), exist_ok=True)
 			with open(tmp_abs, 'wb') as fh:
@@ -554,7 +562,7 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 	template_name = 'personnel/personnel_import.html'
 
 	def test_func(self):
-		return self.request.user.is_superuser
+		return self.request.user.is_superuser or _can_add_personnel(self.request.user)
 
 	def _ctx(self):
 		from django.conf import settings as dj_settings

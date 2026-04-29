@@ -1,5 +1,6 @@
 import os
 import shutil
+import logging
 
 from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -13,10 +14,12 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
-from .models import UserProfile, ROLE_CHOICES, PasswordHistory
+from .models import UserProfile, ROLE_CHOICES, PasswordHistory, AuditLog
 from armguard.apps.personnel.models import Personnel, PersonnelGroup, PersonnelSquadron
 # H1 FIX: Import per-module permission helpers for user management.
 from armguard.utils.permissions import can_manage_users as _can_manage_users, is_admin as _is_admin
+
+_logger = logging.getLogger(__name__)
 
 
 @require_POST
@@ -344,6 +347,20 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                     user=self.object, password_hash=self.object.password
                 )
             profile, _ = UserProfile.objects.get_or_create(user=self.object)
+
+            # Capture old permission values BEFORE applying changes so we can diff them.
+            _PERM_FIELDS = [
+                'role',
+                'perm_inventory_view', 'perm_inventory_add',
+                'perm_inventory_edit', 'perm_inventory_delete',
+                'perm_personnel_view', 'perm_personnel_add',
+                'perm_personnel_edit', 'perm_personnel_delete',
+                'perm_transaction_view', 'perm_transaction_create',
+                'perm_reports', 'perm_print', 'perm_users_manage',
+                'require_2fa',
+            ]
+            old_values = {f: getattr(profile, f) for f in _PERM_FIELDS}
+
             profile.role = cd['role']
             profile.perm_inventory_view   = cd.get('perm_inventory_view', False)
             profile.perm_inventory_add    = cd.get('perm_inventory_add', False)
@@ -360,6 +377,27 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             profile.perm_users_manage  = cd.get('perm_users_manage', False)
             profile.require_2fa = cd.get('require_2fa', True)
             profile.save()
+
+            # Write an AuditLog entry for every permission/role change.
+            new_values = {f: getattr(profile, f) for f in _PERM_FIELDS}
+            changed = {f: (old_values[f], new_values[f]) for f in _PERM_FIELDS if old_values[f] != new_values[f]}
+            if changed:
+                change_detail = '; '.join(
+                    f"{f}: {ov!r} → {nv!r}" for f, (ov, nv) in changed.items()
+                )
+                try:
+                    AuditLog.objects.create(
+                        user=request.user,
+                        action='UPDATE',
+                        model_name='UserProfile',
+                        object_pk=str(self.object.pk),
+                        message=f"Permission changes on '{self.object.username}': {change_detail}",
+                    )
+                except Exception:
+                    _logger.exception(
+                        "Failed to write AuditLog for permission change on user %s",
+                        self.object.pk,
+                    )
             # Update personnel link: clear old link, set new one
             old_linked = getattr(self.object, 'personnel', None)
             new_linked = cd.get('linked_personnel')   # Personnel instance or None

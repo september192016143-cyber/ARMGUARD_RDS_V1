@@ -28,6 +28,9 @@ from armguard.utils.permissions import can_delete_inventory as _can_delete
 from armguard.utils.permissions import can_edit_personnel as _can_edit
 from armguard.utils.permissions import is_admin as _is_admin
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def is_admin_or_armorer(user):
     """Check if user may access the Print module.
@@ -249,7 +252,7 @@ def delete_item_tag(request, item_id):
             # on disk but clears the DB field correctly).
             item.item_tag.delete(save=True)
     except Exception:
-        pass  # Non-fatal
+        logger.exception("Failed to clear item_tag DB reference for item %s", item_id)
 
     if deleted:
         return JsonResponse({'success': True})

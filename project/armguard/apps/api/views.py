@@ -20,7 +20,7 @@ from rest_framework import viewsets, permissions, mixins
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.authtoken.views import ObtainAuthToken
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 from armguard.apps.inventory.models import Pistol, Rifle
 from armguard.apps.personnel.models import Personnel
@@ -32,6 +32,16 @@ from .serializers import (
     PersonnelSerializer,
     TransactionSerializer,
 )
+
+
+class _PiiRateThrottle(UserRateThrottle):
+    """Conservative throttle for endpoints exposing military PII.
+
+    Limits authenticated users to 60 requests/hour (vs the default 30/minute
+    global user throttle).  This prevents bulk scraping of Personnel and
+    Transaction records while still allowing legitimate audit-script usage.
+    """
+    scope = 'pii'
 
 
 class _ReadOnlyModelViewSet(
@@ -58,6 +68,8 @@ class PersonnelViewSet(_ReadOnlyModelViewSet):
     # (full names, ranks, service IDs). Token-authenticated audit clients must have
     # is_staff=True to access this viewset.
     permission_classes = [permissions.IsAdminUser]
+    # Strict per-user throttle: 60 req/hour for PII endpoints.
+    throttle_classes = [_PiiRateThrottle]
     serializer_class = PersonnelSerializer
     queryset = Personnel.objects.all().order_by('Personnel_ID')
 
@@ -67,6 +79,8 @@ class TransactionViewSet(_ReadOnlyModelViewSet):
     # (who holds which weapon, when, under which issuance type). Restrict to
     # is_staff users only, consistent with PersonnelViewSet.
     permission_classes = [permissions.IsAdminUser]
+    # Strict per-user throttle: 60 req/hour for PII endpoints.
+    throttle_classes = [_PiiRateThrottle]
     serializer_class = TransactionSerializer
     queryset = (
         Transaction.objects

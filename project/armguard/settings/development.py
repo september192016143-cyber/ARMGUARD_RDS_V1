@@ -17,6 +17,10 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 _allowed = os.environ.get('DJANGO_ALLOWED_HOSTS', '')
 ALLOWED_HOSTS = [h.strip() for h in _allowed.split(',') if h.strip()] or ['localhost', '127.0.0.1']
 
+# Enable the REST API by default in development so tests and local exploration work.
+# In production, ARMGUARD_API_ENABLED is read from .env (default: False).
+ARMGUARD_API_ENABLED = os.environ.get('ARMGUARD_API_ENABLED', 'True') == 'True'
+
 # Use plain filesystem storage in development and during tests — CompressedManifest
 # requires `collectstatic` to produce a manifest, which is not appropriate for
 # local development or the test runner.

@@ -183,27 +183,11 @@ STATICFILES_DIRS = [BASE_DIR / 'armguard' / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # L6 FIX: WhiteNoise compressed+versioned static files.
-# CompressedManifestStaticFilesStorage post-processes every collected file to
-# rewrite internal static URL references for cache-busting. pdf.min.mjs and
-# pdf.worker.min.mjs are large minified bundles that must NOT be scanned for
-# URL substitutions — doing so corrupts them. We override matches_patterns() so
-# .mjs files are treated as non-adjustable (hashed+copied but not URL-rewritten)
-# while all other files behave normally.
-from whitenoise.storage import CompressedManifestStaticFilesStorage as _WNBase
-
-class _ArmguardStaticStorage(_WNBase):
-    """Skip URL-rewriting (but not hashing/copying/compression) for .mjs files."""
-
-    def matches_patterns(self, path, patterns=None):
-        # .mjs files must not be scanned for internal URL substitutions —
-        # they are large minified bundles and the rewriter would corrupt them.
-        if path.endswith('.mjs'):
-            return False
-        return super().matches_patterns(path, patterns)
-
+# See armguard/storage.py for the custom backend that skips URL-rewriting on
+# .mjs files (large PDF.js bundles that would be corrupted by the rewriter).
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "armguard.settings.base._ArmguardStaticStorage"},
+    "staticfiles": {"BACKEND": "armguard.storage.ArmguardStaticStorage"},
 }
 
 MEDIA_URL = '/media/'
@@ -253,6 +237,9 @@ REST_FRAMEWORK = {
         'user': '30/minute',   # authenticated users
         # S01 FIX: strict throttle for token auth endpoint (5/min per IP)
         'token_auth': '5/minute',
+        # PII endpoints (Personnel, Transaction viewsets): 60 req/hour per user
+        # to prevent bulk scraping of military records.
+        'pii': '60/hour',
     },
     # T1 FIX: Use drf-spectacular for OpenAPI schema generation.
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
@@ -281,6 +268,10 @@ SPECTACULAR_SETTINGS = {
     'SORT_OPERATIONS': True,
 }
 SECURE_REFERRER_POLICY = 'same-origin'
+
+# G12: Opt-in API — set ARMGUARD_API_ENABLED=True in .env to expose /api/v1/.
+# Defaults to False so fresh deployments do not expose the endpoint until needed.
+ARMGUARD_API_ENABLED = os.environ.get('ARMGUARD_API_ENABLED', 'False') == 'True'
 
 # M12 FIX: Structured logging to rotating file.
 LOG_DIR = BASE_DIR / 'logs'
