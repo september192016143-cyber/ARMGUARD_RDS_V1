@@ -242,39 +242,46 @@ def _build_magazine_table():
     from django.urls import reverse
 
     open_statuses = ('Open', 'Partially Returned')
+    _PAR = 'PAR (Property Acknowledgement Receipt)'
+    _TR  = 'TR (Temporary Receipt)'
+
     on_stock_map = {
         row['type']: row['total']
         for row in Magazine.objects.values('type').annotate(total=Sum('quantity'))
     }
-    # Query per magazine type to avoid double-counting Short/Long
-    def _mag_net(qs):
-        a = qs.aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
-        return max((a['w'] or 0) - (a['r'] or 0), 0)
 
-    pistol_agg = TransactionLogs.objects.filter(
-        log_status__in=open_statuses,
-        withdraw_pistol_magazine_quantity__isnull=False,
-    ).aggregate(w=Sum('withdraw_pistol_magazine_quantity'), r=Sum('return_pistol_magazine_quantity'))
-    pistol_issued = max((pistol_agg['w'] or 0) - (pistol_agg['r'] or 0), 0)
+    # N+1 FIX: replace 9 separate per-type queries with 3 conditional aggregates
+    # (total, PAR, TR) — one database round-trip each instead of one per type×issuance.
+    def _mag_agg(qs_filter):
+        return TransactionLogs.objects.filter(log_status__in=open_statuses, **qs_filter).aggregate(
+            pistol_w=Sum('withdraw_pistol_magazine_quantity'),
+            pistol_r=Sum('return_pistol_magazine_quantity'),
+            short_w=Sum('withdraw_rifle_magazine_quantity',
+                filter=Q(withdraw_rifle_magazine__type='Short')),
+            short_r=Sum('return_rifle_magazine_quantity',
+                filter=Q(withdraw_rifle_magazine__type='Short')),
+            long_w=Sum('withdraw_rifle_magazine_quantity',
+                filter=Q(withdraw_rifle_magazine__type='Long')),
+            long_r=Sum('return_rifle_magazine_quantity',
+                filter=Q(withdraw_rifle_magazine__type='Long')),
+        )
 
-    short_base = TransactionLogs.objects.filter(log_status__in=open_statuses, withdraw_rifle_magazine__type='Short')
-    long_base  = TransactionLogs.objects.filter(log_status__in=open_statuses, withdraw_rifle_magazine__type='Long')
-    short_issued = _mag_net(short_base)
-    long_issued  = _mag_net(long_base)
+    def _net(a, w, r):
+        return max((a[w] or 0) - (a[r] or 0), 0)
 
-    def _pistol_par_tr(it):
-        a = TransactionLogs.objects.filter(
-            log_status__in=open_statuses, issuance_type=it,
-            withdraw_pistol_magazine_quantity__isnull=False,
-        ).aggregate(w=Sum('withdraw_pistol_magazine_quantity'), r=Sum('return_pistol_magazine_quantity'))
-        return max((a['w'] or 0) - (a['r'] or 0), 0)
+    total_agg = _mag_agg({})
+    par_agg   = _mag_agg({'issuance_type': _PAR})
+    tr_agg    = _mag_agg({'issuance_type': _TR})
 
-    pistol_issued_par = _pistol_par_tr('PAR (Property Acknowledgement Receipt)')
-    pistol_issued_tr  = _pistol_par_tr('TR (Temporary Receipt)')
-    short_issued_par  = _mag_net(short_base.filter(issuance_type='PAR (Property Acknowledgement Receipt)'))
-    short_issued_tr   = _mag_net(short_base.filter(issuance_type='TR (Temporary Receipt)'))
-    long_issued_par   = _mag_net(long_base.filter(issuance_type='PAR (Property Acknowledgement Receipt)'))
-    long_issued_tr    = _mag_net(long_base.filter(issuance_type='TR (Temporary Receipt)'))
+    pistol_issued     = _net(total_agg, 'pistol_w', 'pistol_r')
+    pistol_issued_par = _net(par_agg,   'pistol_w', 'pistol_r')
+    pistol_issued_tr  = _net(tr_agg,    'pistol_w', 'pistol_r')
+    short_issued      = _net(total_agg, 'short_w',  'short_r')
+    short_issued_par  = _net(par_agg,   'short_w',  'short_r')
+    short_issued_tr   = _net(tr_agg,    'short_w',  'short_r')
+    long_issued       = _net(total_agg, 'long_w',   'long_r')
+    long_issued_par   = _net(par_agg,   'long_w',   'long_r')
+    long_issued_tr    = _net(tr_agg,    'long_w',   'long_r')
 
     MAG_DEFS = [
         ('Pistol Standard', 'Pistol', 'Pistol Magazine',               pistol_issued, pistol_issued_par, pistol_issued_tr),
@@ -303,61 +310,51 @@ def _build_accessory_table():
     from django.urls import reverse
 
     open_statuses = ('Open', 'Partially Returned')
+    _PAR = 'PAR (Property Acknowledgement Receipt)'
+    _TR  = 'TR (Temporary Receipt)'
+
     on_stock_map = {
         row['type']: row['total']
         for row in Accessory.objects.values('type').annotate(total=Sum('quantity'))
     }
-    agg = TransactionLogs.objects.filter(log_status__in=open_statuses).aggregate(
-        holster_w=Sum('withdraw_pistol_holster_quantity'),
-        holster_r=Sum('return_pistol_holster_quantity'),
-        pouch_w=Sum('withdraw_magazine_pouch_quantity'),
-        pouch_r=Sum('return_magazine_pouch_quantity'),
-        sling_w=Sum('withdraw_rifle_sling_quantity'),
-        sling_r=Sum('return_rifle_sling_quantity'),
-        band_w=Sum('withdraw_bandoleer_quantity'),
-        band_r=Sum('return_bandoleer_quantity'),
-    )
-    # PAR / TR split per accessory type
-    par_agg = TransactionLogs.objects.filter(
-        log_status__in=open_statuses,
-        issuance_type='PAR (Property Acknowledgement Receipt)',
-    ).aggregate(
-        holster_w=Sum('withdraw_pistol_holster_quantity'),
-        holster_r=Sum('return_pistol_holster_quantity'),
-        pouch_w=Sum('withdraw_magazine_pouch_quantity'),
-        pouch_r=Sum('return_magazine_pouch_quantity'),
-        sling_w=Sum('withdraw_rifle_sling_quantity'),
-        sling_r=Sum('return_rifle_sling_quantity'),
-        band_w=Sum('withdraw_bandoleer_quantity'),
-        band_r=Sum('return_bandoleer_quantity'),
-    )
-    tr_agg = TransactionLogs.objects.filter(
-        log_status__in=open_statuses,
-        issuance_type='TR (Temporary Receipt)',
-    ).aggregate(
-        holster_w=Sum('withdraw_pistol_holster_quantity'),
-        holster_r=Sum('return_pistol_holster_quantity'),
-        pouch_w=Sum('withdraw_magazine_pouch_quantity'),
-        pouch_r=Sum('return_magazine_pouch_quantity'),
-        sling_w=Sum('withdraw_rifle_sling_quantity'),
-        sling_r=Sum('return_rifle_sling_quantity'),
-        band_w=Sum('withdraw_bandoleer_quantity'),
-        band_r=Sum('return_bandoleer_quantity'),
-    )
+
+    # N+1 FIX: replace 3 separate aggregate queries with 1 conditional aggregate
+    # that computes total, PAR, and TR issued quantities in a single DB round-trip.
+    _ACC_FIELDS = ('holster', 'pouch', 'sling', 'band')
+    _ACC_MAP = {
+        'holster': ('withdraw_pistol_holster_quantity',  'return_pistol_holster_quantity'),
+        'pouch':   ('withdraw_magazine_pouch_quantity',  'return_magazine_pouch_quantity'),
+        'sling':   ('withdraw_rifle_sling_quantity',     'return_rifle_sling_quantity'),
+        'band':    ('withdraw_bandoleer_quantity',       'return_bandoleer_quantity'),
+    }
+
+    def _build_acc_agg(extra_filter):
+        kwargs = {}
+        for key, (wf, rf) in _ACC_MAP.items():
+            kwargs[f'{key}_w'] = Sum(wf, filter=extra_filter)
+            kwargs[f'{key}_r'] = Sum(rf, filter=extra_filter)
+        return TransactionLogs.objects.filter(log_status__in=open_statuses).aggregate(**kwargs)
+
+    agg     = _build_acc_agg(Q())
+    par_agg = _build_acc_agg(Q(issuance_type=_PAR))
+    tr_agg  = _build_acc_agg(Q(issuance_type=_TR))
+
+    def _net(a, key):
+        return max((a[f'{key}_w'] or 0) - (a[f'{key}_r'] or 0), 0)
 
     ACC_DEFS = [
-        ('Pistol Holster',        'Pistol', 'Pistol Holster',        'holster_w', 'holster_r'),
-        ('Pistol Magazine Pouch', 'Pistol', 'Pistol Magazine Pouch', 'pouch_w',   'pouch_r'),
-        ('Rifle Sling',           'Rifle',  'Rifle Sling',           'sling_w',   'sling_r'),
-        ('Bandoleer',             'Rifle',  'Bandoleer',             'band_w',    'band_r'),
+        ('Pistol Holster',        'Pistol', 'Pistol Holster',        'holster'),
+        ('Pistol Magazine Pouch', 'Pistol', 'Pistol Magazine Pouch', 'pouch'),
+        ('Rifle Sling',           'Rifle',  'Rifle Sling',           'sling'),
+        ('Bandoleer',             'Rifle',  'Bandoleer',             'band'),
     ]
     list_url = reverse('accessory-list')
     rows, totals = [], {'on_stock': 0, 'issued': 0, 'issued_par': 0, 'issued_tr': 0}
-    for type_key, label, nomenclature, w_key, r_key in ACC_DEFS:
+    for type_key, label, nomenclature, key in ACC_DEFS:
         on_stock   = on_stock_map.get(type_key, 0)
-        issued     = max((agg[w_key] or 0) - (agg[r_key] or 0), 0)
-        issued_par = max((par_agg[w_key] or 0) - (par_agg[r_key] or 0), 0)
-        issued_tr  = max((tr_agg[w_key]  or 0) - (tr_agg[r_key]  or 0), 0)
+        issued     = _net(agg,     key)
+        issued_par = _net(par_agg, key)
+        issued_tr  = _net(tr_agg,  key)
         rows.append(dict(label=label, nomenclature=nomenclature, type=type_key,
                          on_stock=on_stock, issued=issued,
                          issued_par=issued_par, issued_tr=issued_tr,
@@ -382,75 +379,98 @@ def dashboard_view(request):
     if stats is None:
         from armguard.apps.transactions.models import TransactionLogs
 
-        withdrawals_today = Transaction.objects.filter(
-            transaction_type='Withdrawal', timestamp__date=today
-        ).count()
-        returns_today = Transaction.objects.filter(
-            transaction_type='Return', timestamp__date=today
-        ).count()
-
         _officer_ranks = {'2LT', '1LT', 'CPT', 'MAJ', 'LTCOL', 'COL',
                           'BGEN', 'MGEN', 'LTGEN', 'GEN'}
-
-        # Count firearms that are *currently* outstanding (not yet returned).
-        # Each TransactionLog row may track a pistol, a rifle, or both; count
-        # each weapon independently so a combined pistol+rifle log adds 2.
         _open = ('Open', 'Partially Returned')
-        issued_tr = (
-            TransactionLogs.objects.filter(
-                log_status__in=_open,
-                issuance_type='TR (Temporary Receipt)',
-                withdraw_pistol__isnull=False, return_pistol__isnull=True,
-            ).count()
-            + TransactionLogs.objects.filter(
-                log_status__in=_open,
-                issuance_type='TR (Temporary Receipt)',
-                withdraw_rifle__isnull=False, return_rifle__isnull=True,
-            ).count()
+        _PAR = 'PAR (Property Acknowledgement Receipt)'
+        _TR  = 'TR (Temporary Receipt)'
+
+        # N+1 FIX: collapse 17 individual count/aggregate queries into 6
+        # conditional aggregates — one per model family.
+
+        # 1 query: personnel counts
+        _pers = Personnel.objects.aggregate(
+            active=Count('id', filter=Q(status='Active')),
+            inactive=Count('id', filter=Q(status='Inactive')),
+            officers=Count('id', filter=Q(status='Active', rank__in=_officer_ranks)),
+            enlisted=Count('id', filter=Q(status='Active') & ~Q(rank__in=_officer_ranks)),
         )
-        issued_par = (
-            TransactionLogs.objects.filter(
-                log_status__in=_open,
-                issuance_type='PAR (Property Acknowledgement Receipt)',
-                withdraw_pistol__isnull=False, return_pistol__isnull=True,
-            ).count()
-            + TransactionLogs.objects.filter(
-                log_status__in=_open,
-                issuance_type='PAR (Property Acknowledgement Receipt)',
-                withdraw_rifle__isnull=False, return_rifle__isnull=True,
-            ).count()
+
+        # 1 query: pistol counts
+        _pistol = Pistol.objects.aggregate(
+            total=Count('item_id'),
+            available=Count('item_id', filter=Q(item_status='Available')),
+            issued=Count('item_id', filter=Q(item_status='Issued')),
         )
+
+        # 1 query: rifle counts
+        _rifle = Rifle.objects.aggregate(
+            total=Count('item_id'),
+            available=Count('item_id', filter=Q(item_status='Available')),
+            issued=Count('item_id', filter=Q(item_status='Issued')),
+        )
+
+        # 1 query: magazine + ammo totals
+        _mag = Magazine.objects.aggregate(
+            total=Sum('quantity'),
+            short=Sum('quantity', filter=Q(type='Short')),
+            long=Sum('quantity', filter=Q(type='Long')),
+        )
+
+        # 1 query: transaction day totals + all-time count
+        _txn = Transaction.objects.aggregate(
+            total=Count('id'),
+            withdrawals_today=Count('id', filter=Q(transaction_type='Withdrawal', timestamp__date=today)),
+            returns_today=Count('id', filter=Q(transaction_type='Return', timestamp__date=today)),
+        )
+
+        # 1 query: issued firearm counts + magazine issued counts (open logs only)
+        _logs = TransactionLogs.objects.filter(log_status__in=_open).aggregate(
+            tr_pistol=Count('record_id', filter=Q(issuance_type=_TR,
+                withdraw_pistol__isnull=False, return_pistol__isnull=True)),
+            tr_rifle=Count('record_id', filter=Q(issuance_type=_TR,
+                withdraw_rifle__isnull=False, return_rifle__isnull=True)),
+            par_pistol=Count('record_id', filter=Q(issuance_type=_PAR,
+                withdraw_pistol__isnull=False, return_pistol__isnull=True)),
+            par_rifle=Count('record_id', filter=Q(issuance_type=_PAR,
+                withdraw_rifle__isnull=False, return_rifle__isnull=True)),
+            short_mag_w=Sum('withdraw_rifle_magazine_quantity',
+                filter=Q(withdraw_rifle_magazine__type='Short')),
+            short_mag_r=Sum('return_rifle_magazine_quantity',
+                filter=Q(withdraw_rifle_magazine__type='Short')),
+            long_mag_w=Sum('withdraw_rifle_magazine_quantity',
+                filter=Q(withdraw_rifle_magazine__type='Long')),
+            long_mag_r=Sum('return_rifle_magazine_quantity',
+                filter=Q(withdraw_rifle_magazine__type='Long')),
+        )
+
+        issued_tr  = _logs['tr_pistol']  + _logs['tr_rifle']
+        issued_par = _logs['par_pistol'] + _logs['par_rifle']
 
         stats = {
-            'total_personnel':        Personnel.objects.filter(status='Active').count(),
-            'inactive_personnel':     Personnel.objects.filter(status='Inactive').count(),
-            'officers_count':         Personnel.objects.filter(status='Active', rank__in=_officer_ranks).count(),
-            'enlisted_count':         Personnel.objects.filter(status='Active').exclude(rank__in=_officer_ranks).count(),
-            'total_pistols':          Pistol.objects.count(),
-            'pistols_available':      Pistol.objects.filter(item_status='Available').count(),
-            'pistols_issued':         Pistol.objects.filter(item_status='Issued').count(),
-            'total_rifles':           Rifle.objects.count(),
-            'rifles_available':       Rifle.objects.filter(item_status='Available').count(),
-            'rifles_issued':          Rifle.objects.filter(item_status='Issued').count(),
-            'total_magazine_qty':     Magazine.objects.aggregate(t=Sum('quantity'))['t'] or 0,
-            'short_magazine_available': Magazine.objects.filter(type='Short').aggregate(t=Sum('quantity'))['t'] or 0,
-            'long_magazine_available':  Magazine.objects.filter(type='Long').aggregate(t=Sum('quantity'))['t'] or 0,
-            'short_magazine_issued':   (lambda a: max((a['w'] or 0) - (a['r'] or 0), 0))(
-                TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__type='Short')
-                .aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
-            ),
-            'long_magazine_issued':    (lambda a: max((a['w'] or 0) - (a['r'] or 0), 0))(
-                TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__type='Long')
-                .aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
-            ),
-            'total_ammo_qty':         Ammunition.objects.aggregate(t=Sum('quantity'))['t'] or 0,
-            'total_transactions':     Transaction.objects.count(),
-            'total_transactions_today': withdrawals_today + returns_today,
-            'withdrawals_today':      withdrawals_today,
-            'returns_today':          returns_today,
-            'issued_TR':              issued_tr,
-            'issued_PAR':             issued_par,
-            'total_issued':           issued_tr + issued_par,
+            'total_personnel':          _pers['active']   or 0,
+            'inactive_personnel':       _pers['inactive'] or 0,
+            'officers_count':           _pers['officers'] or 0,
+            'enlisted_count':           _pers['enlisted'] or 0,
+            'total_pistols':            _pistol['total']     or 0,
+            'pistols_available':        _pistol['available'] or 0,
+            'pistols_issued':           _pistol['issued']    or 0,
+            'total_rifles':             _rifle['total']     or 0,
+            'rifles_available':         _rifle['available'] or 0,
+            'rifles_issued':            _rifle['issued']    or 0,
+            'total_magazine_qty':       _mag['total'] or 0,
+            'short_magazine_available': _mag['short'] or 0,
+            'long_magazine_available':  _mag['long']  or 0,
+            'short_magazine_issued':    max((_logs['short_mag_w'] or 0) - (_logs['short_mag_r'] or 0), 0),
+            'long_magazine_issued':     max((_logs['long_mag_w']  or 0) - (_logs['long_mag_r']  or 0), 0),
+            'total_ammo_qty':           Ammunition.objects.aggregate(t=Sum('quantity'))['t'] or 0,
+            'total_transactions':       _txn['total']            or 0,
+            'total_transactions_today': (_txn['withdrawals_today'] or 0) + (_txn['returns_today'] or 0),
+            'withdrawals_today':        _txn['withdrawals_today'] or 0,
+            'returns_today':            _txn['returns_today']     or 0,
+            'issued_TR':                issued_tr,
+            'issued_PAR':               issued_par,
+            'total_issued':             issued_tr + issued_par,
         }
         cache.set(cache_key, stats, 60)
 

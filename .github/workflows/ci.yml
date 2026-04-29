@@ -78,7 +78,6 @@ jobs:
       - name: Security audit (pip-audit)
         run: |
           pip-audit -r armguard/requirements.txt --strict
-        continue-on-error: true   # Warn but don't fail build on first detection
 
   # ---------------------------------------------------------------------------
   # Docker build smoke test (validates Dockerfile syntax + build)
