@@ -65,10 +65,11 @@ urlpatterns = [
     path('.well-known/security.txt', TemplateView.as_view(template_name='security.txt', content_type='text/plain'), name='security_txt'),
 ]
 
-# G12 FIX: Read-only REST API v1 (DRF). Only registered when ARMGUARD_API_ENABLED=True.
-# Set ARMGUARD_API_ENABLED=True in .env to expose /api/v1/ (disabled by default).
-if getattr(settings, 'ARMGUARD_API_ENABLED', False):
-    urlpatterns += [path('api/v1/', include('armguard.apps.api.urls'))]
+# G12 FIX: Read-only REST API v1 (DRF). Always registered because base.html uses
+# {% url 'api:api-last-modified' %} for real-time dashboard polling on every page.
+# Removing this block (or gating it behind ARMGUARD_API_ENABLED) causes a
+# NoReverseMatch on every page render → 500 Internal Server Error.
+urlpatterns += [path('api/v1/', include('armguard.apps.api.urls'))]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
