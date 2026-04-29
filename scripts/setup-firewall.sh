@@ -112,6 +112,10 @@ ufw allow 443/tcp comment "HTTPS (Nginx)"
 # this explicit rule ensures avahi-daemon responses are not dropped.
 ufw allow 5353/udp comment "mDNS (Avahi — armguard.local)"
 
+# WireGuard VPN — encrypted UDP tunnel for off-LAN access
+# Run scripts/setup-wireguard.sh to configure the VPN server.
+ufw allow 51820/udp comment "WireGuard VPN"
+
 # Block direct Gunicorn access from external hosts
 # Gunicorn binds to 127.0.0.1:8000 so external access is already blocked
 # by binding, but deny at UFW too as defence-in-depth.

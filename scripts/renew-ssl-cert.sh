@@ -23,6 +23,7 @@ CERT="/etc/ssl/certs/armguard-selfsigned.crt"
 KEY="/etc/ssl/private/armguard-selfsigned.key"
 SERVER_IP="192.168.0.11"
 MDNS_HOST="armguard.local"          # mDNS hostname broadcast by avahi-daemon
+WG_IP="10.8.0.1"                    # WireGuard VPN IP — leave blank if not using WireGuard
 RENEW_BEFORE_DAYS=45          # Renew this many days before expiry
 CERT_VALIDITY_DAYS=1095       # 3 years for new cert
 
@@ -79,11 +80,20 @@ log "Renewing — expires in $DAYS_LEFT day(s), within the ${RENEW_BEFORE_DAYS}-
 # Generate new certificate
 # ---------------------------------------------------------------------------
 RENEW_YEAR=$(date +%Y)
+
+# Build SAN — always include LAN IP + mDNS hostname;
+# include WireGuard IP if WG_IP is set and wg0 is configured.
+SAN="IP:${SERVER_IP},DNS:${MDNS_HOST}"
+if [[ -n "$WG_IP" && -f /etc/wireguard/wg0.conf ]]; then
+    SAN="${SAN},IP:${WG_IP}"
+    log "WireGuard IP ${WG_IP} included in certificate SAN."
+fi
+
 openssl req -x509 -nodes -days "$CERT_VALIDITY_DAYS" -newkey rsa:2048 \
     -keyout "$KEY" \
     -out    "$CERT" \
     -subj   "/C=PH/ST=Metro Manila/L=Manila/O=ArmGuard RDS ${RENEW_YEAR}/OU=Security/CN=ArmGuard RDS ${RENEW_YEAR}" \
-    -addext "subjectAltName=IP:$SERVER_IP,DNS:$MDNS_HOST" \
+    -addext "subjectAltName=${SAN}" \
     2>&1 | tee -a "$LOG"
 
 chmod 644 "$CERT"
