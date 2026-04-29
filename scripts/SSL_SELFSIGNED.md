@@ -17,8 +17,8 @@ By default browsers show a "Not secure" or "Your connection is not private" warn
 sudo openssl req -x509 -nodes -days 1095 -newkey rsa:2048 \
   -keyout /etc/ssl/private/armguard-selfsigned.key \
   -out /etc/ssl/certs/armguard-selfsigned.crt \
-  -subj "/C=PH/ST=Metro Manila/L=Manila/O=ArmGuard RDS/CN=armguard.local" \
-  -addext "subjectAltName=IP:192.168.0.11,DNS:armguard.local"
+  -subj "/C=PH/ST=Metro Manila/L=Manila/O=ArmGuard RDS/CN=192.168.0.11" \
+  -addext "subjectAltName=IP:192.168.0.11"
 ```
 
 This creates:
