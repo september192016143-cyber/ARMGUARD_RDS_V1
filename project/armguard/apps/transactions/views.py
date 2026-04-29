@@ -47,18 +47,29 @@ def _validate_discrepancy_image(f):
             f.size, _DISC_IMAGE_MAX_BYTES, getattr(f, 'name', ''),
         )
         return None
-    magic = f.read(12)
-    f.seek(0)
-    is_jpeg = magic[:3] == b'\xff\xd8\xff'
-    is_png  = magic[:8] == b'\x89PNG\r\n\x1a\n'
-    is_gif  = magic[:6] in (b'GIF87a', b'GIF89a')
-    is_webp = magic[:4] == b'RIFF' and magic[8:12] == b'WEBP'
-    if not (is_jpeg or is_png or is_gif or is_webp):
+    # Use Pillow to actually decode the image — this catches polyglot files,
+    # truncated files, and any format whose magic bytes look valid but whose
+    # payload is not a real image.  verify() checks the header+trailer without
+    # loading the full pixel data into RAM.
+    try:
+        from PIL import Image, UnidentifiedImageError
+        img = Image.open(f)
+        if img.format not in ('JPEG', 'PNG', 'GIF', 'WEBP'):
+            _logger.warning(
+                'Discrepancy image rejected (format %r not in allowlist): %r',
+                img.format, getattr(f, 'name', ''),
+            )
+            f.seek(0)
+            return None
+        img.verify()  # Raises for corrupt/truncated images
+    except Exception as _e:
         _logger.warning(
-            'Discrepancy image rejected (unrecognised magic bytes %r): %r',
-            magic[:4], getattr(f, 'name', ''),
+            'Discrepancy image rejected (Pillow validation failed: %s): %r',
+            _e, getattr(f, 'name', ''),
         )
+        f.seek(0)
         return None
+    f.seek(0)
     return f
 
 
@@ -305,6 +316,7 @@ class TransactionDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView)
 
 
 @login_required
+@ratelimit(rate='10/m')
 def create_transaction(request):
     if not _can_create_transaction(request.user):
         return HttpResponseForbidden("You do not have permission to create transactions.")
@@ -478,6 +490,8 @@ def tr_preview(request):
     Validate the in-progress transaction form exactly as Submit does,
     then generate and return a filled TR PDF preview without saving.
     """
+    if not _can_create_transaction(request.user):
+        return JsonResponse({'field_errors': {}, 'non_field_errors': ['Permission denied.']}, status=403)
     import logging
     import datetime as _dt
     from types import SimpleNamespace

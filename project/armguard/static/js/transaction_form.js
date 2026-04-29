@@ -507,14 +507,22 @@ function autoFillReturnConsumables(d) {
 // ── Real-time field checks ─────────────────────────────────────────────────────
 // F7 FIX: 300ms debounce timers — prevent firing on every dropdown option scrolled.
 var _personnelTimer, _pistolTimer, _rifleTimer;
+// AbortController for in-flight personnel_status fetches — cancelled when the
+// personnel selection changes so stale responses never overwrite current data.
+var _personnelFetchController = null;
 
 function checkPersonnel(val) {
   var form = document.getElementById('txn-form');
   var PERSONNEL_URL = form ? form.dataset.personnelUrl : '';
   if (!val) { setBanner('personnel-status-banner', null, ''); return; }
+  // Cancel any previous in-flight request before starting a new one.
+  if (_personnelFetchController) { _personnelFetchController.abort(); }
+  _personnelFetchController = new AbortController();
+  var _signal = _personnelFetchController.signal;
   // F8 FIX: credentials:'same-origin' on all fetch calls.
   fetch(PERSONNEL_URL + '?personnel_id=' + encodeURIComponent(val), {
     credentials: 'same-origin',
+    signal: _signal,
   })
     .then(function (r) { return r.json(); })
     .then(function (d) {
@@ -567,7 +575,11 @@ function checkPersonnel(val) {
         autoFillReturnConsumables(d);
       }
     })
-    .catch(function () { setBanner('personnel-status-banner', 'err', 'Could not fetch personnel status.'); });
+    .catch(function (err) {
+      // Ignore AbortError — triggered intentionally when a newer selection supersedes this request.
+      if (err && err.name === 'AbortError') return;
+      setBanner('personnel-status-banner', 'err', 'Could not fetch personnel status.');
+    });
 }
 
 function checkItem(selectId, bannerId, itemType) {

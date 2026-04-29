@@ -516,7 +516,7 @@ class Transaction(models.Model):
                     personnel_id=self.personnel,
                     withdraw_pistol_magazine=self.pistol_magazine,
                     return_pistol_magazine__isnull=True,
-                ).order_by('-withdraw_pistol_magazine_timestamp').first()
+                ).order_by('-withdraw_pistol_magazine_timestamp', '-record_id').first()
                 if not open_log:
                     raise ValidationError(
                         f"No open withdrawal record found for pistol magazine '{self.pistol_magazine}' for "
@@ -535,7 +535,7 @@ class Transaction(models.Model):
                     personnel_id=self.personnel,
                     withdraw_rifle_magazine=self.rifle_magazine,
                     return_rifle_magazine__isnull=True,
-                ).order_by('-withdraw_rifle_magazine_timestamp').first()
+                ).order_by('-withdraw_rifle_magazine_timestamp', '-record_id').first()
                 if not open_log:
                     raise ValidationError(
                         f"No open withdrawal record found for rifle magazine '{self.rifle_magazine}' for "
@@ -554,7 +554,7 @@ class Transaction(models.Model):
                     personnel_id=self.personnel,
                     withdraw_pistol_ammunition=self.pistol_ammunition,
                     return_pistol_ammunition__isnull=True,
-                ).order_by('-withdraw_pistol_ammunition_timestamp').first()
+                ).order_by('-withdraw_pistol_ammunition_timestamp', '-record_id').first()
                 if not open_log:
                     raise ValidationError(
                         f"No open withdrawal record found for pistol ammunition '{self.pistol_ammunition}' for "
@@ -573,7 +573,7 @@ class Transaction(models.Model):
                     personnel_id=self.personnel,
                     withdraw_rifle_ammunition=self.rifle_ammunition,
                     return_rifle_ammunition__isnull=True,
-                ).order_by('-withdraw_rifle_ammunition_timestamp').first()
+                ).order_by('-withdraw_rifle_ammunition_timestamp', '-record_id').first()
                 if not open_log:
                     raise ValidationError(
                         f"No open withdrawal record found for rifle ammunition '{self.rifle_ammunition}' for "
@@ -601,7 +601,7 @@ class Transaction(models.Model):
                         f'{w_qty_field}__isnull': False,
                         f'{r_qty_field}__isnull': True,
                     }
-                    open_log = TransactionLogs.objects.filter(**filter_kw).order_by(f'-{ts_field}').first()
+                    open_log = TransactionLogs.objects.filter(**filter_kw).order_by(f'-{ts_field}', '-record_id').first()
                     if not open_log:
                         raise ValidationError(
                             f"No open withdrawal record found for '{acc_label}' for "
