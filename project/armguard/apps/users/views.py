@@ -1,5 +1,6 @@
 import os
 import shutil
+import logging
 
 from django.contrib.auth import get_user_model, logout
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -13,10 +14,12 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
-from .models import UserProfile, ROLE_CHOICES, PasswordHistory
+from .models import UserProfile, ROLE_CHOICES, PasswordHistory, AuditLog
 from armguard.apps.personnel.models import Personnel, PersonnelGroup, PersonnelSquadron
 # H1 FIX: Import per-module permission helpers for user management.
 from armguard.utils.permissions import can_manage_users as _can_manage_users, is_admin as _is_admin
+
+_logger = logging.getLogger(__name__)
 
 
 @require_POST
@@ -379,13 +382,11 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             new_values = {f: getattr(profile, f) for f in _PERM_FIELDS}
             changed = {f: (old_values[f], new_values[f]) for f in _PERM_FIELDS if old_values[f] != new_values[f]}
             if changed:
-                import logging as _log
-                from armguard.apps.users.models import AuditLog as _AuditLog
                 change_detail = '; '.join(
                     f"{f}: {ov!r} → {nv!r}" for f, (ov, nv) in changed.items()
                 )
                 try:
-                    _AuditLog.objects.create(
+                    AuditLog.objects.create(
                         user=request.user,
                         action='UPDATE',
                         model_name='UserProfile',
@@ -393,7 +394,7 @@ class UserUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                         message=f"Permission changes on '{self.object.username}': {change_detail}",
                     )
                 except Exception:
-                    _log.getLogger(__name__).exception(
+                    _logger.exception(
                         "Failed to write AuditLog for permission change on user %s",
                         self.object.pk,
                     )
