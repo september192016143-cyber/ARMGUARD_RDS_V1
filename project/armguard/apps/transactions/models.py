@@ -391,27 +391,37 @@ class Transaction(models.Model):
                 ).order_by('-withdraw_pistol_timestamp').first()
                 if _pistol_open_log:
                     _missing = []
+                    # Check magazine
                     if _pistol_open_log.withdraw_pistol_magazine_id and not _pistol_open_log.return_pistol_magazine_id:
-                        if not self.pistol_magazine:
+                        required_qty = _pistol_open_log.withdraw_pistol_magazine_quantity or 0
+                        returned_qty = self.pistol_magazine_quantity or 0
+                        if not self.pistol_magazine or returned_qty < required_qty:
                             _missing.append(
-                                f"Pistol Magazine '{_pistol_open_log.withdraw_pistol_magazine}'"
-                                f" ×{_pistol_open_log.withdraw_pistol_magazine_quantity}"
+                                f"Pistol Magazine '{_pistol_open_log.withdraw_pistol_magazine}' ×{required_qty} (returned: {returned_qty})"
                             )
+                    # Check ammunition
                     if _pistol_open_log.withdraw_pistol_ammunition_id and not _pistol_open_log.return_pistol_ammunition_id:
-                        if not self.pistol_ammunition:
+                        required_qty = _pistol_open_log.withdraw_pistol_ammunition_quantity or 0
+                        returned_qty = self.pistol_ammunition_quantity or 0
+                        if not self.pistol_ammunition or returned_qty < required_qty:
                             _missing.append(
-                                f"Pistol Ammunition '{_pistol_open_log.withdraw_pistol_ammunition}'"
-                                f" ×{_pistol_open_log.withdraw_pistol_ammunition_quantity} rounds"
+                                f"Pistol Ammunition '{_pistol_open_log.withdraw_pistol_ammunition}' ×{required_qty} rounds (returned: {returned_qty})"
                             )
+                    # Check holster
                     if _pistol_open_log.withdraw_pistol_holster_quantity and not _pistol_open_log.return_pistol_holster_quantity:
-                        if not self.pistol_holster_quantity:
+                        required_qty = _pistol_open_log.withdraw_pistol_holster_quantity or 0
+                        returned_qty = self.pistol_holster_quantity or 0
+                        if returned_qty < required_qty:
                             _missing.append(
-                                f"Pistol Holster ×{_pistol_open_log.withdraw_pistol_holster_quantity}"
+                                f"Pistol Holster ×{required_qty} (returned: {returned_qty})"
                             )
+                    # Check magazine pouch
                     if _pistol_open_log.withdraw_magazine_pouch_quantity and not _pistol_open_log.return_magazine_pouch_quantity:
-                        if not self.magazine_pouch_quantity:
+                        required_qty = _pistol_open_log.withdraw_magazine_pouch_quantity or 0
+                        returned_qty = self.magazine_pouch_quantity or 0
+                        if returned_qty < required_qty:
                             _missing.append(
-                                f"Magazine Pouch ×{_pistol_open_log.withdraw_magazine_pouch_quantity}"
+                                f"Magazine Pouch ×{required_qty} (returned: {returned_qty})"
                             )
                     if _missing:
                         raise ValidationError(
