@@ -253,8 +253,11 @@ class TransactionAdminForm(forms.ModelForm):
                         cleaned_data['rifle_magazine'] = mag_pool
                         rifle_magazine = mag_pool
         # ── AUTO-ASSIGN: Ammunition pool based on selected weapon model ──────────
+        # Only auto-assign the ammo FK when the purpose's configured ammo qty > 0.
+        # If the admin set e.g. orex_rifle_ammo_qty = 0, no ammo should be issued
+        # for that purpose, so don't pre-select an ammo pool at all.
         from armguard.apps.inventory.models import Ammunition, AMMO_WEAPON_COMPATIBILITY
-        if transaction_type == 'Withdrawal' and not _no_auto_consumables and pistol and not pistol_ammunition:
+        if transaction_type == 'Withdrawal' and not _no_auto_consumables and pistol and not pistol_ammunition and _lq('pistol_ammo_qty') > 0:
             pistol_model = getattr(pistol, 'model', '')
             for ammo_type, weapons in AMMO_WEAPON_COMPATIBILITY.items():
                 if pistol_model in weapons:
@@ -263,7 +266,7 @@ class TransactionAdminForm(forms.ModelForm):
                         cleaned_data['pistol_ammunition'] = ammo_pool
                         pistol_ammunition = ammo_pool
                     break
-        if transaction_type == 'Withdrawal' and not _no_auto_consumables and rifle and not rifle_ammunition:
+        if transaction_type == 'Withdrawal' and not _no_auto_consumables and rifle and not rifle_ammunition and _lq('rifle_ammo_qty') > 0:
             rifle_model = getattr(rifle, 'model', '')
             for ammo_type, weapons in AMMO_WEAPON_COMPATIBILITY.items():
                 if rifle_model in weapons:
@@ -410,21 +413,24 @@ class TransactionAdminForm(forms.ModelForm):
                     if not ok and reason not in errors:
                         errors.append(reason)
             # Pistol ammunition quantity check
+            # The qty > 0 requirement is skipped when the purpose's configured
+            # pistol_ammo_qty is 0 — meaning the admin opted out of ammo for this purpose.
             if pistol_ammunition:
                 qty = pistol_ammunition_quantity or 0
-                if qty <= 0:
+                if qty <= 0 and _lq('pistol_ammo_qty') > 0:
                     errors.append('Pistol ammunition quantity must be greater than 0 for withdrawal.')
-                else:
+                elif qty > 0:
                     fresh = pistol_ammunition.__class__.objects.get(pk=pistol_ammunition.pk)
                     ok, reason = fresh.can_be_withdrawn(qty)
                     if not ok and reason not in errors:
                         errors.append(reason)
             # Rifle ammunition quantity check
+            # Same logic: skip the qty > 0 requirement if the purpose allows zero ammo.
             if rifle_ammunition:
                 qty = rifle_ammunition_quantity or 0
-                if qty <= 0:
+                if qty <= 0 and _lq('rifle_ammo_qty') > 0:
                     errors.append('Rifle ammunition quantity must be greater than 0 for withdrawal.')
-                else:
+                elif qty > 0:
                     fresh = rifle_ammunition.__class__.objects.get(pk=rifle_ammunition.pk)
                     ok, reason = fresh.can_be_withdrawn(qty)
                     if not ok and reason not in errors:

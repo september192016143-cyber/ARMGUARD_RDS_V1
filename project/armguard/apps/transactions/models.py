@@ -289,22 +289,50 @@ class Transaction(models.Model):
                 ok, reason = self.rifle_magazine.can_be_withdrawn(qty)
                 if not ok:
                     raise ValidationError(reason)
-            # Pistol ammunition: must have sufficient quantity
+            # Pistol ammunition: must have sufficient quantity.
+            # The qty > 0 requirement is waived when the purpose's configured ammo qty
+            # is 0 (admin opted out of ammo for this purpose).
             if self.pistol_ammunition:
                 qty = self.pistol_ammunition_quantity or 0
                 if qty <= 0:
-                    raise ValidationError('Pistol ammunition quantity must be greater than 0 for withdrawal.')
-                ok, reason = self.pistol_ammunition.can_be_withdrawn(qty)
-                if not ok:
-                    raise ValidationError(reason)
-            # Rifle ammunition: must have sufficient quantity
+                    try:
+                        from armguard.apps.users.models import SystemSettings as _SS_m
+                        _purpose_prefix_m = {
+                            'Duty Sentinel': 'duty_sentinel', 'Duty Vigil': 'duty_vigil',
+                            'Duty Security': 'duty_security', 'Honor Guard': 'honor_guard',
+                            'Others': 'others', 'OREX': 'orex',
+                        }
+                        _pfx_m = _purpose_prefix_m.get(self.purpose, '')
+                        _cfg_ammo = int(getattr(_SS_m.get(), f'{_pfx_m}_pistol_ammo_qty', 0) or 0) if _pfx_m else 0
+                    except Exception:
+                        _cfg_ammo = 1  # safe default: require qty if settings unavailable
+                    if _cfg_ammo > 0:
+                        raise ValidationError('Pistol ammunition quantity must be greater than 0 for withdrawal.')
+                else:
+                    ok, reason = self.pistol_ammunition.can_be_withdrawn(qty)
+                    if not ok:
+                        raise ValidationError(reason)
+            # Rifle ammunition: must have sufficient quantity.
             if self.rifle_ammunition:
                 qty = self.rifle_ammunition_quantity or 0
                 if qty <= 0:
-                    raise ValidationError('Rifle ammunition quantity must be greater than 0 for withdrawal.')
-                ok, reason = self.rifle_ammunition.can_be_withdrawn(qty)
-                if not ok:
-                    raise ValidationError(reason)
+                    try:
+                        from armguard.apps.users.models import SystemSettings as _SS_m
+                        _purpose_prefix_m = {
+                            'Duty Sentinel': 'duty_sentinel', 'Duty Vigil': 'duty_vigil',
+                            'Duty Security': 'duty_security', 'Honor Guard': 'honor_guard',
+                            'Others': 'others', 'OREX': 'orex',
+                        }
+                        _pfx_m = _purpose_prefix_m.get(self.purpose, '')
+                        _cfg_ammo = int(getattr(_SS_m.get(), f'{_pfx_m}_rifle_ammo_qty', 0) or 0) if _pfx_m else 0
+                    except Exception:
+                        _cfg_ammo = 1
+                    if _cfg_ammo > 0:
+                        raise ValidationError('Rifle ammunition quantity must be greater than 0 for withdrawal.')
+                else:
+                    ok, reason = self.rifle_ammunition.can_be_withdrawn(qty)
+                    if not ok:
+                        raise ValidationError(reason)
             # Accessories: each type validated independently by type-name pool lookup
             from armguard.apps.inventory.models import _get_accessory_max_qty, Accessory
             _live_acc_max = _get_accessory_max_qty()
