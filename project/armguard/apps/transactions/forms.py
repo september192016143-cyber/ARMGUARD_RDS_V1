@@ -322,6 +322,49 @@ class TransactionAdminForm(forms.ModelForm):
                 bandoleer_quantity = _qty
         # ── END AUTO-FILL ─────────────────────────────────────────────────────────
 
+        # ── RETURN: resolve include_* checkboxes → quantities from the open withdrawal log ──
+        # The template renders accessories as checkboxes (include_pistol_holster, etc.)
+        # rather than numeric input fields. When a checkbox is checked on a Return,
+        # we look up the open withdrawal log and use the originally-issued quantity
+        # so that the binding-rule check below sees a non-zero value and does not
+        # incorrectly report the item as missing.
+        if transaction_type == 'Return':
+            from .models import TransactionLogs as _TL_ret
+            if pistol and personnel and (
+                (cleaned_data.get('include_pistol_holster') and not pistol_holster_quantity)
+                or (cleaned_data.get('include_magazine_pouch') and not magazine_pouch_quantity)
+            ):
+                _plog_ret = _TL_ret.objects.filter(
+                    personnel_id=personnel,
+                    withdraw_pistol=pistol,
+                    return_pistol__isnull=True,
+                    log_status__in=['Open', 'Partially Returned'],
+                ).order_by('-withdraw_pistol_timestamp').first()
+                if _plog_ret:
+                    if cleaned_data.get('include_pistol_holster') and not pistol_holster_quantity and _plog_ret.withdraw_pistol_holster_quantity:
+                        cleaned_data['pistol_holster_quantity'] = _plog_ret.withdraw_pistol_holster_quantity
+                        pistol_holster_quantity = _plog_ret.withdraw_pistol_holster_quantity
+                    if cleaned_data.get('include_magazine_pouch') and not magazine_pouch_quantity and _plog_ret.withdraw_magazine_pouch_quantity:
+                        cleaned_data['magazine_pouch_quantity'] = _plog_ret.withdraw_magazine_pouch_quantity
+                        magazine_pouch_quantity = _plog_ret.withdraw_magazine_pouch_quantity
+            if rifle and personnel and (
+                (cleaned_data.get('include_rifle_sling') and not rifle_sling_quantity)
+                or (cleaned_data.get('include_bandoleer') and not bandoleer_quantity)
+            ):
+                _rlog_ret = _TL_ret.objects.filter(
+                    personnel_id=personnel,
+                    withdraw_rifle=rifle,
+                    return_rifle__isnull=True,
+                    log_status__in=['Open', 'Partially Returned'],
+                ).order_by('-withdraw_rifle_timestamp').first()
+                if _rlog_ret:
+                    if cleaned_data.get('include_rifle_sling') and not rifle_sling_quantity and _rlog_ret.withdraw_rifle_sling_quantity:
+                        cleaned_data['rifle_sling_quantity'] = _rlog_ret.withdraw_rifle_sling_quantity
+                        rifle_sling_quantity = _rlog_ret.withdraw_rifle_sling_quantity
+                    if cleaned_data.get('include_bandoleer') and not bandoleer_quantity and _rlog_ret.withdraw_bandoleer_quantity:
+                        cleaned_data['bandoleer_quantity'] = _rlog_ret.withdraw_bandoleer_quantity
+                        bandoleer_quantity = _rlog_ret.withdraw_bandoleer_quantity
+
         # At least one item must be present
         has_any = any([pistol, rifle, pistol_magazine, rifle_magazine, pistol_ammunition, rifle_ammunition, pistol_holster_quantity, magazine_pouch_quantity, rifle_sling_quantity, bandoleer_quantity])
         if not has_any:
