@@ -172,7 +172,9 @@ cat > "$PEER_CONF" <<EOF
 [Interface]
 PrivateKey = $CLIENT_PRIV
 Address    = ${CLIENT_IP}/32
-DNS        = 1.1.1.1
+# DNS = 10.8.0.1 makes armguard.local resolve over the VPN (via dnsmasq on the server).
+# 1.1.1.1 is the fallback upstream for all other hostnames.
+DNS        = 10.8.0.1, 1.1.1.1
 
 [Peer]
 PublicKey    = $SERVER_PUB

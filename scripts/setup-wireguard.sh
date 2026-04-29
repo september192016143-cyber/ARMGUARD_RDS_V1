@@ -276,7 +276,65 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 10. Generate first peer (client) config
+# 10. Install dnsmasq so VPN clients can resolve armguard.local via DNS
+# ---------------------------------------------------------------------------
+# Problem: mDNS (.local) uses link-local multicast — it does NOT cross VPN
+# tunnels. Without this step, 'armguard.local' is unreachable over WireGuard.
+# Solution: run dnsmasq on 10.8.0.1:53, bound to wg0 only, that answers
+# A-record queries for armguard.local → 10.8.0.1.
+# WireGuard peer configs set DNS = 10.8.0.1 so clients use it automatically.
+step "Installing dnsmasq (VPN DNS — resolves armguard.local over WireGuard)"
+
+if ! command -v dnsmasq &>/dev/null; then
+    apt-get update -qq
+    apt-get install -y dnsmasq
+fi
+
+# Write dnsmasq config for the WireGuard interface only.
+# Port 53 is bound exclusively to 10.8.0.1 (wg0) so it never conflicts
+# with systemd-resolved on the LAN interface.
+cat > /etc/dnsmasq.d/armguard-wg.conf <<'DNSMASQ'
+# ArmGuard WireGuard DNS — resolves armguard.local for VPN clients
+# Managed by setup-wireguard.sh — do NOT edit manually.
+
+# Only listen on the WireGuard VPN interface
+interface=wg0
+bind-interfaces
+
+# Answer armguard.local → WireGuard server IP
+address=/armguard.local/10.8.0.1
+
+# Upstream DNS for everything else (clients still reach the internet)
+server=1.1.1.1
+server=8.8.8.8
+
+# Security: do not forward plain hostnames (single-label) to upstream
+domain-needed
+# Do not read /etc/resolv.conf — use only the server= lines above
+no-resolv
+DNSMASQ
+
+# Ensure dnsmasq starts after wg0 is up: add an After= dependency.
+# We use a systemd drop-in so the upstream package unit is not modified.
+mkdir -p /etc/systemd/system/dnsmasq.service.d
+cat > /etc/systemd/system/dnsmasq.service.d/after-wg0.conf <<'DROPIN'
+[Unit]
+After=wg-quick@wg0.service
+BindsTo=wg-quick@wg0.service
+DROPIN
+
+systemctl daemon-reload
+systemctl enable dnsmasq
+systemctl restart dnsmasq
+
+if systemctl is-active --quiet dnsmasq; then
+    success "dnsmasq running — armguard.local resolves to ${WG_SERVER_IP} for VPN clients."
+else
+    warn "dnsmasq failed to start. Check: sudo journalctl -u dnsmasq -n 30"
+fi
+
+# ---------------------------------------------------------------------------
+# 11. Generate first peer (client) config
 # ---------------------------------------------------------------------------
 if [[ "$MAKE_FIRST_PEER" == "true" ]]; then
     step "Generating first peer config"
@@ -321,7 +379,9 @@ EOF
 [Interface]
 PrivateKey = $CLIENT_PRIV
 Address    = ${CLIENT_IP}/32
-DNS        = 1.1.1.1
+# DNS = 10.8.0.1 makes armguard.local resolve over the VPN (via dnsmasq on the server).
+# 1.1.1.1 is the fallback upstream for all other hostnames.
+DNS        = ${WG_SERVER_IP}, 1.1.1.1
 
 [Peer]
 PublicKey    = $SERVER_PUB
@@ -372,6 +432,7 @@ echo
 echo -e "  ${BOLD}Next steps:${NC}"
 echo -e "  1. Copy ${CYAN}${PEERS_DIR}/peer1.conf${NC} to the client device."
 echo -e "  2. Import it in the WireGuard app and connect."
-echo -e "  3. Browse to ${CYAN}https://${WG_SERVER_IP}${NC} and install the SSL cert."
+echo -e "  3. Browse to ${CYAN}https://${WG_SERVER_IP}${NC}  or  ${CYAN}https://armguard.local${NC}"
+echo -e "     and install the SSL cert."
 echo -e "  4. Add more clients: ${CYAN}sudo bash scripts/add-wireguard-peer.sh${NC}"
 echo
