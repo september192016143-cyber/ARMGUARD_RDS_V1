@@ -794,6 +794,19 @@ else
     warn "renew-ssl-cert.sh not found in scripts/; SSL renewal cron not installed."
 fi
 
+
+# ---------------------------------------------------------------------------
+# 14. WireGuard VPN and DNS setup
+# ---------------------------------------------------------------------------
+step "Setting up WireGuard VPN and DNS (armguard.local over VPN)"
+
+if [[ -f "$SCRIPT_DIR/setup-wireguard.sh" ]]; then
+    bash "$SCRIPT_DIR/setup-wireguard.sh" --no-first-peer --no-ssl-regen
+    success "WireGuard VPN and DNS setup complete."
+else
+    warn "setup-wireguard.sh not found in scripts/; VPN/DNS not installed."
+fi
+
 # ---------------------------------------------------------------------------
 # Post-deployment check
 # ---------------------------------------------------------------------------
