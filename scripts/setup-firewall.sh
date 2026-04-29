@@ -16,6 +16,7 @@
 #   - Allow SSH (port 22 or custom)
 #   - Allow HTTP (port 80) for Nginx
 #   - Allow HTTPS (port 443) for Nginx
+#   - Allow WireGuard VPN (port 51820 UDP) for off-LAN access
 #   - Block direct Gunicorn access (port 8000) from external hosts
 #   - Deny everything else by default
 # =============================================================================
