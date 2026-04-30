@@ -70,27 +70,15 @@ REST_FRAMEWORK = {
     ],
 }
 
-# ── PostgreSQL connection pool (production only) ──────────────────────────────
-# When PostgreSQL is active (DB_ENGINE=django.db.backends.postgresql), enable
-# the built-in connection pool (Django 5.1+) to avoid opening a new TCP
-# connection to Postgres on every request from every Gunicorn worker.
-# Pool size = 2 per worker × 9 workers = 18 max connections total.
-# Adjust DB_POOL_SIZE in .env if the PostgreSQL max_connections differs.
-import os as _os  # noqa: E402 — already imported in base; re-alias for clarity
-if _os.environ.get('DB_ENGINE', '').strip() not in ('', 'django.db.backends.sqlite3'):
-    _pool_size = int(_os.environ.get('DB_POOL_SIZE', '2'))
-    # Django 5.1 pool owns the connection lifecycle; persistent connections
-    # (CONN_MAX_AGE != 0) are incompatible with pooling and raise
-    # ImproperlyConfigured at startup.  Set CONN_MAX_AGE=0 here so the pool
-    # setting added below is the sole connection-reuse mechanism.
-    DATABASES['default']['CONN_MAX_AGE'] = 0       # noqa: F405
-    DATABASES['default']['CONN_HEALTH_CHECKS'] = False  # noqa: F405  pool handles this
-    DATABASES['default']['OPTIONS'] = DATABASES['default'].get('OPTIONS', {})  # noqa: F405
-    DATABASES['default']['OPTIONS']['pool'] = {  # noqa: F405
-        'min_size': _pool_size,
-        'max_size': _pool_size * 2,
-        'timeout': 30,
-    }
+# ── PostgreSQL connection keep-alive (production only) ───────────────────────
+# CONN_MAX_AGE=600 (set in base.py) keeps each Gunicorn worker's connection
+# open for 10 minutes, avoiding the TCP handshake overhead on every request.
+# This works with both psycopg2 and psycopg (v3).
+#
+# NOTE: Django 5.1's built-in pool (OPTIONS['pool']) requires psycopg v3 +
+# psycopg_pool, which are NOT installed (server uses psycopg2-binary).
+# That pool block was removed — CONN_MAX_AGE provides equivalent connection
+# reuse without an extra dependency.
 
 # ── SSL certificate download ──────────────────────────────────────────────────
 # Path to the self-signed cert served as an in-app download so LAN users can
