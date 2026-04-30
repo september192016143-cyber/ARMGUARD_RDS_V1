@@ -79,6 +79,12 @@ REST_FRAMEWORK = {
 import os as _os  # noqa: E402 — already imported in base; re-alias for clarity
 if _os.environ.get('DB_ENGINE', '').strip() not in ('', 'django.db.backends.sqlite3'):
     _pool_size = int(_os.environ.get('DB_POOL_SIZE', '2'))
+    # Django 5.1 pool owns the connection lifecycle; persistent connections
+    # (CONN_MAX_AGE != 0) are incompatible with pooling and raise
+    # ImproperlyConfigured at startup.  Set CONN_MAX_AGE=0 here so the pool
+    # setting added below is the sole connection-reuse mechanism.
+    DATABASES['default']['CONN_MAX_AGE'] = 0       # noqa: F405
+    DATABASES['default']['CONN_HEALTH_CHECKS'] = False  # noqa: F405  pool handles this
     DATABASES['default']['OPTIONS'] = DATABASES['default'].get('OPTIONS', {})  # noqa: F405
     DATABASES['default']['OPTIONS']['pool'] = {  # noqa: F405
         'min_size': _pool_size,
