@@ -235,12 +235,14 @@ class AuditLogAdmin(admin.ModelAdmin):
 
     # ── Colours for action badges ──────────────────────────────────────────
     _ACTION_COLOURS = {
-        'CREATE': '#28a745',
-        'UPDATE': '#ffc107',
-        'DELETE': '#dc3545',
-        'LOGIN':  '#17a2b8',
-        'LOGOUT': '#6c757d',
-        'OTHER':  '#6f42c1',
+        'CREATE':       '#28a745',
+        'UPDATE':       '#ffc107',
+        'DELETE':       '#dc3545',
+        'LOGIN':        '#17a2b8',
+        'LOGOUT':       '#6c757d',
+        'LOGIN_FAILED': '#a71d2a',   # dark red — credential brute-force
+        'OTP_FAILED':   '#c0392b',   # red — 2FA bypass attempt
+        'OTHER':        '#6f42c1',
     }
 
     list_display  = ('timestamp', 'user', 'action_badge', 'model_name', 'object_pk',
@@ -250,6 +252,7 @@ class AuditLogAdmin(admin.ModelAdmin):
     date_hierarchy = 'timestamp'
     ordering       = ('-timestamp',)
     list_per_page  = 50
+
 
     readonly_fields = (
         'timestamp', 'user', 'action', 'model_name', 'object_pk',

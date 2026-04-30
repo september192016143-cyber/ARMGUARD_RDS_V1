@@ -42,19 +42,35 @@ _SKIP_PREFIXES = (
 _SKIP_PATHS = {
     '/health/',
     '/robots.txt',
+    '/users/ping/',             # session keep-alive POST from idle-timeout JS (~60 s)
 }
 
 # Query-string parameter names that carry search keywords.
 _SEARCH_PARAMS = ('q', 'search', 'query', 'keyword', 'term')
 
+# Auth paths where POST + 200 means the action *failed* (Django re-renders the
+# form with errors rather than redirecting).  Flag these SUSPICIOUS so they
+# appear alongside 401/403 in the security review filter.
+_AUTH_POST_PATHS = {
+    '/accounts/login/',        # wrong password → 200 (form re-display)
+    '/accounts/otp/verify/',   # wrong TOTP token → 200 (form re-display)
+}
+
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _get_client_ip(request):
-    """Real client IP, honouring X-Forwarded-For set by Nginx."""
+    """
+    Real client IP from the LAST entry of X-Forwarded-For.
+
+    In an Nginx → Gunicorn setup the header chain is:
+      X-Forwarded-For: <client-sent-value>, <nginx-appended-real-ip>
+    The LAST entry is written by Nginx and cannot be forged by the client.
+    The FIRST entry is client-controlled and trivially spoofable.
+    """
     xff = request.META.get('HTTP_X_FORWARDED_FOR')
     if xff:
-        return xff.split(',')[0].strip()
+        return xff.split(',')[-1].strip()
     return request.META.get('REMOTE_ADDR')
 
 
@@ -83,20 +99,27 @@ def _extract_search_query(query_string):
     return ''
 
 
-def _compute_flag(status_code, response_ms, has_exception):
+def _compute_flag(status_code, response_ms, has_exception, path='', method=''):
     """
     Classify this request into one severity level.
 
     Priority (highest wins):
       ERROR      — uncaught exception OR status >= 500
-      SUSPICIOUS — 401 / 403
+      SUSPICIOUS — 401 / 403 / 429  OR  failed auth-form POST (200 on login/OTP)
       WARNING    — 404
       SLOW       — response > 2 000 ms
       NORMAL     — everything else
+
+    Auth-form POST 200 logic:
+      Django's LoginView and OTPVerifyView return HTTP 200 (not 401) on
+      bad credentials/token — they just re-render the form.  We detect this
+      by checking if the path is in _AUTH_POST_PATHS and method is POST.
     """
     if has_exception or (status_code and status_code >= 500):
         return 'ERROR'
-    if status_code in (401, 403):
+    if status_code in (401, 403, 429):
+        return 'SUSPICIOUS'
+    if method == 'POST' and path in _AUTH_POST_PATHS and status_code == 200:
         return 'SUSPICIOUS'
     if status_code == 404:
         return 'WARNING'
@@ -179,7 +202,8 @@ class ActivityLogMiddleware:
             status_code=status_code,
             response_ms=elapsed_ms,
             # ── Classification ───────────────────────────────────────────────
-            flag=_compute_flag(status_code, elapsed_ms, bool(exc_type)),
+            flag=_compute_flag(status_code, elapsed_ms, bool(exc_type),
+                               path=request.path_info, method=method),
             exception_type=exc_type,
             exception_message=exc_msg,
             search_query=_extract_search_query(qs),

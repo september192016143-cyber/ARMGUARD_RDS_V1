@@ -14,7 +14,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
-from .models import UserProfile, ROLE_CHOICES, PasswordHistory, AuditLog
+from .models import UserProfile, ROLE_CHOICES, PasswordHistory, AuditLog, _get_client_ip, _get_user_agent
 from armguard.apps.personnel.models import Personnel, PersonnelGroup, PersonnelSquadron
 # H1 FIX: Import per-module permission helpers for user management.
 from armguard.utils.permissions import can_manage_users as _can_manage_users, is_admin as _is_admin
@@ -566,6 +566,19 @@ class OTPVerifyView(LoginRequiredMixin, View):
             request.session['_otp_step_done'] = True
             next_url = request.POST.get('next') or 'dashboard'
             return redirect(next_url)
+        # Wrong code — record in AuditLog so security reviewers can see 2FA bypass attempts.
+        try:
+            AuditLog.objects.create(
+                user=request.user,
+                action='OTP_FAILED',
+                model_name='User',
+                object_pk=str(request.user.pk),
+                message=f"OTP verification failed for '{request.user.username}'.",
+                ip_address=_get_client_ip(request),
+                user_agent=_get_user_agent(request),
+            )
+        except Exception:
+            _logger.warning("Failed to write OTP_FAILED AuditLog for user %s", request.user.pk)
         return self._render(request, error='Invalid code. Please try again.')
 
     def _render(self, request, error):

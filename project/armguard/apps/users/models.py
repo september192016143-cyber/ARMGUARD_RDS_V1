@@ -12,7 +12,7 @@ import logging
 from django.db import models
 from django.conf import settings
 from django.db.models.signals import post_save, m2m_changed
-from django.contrib.auth.signals import user_logged_in, user_logged_out
+from django.contrib.auth.signals import user_logged_in, user_logged_out, user_login_failed
 from django.dispatch import receiver
 
 logger = logging.getLogger(__name__)
@@ -132,12 +132,14 @@ class AuditLog(models.Model):
       integrity_hash — SHA-256 of (timestamp+user+action+message) to detect tampering
     """
     ACTION_CHOICES = [
-        ('CREATE', 'Create'),
-        ('UPDATE', 'Update'),
-        ('DELETE', 'Delete'),
-        ('LOGIN', 'Login'),
-        ('LOGOUT', 'Logout'),
-        ('OTHER', 'Other'),
+        ('CREATE',       'Create'),
+        ('UPDATE',       'Update'),
+        ('DELETE',       'Delete'),
+        ('LOGIN',        'Login'),
+        ('LOGOUT',       'Logout'),
+        ('LOGIN_FAILED', 'Login Failed'),
+        ('OTP_FAILED',   'OTP Failed'),
+        ('OTHER',        'Other'),
     ]
 
     user = models.ForeignKey(
@@ -763,6 +765,31 @@ def on_user_logged_in(sender, request, user, **kwargs):
         )
     except Exception:
         logger.warning("Failed to write LOGIN AuditLog for user %s", getattr(user, 'pk', '?'))
+
+
+@receiver(user_login_failed)
+def on_user_login_failed(sender, credentials, request, **kwargs):
+    """
+    Record every failed login attempt in AuditLog.
+
+    Django fires this signal whenever authenticate() is called and returns None
+    (wrong password, unknown username, disabled account).  It fires BEFORE the
+    session is touched, so request.user is always AnonymousUser here — we record
+    the attempted username from credentials instead.
+    """
+    attempted_username = credentials.get('username', '') if credentials else ''
+    try:
+        AuditLog.objects.create(
+            user=None,   # not authenticated at this point
+            action='LOGIN_FAILED',
+            model_name='User',
+            object_pk='',
+            message=f"Failed login attempt for username '{attempted_username}'.",
+            ip_address=_get_client_ip(request),
+            user_agent=_get_user_agent(request),
+        )
+    except Exception:
+        logger.warning("Failed to write LOGIN_FAILED AuditLog for '%s'", attempted_username)
 
 
 @receiver(user_logged_out)
