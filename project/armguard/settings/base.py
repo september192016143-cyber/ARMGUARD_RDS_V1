@@ -31,7 +31,8 @@ SECRET_KEY = _secret
 # L4 FIX: Magazine per-withdrawal limits exposed as settings (env-configurable).
 ARMGUARD_PISTOL_MAGAZINE_MAX_QTY = int(os.environ.get('ARMGUARD_PISTOL_MAGAZINE_MAX_QTY', '4'))
 _rifle_mag_env = os.environ.get('ARMGUARD_RIFLE_MAGAZINE_MAX_QTY')
-ARMGUARD_RIFLE_MAGAZINE_MAX_QTY = int(_rifle_mag_env) if _rifle_mag_env else None
+# Default 2 — standard 2-magazine field issue.  Override via env var if needed.
+ARMGUARD_RIFLE_MAGAZINE_MAX_QTY = int(_rifle_mag_env) if _rifle_mag_env else 2
 
 # Unit identification settings for the Daily Firearms Evaluation printed report.
 ARMGUARD_ARMORER_NAME          = os.environ.get('ARMGUARD_ARMORER_NAME', '')

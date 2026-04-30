@@ -124,6 +124,10 @@ def _get_accessory_max_qty():
 # per deployment without touching model code.
 
 
+# Default per-withdrawal rifle magazine cap used when SystemSettings has no
+# value configured.  Matches the standard 2-magazine field issue.
+_RIFLE_MAGAZINE_DEFAULT_MAX = 2
+
 def _get_magazine_max_qty():
     # L4-EXT: Read the live DB value set by the admin via System Settings.
     # Fallback to Django settings constants if DB is unavailable (e.g. during
@@ -133,13 +137,15 @@ def _get_magazine_max_qty():
         s = SystemSettings.get()
         return {
             'Pistol': s.pistol_magazine_max_qty or 4,
-            'Rifle':  s.rifle_magazine_max_qty,
+            # Use _RIFLE_MAGAZINE_DEFAULT_MAX when admin left the field blank
+            # so the validation in Transaction.clean() is never silently bypassed.
+            'Rifle':  s.rifle_magazine_max_qty or _RIFLE_MAGAZINE_DEFAULT_MAX,
         }
     except Exception:
         from django.conf import settings as _s
         return {
             'Pistol': getattr(_s, 'ARMGUARD_PISTOL_MAGAZINE_MAX_QTY', 4),
-            'Rifle':  getattr(_s, 'ARMGUARD_RIFLE_MAGAZINE_MAX_QTY', None),
+            'Rifle':  getattr(_s, 'ARMGUARD_RIFLE_MAGAZINE_MAX_QTY', _RIFLE_MAGAZINE_DEFAULT_MAX),
         }
 MAGAZINE_MAX_QTY = {
     'Pistol': 4,  # default — overridden at runtime via _get_magazine_max_qty()
