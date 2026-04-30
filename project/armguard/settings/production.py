@@ -70,6 +70,22 @@ REST_FRAMEWORK = {
     ],
 }
 
+# ── PostgreSQL connection pool (production only) ──────────────────────────────
+# When PostgreSQL is active (DB_ENGINE=django.db.backends.postgresql), enable
+# the built-in connection pool (Django 5.1+) to avoid opening a new TCP
+# connection to Postgres on every request from every Gunicorn worker.
+# Pool size = 2 per worker × 9 workers = 18 max connections total.
+# Adjust DB_POOL_SIZE in .env if the PostgreSQL max_connections differs.
+import os as _os  # noqa: E402 — already imported in base; re-alias for clarity
+if _os.environ.get('DB_ENGINE', '').strip() not in ('', 'django.db.backends.sqlite3'):
+    _pool_size = int(_os.environ.get('DB_POOL_SIZE', '2'))
+    DATABASES['default']['OPTIONS'] = DATABASES['default'].get('OPTIONS', {})  # noqa: F405
+    DATABASES['default']['OPTIONS']['pool'] = {  # noqa: F405
+        'min_size': _pool_size,
+        'max_size': _pool_size * 2,
+        'timeout': 30,
+    }
+
 # ── SSL certificate download ──────────────────────────────────────────────────
 # Path to the self-signed cert served as an in-app download so LAN users can
 # install it on their devices.  Override via SSL_CERT_PATH env var if needed.

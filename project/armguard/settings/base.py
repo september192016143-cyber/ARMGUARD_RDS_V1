@@ -115,46 +115,86 @@ TEMPLATES = [
 WSGI_APPLICATION = 'armguard.wsgi.application'
 
 # ---------------------------------------------------------------------------
-# Cache — FileBasedCache (shared across all Gunicorn workers).
+# Database — env-switchable: SQLite (default/dev) or PostgreSQL (production).
 #
-# WHY NOT LocMemCache: each Gunicorn worker has its own separate in-memory
-# cache.  Workers recycle every ~1000 requests (max_requests in gunicorn.conf.py),
-# wiping their caches.  With 3 workers, the dashboard_inventory_tables, card
-# stats, and SystemSettings caches are NEVER warm across all workers simultaneously,
-# causing repeated expensive DB queries — the root cause of "slow after long use".
+# To use PostgreSQL set in .env:
+#   DB_ENGINE=django.db.backends.postgresql
+#   DB_NAME=armguard
+#   DB_USER=armguard
+#   DB_PASSWORD=<strong-password>
+#   DB_HOST=127.0.0.1
+#   DB_PORT=5432
 #
-# FileBasedCache writes to a shared directory on disk so every worker reads
-# the same cached values.  It survives worker recycles and process restarts.
-# Overhead is minimal: a single file-stat + read is far cheaper than running
-# 12–30 aggregate SQL queries per poll cycle.
+# SQLite remains the default so existing installs are unaffected.
+# PostgreSQL enables real row-level select_for_update(), atomic cache.incr(),
+# and eliminates the file-level write lock that serialises all Gunicorn workers.
 # ---------------------------------------------------------------------------
+_db_engine = os.environ.get('DB_ENGINE', '').strip()
+if _db_engine and _db_engine != 'django.db.backends.sqlite3':
+    DATABASES = {
+        'default': {
+            'ENGINE': _db_engine,
+            'NAME': os.environ.get('DB_NAME', 'armguard'),
+            'USER': os.environ.get('DB_USER', 'armguard'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+            # Keep connections alive for 10 min — avoids the TCP handshake
+            # overhead on every request with 9 Gunicorn workers.
+            'CONN_MAX_AGE': int(os.environ.get('DB_CONN_MAX_AGE', '600')),
+            'CONN_HEALTH_CHECKS': True,
+        }
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+            # Reuse the open file handle across requests within each Gunicorn worker
+            # process instead of opening+closing on every request.  600 s = 10 min.
+            'CONN_MAX_AGE': 600,
+            # Validate the kept-alive handle before use (guards against file-level
+            # lock issues after a long idle period).
+            'CONN_HEALTH_CHECKS': True,
+            'OPTIONS': {
+                # Wait up to 5 s when a second Gunicorn worker holds a write lock
+                # before raising OperationalError: database is locked.
+                'timeout': 5,
+            },
+        }
+    }
+
+# ---------------------------------------------------------------------------
+# Cache — env-switchable: FileBasedCache (default) or Redis (production).
+#
+# FileBasedCache: shared across workers via the filesystem. Atomic cache.add()
+# and cache.incr() are NOT guaranteed — race conditions possible under load.
+#
+# Redis: fully atomic add/incr, cross-process, survives worker recycles.
+# Required for the rate-limiter in throttle.py to be truly race-free.
+#
+# To use Redis set in .env:
+#   CACHE_BACKEND=django.core.cache.backends.redis.RedisCache
+#   CACHE_LOCATION=redis://127.0.0.1:6379/1
+# ---------------------------------------------------------------------------
+_cache_backend = os.environ.get(
+    'CACHE_BACKEND',
+    'django.core.cache.backends.filebased.FileBasedCache',
+).strip()
+_cache_location = os.environ.get(
+    'CACHE_LOCATION',
+    str(BASE_DIR.parent / 'cache'),
+).strip()
+
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-        # Resolves to /var/www/ARMGUARD_RDS_V1/cache/ on the server.
-        # Outside the project dir so rsync/git never touch it.
-        'LOCATION': str(BASE_DIR.parent / 'cache'),
-        'TIMEOUT': 300,  # 5 minutes default; individual cache.set() calls override as needed
+        'BACKEND': _cache_backend,
+        'LOCATION': _cache_location,
+        'TIMEOUT': 300,  # 5 minutes default; individual cache.set() calls override
         'OPTIONS': {
+            # FileBasedCache: max number of entries before culling.
+            # Redis: ignored (Redis has its own eviction policy).
             'MAX_ENTRIES': 1000,
-        },
-    }
-}
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        # Reuse the open file handle across requests within each Gunicorn worker
-        # process instead of opening+closing on every request.  600 s = 10 min.
-        'CONN_MAX_AGE': 600,
-        # Validate the kept-alive handle before use (guards against file-level
-        # lock issues after a long idle period).
-        'CONN_HEALTH_CHECKS': True,
-        'OPTIONS': {
-            # Wait up to 5 s when a second Gunicorn worker holds a write lock
-            # before raising OperationalError: database is locked.
-            'timeout': 5,
         },
     }
 }
@@ -274,58 +314,71 @@ SECURE_REFERRER_POLICY = 'same-origin'
 # Defaults to False so fresh deployments do not expose the endpoint until needed.
 ARMGUARD_API_ENABLED = os.environ.get('ARMGUARD_API_ENABLED', 'False') == 'True'
 
-# M12 FIX: Structured logging to rotating file.
+# ---------------------------------------------------------------------------
+# Structured async logging.
+#
+# A single QueueListener background thread per Gunicorn worker drains the
+# log queue and writes to the rotating file.  Every _logger.xxx() call on a
+# request thread just enqueues a record and returns instantly — zero I/O on
+# the request thread regardless of disk speed.
+# ---------------------------------------------------------------------------
+import logging as _logging
+import logging.handlers as _log_handlers
+import queue as _queue
+
 LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(exist_ok=True)
 
+# Build the real file + console handlers that the listener will use.
+_log_formatter = _logging.Formatter('[%(levelname)s] %(asctime)s %(name)s %(process)d %(message)s')
+
+_file_handler = _log_handlers.RotatingFileHandler(
+    str(LOG_DIR / 'armguard.log'),
+    maxBytes=10 * 1024 * 1024,  # 10 MB
+    backupCount=5,
+    encoding='utf-8',
+)
+_file_handler.setFormatter(_log_formatter)
+_file_handler.setLevel(_logging.INFO)
+
+_console_handler = _logging.StreamHandler()
+_console_handler.setFormatter(_log_formatter)
+_console_handler.setLevel(_logging.WARNING)
+
+# Unbounded queue: enqueue never blocks a request thread.
+_log_queue: _queue.Queue = _queue.Queue(-1)
+
+# QueueListener runs one background thread per worker process.
+# respect_handler_level=True: each downstream handler applies its own level.
+_log_listener = _log_handlers.QueueListener(
+    _log_queue, _file_handler, _console_handler, respect_handler_level=True
+)
+_log_listener.start()
+
+# Django LOGGING dict — route every logger through QueueHandler.
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '[{levelname}] {asctime} {module} {message}',
-            'style': '{',
-        },
-    },
     'handlers': {
-        'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOG_DIR / 'armguard.log',
-            'maxBytes': 5 * 1024 * 1024,  # 5 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+        'queue': {
+            'class': 'logging.handlers.QueueHandler',
+            'queue': _log_queue,
         },
     },
     'loggers': {
         'armguard': {
-            'handlers': ['file', 'console'],
-            'level': 'WARNING',
-            'propagate': False,
-        },
-        # N3 FIX: Transaction audit events at INFO level.
-        'armguard.transactions': {
-            'handlers': ['file'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        # N6 FIX: Signal-based audit events for all inventory/personnel saves.
-        'armguard.audit': {
-            'handlers': ['file'],
+            'handlers': ['queue'],
             'level': 'INFO',
             'propagate': False,
         },
         'django.security': {
-            'handlers': ['file'],
+            'handlers': ['queue'],
             'level': 'WARNING',
             'propagate': False,
         },
-        # Capture 500 tracebacks and 4xx errors to armguard.log.
+        # Capture 500 tracebacks and 4xx errors.
         'django.request': {
-            'handlers': ['file'],
+            'handlers': ['queue'],
             'level': 'ERROR',
             'propagate': False,
         },
