@@ -32,14 +32,15 @@ _NEW_COLS = [
 def _add_missing_auto_print_cols(apps, schema_editor):
     """Add the six per-purpose auto-print columns only if they do not exist."""
     conn = schema_editor.connection
-    # PRAGMA table_info works for SQLite; for PostgreSQL the introspection
-    # fallback below is used.
-    try:
+    # Use Django's DB-agnostic introspection for all backends.
+    # PRAGMA is SQLite-only and must never be sent to PostgreSQL — doing so
+    # inside a transaction causes PostgreSQL to abort the entire transaction
+    # before the except clause can run.
+    if conn.vendor == 'sqlite':
         with conn.cursor() as cur:
             cur.execute("PRAGMA table_info(users_systemsettings)")
             existing = {row[1] for row in cur.fetchall()}
-    except Exception:
-        # Non-SQLite: use Django's DB-agnostic introspection
+    else:
         with conn.cursor() as cur:
             existing = {
                 col.name
@@ -48,12 +49,14 @@ def _add_missing_auto_print_cols(apps, schema_editor):
                 )
             }
 
+    # PostgreSQL uses 'false' literal; SQLite accepts both 0 and false.
+    bool_default = 'false' if conn.vendor == 'postgresql' else '0'
     with conn.cursor() as cur:
         for col in _NEW_COLS:
             if col not in existing:
                 cur.execute(
                     f'ALTER TABLE "users_systemsettings" '
-                    f'ADD COLUMN "{col}" bool NOT NULL DEFAULT 0'
+                    f'ADD COLUMN "{col}" bool NOT NULL DEFAULT {bool_default}'
                 )
 
 
