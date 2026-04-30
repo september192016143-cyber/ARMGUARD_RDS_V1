@@ -316,7 +316,7 @@ class TransactionDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView)
 
 
 @login_required
-@ratelimit(rate='10/m')
+@ratelimit(rate='30/m')
 def create_transaction(request):
     if not _can_create_transaction(request.user):
         return HttpResponseForbidden("You do not have permission to create transactions.")

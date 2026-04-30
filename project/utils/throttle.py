@@ -17,6 +17,14 @@ from django.core.cache import cache
 from django.http import JsonResponse
 
 
+def _is_ajax(request) -> bool:
+    """Return True for fetch/XHR requests that expect a JSON response."""
+    return (
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        or 'application/json' in request.headers.get('Accept', '')
+    )
+
+
 def ratelimit(rate: str = '60/m', block: bool = True):
     """Decorator that limits how many times a view can be called in a window."""
     limit, period_code = rate.split('/')
@@ -50,10 +58,22 @@ def ratelimit(rate: str = '60/m', block: bool = True):
 
             if count > limit:
                 if block:
-                    return JsonResponse(
-                        {'error': 'Rate limit exceeded. Please wait before retrying.'},
-                        status=429,
+                    # For AJAX/fetch requests return JSON so the caller can handle it.
+                    # For regular HTML form POSTs, redirect back with a user-visible
+                    # flash message instead of dumping raw JSON in the browser — this
+                    # prevents the "operation cut out" where the form page disappears.
+                    if _is_ajax(request):
+                        return JsonResponse(
+                            {'error': 'Too many requests. Please wait a moment before retrying.'},
+                            status=429,
+                        )
+                    from django.contrib import messages as _messages
+                    from django.shortcuts import redirect as _redirect
+                    _messages.error(
+                        request,
+                        'You are submitting too quickly. Please wait a moment before trying again.',
                     )
+                    return _redirect(request.path)
                 # non-blocking: let through but count was already incremented
                 return view_func(request, *args, **kwargs)
 

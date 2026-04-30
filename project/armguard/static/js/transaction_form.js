@@ -859,7 +859,18 @@ function _attachSelectStyles(el) {
 
   // Form submit — sync topbar selects into hidden inputs; clear persisted type
   if (form) {
-    form.addEventListener('submit', function () {
+    // Double-submit guard: disable the submit button and set a flag the moment
+    // the form fires so that rapid Enter presses or accidental double-clicks
+    // cannot send multiple POSTs and burn rate-limit quota.  The guard is
+    // automatically cleared if the browser navigates back (e.g. validation errors
+    // re-render the page, which runs this script fresh with _submitting = false).
+    var _submitting = false;
+    form.addEventListener('submit', function (e) {
+      if (_submitting) { e.preventDefault(); return; }
+      _submitting = true;
+      var btn = document.getElementById('btn-tr-submit');
+      if (btn) { btn.disabled = true; btn.textContent = 'Submitting\u2026'; }
+
       var isReturn = tbType && tbType.value === 'Return';
       ['transaction_type', 'issuance_type', 'purpose', 'purpose_other'].forEach(function (name) {
         var sel = document.getElementById('tb_' + name);
