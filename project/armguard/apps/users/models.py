@@ -226,14 +226,14 @@ class ActivityLog(models.Model):
     )
     session_key = models.CharField(
         max_length=40, blank=True,
-        help_text="Django session key (links anonymous requests across a session).",
+        help_text='Django session key (links anonymous requests across a session).',
     )
 
     # ── What ─────────────────────────────────────────────────────────────────
     method = models.CharField(max_length=6, choices=METHOD_CHOICES, default='GET')
     path = models.CharField(
         max_length=2048,
-        help_text="Request path (URL without scheme/host).",
+        help_text='Request path (URL without scheme/host).',
     )
     query_string = models.TextField(
         blank=True,
@@ -241,11 +241,11 @@ class ActivityLog(models.Model):
     )
     view_name = models.CharField(
         max_length=255, blank=True,
-        help_text="Resolved Django URL name (e.g. 'transactions:create').",
+        help_text="Resolved Django URL name (e.g. 'transactions:create').",  # noqa: E501
     )
     referer = models.CharField(
         max_length=2048, blank=True,
-        help_text="HTTP Referer header — the page the user came from.",
+        help_text='HTTP Referer header — the page the user came from.',
     )
 
     # ── Result ───────────────────────────────────────────────────────────────
@@ -293,7 +293,7 @@ class ActivityLog(models.Model):
     # ── Search tracking ───────────────────────────────────────────────────────
     search_query = models.CharField(
         max_length=500, blank=True, db_index=True,
-        help_text="Value of ?q=, ?search=, or ?query= param — empty if not a search request.",
+        help_text='Value of ?q=, ?search=, or ?query= param — empty if not a search request.',
     )
 
     # ── When ─────────────────────────────────────────────────────────────────
@@ -304,10 +304,10 @@ class ActivityLog(models.Model):
         verbose_name_plural = "Activity Logs"
         ordering = ['-timestamp']
         indexes = [
-            models.Index(fields=['user', '-timestamp']),
-            models.Index(fields=['path', '-timestamp']),
-            models.Index(fields=['status_code', '-timestamp']),
-            models.Index(fields=['flag', '-timestamp']),
+            models.Index(fields=['user', '-timestamp'],        name='users_activ_user_id_8a5363_idx'),
+            models.Index(fields=['path', '-timestamp'],        name='users_activ_path_873007_idx'),
+            models.Index(fields=['status_code', '-timestamp'], name='users_activ_status__cc100a_idx'),
+            models.Index(fields=['flag', '-timestamp'],        name='users_activ_flag_04e3b5_idx'),
         ]
 
     def __str__(self):
