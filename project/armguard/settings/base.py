@@ -191,11 +191,13 @@ CACHES = {
         'BACKEND': _cache_backend,
         'LOCATION': _cache_location,
         'TIMEOUT': 300,  # 5 minutes default; individual cache.set() calls override
-        'OPTIONS': {
-            # FileBasedCache: max number of entries before culling.
-            # Redis: ignored (Redis has its own eviction policy).
-            'MAX_ENTRIES': 1000,
-        },
+        # MAX_ENTRIES is a FileBasedCache-only option.  Django's RedisCache
+        # backend forwards all OPTIONS keys to the redis connection constructor,
+        # so passing MAX_ENTRIES with a Redis backend raises TypeError.
+        # Include it only when the FileBasedCache backend is active.
+        **({'OPTIONS': {'MAX_ENTRIES': 1000}}
+           if _cache_backend == 'django.core.cache.backends.filebased.FileBasedCache'
+           else {}),
     }
 }
 
