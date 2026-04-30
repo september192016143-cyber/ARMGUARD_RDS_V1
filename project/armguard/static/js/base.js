@@ -1002,12 +1002,29 @@ document.addEventListener('DOMContentLoaded', function () {
     e.preventDefault();
     var url = a.href;
     if (url === window.location.href) { window.scrollTo(0, 0); return; }
+    // Check navigation guard (e.g. unsaved transaction form data).
+    if (typeof window._pjaxNavigationGuard === 'function') {
+      if (!window._pjaxNavigationGuard()) return;
+      window._pjaxNavigationGuard = null;
+    }
     navigate(url, true);
   });
 
   // ── Back / Forward ───────────────────────────────────────────────────────
   window.addEventListener('popstate', function (e) {
-    if (e.state && e.state.pjax) navigate(window.location.href, false);
+    if (e.state && e.state.pjax) {
+      // Check navigation guard before PJAX Back/Forward navigation.
+      if (typeof window._pjaxNavigationGuard === 'function') {
+        if (!window._pjaxNavigationGuard()) {
+          // User cancelled — push the current URL back into history to restore
+          // the address bar to the transaction form URL.
+          history.pushState({ pjax: e.state.pjax }, document.title, e.state.pjax);
+          return;
+        }
+        window._pjaxNavigationGuard = null;
+      }
+      navigate(window.location.href, false);
+    }
   });
 
   // Save initial state so popstate fires correctly on first back-navigation

@@ -321,7 +321,16 @@ def create_transaction(request):
     if not _can_create_transaction(request.user):
         return HttpResponseForbidden("You do not have permission to create transactions.")
     from armguard.apps.users.models import SystemSettings
-    _s = SystemSettings.get()
+    try:
+        _s = SystemSettings.get()
+    except Exception as _ss_exc:
+        _logger.exception('create_transaction: could not load SystemSettings: %s', _ss_exc)
+        messages.error(
+            request,
+            'System settings are currently unavailable. Please try again in a moment.'
+            ' If this persists, contact the system administrator.',
+        )
+        return redirect(request.path)
     _purpose_config = json.dumps({
         'Duty Sentinel': {
             'pistol': _s.purpose_duty_sentinel_show_pistol,  'rifle': _s.purpose_duty_sentinel_show_rifle,

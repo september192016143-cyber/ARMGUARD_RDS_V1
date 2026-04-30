@@ -507,9 +507,11 @@ function autoFillReturnConsumables(d) {
 // ── Real-time field checks ─────────────────────────────────────────────────────
 // F7 FIX: 300ms debounce timers — prevent firing on every dropdown option scrolled.
 var _personnelTimer, _pistolTimer, _rifleTimer;
-// AbortController for in-flight personnel_status fetches — cancelled when the
-// personnel selection changes so stale responses never overwrite current data.
+// AbortControllers for in-flight status fetches — cancelled when the selection
+// changes so stale responses never overwrite current data.
 var _personnelFetchController = null;
+var _pistolFetchController    = null;
+var _rifleFetchController     = null;
 
 function checkPersonnel(val) {
   var form = document.getElementById('txn-form');
@@ -519,12 +521,14 @@ function checkPersonnel(val) {
   if (_personnelFetchController) { _personnelFetchController.abort(); }
   _personnelFetchController = new AbortController();
   var _signal = _personnelFetchController.signal;
+  // Auto-abort after 8 s so the banner never hangs indefinitely.
+  var _personnelTimeout = setTimeout(function () { _personnelFetchController.abort(); }, 8000);
   // F8 FIX: credentials:'same-origin' on all fetch calls.
   fetch(PERSONNEL_URL + '?personnel_id=' + encodeURIComponent(val), {
     credentials: 'same-origin',
     signal: _signal,
   })
-    .then(function (r) { return r.json(); })
+    .then(function (r) { clearTimeout(_personnelTimeout); return r.json(); })
     .then(function (d) {
       if (d.error) { setBanner('personnel-status-banner', 'err', escHtml(d.error)); return; }
       var txnType = document.getElementById('tb_transaction_type');
@@ -576,7 +580,9 @@ function checkPersonnel(val) {
       }
     })
     .catch(function (err) {
-      // Ignore AbortError — triggered intentionally when a newer selection supersedes this request.
+      clearTimeout(_personnelTimeout);
+      // Ignore AbortError — triggered intentionally when a newer selection supersedes this
+      // request or when the 8-second timeout fires.
       if (err && err.name === 'AbortError') return;
       setBanner('personnel-status-banner', 'err', 'Could not fetch personnel status.');
     });
@@ -590,11 +596,23 @@ function checkItem(selectId, bannerId, itemType) {
   if (!val) { setBanner(bannerId, null, ''); return; }
   var txnType = document.getElementById('tb_transaction_type');
   var isReturn = txnType && txnType.value === 'Return';
+  // Cancel any previous in-flight request for this item type before starting a new one.
+  if (itemType === 'pistol') {
+    if (_pistolFetchController) _pistolFetchController.abort();
+    _pistolFetchController = new AbortController();
+  } else {
+    if (_rifleFetchController) _rifleFetchController.abort();
+    _rifleFetchController = new AbortController();
+  }
+  var _itemCtl = itemType === 'pistol' ? _pistolFetchController : _rifleFetchController;
+  // Auto-abort after 8 s so the banner never hangs indefinitely.
+  var _itemTimeout = setTimeout(function () { _itemCtl.abort(); }, 8000);
   // F8 FIX: credentials:'same-origin' on all fetch calls.
   fetch(ITEM_URL + '?type=' + itemType + '&item_id=' + encodeURIComponent(val), {
     credentials: 'same-origin',
+    signal: _itemCtl.signal,
   })
-    .then(function (r) { return r.json(); })
+    .then(function (r) { clearTimeout(_itemTimeout); return r.json(); })
     .then(function (d) {
       if (d.error) { setBanner(bannerId, 'err', escHtml(d.error)); return; }
       // F2 FIX: d.model / d.serial_number / d.issued_to / d.reason escaped via escHtml().
@@ -627,7 +645,13 @@ function checkItem(selectId, bannerId, itemType) {
         }
       }
     })
-    .catch(function () { setBanner(bannerId, 'err', 'Could not fetch item status.'); });
+    .catch(function (err) {
+      clearTimeout(_itemTimeout);
+      // Ignore AbortError — triggered intentionally when a newer selection supersedes this
+      // request or when the 8-second timeout fires.
+      if (err && err.name === 'AbortError') return;
+      setBanner(bannerId, 'err', 'Could not fetch item status.');
+    });
 }
 
 // ── Topbar select focus/blur style handlers ────────────────────────────────────
@@ -640,6 +664,34 @@ function _attachSelectStyles(el) {
 // ── DOMContentLoaded setup ────────────────────────────────────────────────────
 (function () {
   var form = document.getElementById('txn-form');
+
+  // ── Navigation guard ──────────────────────────────────────────────────────
+  // Warn before PJAX or full-page navigation if the form has been changed, so
+  // the armorer does not silently lose a partially-filled transaction.
+  // The guard is cleared on intentional form submit, and when PJAX replaces the
+  // page (pjaxController aborts the signal for this page's script lifecycle).
+  function _setDirtyGuard() {
+    if (window._pjaxNavigationGuard) return; // already armed
+    window._pjaxNavigationGuard = function () {
+      return window.confirm(
+        'You have unsaved changes.\nLeave this page and discard the transaction data?'
+      );
+    };
+  }
+  // Remove guard when PJAX navigates away from this page.
+  if (window.pjaxController) {
+    window.pjaxController.signal.addEventListener('abort', function () {
+      window._pjaxNavigationGuard = null;
+    });
+  }
+  // Guard against full-page unloads: address bar navigation, tab close, Ctrl+R.
+  window.addEventListener(
+    'beforeunload',
+    function (e) {
+      if (window._pjaxNavigationGuard) { e.preventDefault(); e.returnValue = ''; }
+    },
+    window.pjaxController ? { signal: window.pjaxController.signal } : {}
+  );
 
   // Topbar selects — styles and change handlers (replaces inline onfocus/onblur/onchange)
   var tbType     = document.getElementById('tb_transaction_type');
@@ -778,6 +830,7 @@ function _attachSelectStyles(el) {
   if (personnelSel) {
     personnelSel.addEventListener('change', function () {
       var val = this.value;
+      if (val) _setDirtyGuard(); // personnel selected — form is no longer blank
       clearTimeout(_personnelTimer);
       _personnelTimer = setTimeout(function () {
         checkPersonnel(val);
@@ -792,6 +845,7 @@ function _attachSelectStyles(el) {
   if (pistolSel) {
     pistolSel.setAttribute('id', 'id_pistol');
     pistolSel.addEventListener('change', function () {
+      if (this.value) _setDirtyGuard();
       clearTimeout(_pistolTimer);
       var id = this.id || '';
       _pistolTimer = setTimeout(function () { checkItem(id, 'pistol-status-banner', 'pistol'); }, 300);
@@ -803,6 +857,7 @@ function _attachSelectStyles(el) {
   if (rifleSel) {
     rifleSel.setAttribute('id', 'id_rifle');
     rifleSel.addEventListener('change', function () {
+      if (this.value) _setDirtyGuard();
       clearTimeout(_rifleTimer);
       var id = this.id || '';
       _rifleTimer = setTimeout(function () { checkItem(id, 'rifle-status-banner', 'rifle'); }, 300);
@@ -868,6 +923,9 @@ function _attachSelectStyles(el) {
     form.addEventListener('submit', function (e) {
       if (_submitting) { e.preventDefault(); return; }
       _submitting = true;
+      // Intentional submit — clear the navigation guard so the success redirect
+      // does not trigger a "You have unsaved changes" confirmation dialog.
+      window._pjaxNavigationGuard = null;
       var btn = document.getElementById('btn-tr-submit');
       if (btn) { btn.disabled = true; btn.textContent = 'Submitting\u2026'; }
 
