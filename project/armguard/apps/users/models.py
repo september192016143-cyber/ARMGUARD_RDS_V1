@@ -197,6 +197,89 @@ class AuditLog(models.Model):
             self.integrity_hash = computed
 
 
+class ActivityLog(models.Model):
+    """
+    Request-level activity log. Every HTTP request handled by Django is recorded
+    here via ActivityLogMiddleware (armguard.middleware.activity).
+
+    Captures: who, what page, what action, when, from where, how long it took,
+    what they searched for, and the HTTP result code.
+    """
+    METHOD_CHOICES = [
+        ('GET',    'GET'),
+        ('POST',   'POST'),
+        ('PUT',    'PUT'),
+        ('PATCH',  'PATCH'),
+        ('DELETE', 'DELETE'),
+        ('HEAD',   'HEAD'),
+        ('OTHER',  'OTHER'),
+    ]
+
+    # ── Who ──────────────────────────────────────────────────────────────────
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='activity_logs',
+        help_text="Authenticated user; null for anonymous requests.",
+    )
+    session_key = models.CharField(
+        max_length=40, blank=True,
+        help_text="Django session key (links anonymous requests across a session).",
+    )
+
+    # ── What ─────────────────────────────────────────────────────────────────
+    method = models.CharField(max_length=6, choices=METHOD_CHOICES, default='GET')
+    path = models.CharField(
+        max_length=2048,
+        help_text="Request path (URL without scheme/host).",
+    )
+    query_string = models.TextField(
+        blank=True,
+        help_text="Raw query string (e.g. 'q=pistol&status=Active').",
+    )
+    view_name = models.CharField(
+        max_length=255, blank=True,
+        help_text="Resolved Django URL name (e.g. 'transactions:create').",
+    )
+    referer = models.CharField(
+        max_length=2048, blank=True,
+        help_text="HTTP Referer header — the page the user came from.",
+    )
+
+    # ── Result ───────────────────────────────────────────────────────────────
+    status_code = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        help_text="HTTP response status code.",
+    )
+    response_ms = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Response time in milliseconds.",
+    )
+
+    # ── Where ────────────────────────────────────────────────────────────────
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=512, blank=True)
+
+    # ── When ─────────────────────────────────────────────────────────────────
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Activity Log"
+        verbose_name_plural = "Activity Logs"
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['user', '-timestamp']),
+            models.Index(fields=['path', '-timestamp']),
+            models.Index(fields=['status_code', '-timestamp']),
+        ]
+
+    def __str__(self):
+        who = self.user.username if self.user_id else '(anon)'
+        return f"[{self.timestamp:%Y-%m-%d %H:%M:%S}] {who} {self.method} {self.path} → {self.status_code}"
+
+
 class DeletedRecord(models.Model):
     """
     Soft-delete preservation — captures a JSON snapshot of an object's data

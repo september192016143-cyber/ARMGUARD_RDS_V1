@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User, Group, Permission
-from .models import UserProfile, AuditLog, _sync_profile_from_groups
+from django.utils.html import format_html
+from .models import UserProfile, AuditLog, ActivityLog, _sync_profile_from_groups
 from armguard.apps.personnel.models import Personnel
 
 # ── Admin site hardening ──────────────────────────────────────────────────────
@@ -230,13 +231,62 @@ admin.site.register(User, CustomUserAdmin)
 
 @admin.register(AuditLog)
 class AuditLogAdmin(admin.ModelAdmin):
-    """Read-only audit log viewer. No records may be added, changed, or deleted via admin."""
-    list_display = ('timestamp', 'user', 'action', 'model_name', 'object_pk', 'ip_address')
-    list_filter = ('action', 'model_name')
+    """Read-only audit log — CRUD and auth events on key models."""
+
+    # ── Colours for action badges ──────────────────────────────────────────
+    _ACTION_COLOURS = {
+        'CREATE': '#28a745',
+        'UPDATE': '#ffc107',
+        'DELETE': '#dc3545',
+        'LOGIN':  '#17a2b8',
+        'LOGOUT': '#6c757d',
+        'OTHER':  '#6f42c1',
+    }
+
+    list_display  = ('timestamp', 'user', 'action_badge', 'model_name', 'object_pk',
+                     'short_message', 'ip_address', 'integrity_ok')
+    list_filter   = ('action', 'model_name')
     search_fields = ('user__username', 'model_name', 'object_pk', 'message', 'ip_address')
     date_hierarchy = 'timestamp'
-    readonly_fields = ('timestamp', 'user', 'action', 'model_name', 'object_pk', 'message', 'ip_address')
-    ordering = ('-timestamp',)
+    ordering       = ('-timestamp',)
+    list_per_page  = 50
+
+    readonly_fields = (
+        'timestamp', 'user', 'action', 'model_name', 'object_pk',
+        'message', 'ip_address', 'user_agent', 'integrity_hash', 'integrity_ok',
+    )
+    fieldsets = (
+        ('Event', {
+            'fields': ('timestamp', 'action', 'model_name', 'object_pk'),
+        }),
+        ('Actor', {
+            'fields': ('user', 'ip_address', 'user_agent'),
+        }),
+        ('Detail', {
+            'fields': ('message',),
+        }),
+        ('Integrity', {
+            'classes': ('collapse',),
+            'fields': ('integrity_hash', 'integrity_ok'),
+        }),
+    )
+
+    @admin.display(description='Action', ordering='action')
+    def action_badge(self, obj):
+        colour = self._ACTION_COLOURS.get(obj.action, '#343a40')
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:4px;font-size:11px;font-weight:bold">{}</span>',
+            colour, obj.action,
+        )
+
+    @admin.display(description='Message')
+    def short_message(self, obj):
+        return (obj.message[:80] + '…') if len(obj.message) > 80 else obj.message
+
+    @admin.display(description='✓ Integrity', boolean=True)
+    def integrity_ok(self, obj):
+        return obj.verify_integrity()
 
     def has_add_permission(self, request):
         return False
@@ -246,3 +296,179 @@ class AuditLogAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+# ── Status-code ranges used by ActivityLogAdmin ────────────────────────────
+def _status_colour(code):
+    if code is None:
+        return '#6c757d'
+    if code < 300:
+        return '#28a745'   # 2xx — green
+    if code < 400:
+        return '#17a2b8'   # 3xx — teal
+    if code < 500:
+        return '#ffc107'   # 4xx — amber
+    return '#dc3545'       # 5xx — red
+
+
+def _method_colour(method):
+    return {
+        'GET':    '#17a2b8',
+        'POST':   '#28a745',
+        'PUT':    '#ffc107',
+        'PATCH':  '#fd7e14',
+        'DELETE': '#dc3545',
+        'HEAD':   '#6c757d',
+    }.get(method, '#343a40')
+
+
+class StatusCodeFilter(admin.SimpleListFilter):
+    title = 'Status range'
+    parameter_name = 'status_range'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('2xx', '2xx — Success'),
+            ('3xx', '3xx — Redirect'),
+            ('4xx', '4xx — Client error'),
+            ('5xx', '5xx — Server error'),
+        ]
+
+    def queryset(self, request, queryset):
+        v = self.value()
+        if v == '2xx': return queryset.filter(status_code__gte=200, status_code__lt=300)
+        if v == '3xx': return queryset.filter(status_code__gte=300, status_code__lt=400)
+        if v == '4xx': return queryset.filter(status_code__gte=400, status_code__lt=500)
+        if v == '5xx': return queryset.filter(status_code__gte=500, status_code__lt=600)
+        return queryset
+
+
+class SlowRequestFilter(admin.SimpleListFilter):
+    title = 'Response time'
+    parameter_name = 'response_speed'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('fast',   '< 200 ms'),
+            ('medium', '200 ms – 1 s'),
+            ('slow',   '1 s – 3 s'),
+            ('very_slow', '> 3 s'),
+        ]
+
+    def queryset(self, request, queryset):
+        v = self.value()
+        if v == 'fast':      return queryset.filter(response_ms__lt=200)
+        if v == 'medium':    return queryset.filter(response_ms__gte=200, response_ms__lt=1000)
+        if v == 'slow':      return queryset.filter(response_ms__gte=1000, response_ms__lt=3000)
+        if v == 'very_slow': return queryset.filter(response_ms__gte=3000)
+        return queryset
+
+
+@admin.register(ActivityLog)
+class ActivityLogAdmin(admin.ModelAdmin):
+    """
+    Read-only full-activity log — every HTTP request to the application.
+
+    Tracks: who visited what page, when, from which IP, how long it took,
+    what they searched for, and the HTTP result.
+    """
+
+    list_display  = (
+        'timestamp', 'user', 'method_badge', 'path_display',
+        'status_badge', 'response_ms_display', 'ip_address', 'view_name',
+    )
+    list_filter   = (
+        'method',
+        StatusCodeFilter,
+        SlowRequestFilter,
+        'user',
+    )
+    search_fields = (
+        'user__username',
+        'path',
+        'query_string',
+        'view_name',
+        'ip_address',
+        'user_agent',
+        'referer',
+        'session_key',
+    )
+    date_hierarchy  = 'timestamp'
+    ordering        = ('-timestamp',)
+    list_per_page   = 100
+    show_full_result_count = False   # skip slow COUNT(*) on huge tables
+
+    readonly_fields = (
+        'timestamp', 'user', 'session_key',
+        'method', 'path', 'query_string', 'view_name', 'referer',
+        'status_code', 'response_ms', 'ip_address', 'user_agent',
+    )
+    fieldsets = (
+        ('Request', {
+            'fields': ('timestamp', 'method', 'path', 'query_string', 'view_name', 'referer'),
+        }),
+        ('Actor', {
+            'fields': ('user', 'session_key', 'ip_address', 'user_agent'),
+        }),
+        ('Response', {
+            'fields': ('status_code', 'response_ms'),
+        }),
+    )
+
+    # ── Custom columns ──────────────────────────────────────────────────────
+
+    @admin.display(description='Method', ordering='method')
+    def method_badge(self, obj):
+        colour = _method_colour(obj.method)
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 7px;'
+            'border-radius:4px;font-size:11px;font-weight:bold">{}</span>',
+            colour, obj.method,
+        )
+
+    @admin.display(description='Path', ordering='path')
+    def path_display(self, obj):
+        path = obj.path
+        qs   = f'?{obj.query_string}' if obj.query_string else ''
+        full = path + qs
+        # Truncate display but keep the full string in title tooltip
+        display = (full[:70] + '…') if len(full) > 70 else full
+        return format_html('<span title="{}">{}</span>', full, display)
+
+    @admin.display(description='Status', ordering='status_code')
+    def status_badge(self, obj):
+        colour = _status_colour(obj.status_code)
+        code   = obj.status_code or '—'
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:4px;font-size:11px;font-weight:bold">{}</span>',
+            colour, code,
+        )
+
+    @admin.display(description='Time (ms)', ordering='response_ms')
+    def response_ms_display(self, obj):
+        if obj.response_ms is None:
+            return '—'
+        ms = obj.response_ms
+        if ms >= 3000:
+            colour = '#dc3545'
+        elif ms >= 1000:
+            colour = '#fd7e14'
+        elif ms >= 200:
+            colour = '#ffc107'
+        else:
+            colour = '#28a745'
+        return format_html(
+            '<span style="color:{};font-weight:bold">{} ms</span>',
+            colour, ms,
+        )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+

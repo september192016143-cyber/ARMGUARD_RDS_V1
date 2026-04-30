@@ -91,6 +91,9 @@ MIDDLEWARE = [
     'armguard.middleware.mfa.OTPRequiredMiddleware',
     # Security: CSP + Referrer-Policy response headers on every response.
     'armguard.middleware.security.SecurityHeadersMiddleware',
+    # Activity logging: record every non-static request to ActivityLog table.
+    # Placed last so status_code reflects the fully-processed response.
+    'armguard.middleware.activity.ActivityLogMiddleware',
 ]
 
 ROOT_URLCONF = 'armguard.urls'
