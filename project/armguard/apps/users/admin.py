@@ -298,17 +298,14 @@ class AuditLogAdmin(admin.ModelAdmin):
         return False
 
 
-# ── Status-code ranges used by ActivityLogAdmin ────────────────────────────
+# ── Shared colour helpers ──────────────────────────────────────────────────────
+
 def _status_colour(code):
-    if code is None:
-        return '#6c757d'
-    if code < 300:
-        return '#28a745'   # 2xx — green
-    if code < 400:
-        return '#17a2b8'   # 3xx — teal
-    if code < 500:
-        return '#ffc107'   # 4xx — amber
-    return '#dc3545'       # 5xx — red
+    if code is None:     return '#6c757d'
+    if code < 300:       return '#28a745'   # 2xx — green
+    if code < 400:       return '#17a2b8'   # 3xx — teal
+    if code < 500:       return '#ffc107'   # 4xx — amber
+    return '#dc3545'                        # 5xx — red
 
 
 def _method_colour(method):
@@ -320,6 +317,46 @@ def _method_colour(method):
         'DELETE': '#dc3545',
         'HEAD':   '#6c757d',
     }.get(method, '#343a40')
+
+
+_FLAG_META = {
+    # (background, label)
+    'NORMAL':     ('#6c757d', 'NORMAL'),
+    'SLOW':       ('#fd7e14', 'SLOW  ⏱'),
+    'WARNING':    ('#ffc107', 'WARN  404'),
+    'SUSPICIOUS': ('#dc3545', 'SUSPICIOUS'),
+    'ERROR':      ('#a71d2a', 'ERROR  💥'),
+}
+
+
+# ── Filters ────────────────────────────────────────────────────────────────────
+
+class QuickReviewFilter(admin.SimpleListFilter):
+    """One-click shortcuts for the most common review scenarios."""
+    title = 'Quick review'
+    parameter_name = 'quick'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('flagged',    'All flagged  (non-normal)'),
+            ('errors',     'Server errors  (5xx / exception)'),
+            ('suspicious', 'Suspicious  (401 / 403)'),
+            ('slow',       'Slow  (> 2 s)'),
+            ('not_found',  'Not found  (404)'),
+            ('searches',   'Search activity'),
+            ('anon',       'Anonymous only'),
+        ]
+
+    def queryset(self, request, queryset):
+        v = self.value()
+        if v == 'flagged':    return queryset.exclude(flag='NORMAL')
+        if v == 'errors':     return queryset.filter(flag='ERROR')
+        if v == 'suspicious': return queryset.filter(flag='SUSPICIOUS')
+        if v == 'slow':       return queryset.filter(flag='SLOW')
+        if v == 'not_found':  return queryset.filter(flag='WARNING')
+        if v == 'searches':   return queryset.exclude(search_query='')
+        if v == 'anon':       return queryset.filter(user__isnull=True)
+        return queryset
 
 
 class StatusCodeFilter(admin.SimpleListFilter):
@@ -349,9 +386,9 @@ class SlowRequestFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         return [
-            ('fast',   '< 200 ms'),
-            ('medium', '200 ms – 1 s'),
-            ('slow',   '1 s – 3 s'),
+            ('fast',      '< 200 ms'),
+            ('medium',    '200 ms – 1 s'),
+            ('slow',      '1 s – 3 s'),
             ('very_slow', '> 3 s'),
         ]
 
@@ -364,48 +401,78 @@ class SlowRequestFilter(admin.SimpleListFilter):
         return queryset
 
 
+# ── ActivityLogAdmin ───────────────────────────────────────────────────────────
+
 @admin.register(ActivityLog)
 class ActivityLogAdmin(admin.ModelAdmin):
     """
-    Read-only full-activity log — every HTTP request to the application.
+    Full read-only request log for systematic review and problem detection.
 
-    Tracks: who visited what page, when, from which IP, how long it took,
-    what they searched for, and the HTTP result.
+    Columns:
+      timestamp | FLAG | user | METHOD | path (+ query) | STATUS | ms | IP | view
+
+    Quick review filter (left panel):
+      Flagged / Errors / Suspicious / Slow / 404 / Searches / Anonymous
+
+    Use-cases:
+      • Security review  — filter "Suspicious" to see all 401/403 (access-denied)
+      • Bug hunting      — filter "Errors" to see every 500 + exception class name
+      • Performance      — filter "Slow" to find views > 2 s
+      • User behaviour   — filter by user to replay their session path-by-path
+      • Search analytics — filter "Search activity" to see every query term used
     """
 
-    list_display  = (
-        'timestamp', 'user', 'method_badge', 'path_display',
-        'status_badge', 'response_ms_display', 'ip_address', 'view_name',
+    list_display = (
+        'timestamp',
+        'flag_badge',
+        'user',
+        'method_badge',
+        'path_display',
+        'status_badge',
+        'response_ms_display',
+        'ip_address',
+        'view_name',
+        'exception_display',
     )
-    list_filter   = (
+    list_filter = (
+        QuickReviewFilter,
         'method',
         StatusCodeFilter,
         SlowRequestFilter,
-        'user',
+        'flag',
     )
     search_fields = (
         'user__username',
         'path',
         'query_string',
+        'search_query',
         'view_name',
         'ip_address',
         'user_agent',
         'referer',
         'session_key',
+        'exception_type',
+        'exception_message',
     )
     date_hierarchy  = 'timestamp'
     ordering        = ('-timestamp',)
-    list_per_page   = 100
-    show_full_result_count = False   # skip slow COUNT(*) on huge tables
+    list_per_page   = 50
+    show_full_result_count = False   # skip slow COUNT(*) on large tables
 
     readonly_fields = (
         'timestamp', 'user', 'session_key',
-        'method', 'path', 'query_string', 'view_name', 'referer',
-        'status_code', 'response_ms', 'ip_address', 'user_agent',
+        'method', 'path', 'query_string', 'search_query',
+        'view_name', 'referer',
+        'status_code', 'response_ms',
+        'ip_address', 'user_agent',
+        'flag', 'exception_type', 'exception_message',
     )
     fieldsets = (
+        ('Classification', {
+            'fields': ('flag', 'timestamp'),
+        }),
         ('Request', {
-            'fields': ('timestamp', 'method', 'path', 'query_string', 'view_name', 'referer'),
+            'fields': ('method', 'path', 'query_string', 'search_query', 'view_name', 'referer'),
         }),
         ('Actor', {
             'fields': ('user', 'session_key', 'ip_address', 'user_agent'),
@@ -413,9 +480,27 @@ class ActivityLogAdmin(admin.ModelAdmin):
         ('Response', {
             'fields': ('status_code', 'response_ms'),
         }),
+        ('Error detail', {
+            # Collapsed by default — only relevant for ERROR flag entries.
+            'classes': ('collapse',),
+            'fields': ('exception_type', 'exception_message'),
+            'description': (
+                'Populated only for requests that raised an uncaught Python exception '
+                '(FLAG = ERROR). Empty for all other flag levels.'
+            ),
+        }),
     )
 
-    # ── Custom columns ──────────────────────────────────────────────────────
+    # ── Computed columns ───────────────────────────────────────────────────────
+
+    @admin.display(description='Flag', ordering='flag')
+    def flag_badge(self, obj):
+        bg, label = _FLAG_META.get(obj.flag, ('#6c757d', obj.flag))
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:4px;font-size:11px;font-weight:bold;white-space:nowrap">{}</span>',
+            bg, label,
+        )
 
     @admin.display(description='Method', ordering='method')
     def method_badge(self, obj):
@@ -426,13 +511,20 @@ class ActivityLogAdmin(admin.ModelAdmin):
             colour, obj.method,
         )
 
-    @admin.display(description='Path', ordering='path')
+    @admin.display(description='Path  +  query', ordering='path')
     def path_display(self, obj):
-        path = obj.path
-        qs   = f'?{obj.query_string}' if obj.query_string else ''
-        full = path + qs
-        # Truncate display but keep the full string in title tooltip
-        display = (full[:70] + '…') if len(full) > 70 else full
+        qs      = f'?{obj.query_string}' if obj.query_string else ''
+        full    = obj.path + qs
+        display = (full[:72] + '…') if len(full) > 72 else full
+        # Highlight search queries inline so reviewers see them at a glance.
+        if obj.search_query:
+            return format_html(
+                '<span title="{}">{}'
+                '&nbsp;<span style="background:#fff3cd;color:#856404;'
+                'border-radius:3px;padding:0 4px;font-size:11px" title="search query">'
+                '🔍 {}</span></span>',
+                full, display, obj.search_query,
+            )
         return format_html('<span title="{}">{}</span>', full, display)
 
     @admin.display(description='Status', ordering='status_code')
@@ -450,17 +542,24 @@ class ActivityLogAdmin(admin.ModelAdmin):
         if obj.response_ms is None:
             return '—'
         ms = obj.response_ms
-        if ms >= 3000:
-            colour = '#dc3545'
-        elif ms >= 1000:
-            colour = '#fd7e14'
-        elif ms >= 200:
-            colour = '#ffc107'
-        else:
-            colour = '#28a745'
+        if   ms >= 3000: colour = '#dc3545'
+        elif ms >= 1000: colour = '#fd7e14'
+        elif ms >= 200:  colour = '#ffc107'
+        else:            colour = '#28a745'
         return format_html(
             '<span style="color:{};font-weight:bold">{} ms</span>',
             colour, ms,
+        )
+
+    @admin.display(description='Exception')
+    def exception_display(self, obj):
+        if not obj.exception_type:
+            return ''
+        tip = obj.exception_message[:200] if obj.exception_message else ''
+        return format_html(
+            '<span style="background:#a71d2a;color:#fff;padding:2px 6px;'
+            'border-radius:4px;font-size:11px;font-weight:bold" title="{}">{}</span>',
+            tip, obj.exception_type,
         )
 
     def has_add_permission(self, request):

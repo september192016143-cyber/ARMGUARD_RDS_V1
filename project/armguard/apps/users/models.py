@@ -262,6 +262,40 @@ class ActivityLog(models.Model):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.CharField(max_length=512, blank=True)
 
+    # ── Classification (auto-set by middleware) ───────────────────────────────
+    FLAG_NORMAL     = 'NORMAL'
+    FLAG_SLOW       = 'SLOW'
+    FLAG_WARNING    = 'WARNING'
+    FLAG_SUSPICIOUS = 'SUSPICIOUS'
+    FLAG_ERROR      = 'ERROR'
+    FLAG_CHOICES = [
+        ('NORMAL',     'Normal'),
+        ('SLOW',       'Slow  (> 2 s)'),
+        ('WARNING',    'Warning  (404)'),
+        ('SUSPICIOUS', 'Suspicious  (401 / 403)'),
+        ('ERROR',      'Error  (5xx / exception)'),
+    ]
+    flag = models.CharField(
+        max_length=12, choices=FLAG_CHOICES, default='NORMAL', db_index=True,
+        help_text="Auto-classified severity of this request.",
+    )
+
+    # ── Error detail (only populated on uncaught exceptions) ─────────────────
+    exception_type = models.CharField(
+        max_length=200, blank=True,
+        help_text="Python exception class name captured before Django's 500 handler ran.",
+    )
+    exception_message = models.TextField(
+        blank=True,
+        help_text="Exception message text.",
+    )
+
+    # ── Search tracking ───────────────────────────────────────────────────────
+    search_query = models.CharField(
+        max_length=500, blank=True, db_index=True,
+        help_text="Value of ?q=, ?search=, or ?query= param — empty if not a search request.",
+    )
+
     # ── When ─────────────────────────────────────────────────────────────────
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
@@ -273,6 +307,7 @@ class ActivityLog(models.Model):
             models.Index(fields=['user', '-timestamp']),
             models.Index(fields=['path', '-timestamp']),
             models.Index(fields=['status_code', '-timestamp']),
+            models.Index(fields=['flag', '-timestamp']),
         ]
 
     def __str__(self):
