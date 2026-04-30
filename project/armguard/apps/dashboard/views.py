@@ -390,10 +390,10 @@ def dashboard_view(request):
 
         # 1 query: personnel counts
         _pers = Personnel.objects.aggregate(
-            active=Count('id', filter=Q(status='Active')),
-            inactive=Count('id', filter=Q(status='Inactive')),
-            officers=Count('id', filter=Q(status='Active', rank__in=_officer_ranks)),
-            enlisted=Count('id', filter=Q(status='Active') & ~Q(rank__in=_officer_ranks)),
+            active=Count('Personnel_ID', filter=Q(status='Active')),
+            inactive=Count('Personnel_ID', filter=Q(status='Inactive')),
+            officers=Count('Personnel_ID', filter=Q(status='Active', rank__in=_officer_ranks)),
+            enlisted=Count('Personnel_ID', filter=Q(status='Active') & ~Q(rank__in=_officer_ranks)),
         )
 
         # 1 query: pistol counts
@@ -419,9 +419,9 @@ def dashboard_view(request):
 
         # 1 query: transaction day totals + all-time count
         _txn = Transaction.objects.aggregate(
-            total=Count('id'),
-            withdrawals_today=Count('id', filter=Q(transaction_type='Withdrawal', timestamp__date=today)),
-            returns_today=Count('id', filter=Q(transaction_type='Return', timestamp__date=today)),
+            total=Count('transaction_id'),
+            withdrawals_today=Count('transaction_id', filter=Q(transaction_type='Withdrawal', timestamp__date=today)),
+            returns_today=Count('transaction_id', filter=Q(transaction_type='Return', timestamp__date=today)),
         )
 
         # 1 query: issued firearm counts + magazine issued counts (open logs only)
