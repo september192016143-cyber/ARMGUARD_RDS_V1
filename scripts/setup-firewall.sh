@@ -16,7 +16,6 @@
 #   - Allow SSH (port 22 or custom)
 #   - Allow HTTP (port 80) for Nginx
 #   - Allow HTTPS (port 443) for Nginx
-#   - Allow WireGuard VPN (port 51820 UDP) for off-LAN access
 #   - Block direct Gunicorn access (port 8000) from external hosts
 #   - Deny everything else by default
 # =============================================================================
@@ -106,12 +105,6 @@ ufw allow 80/tcp comment "HTTP (Nginx → HTTPS redirect)"
 
 # HTTPS — Nginx with SSL
 ufw allow 443/tcp comment "HTTPS (Nginx)"
-
-# mDNS — allow LAN devices to resolve armguard.local via Avahi
-# UDP 5353 to multicast 224.0.0.251 is used by all mDNS clients.
-# UFW default deny incoming does not block multicast by itself, so
-# this explicit rule ensures avahi-daemon responses are not dropped.
-ufw allow 5353/udp comment "mDNS (Avahi — armguard.local)"
 
 # Block direct Gunicorn access from external hosts
 # Gunicorn binds to 127.0.0.1:8000 so external access is already blocked

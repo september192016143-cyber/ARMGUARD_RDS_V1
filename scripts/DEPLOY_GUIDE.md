@@ -100,8 +100,7 @@ sudo bash scripts/deploy.sh --static-ip 192.168.0.11 --gateway 192.168.0.1 --lan
 | Gunicorn service | `armguard-gunicorn` (systemd) |
 | Nginx site | `/etc/nginx/sites-available/armguard` |
 | Log directory | `/var/log/armguard/` |
-| Firewall | UFW: ports 22, 80, 443, 51820/udp open; 8000 blocked |
-| VPN | WireGuard on port 51820/udp — run `setup-wireguard.sh` after deploy |
+| Firewall | UFW: ports 22, 80, 443 open; 8000 blocked |
 | Fail2Ban | SSH jail (24 h ban) + Nginx jails — installed by `setup-firewall.sh` |
 | Auto security patches | `unattended-upgrades` enabled — installed by `setup-firewall.sh` |
 
@@ -255,57 +254,6 @@ Navigate to `https://192.168.0.11` — the padlock should now be green with no "
 > certutil -delstore "Root" "ArmGuard RDS"
 > ```
 > Then repeat Steps 4a–4c with the new cert.
-
----
-
-## STEP 6c — WireGuard VPN (optional — off-LAN access)
-
-> Use this if you need to access ArmGuard from a device that is **not on the same LAN** as the server (e.g. a remote administrator or officer on a separate network).
-
-### Part 1 — Run the setup script on the server
-
-```bash
-sudo bash /var/www/ARMGUARD_RDS_V1/scripts/setup-wireguard.sh
-```
-
-What it does automatically:
-- Installs WireGuard
-- Generates server keypair and writes `/etc/wireguard/wg0.conf`
-- Opens UFW port 51820/udp
-- Regenerates the SSL cert with `10.8.0.1` as an additional IP SAN
-- Updates `DJANGO_ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` in `.env`
-- Restarts Gunicorn
-- Generates the first client config at `/etc/wireguard/peers/peer1.conf`
-- Prints a QR code for mobile import
-
-For remote access (client connects from outside the LAN), pass the public IP:
-
-```bash
-sudo bash /var/www/ARMGUARD_RDS_V1/scripts/setup-wireguard.sh --server-ip <PUBLIC_IP>
-```
-
-### Part 2 — Copy the client config to your device
-
-```bash
-# From your PC (Windows PowerShell)
-scp rds@192.168.0.11:/etc/wireguard/peers/peer1.conf "$env:USERPROFILE\Desktop\armguard-vpn.conf"
-```
-
-### Part 3 — Import and connect
-
-- **Windows/Linux**: Open the WireGuard app → Import tunnel → select `armguard-vpn.conf` → Activate
-- **Android/iOS**: Open the WireGuard app → scan the QR code printed by the setup script
-
-### Part 4 — Access the app over VPN
-
-Once connected, browse to `https://10.8.0.1` and install the SSL certificate if prompted.
-
-### Adding more VPN clients later
-
-```bash
-sudo bash /var/www/ARMGUARD_RDS_V1/scripts/add-wireguard-peer.sh --name laptop
-sudo bash /var/www/ARMGUARD_RDS_V1/scripts/add-wireguard-peer.sh --name iphone
-```
 
 ---
 

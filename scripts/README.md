@@ -16,8 +16,6 @@ Scripts for deploying and maintaining **ARMGUARD RDS V1** on Ubuntu Server 24.04
 | `nginx-armguard.conf` | Nginx HTTP-only reverse proxy config |
 | `nginx-armguard-ssl-lan.conf` | Nginx HTTPS config for LAN self-signed SSL |
 | `setup-firewall.sh` | UFW rules + Fail2Ban + unattended-upgrades |
-| `setup-wireguard.sh` | Install WireGuard VPN server; generates first client config + QR code |
-| `add-wireguard-peer.sh` | Add a new WireGuard client at any time; hot-adds peer to running `wg0` |
 | `backup.sh` | Consolidated backup: SQLite + media/ + .env with rotation |
 | `db-backup-cron.sh` | Legacy cron wrapper for Django `db_backup` management command |
 | `renew-ssl-cert.sh` | Auto-renew self-signed SSL cert; installed as monthly root cron by deploy.sh |
@@ -38,7 +36,7 @@ ssh user@server-ip
 
 # 3. Run the deployment script as root
 cd ~/ARMGUARD_RDS_V1
-sudo bash scripts/deploy.sh --domain armguard.local --lan-ip 192.168.1.100
+sudo bash scripts/deploy.sh --domain 192.168.1.100 --lan-ip 192.168.1.100
 ```
 
 For non-interactive / scripted deployment:
