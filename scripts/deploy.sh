@@ -12,6 +12,8 @@
 #   --lan-ip IP      Set the LAN IP address for Nginx binding
 #   --static-ip IP   Configure a static LAN IP via netplan before deploying
 #   --gateway IP     Gateway IP used with --static-ip (default: first 3 octets + .1)
+#   --external-drive Auto-detect, format (if blank), mount and fstab-register the
+#                    external backup drive at /mnt/backup
 #   --help           Show this help message
 #
 # What this script does:
@@ -116,6 +118,7 @@ DOMAIN=""
 LAN_IP=""
 STATIC_IP_SET=""
 GATEWAY_SET=""
+SETUP_EXT_DRIVE=false
 
 usage() {
     grep '^#' "$0" | grep -E '^\# ' | sed 's/^# //'
@@ -130,6 +133,7 @@ while [[ $# -gt 0 ]]; do
         --lan-ip)      LAN_IP="$2"; shift 2 ;;
         --static-ip)   STATIC_IP_SET="$2"; shift 2 ;;
         --gateway)     GATEWAY_SET="$2"; shift 2 ;;
+        --external-drive) SETUP_EXT_DRIVE=true; shift ;;
         --help|-h)     usage ;;
         *) die "Unknown argument: $1" ;;
     esac
@@ -814,6 +818,149 @@ if [[ -f "$SCRIPT_DIR/backup.sh" ]]; then
     success "Every-3-hour consolidated backup cron installed (nice -n 19 ionice -c 3)."
 else
     warn "backup.sh not found in scripts/; consolidated backup cron not installed."
+fi
+
+# ---------------------------------------------------------------------------
+# 12b. External backup drive setup (only when --external-drive is passed)
+# ---------------------------------------------------------------------------
+_setup_external_drive() {
+    local mount_point="/mnt/backup"
+    local chosen_dev chosen_uuid chosen_fs
+
+    step "External backup drive setup"
+
+    # List all unmounted block devices that are NOT the root disk
+    local root_disk
+    root_disk=$(lsblk -no PKNAME "$(findmnt -n -o SOURCE /)" 2>/dev/null | head -1)
+
+    info "Scanning for external drives (excluding root disk: /dev/${root_disk:-unknown})…"
+    echo
+
+    # Build candidate list: whole disks and partitions that are NOT the root disk
+    local candidates=() labels=()
+    while IFS= read -r line; do
+        local dev size type fstype label
+        dev=$(echo "$line"   | awk '{print $1}')
+        size=$(echo "$line"  | awk '{print $2}')
+        type=$(echo "$line"  | awk '{print $3}')
+        fstype=$(echo "$line"| awk '{print $4}')
+        label=$(echo "$line" | awk '{print $5}')
+        # Skip root disk and its children
+        [[ "/dev/$dev" == "/dev/${root_disk}"* ]] && continue
+        # Skip loop, rom, ram devices
+        [[ "$type" == "loop" || "$type" == "rom" || "$type" == "ram" ]] && continue
+        # Skip devices that are already mounted
+        mountpoint -q "/dev/$dev" 2>/dev/null && continue
+        candidates+=("$dev")
+        labels+=("$size ${fstype:-unformatted} ${label}")
+    done < <(lsblk -rno NAME,SIZE,TYPE,FSTYPE,LABEL 2>/dev/null)
+
+    if [[ ${#candidates[@]} -eq 0 ]]; then
+        warn "No candidate external drives found. Plug in the drive and re-run with --external-drive."
+        return 0
+    fi
+
+    echo -e "  ${BOLD}Available drives:${NC}"
+    local i
+    for i in "${!candidates[@]}"; do
+        printf "  [%d] /dev/%s  (%s)\n" "$((i+1))" "${candidates[$i]}" "${labels[$i]}"
+    done
+    echo "  [0] Skip — do not configure external drive"
+    echo
+
+    local choice
+    read -rp "  Select drive number: " choice
+    if [[ "$choice" == "0" || -z "$choice" ]]; then
+        info "External drive setup skipped."
+        return 0
+    fi
+    if ! [[ "$choice" =~ ^[0-9]+$ ]] || [[ "$choice" -lt 1 || "$choice" -gt ${#candidates[@]} ]]; then
+        warn "Invalid selection — external drive setup skipped."
+        return 0
+    fi
+
+    chosen_dev="/dev/${candidates[$((choice-1))]}"
+    info "Selected: $chosen_dev"
+
+    # Detect existing filesystem
+    chosen_fs=$(blkid -o value -s TYPE "$chosen_dev" 2>/dev/null || true)
+
+    if [[ -z "$chosen_fs" ]]; then
+        # No filesystem — offer to format as ext4
+        echo
+        warn "$chosen_dev has no filesystem. Formatting will ERASE ALL DATA on the drive."
+        local confirm
+        read -rp "  Format $chosen_dev as ext4 for backup storage? [yes/N]: " confirm
+        if [[ "${confirm,,}" != "yes" ]]; then
+            info "Format declined — external drive setup skipped."
+            return 0
+        fi
+        info "Formatting $chosen_dev as ext4 with label ARMGUARD_BCK …"
+        mkfs.ext4 -L ARMGUARD_BCK -F "$chosen_dev"
+        chosen_fs="ext4"
+        success "Formatted: $chosen_dev (ext4, label ARMGUARD_BCK)"
+    else
+        info "Detected existing filesystem: $chosen_fs"
+        if [[ "$chosen_fs" != "ext4" && "$chosen_fs" != "xfs" && "$chosen_fs" != "btrfs" ]]; then
+            warn "Filesystem '$chosen_fs' may not be optimal for backups. Proceeding anyway."
+        fi
+    fi
+
+    # Retrieve UUID (post-format or pre-existing)
+    chosen_uuid=$(blkid -o value -s UUID "$chosen_dev" 2>/dev/null || true)
+    if [[ -z "$chosen_uuid" ]]; then
+        warn "Could not read UUID from $chosen_dev — skipping fstab entry."
+        return 0
+    fi
+    info "UUID: $chosen_uuid"
+
+    # Create mount point
+    mkdir -p "$mount_point"
+    chmod 750 "$mount_point"
+
+    # Check if already in fstab
+    if grep -q "$chosen_uuid" /etc/fstab 2>/dev/null; then
+        info "UUID already present in /etc/fstab — skipping duplicate entry."
+    else
+        local fstab_line
+        if [[ "$chosen_fs" == "ext4" ]]; then
+            fstab_line="UUID=$chosen_uuid $mount_point ext4 defaults,nofail,noatime 0 2"
+        elif [[ "$chosen_fs" == "xfs" ]]; then
+            fstab_line="UUID=$chosen_uuid $mount_point xfs  defaults,nofail,noatime 0 2"
+        else
+            fstab_line="UUID=$chosen_uuid $mount_point $chosen_fs defaults,nofail 0 2"
+        fi
+        # Back up fstab before modifying
+        cp /etc/fstab /etc/fstab.bak."$TIMESTAMP"
+        echo "$fstab_line" >> /etc/fstab
+        success "fstab entry added: $fstab_line"
+        info "Original fstab backed up to /etc/fstab.bak.$TIMESTAMP"
+    fi
+
+    # Mount now
+    if mountpoint -q "$mount_point" 2>/dev/null; then
+        info "$mount_point is already mounted."
+    else
+        mount "$chosen_dev" "$mount_point" && success "Mounted $chosen_dev at $mount_point" \
+            || warn "Mount failed — check device and filesystem. fstab entry was still written."
+    fi
+
+    # Update backup.sh to use the confirmed UUID (replace the placeholder)
+    if [[ -f "$BACKUP_SH_DEPLOY" ]]; then
+        sed -i "s|UUID=\"ff28a2b1-df2f-402b-9b88-38133225a40f\"|UUID=\"$chosen_uuid\"|g" \
+            "$BACKUP_SH_DEPLOY" 2>/dev/null || true
+        info "backup.sh updated with UUID $chosen_uuid"
+    fi
+
+    # Create the armguard subdirectory on the external drive
+    mkdir -p "$mount_point/armguard"
+    success "External backup drive configured: $chosen_dev → $mount_point (UUID $chosen_uuid)"
+}
+
+if [[ "$SETUP_EXT_DRIVE" == "true" ]]; then
+    _setup_external_drive
+else
+    info "Tip: re-run with --external-drive to auto-configure an external backup drive."
 fi
 
 # ---------------------------------------------------------------------------
