@@ -110,14 +110,15 @@
   }
 
   // ── Wire nav / action buttons ── ─────────────────────────────────────────────
-  document.getElementById('cal-prev').addEventListener('click', () => calNav(-1));
-  document.getElementById('cal-next').addEventListener('click', () => calNav(1));
-  document.getElementById('cal-apply').addEventListener('click', (e) => {
-    e.stopPropagation(); applyCalendar();
-  });
-  document.getElementById('cal-clear').addEventListener('click', (e) => {
-    e.stopPropagation(); clearCalendar();
-  });
+  const _prev  = document.getElementById('cal-prev');
+  const _next  = document.getElementById('cal-next');
+  const _apply = document.getElementById('cal-apply');
+  const _clear = document.getElementById('cal-clear');
+  if (!_prev || !_next || !_apply || !_clear) return; // calendar DOM not present on this page
+  _prev .addEventListener('click', () => calNav(-1));
+  _next .addEventListener('click', () => calNav(1));
+  _apply.addEventListener('click', (e) => { e.stopPropagation(); applyCalendar(); });
+  _clear.addEventListener('click', (e) => { e.stopPropagation(); clearCalendar(); });
 
   // ── Toggle dropdown ──────────────────────────────────────────────────────────
   document.getElementById('calendar-toggle').addEventListener('click', (e) => {
