@@ -656,6 +656,19 @@ MEDIA_ROOT="$PROJECT_DIR/media"
 if [[ -f "$NGINX_AVAILABLE" ]]; then
     info "Nginx config already exists at $NGINX_AVAILABLE — skipping (preserves SSL config)."
     info "To reset it: sudo rm $NGINX_AVAILABLE && sudo bash scripts/deploy.sh ..."
+elif [[ -f "$SCRIPT_DIR/nginx-armguard-ssl-lan.conf" ]]; then
+    # SSL cert is always generated — use the HTTPS config by default.
+    sed "s|__DOMAIN__|$DOMAIN|g; s|__LAN_IP__|$LAN_IP|g; \
+         s|__STATIC_ROOT__|$STATIC_ROOT|g; \
+         s|__MEDIA_ROOT__|$MEDIA_ROOT|g" \
+        "$SCRIPT_DIR/nginx-armguard-ssl-lan.conf" > "$NGINX_AVAILABLE"
+    # Enable secure cookie and SSL redirect in .env now that HTTPS is configured.
+    if [[ -f "$ENV_FILE" ]]; then
+        sed -i 's/^SECURE_SSL_REDIRECT=False/SECURE_SSL_REDIRECT=True/' "$ENV_FILE"
+        sed -i 's/^SESSION_COOKIE_SECURE=False/SESSION_COOKIE_SECURE=True/' "$ENV_FILE"
+        sed -i 's/^CSRF_COOKIE_SECURE=False/CSRF_COOKIE_SECURE=True/' "$ENV_FILE"
+        success "SSL redirect and secure cookies enabled in .env"
+    fi
 elif [[ -f "$SCRIPT_DIR/nginx-armguard.conf" ]]; then
     sed "s|__DOMAIN__|$DOMAIN|g; s|__LAN_IP__|$LAN_IP|g; \
          s|__STATIC_ROOT__|$STATIC_ROOT|g; \
