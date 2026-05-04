@@ -17,8 +17,7 @@
 set -euo pipefail
 
 # ── Defaults ─────────────────────────────────────────────────────────────────
-DEFAULT_IP="192.168.0.11"
-DEFAULT_GW="192.168.0.1"
+# DEFAULT_IP and DEFAULT_GW are resolved at runtime after interface detection.
 DEFAULT_DNS="8.8.8.8,8.8.4.4"
 NETPLAN_FILE="/etc/netplan/99-armguard-static.yaml"
 DRY_RUN=false
@@ -55,6 +54,14 @@ if [[ -z "$IFACE" ]]; then
   fi
   echo "Auto-detected interface: $IFACE"
 fi
+
+# ── Detect current IP and gateway as smart defaults ───────────────────────────
+DEFAULT_IP=$(ip -4 addr show "$IFACE" 2>/dev/null \
+  | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n1)
+DEFAULT_IP="${DEFAULT_IP:-192.168.0.11}"
+
+DEFAULT_GW=$(ip -4 route show default 2>/dev/null | awk '{print $3}' | head -n1)
+DEFAULT_GW="${DEFAULT_GW:-192.168.0.1}"
 
 # ── Interactive prompts for missing values ────────────────────────────────────
 if [[ -z "$STATIC_IP" ]]; then
