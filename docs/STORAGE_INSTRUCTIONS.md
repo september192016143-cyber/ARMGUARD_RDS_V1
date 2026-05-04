@@ -54,7 +54,7 @@ sudo blkid
 
 Find your external drive. Note the UUID — **always use UUID to mount, not the device path** (`/dev/sda`, `/dev/sdb`, etc.). Device names are assigned by the OS at boot and can change if you plug in another drive or change ports. UUID is permanent and tied to the partition itself.
 
-> **On the production server (`192.168.0.162`):** The external drive is `/dev/sda3` — UUID `ff28a2b1-df2f-402b-9b88-38133225a40f`, label `RDSDRIVEL`, 931.5G HDD. The root disk is `nvme0n1` (NVMe SSD, 232.9G).
+> **On the production server (`192.168.0.162`):** The external drive is `/dev/sda3` — UUID `ff28a2b1-df2f-402b-9b88-38133225a40f`, partition label (PARTLABEL) `RDSDRIVEL`, 683.6G ext4. `sda4` is a Windows exfat partition (`RDSDRIVEW`) — do not use it. The root disk is `nvme0n1` (NVMe SSD, 232.9G).
 
 ### Step 2 — Format the drive (only if blank / new drive)
 
@@ -76,8 +76,9 @@ sudo blkid /dev/sda3
 
 ```bash
 sudo mkdir -p /mnt/backup
-sudo chmod 750 /mnt/backup
 ```
+
+> Permissions on the mount point directory are **shadowed by the drive's filesystem root** once mounted. Set the correct permissions in Step 7, after mounting.
 
 ### Step 4 — Get the UUID
 
@@ -110,11 +111,12 @@ df -h /mnt/backup
 ### Step 7 — Create the armguard subdirectory and fix permissions
 
 ```bash
+sudo chmod 755 /mnt/backup              # fix the ext4 root dir on the drive (not the pre-mount directory)
 sudo mkdir -p /mnt/backup/armguard
-sudo chmod 755 /mnt/backup/armguard   # allows non-root users to list contents
+sudo chmod 755 /mnt/backup/armguard    # allows non-root users to list contents
 ```
 
-> **Why `755` on `armguard/`?** The mount point `/mnt/backup` is `chmod 750` (root-only). The `armguard/` subdirectory is set to `755` so that admin users (`rds`, etc.) can `ls` and read backup listings without needing `sudo ls` every time. Backup files inside each timestamped set remain root-owned.
+> **Why both?** Once mounted, `/mnt/backup` shows the permissions of the **root directory of the ext4 filesystem on the drive**, not the pre-mount directory. If that root dir is `750` or `700`, non-root users get `Permission denied` even before reaching `armguard/`. Set both to `755` so that `rds` and other admin users can browse without `sudo`.
 
 ---
 
@@ -274,6 +276,8 @@ sudo mount UUID=ff28a2b1-df2f-402b-9b88-38133225a40f /mnt/backup
 # If you see "already mounted" — the drive is already attached. Skip this step.
 
 # Fix permissions so you can browse without sudo
+# /mnt/backup shows the ext4 root dir on the drive — it must be 755, not 750
+sudo chmod 755 /mnt/backup
 sudo chmod 755 /mnt/backup/armguard
 
 # Verify (no sudo needed after chmod 755)
@@ -464,7 +468,8 @@ sudo umount /mnt/backup
 ### Wrong permissions on /mnt/backup after reboot
 
 ```bash
-sudo chmod 750 /mnt/backup
+# /mnt/backup reflects the ext4 root dir on the drive — must be 755 so you can traverse it
+sudo chmod 755 /mnt/backup
 sudo mkdir -p /mnt/backup/armguard
 sudo chmod 755 /mnt/backup/armguard   # so non-root users can list backups without sudo
 ```
