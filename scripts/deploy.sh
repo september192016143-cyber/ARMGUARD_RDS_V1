@@ -75,36 +75,36 @@ trap 'on_error $LINENO' ERR
 
 # ---------------------------------------------------------------------------
 # LVM auto-expand: grow the root LV to use all unallocated PV space.
-# Safe to call repeatedly — does nothing when no free extents exist.
+# Runs inside an isolated subshell with error-handling disabled so a failure
+# here can never abort the main deployment.
 # ---------------------------------------------------------------------------
 _expand_lvm() {
-    local root_dev vg_name lv_path free_pe
+    # Run the body in a subshell with set +eE so pipefail / ERR-trap
+    # inheritance from the parent shell cannot kill the deploy.
+    ( set +eE
+    local root_dev vg_name lv_path pv_list free_pe
 
-    # Find the LVM device backing /
-    root_dev=$(findmnt -n -o SOURCE / 2>/dev/null || true)
-    [[ "$root_dev" == /dev/mapper/* ]] || { info "Root is not LVM — skipping LVM expand."; return 0; }
+    root_dev=$(findmnt -n -o SOURCE / 2>/dev/null)
+    [[ "$root_dev" == /dev/mapper/* ]] || { info "Root is not LVM — skipping LVM expand."; exit 0; }
 
-    # Resolve VG + LV names from the dm device
-    lv_path=$(lvs --noheadings -o lv_path "$root_dev" 2>/dev/null | tr -d ' ' || true)
-    [[ -n "$lv_path" ]] || { warn "Could not resolve LV path for $root_dev — skipping."; return 0; }
-    vg_name=$(lvs --noheadings -o vg_name "$root_dev" 2>/dev/null | tr -d ' ' || true)
+    lv_path=$(lvs --noheadings -o lv_path "$root_dev" 2>/dev/null | tr -d ' ')
+    [[ -n "$lv_path" ]] || { warn "LVM: cannot resolve LV path — skipping."; exit 0; }
+    vg_name=$(lvs --noheadings -o vg_name "$root_dev" 2>/dev/null | tr -d ' ')
 
-    # Resize PV(s) in case the underlying partition was extended
-    pvresize $(pvs --noheadings -o pv_name 2>/dev/null | tr -d ' ' | tr '\n' ' ') 2>/dev/null || true
+    pv_list=$(pvs --noheadings -o pv_name 2>/dev/null | tr -d ' ' | tr '\n' ' ')
+    [[ -n "$pv_list" ]] && pvresize $pv_list 2>/dev/null
 
-    # Check free extents in the VG
-    free_pe=$(vgs --noheadings --units b -o vg_free "$vg_name" 2>/dev/null | tr -d ' B' || echo 0)
+    free_pe=$(vgs --noheadings --units b -o vg_free "$vg_name" 2>/dev/null | tr -d ' B')
     if [[ "${free_pe:-0}" -le 0 ]]; then
         info "LVM: no unallocated space in VG '$vg_name' — nothing to expand."
-        return 0
+        exit 0
     fi
 
-    info "LVM: extending $lv_path to 100% of VG '$vg_name' …"
-    lvextend -l +100%FREE "$lv_path" 2>/dev/null || true
-    resize2fs "$root_dev" 2>/dev/null || xfs_growfs / 2>/dev/null || true
-    local new_size
-    new_size=$(df -h / | awk 'NR==2{print $2}')
+    lvextend -l +100%FREE "$lv_path" 2>/dev/null
+    resize2fs "$root_dev" 2>/dev/null || xfs_growfs / 2>/dev/null
+    local new_size; new_size=$(df -h / | awk 'NR==2{print $2}')
     success "LVM: root filesystem expanded — size is now $new_size."
+    ) || warn "LVM expand encountered an error — deployment continues."
 }
 
 # ---------------------------------------------------------------------------

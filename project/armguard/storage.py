@@ -13,6 +13,11 @@ from whitenoise.storage import CompressedManifestStaticFilesStorage
 class ArmguardStaticStorage(CompressedManifestStaticFilesStorage):
     """Skip URL-rewriting (but not hashing/copying/compression) for .mjs files."""
 
+    # Degrade gracefully when a file is absent from the manifest (e.g. stale
+    # manifest after a deploy that did not finish collectstatic) instead of
+    # raising ValueError and serving a 500 page.
+    manifest_strict = False
+
     def matches_patterns(self, path, patterns=None):
         # .mjs files must not be scanned for internal URL substitutions —
         # they are large minified bundles and the rewriter would corrupt them.
