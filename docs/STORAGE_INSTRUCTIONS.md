@@ -11,7 +11,7 @@
 | Check if external drive is mounted | `mountpoint -q /mnt/backup && echo "MOUNTED" \|\| echo "NOT MOUNTED"` |
 | Mount external drive manually | `sudo mount UUID=ff28a2b1-df2f-402b-9b88-38133225a40f /mnt/backup` |
 | Unmount external drive | `sudo umount /mnt/backup` |
-| List all block devices + UUIDs | `lsblk -o NAME,UUID,FSTYPE,LABEL,SIZE,MOUNTPOINT` |
+| List all block devices + UUIDs | `lsblk -o NAME,UUID,FSTYPE,LABEL,PARTLABEL,SIZE,MOUNTPOINT` |
 | Show disk usage | `df -h` |
 | Show LVM free space | `sudo vgs` |
 | Expand root LVM to fill disk | `sudo pvresize /dev/sda ; sudo lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv ; sudo resize2fs /dev/ubuntu-vg/ubuntu-lv` |
@@ -48,7 +48,7 @@ Use this if you prefer to configure the drive yourself or if `deploy.sh` is not 
 ### Step 1 — Identify the drive
 
 ```bash
-lsblk -o NAME,UUID,FSTYPE,LABEL,SIZE,MOUNTPOINT
+lsblk -o NAME,UUID,FSTYPE,LABEL,PARTLABEL,SIZE,MOUNTPOINT
 sudo blkid
 ```
 
@@ -262,19 +262,22 @@ Plug the external drive into the target server.
 ### On the target server — identify and mount the drive
 
 ```bash
-# Find the drive by its UUID or label
-lsblk -o NAME,UUID,FSTYPE,LABEL,SIZE
+# Find the drive by its UUID or partition label
+lsblk -o NAME,UUID,FSTYPE,LABEL,PARTLABEL,SIZE
 sudo blkid | grep RDSDRIVEL    # or grep ff28a2b1
+# Note: RDSDRIVEL is a PARTLABEL (partition label), not a filesystem LABEL —
+#       it appears in the PARTLABEL column of lsblk and in blkid output.
 
 # Create mount point and mount
 sudo mkdir -p /mnt/backup
 sudo mount UUID=ff28a2b1-df2f-402b-9b88-38133225a40f /mnt/backup
+# If you see "already mounted" — the drive is already attached. Skip this step.
 
 # Fix permissions so you can browse without sudo
 sudo chmod 755 /mnt/backup/armguard
 
-# Verify
-sudo ls /mnt/backup/armguard/
+# Verify (no sudo needed after chmod 755)
+ls /mnt/backup/armguard/
 ```
 
 ### Restore from the drive
@@ -367,7 +370,7 @@ If you swap the external drive for a larger one:
 
 3. **Identify the new drive:**
    ```bash
-   lsblk -o NAME,UUID,FSTYPE,LABEL,SIZE
+   lsblk -o NAME,UUID,FSTYPE,LABEL,PARTLABEL,SIZE
    ```
 
 4. **Format if needed** (see [Section 2, Step 2](#step-2--format-the-drive-only-if-blank--new-drive)).
