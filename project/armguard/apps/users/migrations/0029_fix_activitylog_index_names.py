@@ -23,6 +23,34 @@ from django.conf import settings
 from django.db import migrations, models
 
 
+def _rename_activitylog_indexes(apps, schema_editor):
+    """
+    Rename ActivityLog indexes to their Django-auto-generated equivalents.
+
+    On SQLite (fresh install) these old custom names were never created, so
+    this is a no-op.  On PostgreSQL the rename is only executed when the old
+    index still exists (idempotent re-run safe).
+    """
+    if schema_editor.connection.vendor != 'postgresql':
+        return  # SQLite / other — old names never existed on a fresh install
+
+    renames = [
+        ('actlog_user_ts_idx',   'users_activ_user_id_8a5363_idx'),
+        ('actlog_path_ts_idx',   'users_activ_path_873007_idx'),
+        ('actlog_status_ts_idx', 'users_activ_status__cc100a_idx'),
+        ('actlog_flag_ts_idx',   'users_activ_flag_04e3b5_idx'),
+    ]
+    with schema_editor.connection.cursor() as cursor:
+        for old_name, new_name in renames:
+            cursor.execute(
+                "SELECT 1 FROM pg_indexes WHERE indexname = %s", [old_name]
+            )
+            if cursor.fetchone():
+                cursor.execute(
+                    f'ALTER INDEX "{old_name}" RENAME TO "{new_name}"'
+                )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -59,39 +87,9 @@ class Migration(migrations.Migration):
                 ),
             ],
             database_operations=[
-                migrations.RunSQL(
-                    sql="""
-                    DO $$ BEGIN
-                        IF EXISTS (
-                            SELECT 1 FROM pg_indexes WHERE indexname = 'actlog_user_ts_idx'
-                        ) THEN
-                            ALTER INDEX actlog_user_ts_idx
-                                RENAME TO users_activ_user_id_8a5363_idx;
-                        END IF;
-
-                        IF EXISTS (
-                            SELECT 1 FROM pg_indexes WHERE indexname = 'actlog_path_ts_idx'
-                        ) THEN
-                            ALTER INDEX actlog_path_ts_idx
-                                RENAME TO users_activ_path_873007_idx;
-                        END IF;
-
-                        IF EXISTS (
-                            SELECT 1 FROM pg_indexes WHERE indexname = 'actlog_status_ts_idx'
-                        ) THEN
-                            ALTER INDEX actlog_status_ts_idx
-                                RENAME TO users_activ_status__cc100a_idx;
-                        END IF;
-
-                        IF EXISTS (
-                            SELECT 1 FROM pg_indexes WHERE indexname = 'actlog_flag_ts_idx'
-                        ) THEN
-                            ALTER INDEX actlog_flag_ts_idx
-                                RENAME TO users_activ_flag_04e3b5_idx;
-                        END IF;
-                    END $$;
-                    """,
-                    reverse_sql=migrations.RunSQL.noop,
+                migrations.RunPython(
+                    _rename_activitylog_indexes,
+                    reverse_code=migrations.RunPython.noop,
                 ),
             ],
         ),
