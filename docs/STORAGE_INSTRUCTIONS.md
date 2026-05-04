@@ -236,7 +236,82 @@ sudo du -sh /var/backups/armguard/* | sort -h
 
 ---
 
-## 6. Replacing the External Drive
+## 6. Transferring Data to Another Server via External Drive
+
+Use this method when network transfer is not available or when you want a physical offline copy.
+
+### On the source server — run a final backup and unmount
+
+```bash
+# Run one final backup to make sure the drive is up to date
+sudo bash /var/www/ARMGUARD_RDS_V1/scripts/backup.sh
+
+# Safely unmount before physically removing
+sudo umount /mnt/backup
+```
+
+### Physically move the drive to the target server
+
+Plug the external drive into the target server.
+
+### On the target server — identify and mount the drive
+
+```bash
+# Find the drive by its UUID or label
+lsblk -o NAME,UUID,FSTYPE,LABEL,SIZE
+sudo blkid | grep RDSDRIVEL    # or grep ff28a2b1
+
+# Create mount point and mount
+sudo mkdir -p /mnt/backup
+sudo mount UUID=ff28a2b1-df2f-402b-9b88-38133225a40f /mnt/backup
+
+# Verify
+ls /mnt/backup/armguard/
+```
+
+### Restore from the drive
+
+Get the restore script (either from the drive itself or from GitHub):
+
+```bash
+# Option A — clone from GitHub
+sudo git clone https://github.com/september192016143-cyber/ARMGUARD_RDS_V1.git /tmp/ARMGUARD_RDS_V1
+
+# Option B — copy directly from the drive (if deploy.sh synced it there)
+sudo cp /mnt/backup/armguard/transfer-to-server.sh /tmp/
+```
+
+Run restore directly from the external drive backup — no network needed:
+
+```bash
+sudo bash /tmp/ARMGUARD_RDS_V1/scripts/transfer-to-server.sh \
+    --restore-only \
+    --backup /mnt/backup/armguard/20260504_020000
+```
+
+Replace `20260504_020000` with the backup timestamp you want to restore. To list available sets:
+
+```bash
+ls -lht /mnt/backup/armguard/
+```
+
+### After restore — unmount the drive
+
+```bash
+sudo umount /mnt/backup
+```
+
+### Return the drive to the original server
+
+```bash
+# On the original server — remount
+sudo mount UUID=ff28a2b1-df2f-402b-9b88-38133225a40f /mnt/backup
+mountpoint -q /mnt/backup && echo "MOUNTED" || echo "NOT MOUNTED"
+```
+
+---
+
+## 7. Replacing the External Drive
 
 If you swap the external drive for a larger one:
 
@@ -280,7 +355,7 @@ If you swap the external drive for a larger one:
 
 ---
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 ### External drive not mounting at boot
 
@@ -349,7 +424,7 @@ sudo mkdir -p /mnt/backup/armguard
 
 ---
 
-## 8. Verifying Everything is Working
+## 9. Verifying Everything is Working
 
 After any storage change, run these checks:
 
