@@ -74,6 +74,40 @@ on_error() {
 trap 'on_error $LINENO' ERR
 
 # ---------------------------------------------------------------------------
+# LVM auto-expand: grow the root LV to use all unallocated PV space.
+# Safe to call repeatedly — does nothing when no free extents exist.
+# ---------------------------------------------------------------------------
+_expand_lvm() {
+    local root_dev vg_name lv_path free_pe
+
+    # Find the LVM device backing /
+    root_dev=$(findmnt -n -o SOURCE / 2>/dev/null || true)
+    [[ "$root_dev" == /dev/mapper/* ]] || { info "Root is not LVM — skipping LVM expand."; return 0; }
+
+    # Resolve VG + LV names from the dm device
+    lv_path=$(lvs --noheadings -o lv_path "$root_dev" 2>/dev/null | tr -d ' ' || true)
+    [[ -n "$lv_path" ]] || { warn "Could not resolve LV path for $root_dev — skipping."; return 0; }
+    vg_name=$(lvs --noheadings -o vg_name "$root_dev" 2>/dev/null | tr -d ' ' || true)
+
+    # Resize PV(s) in case the underlying partition was extended
+    pvresize $(pvs --noheadings -o pv_name 2>/dev/null | tr -d ' ' | tr '\n' ' ') 2>/dev/null || true
+
+    # Check free extents in the VG
+    free_pe=$(vgs --noheadings --units b -o vg_free "$vg_name" 2>/dev/null | tr -d ' B' || echo 0)
+    if [[ "${free_pe:-0}" -le 0 ]]; then
+        info "LVM: no unallocated space in VG '$vg_name' — nothing to expand."
+        return 0
+    fi
+
+    info "LVM: extending $lv_path to 100% of VG '$vg_name' …"
+    lvextend -l +100%FREE "$lv_path" 2>/dev/null || true
+    resize2fs "$root_dev" 2>/dev/null || xfs_growfs / 2>/dev/null || true
+    local new_size
+    new_size=$(df -h / | awk 'NR==2{print $2}')
+    success "LVM: root filesystem expanded — size is now $new_size."
+}
+
+# ---------------------------------------------------------------------------
 # Argument parsing
 # ---------------------------------------------------------------------------
 QUICK=false
@@ -123,6 +157,11 @@ info "Architecture: $ARCH"
 [[ "$ARCH" == "x86_64" || "$ARCH" == "aarch64" ]] || warn "Unusual architecture $ARCH."
 
 success "Pre-flight checks passed."
+
+# ---------------------------------------------------------------------------
+# LVM expand — maximise available disk space before doing anything else
+# ---------------------------------------------------------------------------
+_expand_lvm
 
 # ---------------------------------------------------------------------------
 # Interactive configuration (skipped with --quick)

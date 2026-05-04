@@ -60,6 +60,35 @@ on_error() {
 trap 'on_error $LINENO' ERR
 
 # ---------------------------------------------------------------------------
+# LVM auto-expand: grow the root LV to use all unallocated PV space.
+# ---------------------------------------------------------------------------
+_expand_lvm() {
+    local root_dev vg_name lv_path free_pe
+
+    root_dev=$(findmnt -n -o SOURCE / 2>/dev/null || true)
+    [[ "$root_dev" == /dev/mapper/* ]] || { info "Root is not LVM — skipping LVM expand."; return 0; }
+
+    lv_path=$(lvs --noheadings -o lv_path "$root_dev" 2>/dev/null | tr -d ' ' || true)
+    [[ -n "$lv_path" ]] || { warn "Could not resolve LV path for $root_dev — skipping."; return 0; }
+    vg_name=$(lvs --noheadings -o vg_name "$root_dev" 2>/dev/null | tr -d ' ' || true)
+
+    pvresize $(pvs --noheadings -o pv_name 2>/dev/null | tr -d ' ' | tr '\n' ' ') 2>/dev/null || true
+
+    free_pe=$(vgs --noheadings --units b -o vg_free "$vg_name" 2>/dev/null | tr -d ' B' || echo 0)
+    if [[ "${free_pe:-0}" -le 0 ]]; then
+        info "LVM: no unallocated space in VG '$vg_name' — nothing to expand."
+        return 0
+    fi
+
+    info "LVM: extending $lv_path to 100% of VG '$vg_name' …"
+    lvextend -l +100%FREE "$lv_path" 2>/dev/null || true
+    resize2fs "$root_dev" 2>/dev/null || xfs_growfs / 2>/dev/null || true
+    local new_size
+    new_size=$(df -h / | awk 'NR==2{print $2}')
+    success "LVM: root filesystem expanded — size is now $new_size."
+}
+
+# ---------------------------------------------------------------------------
 # Argument parsing
 # ---------------------------------------------------------------------------
 SKIP_MIGRATE=false
@@ -94,6 +123,9 @@ echo -e "${BOLD}║         ARMGUARD RDS V1 — Server Update                  �
 echo -e "${BOLD}╚══════════════════════════════════════════════════════════╝${NC}"
 info "Timestamp : $TIMESTAMP"
 info "Branch    : $BRANCH"
+
+# Expand LVM before anything else so the full disk is available.
+_expand_lvm
 
 # ---------------------------------------------------------------------------
 # 1. Pre-update backup
