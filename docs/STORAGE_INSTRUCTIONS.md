@@ -301,13 +301,48 @@ ls -lht /mnt/backup/armguard/
 sudo umount /mnt/backup
 ```
 
-### Return the drive to the original server
+### Return the drive to the original server and resume backups
+
+**Step 1 — Plug the drive back into the original server.**
+
+**Step 2 — Mount it:**
 
 ```bash
-# On the original server — remount
 sudo mount UUID=ff28a2b1-df2f-402b-9b88-38133225a40f /mnt/backup
 mountpoint -q /mnt/backup && echo "MOUNTED" || echo "NOT MOUNTED"
 ```
+
+**Step 3 — Verify the existing backups are intact:**
+
+```bash
+ls -lht /mnt/backup/armguard/
+# Confirm your backup sets are still there
+```
+
+**Step 4 — Run a fresh backup to sync any data created while the drive was away:**
+
+```bash
+sudo bash /var/www/ARMGUARD_RDS_V1/scripts/backup.sh
+```
+
+This will create a new timestamped backup set and rsync it to the drive. Old sets are rotated automatically per the retention policy (default 7 days).
+
+**Step 5 — Confirm the new backup landed on the drive:**
+
+```bash
+ls -lht /mnt/backup/armguard/
+df -h /mnt/backup
+```
+
+**Step 6 — Verify future cron backups will still write to it:**
+
+```bash
+# The cron runs backup.sh every 3 hours as root.
+# It checks mountpoint -q /mnt/backup before writing — no config change needed.
+sudo crontab -l | grep backup.sh
+```
+
+The drive is now back in service as the external backup. No configuration changes are required — `backup.sh` auto-detects the mount at runtime on every run.
 
 ---
 
