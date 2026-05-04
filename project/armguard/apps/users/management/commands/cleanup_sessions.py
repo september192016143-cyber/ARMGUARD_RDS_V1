@@ -11,6 +11,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sessions.models import Session
 from django.utils import timezone
+from armguard.apps.users.models import log_system_event
 
 
 class Command(BaseCommand):
@@ -32,6 +33,11 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(
                 f'Deleted {count} expired session(s).'
             ))
+            log_system_event(
+                'SESSION', 'sessions_cleaned',
+                message=f'Deleted {count} expired session(s).',
+                deleted=count,
+            )
         else:
             self.stdout.write(
                 f'Found {count} expired session(s). '

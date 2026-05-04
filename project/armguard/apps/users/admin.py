@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User, Group, Permission
 from django.utils.html import format_html
-from .models import UserProfile, AuditLog, ActivityLog, _sync_profile_from_groups
+from .models import UserProfile, AuditLog, ActivityLog, SystemLog, _sync_profile_from_groups
 from armguard.apps.personnel.models import Personnel
 
 # ── Admin site hardening ──────────────────────────────────────────────────────
@@ -574,3 +574,121 @@ class ActivityLogAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
+
+# ── SystemLogAdmin ─────────────────────────────────────────────────────────────
+
+_LEVEL_META = {
+    'INFO':     ('#17a2b8', 'INFO'),
+    'WARNING':  ('#ffc107', 'WARN'),
+    'ERROR':    ('#dc3545', 'ERROR'),
+    'CRITICAL': ('#6f1a1a', 'CRIT'),
+}
+_SOURCE_COLOUR = {
+    'STARTUP':   '#6610f2',
+    'BACKUP':    '#0d6efd',
+    'MIGRATION': '#fd7e14',
+    'SESSION':   '#20c997',
+    'COMMAND':   '#6c757d',
+    'CACHE':     '#e83e8c',
+    'EMAIL':     '#17a2b8',
+    'FILE':      '#ffc107',
+    'SCHEDULER': '#007bff',
+    'OTHER':     '#343a40',
+}
+
+
+class _SystemLevelFilter(admin.SimpleListFilter):
+    title = 'Quick Review'
+    parameter_name = 'qr'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('errors',   'Errors & Criticals'),
+            ('warnings', 'Warnings'),
+            ('backups',  'Backup Events'),
+            ('commands', 'Management Commands'),
+            ('startup',  'Startup Events'),
+        ]
+
+    def queryset(self, request, queryset):
+        v = self.value()
+        if v == 'errors':
+            return queryset.filter(level__in=('ERROR', 'CRITICAL'))
+        if v == 'warnings':
+            return queryset.filter(level='WARNING')
+        if v == 'backups':
+            return queryset.filter(source='BACKUP')
+        if v == 'commands':
+            return queryset.filter(source='COMMAND')
+        if v == 'startup':
+            return queryset.filter(source='STARTUP')
+        return queryset
+
+
+@admin.register(SystemLog)
+class SystemLogAdmin(admin.ModelAdmin):
+    list_display   = ('timestamp', 'level_badge', 'source_badge', 'event',
+                      'short_message', 'detail_summary')
+    list_filter    = (_SystemLevelFilter, 'level', 'source')
+    search_fields  = ('event', 'message')
+    date_hierarchy = 'timestamp'
+    ordering       = ('-timestamp',)
+    list_per_page  = 50
+
+    readonly_fields = ('timestamp', 'level', 'source', 'event', 'message', 'detail')
+    fieldsets = (
+        (None, {
+            'fields': ('timestamp', 'level', 'source', 'event'),
+        }),
+        ('Details', {
+            'fields': ('message', 'detail'),
+        }),
+    )
+
+    # ── Computed columns ──────────────────────────────────────────────────────
+
+    @admin.display(description='Level', ordering='level')
+    def level_badge(self, obj):
+        bg, label = _LEVEL_META.get(obj.level, ('#6c757d', obj.level))
+        text = '#000' if obj.level == 'WARNING' else '#fff'
+        return format_html(
+            '<span style="background:{};color:{};padding:2px 8px;'
+            'border-radius:4px;font-size:11px;font-weight:bold">{}</span>',
+            bg, text, label,
+        )
+
+    @admin.display(description='Source', ordering='source')
+    def source_badge(self, obj):
+        bg = _SOURCE_COLOUR.get(obj.source, '#343a40')
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:4px;font-size:11px;font-weight:bold">{}</span>',
+            bg, obj.get_source_display(),
+        )
+
+    @admin.display(description='Message')
+    def short_message(self, obj):
+        msg = obj.message or ''
+        return (msg[:80] + '…') if len(msg) > 80 else msg
+
+    @admin.display(description='Detail')
+    def detail_summary(self, obj):
+        if not obj.detail:
+            return '—'
+        parts = [f'{k}={v}' for k, v in list(obj.detail.items())[:3]]
+        summary = ', '.join(parts)
+        if len(obj.detail) > 3:
+            summary += f', +{len(obj.detail) - 3} more'
+        return format_html(
+            '<span style="font-size:11px;color:#555" title="{}">{}</span>',
+            str(obj.detail)[:500], summary,
+        )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

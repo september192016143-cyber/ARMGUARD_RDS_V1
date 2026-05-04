@@ -820,3 +820,110 @@ def on_user_logged_out(sender, request, user, **kwargs):
         )
     except Exception:
         logger.warning("Failed to write LOGOUT AuditLog for user %s", getattr(user, 'pk', '?'))
+
+
+# ── System Log ────────────────────────────────────────────────────────────────
+
+_sys_logger = logging.getLogger('armguard.system')
+
+
+class SystemLog(models.Model):
+    """
+    Persistent log for automated and background system-level events.
+
+    Covers events that are not tied to a single user's HTTP request:
+      STARTUP   — application start, Django server ready
+      BACKUP    — database backup creation, rotation, failure
+      MIGRATION — DB schema migration applied
+      SESSION   — periodic expired-session cleanup jobs
+      COMMAND   — management command execution (export, backfill, etc.)
+      CACHE     — cache backend errors or connectivity issues
+      EMAIL     — email send success / failure (notifications, alerts)
+      FILE      — media file cleanup, orphan purge, storage errors
+      SCHEDULER — cron / celery periodic task runs
+      OTHER     — anything else
+
+    Use log_system_event() to write records from anywhere in the codebase.
+    """
+    LEVEL_CHOICES = [
+        ('INFO',     'Info'),
+        ('WARNING',  'Warning'),
+        ('ERROR',    'Error'),
+        ('CRITICAL', 'Critical'),
+    ]
+    SOURCE_CHOICES = [
+        ('STARTUP',   'Application Startup'),
+        ('BACKUP',    'Database Backup'),
+        ('MIGRATION', 'DB Migration'),
+        ('SESSION',   'Session Cleanup'),
+        ('COMMAND',   'Management Command'),
+        ('CACHE',     'Cache Backend'),
+        ('EMAIL',     'Email / Notification'),
+        ('FILE',      'File System'),
+        ('SCHEDULER', 'Scheduled Task'),
+        ('OTHER',     'Other'),
+    ]
+
+    level = models.CharField(
+        max_length=8, choices=LEVEL_CHOICES, default='INFO', db_index=True,
+        help_text='Severity of the event.',
+    )
+    source = models.CharField(
+        max_length=10, choices=SOURCE_CHOICES, default='OTHER', db_index=True,
+        help_text='Subsystem that generated this event.',
+    )
+    event = models.CharField(
+        max_length=80, blank=True, db_index=True,
+        help_text='Short machine-readable identifier, e.g. backup_created, sessions_cleaned.',
+    )
+    message = models.TextField(
+        blank=True,
+        help_text='Human-readable description of what happened.',
+    )
+    detail = models.JSONField(
+        default=dict, blank=True,
+        help_text='Structured metadata (row counts, file sizes, tracebacks, etc.).',
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "System Log"
+        verbose_name_plural = "System Logs"
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['level',  '-timestamp'], name='users_sysl_level_ts_idx'),
+            models.Index(fields=['source', '-timestamp'], name='users_sysl_source_ts_idx'),
+        ]
+
+    def __str__(self):
+        return f"[{self.timestamp:%Y-%m-%d %H:%M:%S}] [{self.level}] {self.source} — {self.event}"
+
+
+def log_system_event(source, event, message='', level='INFO', **detail):
+    """
+    Write one SystemLog record to the database and mirror it to the
+    'armguard.system' Python logger.
+
+    Args:
+        source  (str): SystemLog.SOURCE_CHOICES key — e.g. 'BACKUP', 'SESSION'
+        event   (str): Short identifier             — e.g. 'backup_created'
+        message (str): Human-readable description
+        level   (str): 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'
+        **detail: Extra key=value pairs stored in the JSON detail field.
+
+    This function swallows all DB errors so a logging hiccup never kills a
+    management command or background task.
+    """
+    try:
+        SystemLog.objects.create(
+            level=level,
+            source=source,
+            event=event,
+            message=message,
+            detail=detail or {},
+        )
+    except Exception as exc:
+        _sys_logger.error("SystemLog write failed (%s/%s): %s", source, event, exc)
+
+    log_fn = getattr(_sys_logger, level.lower(), _sys_logger.info)
+    log_fn("[SYSTEM] source=%-10s event=%-30s %s", source, event, message)

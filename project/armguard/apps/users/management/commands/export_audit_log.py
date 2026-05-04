@@ -14,6 +14,7 @@ import csv
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
+from armguard.apps.users.models import log_system_event
 
 
 class Command(BaseCommand):
@@ -77,3 +78,9 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f'Exported {count} audit log record(s) to {out_path}.'
         ))
+        log_system_event(
+            'COMMAND', 'audit_export',
+            message=f'Exported {count} AuditLog records to {out_path}.',
+            records=count, output=out_path,
+            days=options.get('days'), action=options.get('action'), user=options.get('user'),
+        )

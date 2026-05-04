@@ -19,6 +19,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand
 from django.conf import settings
 from django.utils import timezone
+from armguard.apps.users.models import log_system_event
 
 
 def _secure_delete(path: Path) -> None:
@@ -73,6 +74,14 @@ class Command(BaseCommand):
         dst_conn = sqlite3.connect(str(dest))
         try:
             src_conn.backup(dst_conn, pages=50)
+        except Exception as exc:
+            log_system_event(
+                'BACKUP', 'backup_failed',
+                message=f'Database backup failed: {exc}',
+                level='ERROR',
+                dest=str(dest), error=str(exc),
+            )
+            raise
         finally:
             dst_conn.close()
             src_conn.close()
@@ -88,6 +97,12 @@ class Command(BaseCommand):
         checksum_file.write_text(f"{sha256}  {dest.name}\n", encoding='utf-8')
         self.stdout.write(f'  SHA-256: {sha256}')
 
+        log_system_event(
+            'BACKUP', 'backup_created',
+            message=f'Database backup created: {dest.name} ({size_kb} KB)',
+            file=dest.name, size_kb=size_kb, sha256=sha256,
+        )
+
         # Prune old backups, keeping the N most recent.
         keep = max(1, options['keep'])
         backups = sorted(out_dir.glob('armguard_backup_*.sqlite3'))
@@ -98,3 +113,10 @@ class Command(BaseCommand):
             if sidecar.exists():
                 sidecar.unlink()
             self.stdout.write(f'  Securely removed old backup: {old.name}')
+
+        if to_remove:
+            log_system_event(
+                'BACKUP', 'backup_rotated',
+                message=f'Removed {len(to_remove)} old backup(s), kept last {keep}.',
+                removed=len(to_remove), kept=keep,
+            )

@@ -251,6 +251,12 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        # System-level events: startup, backups, session cleanup, management commands.
+        'armguard.system': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
         'django.security': {
             'handlers': ['file'],
             'level': 'WARNING',
