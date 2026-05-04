@@ -9,7 +9,7 @@
 | Task | Command |
 |------|---------|
 | Check if external drive is mounted | `mountpoint -q /mnt/backup && echo "MOUNTED" \|\| echo "NOT MOUNTED"` |
-| Mount external drive manually | `sudo mount /dev/sdb3 /mnt/backup` |
+| Mount external drive manually | `sudo mount UUID=ff28a2b1-df2f-402b-9b88-38133225a40f /mnt/backup` |
 | Unmount external drive | `sudo umount /mnt/backup` |
 | List all block devices + UUIDs | `lsblk -o NAME,UUID,FSTYPE,LABEL,SIZE,MOUNTPOINT` |
 | Show disk usage | `df -h` |
@@ -52,22 +52,24 @@ lsblk -o NAME,UUID,FSTYPE,LABEL,SIZE,MOUNTPOINT
 sudo blkid
 ```
 
-Find your external drive (e.g. `/dev/sdb`, `/dev/sdb3`). Note the device path and UUID.
+Find your external drive. Note the UUID — **always use UUID to mount, not the device path** (`/dev/sda`, `/dev/sdb`, etc.). Device names are assigned by the OS at boot and can change if you plug in another drive or change ports. UUID is permanent and tied to the partition itself.
+
+> **On the production server (`192.168.0.162`):** The external drive is `/dev/sda3` — UUID `ff28a2b1-df2f-402b-9b88-38133225a40f`, label `RDSDRIVEL`, 931.5G HDD. The root disk is `nvme0n1` (NVMe SSD, 232.9G).
 
 ### Step 2 — Format the drive (only if blank / new drive)
 
 > **Warning:** This erases all existing data on the drive.
 
 ```bash
-sudo mkfs.ext4 -L ARMGUARD_BCK -F /dev/sdb3
+sudo mkfs.ext4 -L ARMGUARD_BCK -F /dev/sda3   # replace sda3 with your actual device
 ```
 
 Verify the format:
 
 ```bash
-sudo blkid /dev/sdb3
+sudo blkid /dev/sda3
 # Output example:
-# /dev/sdb3: LABEL="ARMGUARD_BCK" UUID="ff28a2b1-..." TYPE="ext4"
+# /dev/sda3: LABEL="ARMGUARD_BCK" UUID="ff28a2b1-..." TYPE="ext4"
 ```
 
 ### Step 3 — Create the mount point
@@ -80,7 +82,7 @@ sudo chmod 750 /mnt/backup
 ### Step 4 — Get the UUID
 
 ```bash
-sudo blkid -o value -s UUID /dev/sdb3
+sudo blkid -o value -s UUID /dev/sda3
 # ff28a2b1-df2f-402b-9b88-38133225a40f
 ```
 
@@ -105,11 +107,14 @@ mountpoint -q /mnt/backup && echo "OK — mounted" || echo "FAILED"
 df -h /mnt/backup
 ```
 
-### Step 7 — Create the armguard subdirectory
+### Step 7 — Create the armguard subdirectory and fix permissions
 
 ```bash
 sudo mkdir -p /mnt/backup/armguard
+sudo chmod 755 /mnt/backup/armguard   # allows non-root users to list contents
 ```
+
+> **Why `755` on `armguard/`?** The mount point `/mnt/backup` is `chmod 750` (root-only). The `armguard/` subdirectory is set to `755` so that admin users (`rds`, etc.) can `ls` and read backup listings without needing `sudo ls` every time. Backup files inside each timestamped set remain root-owned.
 
 ---
 
@@ -118,11 +123,11 @@ sudo mkdir -p /mnt/backup/armguard
 ### Mount
 
 ```bash
-# Using device path
-sudo mount /dev/sdb3 /mnt/backup
-
-# Using UUID (more reliable — device name can change)
+# Using UUID (recommended — device name can change between boots/ports)
 sudo mount UUID=ff28a2b1-df2f-402b-9b88-38133225a40f /mnt/backup
+
+# Using device path (only if UUID lookup fails)
+sudo mount /dev/sda3 /mnt/backup   # production server: sda3 (HDD), root is nvme0n1
 
 # Mount all fstab entries (including the external drive if in fstab)
 sudo mount -a
@@ -265,8 +270,11 @@ sudo blkid | grep RDSDRIVEL    # or grep ff28a2b1
 sudo mkdir -p /mnt/backup
 sudo mount UUID=ff28a2b1-df2f-402b-9b88-38133225a40f /mnt/backup
 
+# Fix permissions so you can browse without sudo
+sudo chmod 755 /mnt/backup/armguard
+
 # Verify
-ls /mnt/backup/armguard/
+sudo ls /mnt/backup/armguard/
 ```
 
 ### Restore from the drive
@@ -414,7 +422,7 @@ If the UUID changed (e.g. after reformatting), update fstab with the new UUID.
 The filesystem may be corrupted:
 
 ```bash
-sudo fsck -f /dev/sdb3     # Run filesystem check (drive must be unmounted)
+sudo fsck -f /dev/sda3     # Run filesystem check (drive must be unmounted — production: sda3)
 ```
 
 ### Root filesystem is full
@@ -455,6 +463,7 @@ sudo umount /mnt/backup
 ```bash
 sudo chmod 750 /mnt/backup
 sudo mkdir -p /mnt/backup/armguard
+sudo chmod 755 /mnt/backup/armguard   # so non-root users can list backups without sudo
 ```
 
 ---
