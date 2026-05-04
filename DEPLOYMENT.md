@@ -52,6 +52,192 @@ After deploy, the app is accessible at:
 
 ---
 
+## Step-by-Step Deployment
+
+### Step 0 — Set a static LAN IP (optional)
+
+> Skip if the server already has a fixed IP or a router DHCP reservation.
+
+```bash
+# Interactive — prompts for IP, gateway, DNS
+sudo bash /var/www/ARMGUARD_RDS_V1/scripts/set-static-ip.sh
+
+# Non-interactive
+sudo bash /var/www/ARMGUARD_RDS_V1/scripts/set-static-ip.sh \
+  --ip 192.168.0.11 --gateway 192.168.0.1
+
+# Preview without applying
+sudo bash /var/www/ARMGUARD_RDS_V1/scripts/set-static-ip.sh --dry-run
+```
+
+The script backs up existing netplan config, writes the new one, and runs `netplan apply`. Verify with `ip a`.
+
+---
+
+### Step 1 — SSH into the Ubuntu server
+
+```bash
+ssh your_user@YOUR_SERVER_IP
+```
+
+---
+
+### Step 2 — Install Git and clone the repo
+
+```bash
+sudo apt update && sudo apt install git -y
+
+sudo git clone https://github.com/september192016143-cyber/ARMGUARD_RDS_V1.git \
+  /var/www/ARMGUARD_RDS_V1
+```
+
+> **Private repo?** Use a personal access token:
+> ```bash
+> sudo git clone https://YOUR_TOKEN@github.com/september192016143-cyber/ARMGUARD_RDS_V1.git \
+>   /var/www/ARMGUARD_RDS_V1
+> ```
+
+---
+
+### Step 3 — Run the deploy script
+
+Replace `192.168.0.11` with your server's actual LAN IP.
+
+```bash
+cd /var/www/ARMGUARD_RDS_V1
+sudo bash scripts/deploy.sh --domain armguard.local --lan-ip 192.168.0.11
+```
+
+To set a static IP and deploy in one go:
+
+```bash
+sudo bash scripts/deploy.sh \
+  --static-ip 192.168.0.11 --gateway 192.168.0.1 \
+  --domain armguard.local --lan-ip 192.168.0.11
+```
+
+**What the script configures automatically:**
+
+| Item | Value |
+|---|---|
+| System user | `armguard` |
+| Python venv | `/var/www/ARMGUARD_RDS_V1/venv/` |
+| Gunicorn service | `armguard-gunicorn` (systemd) |
+| Worker count | Auto-tuned by `gunicorn-autoconf.sh` (CPUs×2+1, capped by RAM) |
+| Nginx site | `/etc/nginx/sites-available/armguard` |
+| Self-signed SSL | `/etc/ssl/certs/armguard-selfsigned.crt` (SAN: LAN IP + `armguard.local`) |
+| Avahi mDNS | Hostname set to `armguard`; broadcasts `armguard.local` on the LAN |
+| Firewall | UFW: 22/tcp, 80/tcp, 443/tcp, 5353/udp open; 8000/tcp denied |
+| Fail2Ban | SSH + Nginx jails enabled |
+| Backup crons | Daily DB (02:00 AM) + every-3-hour full backup |
+| Log rotation | `/etc/logrotate.d/armguard` — 14-day rolling |
+
+---
+
+### Step 4 — Review `.env` and create the superuser
+
+```bash
+# Confirm generated secrets look correct
+sudo cat /var/www/ARMGUARD_RDS_V1/.env
+
+# Edit if needed (ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS, admin URL, etc.)
+sudo nano /var/www/ARMGUARD_RDS_V1/.env
+
+# Create the Django admin account
+sudo -u armguard /var/www/ARMGUARD_RDS_V1/venv/bin/python \
+  /var/www/ARMGUARD_RDS_V1/project/manage.py createsuperuser
+```
+
+---
+
+### Step 5 — Verify everything is running
+
+```bash
+# Both services should show "active (running)"
+sudo systemctl status armguard-gunicorn
+sudo systemctl status nginx
+
+# Quick HTTP check from the server itself
+curl -I http://127.0.0.1
+
+# Live application log
+sudo tail -f /var/log/armguard/gunicorn.log
+```
+
+Open a browser and navigate to `https://armguard.local` (or `https://YOUR_LAN_IP`) — the login page should appear.
+
+---
+
+### Step 6 — Enable HTTPS (self-signed SSL, LAN-only)
+
+`deploy.sh` already generates the certificate and deploys the SSL Nginx config. Enable the HTTPS security flags in `.env`:
+
+```bash
+sudo nano /var/www/ARMGUARD_RDS_V1/.env
+```
+
+Set these values (use your actual LAN IP and/or `armguard.local`):
+
+```env
+SECURE_SSL_REDIRECT=True
+SESSION_COOKIE_SECURE=True
+CSRF_COOKIE_SECURE=True
+CSRF_TRUSTED_ORIGINS=https://armguard.local,https://192.168.0.11
+```
+
+Restart Gunicorn to apply:
+
+```bash
+sudo systemctl restart armguard-gunicorn
+```
+
+**Trust the cert on Windows** so the browser shows a green padlock:
+
+1. Browse to `https://armguard.local/download/ssl-cert/` — the app serves the `.crt` as a download.
+2. Double-click the file → **Install Certificate** → **Local Machine** → **Trusted Root Certification Authorities**.
+3. Restart Chrome/Edge completely.
+
+Or via PowerShell (as Administrator) on your Windows PC:
+
+```powershell
+scp rds@192.168.0.11:/etc/ssl/certs/armguard-selfsigned.crt "$env:USERPROFILE\Desktop\armguard.crt"
+certutil -addstore "Root" "$env:USERPROFILE\Desktop\armguard.crt"
+```
+
+Full guide: [`scripts/SSL_SELFSIGNED.md`](scripts/SSL_SELFSIGNED.md)
+
+---
+
+### Step 6b — WireGuard VPN (optional — off-LAN access)
+
+```bash
+# Set up WireGuard server once
+sudo bash /var/www/ARMGUARD_RDS_V1/scripts/setup-wireguard.sh
+
+# For remote (off-LAN) access, pass your public IP
+sudo bash /var/www/ARMGUARD_RDS_V1/scripts/setup-wireguard.sh --server-ip <PUBLIC_IP>
+
+# Copy client config to your PC (Windows PowerShell)
+scp rds@192.168.0.11:/etc/wireguard/peers/peer1.conf "$env:USERPROFILE\Desktop\armguard-vpn.conf"
+
+# Add more peers later
+sudo bash /var/www/ARMGUARD_RDS_V1/scripts/add-wireguard-peer.sh --name laptop
+```
+
+Import `armguard-vpn.conf` in the WireGuard app (Windows/Linux) or scan the printed QR code (Android/iOS).
+
+---
+
+### Step 7 — Future updates (pull latest code)
+
+```bash
+sudo bash /var/www/ARMGUARD_RDS_V1/scripts/update-server.sh
+```
+
+The script: pulls git, updates pip deps, runs migrations, re-tunes Gunicorn workers, collects static files, reloads Gunicorn zero-downtime, then verifies the health check endpoint returns HTTP 200.
+
+---
+
 ## Deployment Artifacts
 
 | File | Purpose |
