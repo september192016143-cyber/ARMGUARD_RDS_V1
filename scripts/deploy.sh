@@ -342,6 +342,12 @@ if [[ -d "$PROJECT_ROOT/project" ]]; then
               "$PROJECT_ROOT/project/" "$PROJECT_DIR/"
     rsync -a --exclude='.git' \
               "$PROJECT_ROOT/requirements.txt" "$DEPLOY_DIR/"
+    # Copy scripts/ so gunicorn.conf.py and other runtime scripts are available
+    # at $DEPLOY_DIR/scripts/ (the systemd unit references gunicorn.conf.py there).
+    if [[ -d "$PROJECT_ROOT/scripts" ]]; then
+        rsync -a --exclude='.git' \
+                  "$PROJECT_ROOT/scripts/" "$DEPLOY_DIR/scripts/"
+    fi
     chown -R "$DEPLOY_USER:$DEPLOY_USER" "$DEPLOY_DIR"
     success "Project files copied."
 else
