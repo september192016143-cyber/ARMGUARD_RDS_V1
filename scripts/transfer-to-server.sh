@@ -211,8 +211,26 @@ _do_restore() {
         unset PGPASSWORD
 
     elif [[ -n "$sqlite_file" ]]; then
-        warn "This backup contains a SQLite database — no PostgreSQL restore needed."
-        warn "Copy it manually: cp $sqlite_file $PROJECT_DIR/db.sqlite3"
+        log "This backup contains a SQLite database — restoring …"
+
+        # Stop the app before touching the database file
+        if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+            log "Stopping $SERVICE_NAME …"
+            systemctl stop "$SERVICE_NAME"
+            ok "$SERVICE_NAME stopped."
+        fi
+
+        # Remove any orphaned WAL/SHM files that would corrupt the restored DB
+        rm -f "$PROJECT_DIR/db.sqlite3" \
+              "$PROJECT_DIR/db.sqlite3-wal" \
+              "$PROJECT_DIR/db.sqlite3-shm"
+
+        # Copy the backed-up database into place
+        mkdir -p "$PROJECT_DIR"
+        cp "$sqlite_file" "$PROJECT_DIR/db.sqlite3"
+        chown "$DEPLOY_USER:$DEPLOY_USER" "$PROJECT_DIR/db.sqlite3"
+        chmod 640 "$PROJECT_DIR/db.sqlite3"
+        ok "SQLite database restored → $PROJECT_DIR/db.sqlite3"
     else
         warn "No database dump found in $backup_dir — skipping database restore."
     fi

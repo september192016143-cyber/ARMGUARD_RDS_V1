@@ -393,6 +393,25 @@ ENV_FILE="$DEPLOY_DIR/.env"
 
 if [[ -f "$ENV_FILE" ]]; then
     info ".env already exists — skipping generation. Edit manually if needed."
+    # When re-deploying to a different server/IP, ensure this server's hosts are in ALLOWED_HOSTS.
+    # Missing entries cause Django to return 400 Bad Request for every request.
+    if grep -q "^DJANGO_ALLOWED_HOSTS=" "$ENV_FILE"; then
+        _current_hosts=$(grep "^DJANGO_ALLOWED_HOSTS=" "$ENV_FILE" | cut -d= -f2-)
+        _updated_hosts="$_current_hosts"
+        for _host in "$DOMAIN" "$LAN_IP"; do
+            if [[ -n "$_host" ]] && ! echo "$_updated_hosts" | grep -qE "(^|,)${_host}(,|$)"; then
+                _updated_hosts="${_updated_hosts},${_host}"
+                info "Adding '$_host' to ALLOWED_HOSTS."
+            fi
+        done
+        if [[ "$_updated_hosts" != "$_current_hosts" ]]; then
+            sed -i "s|^DJANGO_ALLOWED_HOSTS=.*|DJANGO_ALLOWED_HOSTS=${_updated_hosts}|" "$ENV_FILE"
+            ok "ALLOWED_HOSTS updated in existing .env: ${_updated_hosts}"
+        else
+            info "ALLOWED_HOSTS already contains all required hosts."
+        fi
+        unset _current_hosts _updated_hosts _host
+    fi
 else
     SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
 
