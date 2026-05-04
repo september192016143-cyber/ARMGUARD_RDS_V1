@@ -279,6 +279,10 @@ mkdir -p "$DEPLOY_DIR/cache"
 chown -R "$DEPLOY_USER:$DEPLOY_USER" "$DEPLOY_DIR" "$LOG_DIR"
 chmod 750 "$DEPLOY_DIR"
 chmod 750 "$DEPLOY_DIR/cache"
+# Allow Nginx (www-data) to read static/media files inside the deploy dir.
+# www-data is added to the armguard group so it inherits the group r-x
+# permission on DEPLOY_DIR (750) and can traverse into project/staticfiles/.
+usermod -aG "$DEPLOY_USER" www-data
 success "Directories created."
 
 # ---------------------------------------------------------------------------
@@ -486,6 +490,8 @@ sudo -u "$DEPLOY_USER" bash -c "
     '$VENV_PYTHON' manage.py backfill_user_groups
 "
 
+# Ensure Nginx (www-data, now in the armguard group) can read all static files.
+chmod -R g+rX "$PROJECT_DIR/staticfiles/"
 success "Migrations applied, groups created, users backfilled, and static files collected."
 
 # ---------------------------------------------------------------------------

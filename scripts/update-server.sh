@@ -484,6 +484,8 @@ if [[ "$SKIP_STATIC" == "false" ]]; then
         cd '$PROJECT_DIR'
         '$VENV_PYTHON' manage.py collectstatic --noinput --clear
     "
+    # Ensure Nginx (www-data) can read the refreshed static files.
+    chmod -R g+rX "$PROJECT_DIR/staticfiles/"
     success "Static files collected."
 else
     info "Skipping collectstatic (--skip-static)."
