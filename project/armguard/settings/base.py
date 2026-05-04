@@ -315,6 +315,10 @@ SPECTACULAR_SETTINGS = {
 }
 SECURE_REFERRER_POLICY = 'same-origin'
 
+# G15: TOTP issuer name shown in authenticator apps (e.g. Google Authenticator).
+# Without this, only the username is displayed — no system label.
+OTP_TOTP_ISSUER = 'ArmGuard RDS'
+
 # G12: Opt-in API — set ARMGUARD_API_ENABLED=True in .env to expose /api/v1/.
 # Defaults to False so fresh deployments do not expose the endpoint until needed.
 ARMGUARD_API_ENABLED = os.environ.get('ARMGUARD_API_ENABLED', 'False') == 'True'
