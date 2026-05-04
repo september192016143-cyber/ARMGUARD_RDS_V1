@@ -345,6 +345,7 @@ if [[ -d "$PROJECT_ROOT/project" ]]; then
     # Copy scripts/ so gunicorn.conf.py and other runtime scripts are available
     # at $DEPLOY_DIR/scripts/ (the systemd unit references gunicorn.conf.py there).
     if [[ -d "$PROJECT_ROOT/scripts" ]]; then
+        mkdir -p "$DEPLOY_DIR/scripts"
         rsync -a --exclude='.git' \
                   "$PROJECT_ROOT/scripts/" "$DEPLOY_DIR/scripts/"
     fi
