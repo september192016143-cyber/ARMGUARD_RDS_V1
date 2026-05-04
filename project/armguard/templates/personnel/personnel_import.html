@@ -35,18 +35,18 @@
       <input type="hidden" name="source" value="xlsx">
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
-          <label style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
+          <label for="id_xlsx_file" style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
             Excel File (.xlsx) <span style="color:var(--red,#ef4444)">*</span>
           </label>
-          <input type="file" name="xlsx_file" accept=".xlsx" required
+          <input type="file" name="xlsx_file" id="id_xlsx_file" accept=".xlsx" required
                  style="width:100%;padding:.55rem .75rem;background:var(--input,#1e2540);border:1px solid var(--border,#2d3550);border-radius:.5rem;color:var(--text);font-size:.875rem">
           <p style="font-size:.75rem;color:var(--muted);margin-top:.35rem">Only .xlsx format is supported.</p>
         </div>
         <div>
-          <label style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
+          <label for="id_group_override" style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
             Group Override
           </label>
-          <select name="group_override"
+          <select name="group_override" id="id_group_override"
                   style="width:100%;padding:.55rem .75rem;background:var(--input,#1e2540);border:1px solid var(--border,#2d3550);border-radius:.5rem;color:var(--text);font-size:.875rem">
             <option value="">— Use group column from spreadsheet —</option>
             {% for val, label in group_choices %}
@@ -85,10 +85,10 @@
       <input type="hidden" name="source" value="gsheet">
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
-          <label style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
+          <label for="id_sheet_url" style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
             Google Sheet URL <span style="color:var(--red,#ef4444)">*</span>
           </label>
-          <input type="url" name="sheet_url" required placeholder="https://docs.google.com/spreadsheets/d/…"
+          <input type="url" name="sheet_url" id="id_sheet_url" required placeholder="https://docs.google.com/spreadsheets/d/…"
                  style="width:100%;padding:.55rem .75rem;background:var(--input,#1e2540);border:1px solid var(--border,#2d3550);border-radius:.5rem;color:var(--text);font-size:.875rem">
           <p style="font-size:.75rem;color:var(--muted);margin-top:.35rem">
             The service account must have <strong>Viewer</strong> access to this sheet.
@@ -96,10 +96,10 @@
           </p>
         </div>
         <div>
-          <label style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
+          <label for="id_group_override_gs" style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
             Group Override
           </label>
-          <select name="group_override_gs"
+          <select name="group_override_gs" id="id_group_override_gs"
                   style="width:100%;padding:.55rem .75rem;background:var(--input,#1e2540);border:1px solid var(--border,#2d3550);border-radius:.5rem;color:var(--text);font-size:.875rem">
             <option value="">— Use group column from sheet —</option>
             {% for val, label in group_choices %}
