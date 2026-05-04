@@ -378,8 +378,16 @@ class Transaction(models.Model):
             # ── Magazine quantity caps ─────────────────────────────────────────
             # L4 FIX: Use _get_magazine_max_qty() so Django-settings overrides
             # are respected at call time rather than at module import time.
+            #
+            # Purpose-aware cap: the effective rifle-magazine cap is the HIGHER of
+            # (a) the global SystemSettings.rifle_magazine_max_qty hard limit, and
+            # (b) the configured purpose-loadout auto-fill quantity for this purpose.
+            # This prevents the validation from rejecting a quantity that the
+            # system's own auto-fill lawfully populated (e.g. 7 mags for Duty Security
+            # when the global cap is still at its 2-mag field-issue default).
             from armguard.apps.inventory.models import _get_magazine_max_qty
             _mag_caps = _get_magazine_max_qty()
+
             if self.pistol_magazine and self.pistol_magazine_quantity:
                 max_mag = _mag_caps.get('Pistol')
                 if max_mag and self.pistol_magazine_quantity > max_mag:
@@ -387,13 +395,40 @@ class Transaction(models.Model):
                         f"Maximum {max_mag} pistol magazine(s) may be issued per withdrawal (spec limit). "
                         f"Requested: {self.pistol_magazine_quantity}."
                     )
+
             if self.rifle_magazine and self.rifle_magazine_quantity:
-                max_mag = _mag_caps.get('Rifle')
-                if max_mag and self.rifle_magazine_quantity > max_mag:
-                    raise ValidationError(
-                        f"Maximum {max_mag} rifle magazine(s) may be issued per withdrawal (spec limit). "
-                        f"Requested: {self.rifle_magazine_quantity}."
-                    )
+                global_cap = _mag_caps.get('Rifle')  # global hard limit (may be None = unlimited)
+                if global_cap:
+                    # Raise the effective cap to the loadout max for this purpose so that
+                    # auto-filled quantities are never incorrectly blocked.
+                    try:
+                        from armguard.apps.users.models import SystemSettings
+                        _ss = SystemSettings.get()
+                        _purpose = (self.purpose or '').strip()
+                        _purpose_caps = {
+                            'Duty Sentinel': max(_ss.duty_sentinel_rifle_short_mag_qty,
+                                                 _ss.duty_sentinel_rifle_long_mag_qty),
+                            'Duty Vigil':    max(_ss.duty_vigil_rifle_short_mag_qty,
+                                                 _ss.duty_vigil_rifle_long_mag_qty),
+                            'Duty Security': max(_ss.duty_security_rifle_short_mag_qty,
+                                                 _ss.duty_security_rifle_long_mag_qty),
+                            'Honor Guard':   max(_ss.honor_guard_rifle_short_mag_qty,
+                                                 _ss.honor_guard_rifle_long_mag_qty),
+                            'Others':        max(_ss.others_rifle_short_mag_qty,
+                                                 _ss.others_rifle_long_mag_qty),
+                            'OREX':          max(_ss.orex_rifle_short_mag_qty,
+                                                 _ss.orex_rifle_long_mag_qty),
+                        }
+                        loadout_max = _purpose_caps.get(_purpose, 0)
+                        effective_cap = max(global_cap, loadout_max)
+                    except Exception:
+                        effective_cap = global_cap
+
+                    if self.rifle_magazine_quantity > effective_cap:
+                        raise ValidationError(
+                            f"Maximum {effective_cap} rifle magazine(s) may be issued per withdrawal "
+                            f"(spec limit). Requested: {self.rifle_magazine_quantity}."
+                        )
 
         # Return rules
         elif self.transaction_type == 'Return':
