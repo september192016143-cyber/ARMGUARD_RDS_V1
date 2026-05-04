@@ -127,35 +127,31 @@ fi
 # ---------------------------------------------------------------------------
 log "─── Step 1/3: Database backup ───────────────────────────────────"
 
-DB_FILE="$PROJECT_DIR/db.sqlite3"
+if [[ "$DRY_RUN" == "false" ]]; then
+    mkdir -p "$BACKUP_DIR"
 
-if [[ ! -f "$DB_FILE" ]]; then
-    warn "db.sqlite3 not found at $DB_FILE — skipping database backup."
-else
-    if [[ "$DRY_RUN" == "false" ]]; then
-        mkdir -p "$BACKUP_DIR"
-        DB_BACKUP="$BACKUP_DIR/db_${TIMESTAMP}.sqlite3"
+    DB_FILE="$PROJECT_DIR/db.sqlite3"
 
-        # Use Django's sqlite3.Connection.backup() for a consistent hot-copy.
-        # Falls back to cp if the management command is unavailable.
-        if sudo -u "$DEPLOY_USER" bash -c "
-            export DJANGO_SETTINGS_MODULE=armguard.settings.production
-            [[ -f '$ENV_FILE' ]] && set -a && source <(grep -v '^\s*#' '$ENV_FILE' | grep -E '^\s*\w+=') && set +a || true
-            cd '$PROJECT_DIR'
-            '$VENV_PYTHON' manage.py db_backup --output '$BACKUP_DIR' --keep 9999 2>&1
-        " >> /var/log/armguard/backup.log 2>&1; then
-            ok "Database backed up via Django management command."
-            # Rename to standard name if db_backup created a differently-named file
-            LATEST_DB=$(find "$BACKUP_DIR" -name "*.sqlite3" | sort | tail -1)
-            [[ "$LATEST_DB" != "$DB_BACKUP" && -f "$LATEST_DB" ]] && mv "$LATEST_DB" "$DB_BACKUP" || true
-        else
-            warn "Django db_backup unavailable — falling back to cp snapshot."
-            cp "$DB_FILE" "$DB_BACKUP"
-        fi
-        ok "Database: $DB_BACKUP ($(du -sh "$DB_BACKUP" | awk '{print $1}'))"
+    if sudo -u "$DEPLOY_USER" bash -c "
+        export DJANGO_SETTINGS_MODULE=armguard.settings.production
+        [[ -f '$ENV_FILE' ]] && set -a && source <(grep -v '^\s*#' '$ENV_FILE' | grep -E '^\s*\w+=') && set +a || true
+        cd '$PROJECT_DIR'
+        '$VENV_PYTHON' manage.py db_backup --output '$BACKUP_DIR' --keep 9999 2>&1
+    " >> /var/log/armguard/backup.log 2>&1; then
+        ok "Database backed up via Django management command."
+        LATEST_DB=$(find "$BACKUP_DIR" -name "*.sqlite3" -o -name "*.sql.gz" 2>/dev/null | sort | tail -1)
+        [[ -n "$LATEST_DB" ]] && ok "  → $LATEST_DB" || true
     else
-        log "[DRY-RUN] Would backup: $DB_FILE → $BACKUP_DIR/db_${TIMESTAMP}.sqlite3"
+        warn "Django db_backup failed — check /var/log/armguard/backup.log for details."
+        # SQLite fallback only (no fallback for PostgreSQL — pg_dump must be available)
+        if [[ -f "$DB_FILE" ]]; then
+            warn "Falling back to cp snapshot of SQLite db."
+            cp "$DB_FILE" "$BACKUP_DIR/db_${TIMESTAMP}.sqlite3"
+            ok "Database (fallback): $BACKUP_DIR/db_${TIMESTAMP}.sqlite3"
+        fi
     fi
+else
+    log "[DRY-RUN] Would run: manage.py db_backup --output $BACKUP_DIR"
 fi
 
 # ---------------------------------------------------------------------------
