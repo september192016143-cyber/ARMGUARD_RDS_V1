@@ -23,10 +23,10 @@
       {% csrf_token %}
       <div style="display:flex;flex-direction:column;gap:1rem">
         <div>
-          <label style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
+          <label for="id_model_override" style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
             Batch Model <span style="font-size:.75rem;font-weight:400;color:var(--muted)">(optional — applies one model to every row)</span>
           </label>
-          <select name="model_override"
+          <select name="model_override" id="id_model_override"
                   style="width:100%;padding:.55rem .75rem;background:var(--input,#1e2540);border:1px solid var(--border,#2d3550);border-radius:.5rem;color:var(--text);font-size:.875rem">
             <option value="" style="background:#1e293b;color:#e2e8f0">— Use item_type &amp; model columns from Excel —</option>
             <optgroup label="Pistols" style="background:#1e293b;color:#94a3b8;font-size:.75rem;font-weight:600">
@@ -45,10 +45,10 @@
           </p>
         </div>
         <div>
-          <label style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
+          <label for="id_xlsx_file_inv" style="font-size:.85rem;font-weight:600;color:var(--text);display:block;margin-bottom:.35rem">
             Excel File (.xlsx) <span style="color:var(--red,#ef4444)">*</span>
           </label>
-          <input type="file" name="xlsx_file" accept=".xlsx" required
+          <input type="file" name="xlsx_file" id="id_xlsx_file_inv" accept=".xlsx" required
                  style="width:100%;padding:.55rem .75rem;background:var(--input,#1e2540);border:1px solid var(--border,#2d3550);border-radius:.5rem;color:var(--text);font-size:.875rem">
           <p style="font-size:.75rem;color:var(--muted);margin-top:.35rem">Only .xlsx format is supported.</p>
         </div>
