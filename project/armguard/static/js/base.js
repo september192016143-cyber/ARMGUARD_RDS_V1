@@ -428,11 +428,12 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     actionBtn.addEventListener('click', function (e) {
       e.preventDefault();
+      var cur = _cur; // capture before closeDetail() clears _cur
       closeDetail();
-      if (_cur && _cur.actionUrl === '#ssl-install') {
+      if (cur && cur.actionUrl === '#ssl-install') {
         if (typeof window.openSslModal === 'function') window.openSslModal();
-      } else if (_cur && _cur.actionUrl && _cur.actionUrl !== '#') {
-        window.location.href = _cur.actionUrl;
+      } else if (cur && cur.actionUrl && cur.actionUrl !== '#') {
+        window.location.href = cur.actionUrl;
       }
     });
     dismissBtn.addEventListener('click', function () {
