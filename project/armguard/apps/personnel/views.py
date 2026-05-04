@@ -10,6 +10,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.core.exceptions import ValidationError
 import logging
 from django.contrib import messages
+from django.db import transaction
 from armguard.utils.permissions import (
     can_view_personnel as _can_view_personnel,
     can_add_personnel  as _can_add_personnel,
@@ -28,7 +29,7 @@ class PersonnelListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
 	def get_queryset(self):
 		from django.db.models import Q
-		qs = Personnel.objects.order_by('rank', 'last_name')
+		qs = Personnel.objects.select_related().order_by('rank', 'last_name')
 		q = self.request.GET.get('q', '').strip()
 		category = self.request.GET.get('category', '').strip()
 		group = self.request.GET.get('group', '').strip()
@@ -222,7 +223,12 @@ class PersonnelCardPreviewView(LoginRequiredMixin, UserPassesTestMixin, View):
 			# Edit form: no new upload — use the existing saved photo path
 			existing = source.get('existing_personnel_image', '').strip()
 			if existing:
-				p.personnel_image = existing
+				# Prevent path traversal: normalise and confirm resolves inside MEDIA_ROOT.
+				safe_rel = os.path.normpath(existing)
+				if not safe_rel.startswith('..'):
+					abs_path = os.path.realpath(os.path.join(settings.MEDIA_ROOT, safe_rel))
+					if abs_path.startswith(os.path.realpath(settings.MEDIA_ROOT)) and os.path.isfile(abs_path):
+						p.personnel_image = safe_rel
 		if photo_file:
 			# Validate extension against allowed image types
 			_ALLOWED_EXTS = {'.jpg', '.jpeg', '.png'}
@@ -355,22 +361,30 @@ class AssignWeaponView(LoginRequiredMixin, UserPassesTestMixin, View):
 			})
 
 		# ── Pistol ────────────────────────────────────────────────────────────
-		for p in personnel.pistols_assigned.all():
-			p.set_assigned(None, None, None)
-		personnel.set_assigned('pistol', None, None, None)
+		with transaction.atomic():
+			# Re-fetch under lock to prevent concurrent assignment race (TOCTOU).
+			personnel = Personnel.objects.select_for_update().get(pk=pk)
+			if selected_pistol:
+				selected_pistol = Pistol.objects.select_for_update().select_related('item_assigned_to').get(pk=selected_pistol.pk)
+			if selected_rifle:
+				selected_rifle = Rifle.objects.select_for_update().select_related('item_assigned_to').get(pk=selected_rifle.pk)
 
-		if selected_pistol:
-			selected_pistol.set_assigned(personnel.pk, now, username)
-			personnel.set_assigned('pistol', selected_pistol.item_id, now, username)
+			for p in personnel.pistols_assigned.all():
+				p.set_assigned(None, None, None)
+			personnel.set_assigned('pistol', None, None, None)
 
-		# ── Rifle ─────────────────────────────────────────────────────────────
-		for r in personnel.rifles_assigned.all():
-			r.set_assigned(None, None, None)
-		personnel.set_assigned('rifle', None, None, None)
+			if selected_pistol:
+				selected_pistol.set_assigned(personnel.pk, now, username)
+				personnel.set_assigned('pistol', selected_pistol.item_id, now, username)
 
-		if selected_rifle:
-			selected_rifle.set_assigned(personnel.pk, now, username)
-			personnel.set_assigned('rifle', selected_rifle.item_id, now, username)
+			# ── Rifle ─────────────────────────────────────────────────────────────
+			for r in personnel.rifles_assigned.all():
+				r.set_assigned(None, None, None)
+			personnel.set_assigned('rifle', None, None, None)
+
+			if selected_rifle:
+				selected_rifle.set_assigned(personnel.pk, now, username)
+				personnel.set_assigned('rifle', selected_rifle.item_id, now, username)
 
 		messages.success(request, f"Weapon assignments updated for {personnel.rank} {personnel.last_name}.")
 		return redirect('personnel-detail', pk=pk)

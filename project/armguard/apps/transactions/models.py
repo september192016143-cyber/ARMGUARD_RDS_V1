@@ -189,9 +189,20 @@ class Transaction(models.Model):
         ]
         # REC-10: Composite indexes to accelerate analytics date-range and duty-type queries.
         indexes = [
+            models.Index(fields=['timestamp'], name='txn_timestamp_idx'),  # L-6: standalone ts index
             models.Index(fields=['transaction_type', 'timestamp'], name='txn_type_ts_idx'),
             models.Index(fields=['transaction_type', 'purpose', 'timestamp'], name='txn_type_purpose_ts_idx'),
             models.Index(fields=['personnel_id', 'transaction_type', 'timestamp'], name='txn_person_type_ts_idx'),
+        ]
+        constraints = [
+            # L-19: Enforce purpose values at the DB level.
+            models.CheckConstraint(
+                check=models.Q(purpose__in=[
+                    'Duty Sentinel', 'Duty Vigil', 'Duty Security',
+                    'Honor Guard', 'Others', 'OREX',
+                ]),
+                name='txn_purpose_valid',
+            ),
         ]
 
     def __str__(self):
@@ -210,6 +221,14 @@ class Transaction(models.Model):
         are displayed cleanly to the user before any data is saved.
         Business rules are only enforced on new records (not edits).
         """
+        # --- PAR document validation (M-13: also run field-level validator here so
+        # direct save() calls without full_clean() still validate the file) ---
+        if self.par_document and hasattr(self.par_document, 'name') and self.par_document.name:
+            try:
+                _validate_pdf_extension(self.par_document)
+            except ValidationError as _ve:
+                raise ValidationError({'par_document': _ve.messages})
+
         # --- Structural validation (always enforced) ---
         # At least one item must be present (pistol, rifle, magazine, ammunition, or accessory)
         has_any_item = any([
@@ -677,8 +696,8 @@ class Transaction(models.Model):
         # Enforce business rules (safety net for direct save() calls not going through
         # a form; form's _post_clean() sets _validated_from_form=True to skip this
         # redundant run and avoid triple execution of the same DB validation queries).
-        if not self.pk and not getattr(self, '_validated_from_form', False):
-            self.clean()
+        # M-12: clean() is now called INSIDE the atomic block (below) so the validation
+        # reads are serialised with the write. This comment retained for reference.
 
         # M6: Inherit issuance_type from the matching Withdrawal when not set
         propagate_issuance_type(self)
@@ -704,6 +723,10 @@ class Transaction(models.Model):
         TransactionLogs = apps.get_model('transactions', 'TransactionLogs')
 
         with db_transaction.atomic():
+            # M-12: Re-run clean() INSIDE atomic() so that validation reads are
+            # serialised with the write, eliminating the TOCTOU window.
+            if not self.pk and not getattr(self, '_validated_from_form', False):
+                self.clean()
             # L10: Row-level locks prevent double-issuance race under PostgreSQL.
             # SQLite serialises all writers at the file level inside atomic(), so
             # select_for_update() is skipped — it raises NotSupportedError on SQLite.

@@ -27,7 +27,7 @@ PISTOL_MODELS = [
 RIFLE_MODELS = [
     ('M4 Carbine DSAR-15 5.56mm', 'M4 Carbine DSAR-15 5.56mm'),
     ('M4 14.5" DGIS EMTAN 5.56mm', 'M4 14.5" DGIS EMTAN 5.56mm'),
-    ('M16A1 Rifle 5.56mm', 'M16 Rifle 5.56mm'),
+    ('M16A1 Rifle 5.56mm', 'M16A1 Rifle 5.56mm'),
     ('M14 Rifle 7.62mm', 'M14 Rifle 7.62mm'),
     ('M653 Carbine 5.56mm', 'M653 Carbine 5.56mm'),
 ]
@@ -710,7 +710,7 @@ class Magazine(models.Model):
     # capacity is auto-set by save(): Pistol Standard ? 'Standard', Short ? '20-rounds', Long ? '30-rounds'.
     capacity = models.CharField(max_length=10, blank=True, editable=True)
     quantity = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)],
+        validators=[MinValueValidator(0)],
         blank=False, null=False,
         help_text="Total number of magazine units currently in stock."
     )
@@ -816,7 +816,7 @@ class Ammunition(models.Model):
     type = models.CharField(max_length=30, choices=AMMUNITION_TYPES)
     lot_number = models.CharField(max_length=50, unique=True, help_text="Lot/batch number for this ammunition consignment.")
     quantity = models.PositiveIntegerField(
-        validators=[MinValueValidator(1)],
+        validators=[MinValueValidator(0)],
         blank=False, null=False,
         help_text="Total number of rounds currently in stock."
     )

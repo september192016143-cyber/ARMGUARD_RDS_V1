@@ -67,6 +67,10 @@ class OTPRequiredMiddleware:
 
             verify_url = reverse('otp-verify')
             next_param = request.get_full_path()
+            # Return JSON for AJAX/XHR requests — a 302 HTML redirect is useless to fetch().
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                from django.http import JsonResponse
+                return JsonResponse({'error': 'OTP verification required', 'redirect': f'{verify_url}?next={next_param}'}, status=403)
             return redirect(f'{verify_url}?next={next_param}')
 
         return self.get_response(request)

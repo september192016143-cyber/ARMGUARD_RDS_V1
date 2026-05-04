@@ -4,8 +4,9 @@ from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 from django.conf import settings
+from armguard.utils.permissions import can_view_inventory as _can_view_inv
 
 
 # ── Nomenclature & ordering constants (mirrors RDS core/views.py) ──────────
@@ -368,6 +369,9 @@ def _build_accessory_table():
 
 @login_required
 def dashboard_view(request):
+    if not _can_view_inv(request.user):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden('Forbidden')
     from armguard.apps.personnel.models import Personnel
     from armguard.apps.inventory.models import Pistol, Rifle, Magazine, Ammunition, Accessory
     from armguard.apps.transactions.models import Transaction
@@ -545,7 +549,8 @@ def dashboard_cards_json(request):
     create_transaction() invalidates 'dashboard_cards_{date}' immediately after
     a new transaction so counts stay accurate within one poll cycle.
     """
-    from django.http import JsonResponse
+    if not _can_view_inv(request.user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
     from armguard.apps.personnel.models import Personnel
     from armguard.apps.inventory.models import Magazine
     from armguard.apps.transactions.models import Transaction, TransactionLogs
@@ -630,7 +635,8 @@ def dashboard_tables_json(request):
     expensive aggregate queries run at most once per 30 s regardless of how many
     workers or open tabs are polling.
     """
-    from django.http import JsonResponse
+    if not _can_view_inv(request.user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
 
     inv_cache_key = 'dashboard_inventory_tables'
     tables = cache.get(inv_cache_key)
@@ -705,7 +711,8 @@ def dashboard_tables_json(request):
 @login_required
 def issued_stats_json(request):
     """Return live issued TR/PAR counts — no cache — for real-time polling."""
-    from django.http import JsonResponse
+    if not _can_view_inv(request.user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
     from armguard.apps.transactions.models import TransactionLogs
 
     _open = ('Open', 'Partially Returned')

@@ -232,16 +232,15 @@ document.addEventListener('DOMContentLoaded', function () {
     notifs.slice().reverse().forEach(function (n) {
       var el = document.createElement('div');
       el.className = 'notif-item' + (n.unread ? ' unread' : '');
-      // Note: n.title, n.msg, n.type, n.icon, n.time are app-controlled strings
-      // (not user-supplied), so innerHTML is safe here.
+      function _esc(s) { var d = document.createElement('div'); d.textContent = String(s || ''); return d.innerHTML; }
       el.innerHTML =
-        '<div class="notif-icon ' + (n.type || 'info') + '">' +
-          '<i class="fa-solid ' + (n.icon || 'fa-info') + '"></i>' +
+        '<div class="notif-icon ' + _esc(n.type || 'info') + '">' +
+          '<i class="fa-solid ' + _esc(n.icon || 'fa-info') + '"></i>' +
         '</div>' +
         '<div class="notif-body">' +
-          '<div class="notif-body-title">' + n.title + '</div>' +
-          '<div class="notif-body-msg">' + n.msg + '</div>' +
-          '<div class="notif-body-time">' + n.time + '</div>' +
+          '<div class="notif-body-title">' + _esc(n.title) + '</div>' +
+          '<div class="notif-body-msg">' + _esc(n.msg) + '</div>' +
+          '<div class="notif-body-time">' + _esc(n.time) + '</div>' +
         '</div>';
       // Action button: open the install guide modal or navigate to actionUrl
       if (n.actionUrl && n.id) {
@@ -258,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (isSsl && typeof window.openSslModal === 'function') {
               window.openSslModal();
             } else if (!isSsl) {
-              window.location.href = actionUrl;
+              if (!/^javascript:/i.test(actionUrl)) { window.location.href = actionUrl; }
             }
           });
           el.querySelector('.notif-body').appendChild(btn);
@@ -433,7 +432,8 @@ document.addEventListener('DOMContentLoaded', function () {
       if (cur && cur.actionUrl === '#ssl-install') {
         if (typeof window.openSslModal === 'function') window.openSslModal();
       } else if (cur && cur.actionUrl && cur.actionUrl !== '#') {
-        window.location.href = cur.actionUrl;
+        var _u = cur.actionUrl;
+        if (!/^javascript:/i.test(_u)) { window.location.href = _u; }
       }
     });
     dismissBtn.addEventListener('click', function () {

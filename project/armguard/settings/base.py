@@ -37,7 +37,7 @@ ARMGUARD_RIFLE_MAGAZINE_MAX_QTY = int(_rifle_mag_env) if _rifle_mag_env else 2
 # Unit identification settings for the Daily Firearms Evaluation printed report.
 ARMGUARD_ARMORER_NAME          = os.environ.get('ARMGUARD_ARMORER_NAME', '')
 ARMGUARD_ARMORER_RANK          = os.environ.get('ARMGUARD_ARMORER_RANK', '')
-ARMGUARD_COMMANDER_NAME        = os.environ.get('ARMGUARD_COMMANDER_NAME', 'RIZALDY C HERMOSO II')
+ARMGUARD_COMMANDER_NAME        = os.environ.get('ARMGUARD_COMMANDER_NAME', '')
 ARMGUARD_COMMANDER_RANK        = os.environ.get('ARMGUARD_COMMANDER_RANK', '2LT')
 ARMGUARD_COMMANDER_BRANCH      = os.environ.get('ARMGUARD_COMMANDER_BRANCH', 'PAF')
 ARMGUARD_COMMANDER_DESIGNATION = os.environ.get('ARMGUARD_COMMANDER_DESIGNATION', 'Squadron Commander')

@@ -381,17 +381,9 @@ class Personnel(models.Model):
                 "ammunition_item_assigned", "ammunition_item_assigned_quantity",
                 "ammunition_item_assigned_timestamp", "ammunition_item_assigned_by",
             ])
-        elif item_type == 'accessory':
-            self.accessory_item_assigned = item_name
-            self.accessory_item_assigned_quantity = quantity
-            self.accessory_item_assigned_timestamp = timestamp
-            self.accessory_item_assigned_by = assigned_by
-            self.save(update_fields=[
-                "accessory_item_assigned", "accessory_item_assigned_quantity",
-                "accessory_item_assigned_timestamp", "accessory_item_assigned_by",
-            ])
         else:
-            raise ValueError("item_type must be one of: 'rifle', 'pistol', 'magazine', 'ammunition', 'accessory'")
+            raise ValueError("item_type must be one of: 'rifle', 'pistol', 'magazine', 'ammunition'"
+                             " — accessories have per-type issued fields and no assigned tracking")
 
     def has_pistol_issued(self):
         """Returns True if this personnel currently has a pistol issued."""
@@ -463,14 +455,20 @@ class Personnel(models.Model):
     def can_return_accessory(self, accessory_label):
         """
         Returns (True, None) if this personnel can return the given accessory type.
-        Pass accessory_label as str(accessory_instance).
+        accessory_label is one of: 'Pistol Holster', 'Pistol Magazine Pouch',
+        'Rifle Sling', 'Bandoleer'.
         """
-        if not self.accessory_item_issued:
-            return False, f"Personnel {self.Personnel_ID} has no accessory currently issued."
-        if self.accessory_item_issued != accessory_label:
+        _acc_issued = {
+            'Pistol Holster':        self.pistol_holster_issued,
+            'Pistol Magazine Pouch': self.magazine_pouch_issued,
+            'Rifle Sling':           self.rifle_sling_issued,
+            'Bandoleer':             self.bandoleer_issued,
+        }
+        if accessory_label not in _acc_issued:
+            return False, f"Unknown accessory type '{accessory_label}'."
+        if not _acc_issued[accessory_label]:
             return False, (
-                f"Personnel {self.Personnel_ID} was issued accessory '{self.accessory_item_issued}', "
-                f"not '{accessory_label}'."
+                f"Personnel {self.Personnel_ID} has no '{accessory_label}' currently issued."
             )
         return True, None
 
@@ -598,20 +596,19 @@ class Personnel(models.Model):
         ]
         
         for field, label in accessory_fields:
-            withdraw_field = f'withdraw_{field}'
-            return_field = f'return_{field}'
-            qty_field = f'{field}_quantity'
-            ts_field = f'withdraw_{field}_timestamp'
-            
+            withdraw_qty_field = f'withdraw_{field}_quantity'
+            return_qty_field   = f'return_{field}_quantity'
+            ts_field           = f'withdraw_{field}_timestamp'
+
             log = TransactionLogs.objects.filter(
                 personnel_id=self,
-                **{f'{withdraw_field}__isnull': False},
-                **{f'{return_field}__isnull': True},
+                **{f'{withdraw_qty_field}__gt': 0},
+                **{f'{return_qty_field}__isnull': True},
             ).order_by(f'-{ts_field}').first()
-            
+
             if log:
                 result[label] = {
-                    'quantity': getattr(log, qty_field),
+                    'quantity': getattr(log, withdraw_qty_field),
                     'timestamp': getattr(log, ts_field),
                 }
         return result
@@ -701,8 +698,9 @@ class Personnel(models.Model):
             if self.magazine_item_issued:
                 has_open = TransactionLogs.objects.filter(
                     personnel_id=self.pk,
-                    withdraw_magazine__isnull=False,
-                    return_magazine__isnull=True,
+                ).filter(
+                    models.Q(withdraw_pistol_magazine__isnull=False, return_pistol_magazine__isnull=True) |
+                    models.Q(withdraw_rifle_magazine__isnull=False,  return_rifle_magazine__isnull=True)
                 ).exists()
                 if not has_open:
                     raise ValidationError({
@@ -714,8 +712,9 @@ class Personnel(models.Model):
             if self.ammunition_item_issued:
                 has_open = TransactionLogs.objects.filter(
                     personnel_id=self.pk,
-                    withdraw_ammunition__isnull=False,
-                    return_ammunition__isnull=True,
+                ).filter(
+                    models.Q(withdraw_pistol_ammunition__isnull=False, return_pistol_ammunition__isnull=True) |
+                    models.Q(withdraw_rifle_ammunition__isnull=False,  return_rifle_ammunition__isnull=True)
                 ).exists()
                 if not has_open:
                     raise ValidationError({
@@ -728,10 +727,10 @@ class Personnel(models.Model):
                 has_open_acc = TransactionLogs.objects.filter(
                     personnel_id=self.pk,
                 ).filter(
-                    models.Q(withdraw_pistol_holster__isnull=False, return_pistol_holster__isnull=True) |
-                    models.Q(withdraw_magazine_pouch__isnull=False, return_magazine_pouch__isnull=True) |
-                    models.Q(withdraw_rifle_sling__isnull=False, return_rifle_sling__isnull=True) |
-                    models.Q(withdraw_bandoleer__isnull=False, return_bandoleer__isnull=True)
+                    models.Q(withdraw_pistol_holster_quantity__gt=0, return_pistol_holster_quantity__isnull=True) |
+                    models.Q(withdraw_magazine_pouch_quantity__gt=0,  return_magazine_pouch_quantity__isnull=True)  |
+                    models.Q(withdraw_rifle_sling_quantity__gt=0,     return_rifle_sling_quantity__isnull=True)     |
+                    models.Q(withdraw_bandoleer_quantity__gt=0,       return_bandoleer_quantity__isnull=True)
                 ).exists()
                 if not has_open_acc:
                     raise ValidationError({

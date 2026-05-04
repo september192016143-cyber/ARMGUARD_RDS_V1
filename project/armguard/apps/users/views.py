@@ -14,6 +14,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
+from django.utils.http import url_has_allowed_host_and_scheme
 from .models import UserProfile, ROLE_CHOICES, PasswordHistory, AuditLog, _get_client_ip, _get_user_agent
 from armguard.apps.personnel.models import Personnel, PersonnelGroup, PersonnelSquadron
 # H1 FIX: Import per-module permission helpers for user management.
@@ -522,7 +523,10 @@ class OTPSetupView(LoginRequiredMixin, View):
             otp_login(request, device)           # marks session as OTP-verified
             request.session['_otp_step_done'] = True  # bypass OTPRequiredMiddleware fast-path
             messages.success(request, 'Two-factor authentication enabled. You are now signed in.')
-            return redirect(request.POST.get('next') or 'dashboard')
+            _next = request.POST.get('next') or ''
+            if _next and url_has_allowed_host_and_scheme(_next, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+                return redirect(_next)
+            return redirect('dashboard')
         # Wrong token — regenerate QR so the user can retry.
         qr_img = qrcode.make(device.config_url)
         buf = io.BytesIO()
@@ -564,8 +568,10 @@ class OTPVerifyView(LoginRequiredMixin, View):
             # Mark OTP step as completed in the session so OTPRequiredMiddleware
             # can fast-path on subsequent requests without re-calling is_verified().
             request.session['_otp_step_done'] = True
-            next_url = request.POST.get('next') or 'dashboard'
-            return redirect(next_url)
+            _next = request.POST.get('next') or ''
+            if _next and url_has_allowed_host_and_scheme(_next, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+                return redirect(_next)
+            return redirect('dashboard')
         # Wrong code — record in AuditLog so security reviewers can see 2FA bypass attempts.
         try:
             AuditLog.objects.create(

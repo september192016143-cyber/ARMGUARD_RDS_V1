@@ -617,6 +617,8 @@ def personnel_status(request):
     and whether they're allowed to withdraw a pistol / rifle.
     GET ?personnel_id=<pk>
     """
+    if not _can_view_transactions(request.user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
     from armguard.apps.personnel.models import Personnel
     pk = request.GET.get('personnel_id', '').strip()
     if not pk:
@@ -698,6 +700,8 @@ def personnel_search(request):
     Typeahead search: match personnel by first_name, last_name, or AFSN.
     GET ?q=<text>  — returns up to 10 results.
     """
+    if not _can_view_transactions(request.user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
     from armguard.apps.personnel.models import Personnel
     q = request.GET.get('q', '').strip()
     if len(q) < 2:
@@ -728,6 +732,8 @@ def item_status_check(request):
     Real-time lookup: return availability/status of a pistol or rifle.
     GET ?type=pistol&item_id=<pk>  OR  ?type=rifle&item_id=<pk>
     """
+    if not _can_view_transactions(request.user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
     from armguard.apps.inventory.models import Pistol, Rifle
     item_type = request.GET.get('type', '').strip()
     item_id   = request.GET.get('item_id', '').strip()
@@ -770,6 +776,8 @@ def overdue_tr_check(request):
     Falls back to withdraw_timestamp + 24 h for legacy records that have no return_by.
     Polled by base.js every 5 minutes to drive overdue/warning notifications.
     """
+    if not _can_view_transactions(request.user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
     from django.utils import timezone
     from datetime import timedelta
 

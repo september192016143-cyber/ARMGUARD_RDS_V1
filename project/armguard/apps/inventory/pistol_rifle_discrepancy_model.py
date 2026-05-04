@@ -162,7 +162,7 @@ class FirearmDiscrepancy(models.Model):
             )
 
     def save(self, *args, **kwargs):
-        self.full_clean()
+        self.clean()  # L-4: was full_clean() which calls validators on all fields incl. file fields unnecessarily
         super().save(*args, **kwargs)
 
     def __str__(self):

@@ -66,8 +66,9 @@
   }
 
   function getCsrf() {
-    var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
-    return m ? m[1] : '';
+    // CSRF_COOKIE_HTTPONLY=True hides the cookie from JS; read from the hidden input instead.
+    var el = document.querySelector('[name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
   }
 
   function showToast(msg, bg) {

@@ -176,6 +176,8 @@ _do_restore() {
         fi
 
         export PGPASSWORD="$db_pass"
+        # L-15: Ensure PGPASSWORD is unset even if an error causes early exit.
+        trap 'unset PGPASSWORD' RETURN ERR
 
         # Ensure the armguard PostgreSQL role exists
         if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$db_user'" \

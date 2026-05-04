@@ -14,7 +14,9 @@ urlpatterns = [
     path('api/task/',                     views.camera_task_api,        name='task_api'),
 
     # ── Admin (System Administrator only) ─────────────────────────────────────
-    path('admin/devices/',                views.device_list_view,       name='device_list'),    path('my-device/',                    views.my_device_view,         name='my_device'),    path('admin/pair/<int:user_pk>/',     views.pair_device_view,       name='pair_device'),
+    path('admin/devices/',                views.device_list_view,       name='device_list'),
+    path('my-device/',                    views.my_device_view,         name='my_device'),
+    path('admin/pair/<int:user_pk>/',     views.pair_device_view,       name='pair_device'),
     path('admin/pair/<int:user_pk>/status/', views.device_status_api,   name='device_status'),
     path('admin/pair/<int:user_pk>/pin/', views.pair_pin_api,           name='pair_pin'),
     path('admin/feed/devices/',           views.devices_feed_api,       name='devices_feed'),

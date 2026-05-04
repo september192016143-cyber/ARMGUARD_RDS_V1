@@ -60,7 +60,7 @@ PISTOL_MODELS = [
 RIFLE_MODELS = [
     ('M4 Carbine DSAR-15 5.56mm', 'M4 Carbine DSAR-15 5.56mm'),
     ('M4 14.5" DGIS EMTAN 5.56mm', 'M4 14.5" DGIS EMTAN 5.56mm'),
-    ('M16A1 Rifle 5.56mm', 'M16 Rifle 5.56mm'),
+    ('M16A1 Rifle 5.56mm', 'M16A1 Rifle 5.56mm'),
     ('M14 Rifle 7.62mm', 'M14 Rifle 7.62mm'),
     ('M653 Carbine 5.56mm', 'M653 Carbine 5.56mm'),
 ]

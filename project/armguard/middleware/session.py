@@ -39,6 +39,9 @@ class SingleSessionMiddleware:
                     return redirect(settings.LOGIN_URL)
             except Exception:
                 # Missing profile or transient DB error — never block the request.
+                # Log silently so the error is visible in server logs without exposing it to the user.
+                import logging as _log
+                _log.getLogger(__name__).debug('SingleSessionMiddleware profile lookup failed', exc_info=True)
                 pass
 
         return self.get_response(request)

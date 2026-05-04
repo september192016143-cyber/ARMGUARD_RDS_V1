@@ -467,6 +467,8 @@ class AmmunitionListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
 @login_required
 def ammunition_stock_json(request):
+    if not can_view_inventory(request.user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
     pistol_sub, rifle_sub, pistol_par, rifle_par, pistol_tr, rifle_tr = _ammo_issued_subqueries()
     rows = Ammunition.objects.annotate(
         pistol_issued=Coalesce(Subquery(pistol_sub, output_field=IntegerField()), Value(0)),
@@ -528,6 +530,7 @@ class AmmunitionLotsByTypeView(LoginRequiredMixin, UserPassesTestMixin, ListView
         ctx['can_delete'] = can_delete(self.request.user)
         ctx['q'] = self.request.GET.get('q', '')
         # Totals across ALL lots of this type (unfiltered)
+        # L-12: Reuse the same subquery tuple from get_queryset() instead of calling twice.
         ps, rs, pp, rp, pt, rt = _ammo_issued_subqueries()
         totals = Ammunition.objects.filter(type=self.kwargs['ammo_type']).annotate(
             pistol_issued=Coalesce(Subquery(ps, output_field=IntegerField()), Value(0)),
@@ -915,6 +918,28 @@ def serial_capture_upload(request, token):
     if file.size > 20 * 1024 * 1024:
         return JsonResponse({'error': 'File too large (max 20 MB).'}, status=400)
 
+    # Validate using magic bytes (Pillow) — content_type is client-controlled and trivially spoofed.
+    try:
+        from PIL import Image
+        img = Image.open(file)
+        if img.format not in ('JPEG', 'PNG', 'WEBP'):
+            return JsonResponse({'error': 'Invalid image format.'}, status=400)
+        img.verify()
+    except Exception:
+        return JsonResponse({'error': 'File is not a valid image.'}, status=400)
+    file.seek(0)
+
+    # Validate using magic bytes (Pillow) — content_type is client-controlled.
+    try:
+        from PIL import Image, UnidentifiedImageError
+        img = Image.open(file)
+        if img.format not in ('JPEG', 'PNG', 'WEBP'):
+            return JsonResponse({'error': 'Invalid image format.'}, status=400)
+        img.verify()
+    except Exception:
+        return JsonResponse({'error': 'File is not a valid image.'}, status=400)
+    file.seek(0)
+
     if session.image:
         try:
             session.image.delete(save=False)
@@ -1000,6 +1025,22 @@ class FirearmDiscrepancyCreateView(LoginRequiredMixin, UserPassesTestMixin, Crea
         return can_add_inventory(self.request.user)
 
     def form_valid(self, form):
+        # M-5: Validate uploaded image files with Pillow magic-byte check.
+        image_fields = ['image', 'image_2', 'image_3', 'image_4', 'image_5']
+        for field_name in image_fields:
+            img_file = form.cleaned_data.get(field_name)
+            if img_file and hasattr(img_file, 'read'):
+                try:
+                    from PIL import Image as _Img
+                    _img = _Img.open(img_file)
+                    if _img.format not in ('JPEG', 'PNG', 'WEBP'):
+                        form.add_error(field_name, 'Only JPEG, PNG, or WEBP images are accepted.')
+                        return self.form_invalid(form)
+                    _img.verify()
+                    img_file.seek(0)
+                except Exception:
+                    form.add_error(field_name, 'Uploaded file is not a valid image.')
+                    return self.form_invalid(form)
         form.instance.reported_by = self.request.user
         form.instance.status = 'Open'  # Always start as Open; cannot self-close on creation
         messages.success(self.request, 'Discrepancy recorded.')
@@ -1025,6 +1066,22 @@ class FirearmDiscrepancyUpdateView(LoginRequiredMixin, UserPassesTestMixin, Upda
         return can_edit_inventory(self.request.user)
 
     def form_valid(self, form):
+        # M-5: Validate uploaded image files with Pillow magic-byte check.
+        image_fields = ['image', 'image_2', 'image_3', 'image_4', 'image_5']
+        for field_name in image_fields:
+            img_file = form.cleaned_data.get(field_name)
+            if img_file and hasattr(img_file, 'read'):
+                try:
+                    from PIL import Image as _Img
+                    _img = _Img.open(img_file)
+                    if _img.format not in ('JPEG', 'PNG', 'WEBP'):
+                        form.add_error(field_name, 'Only JPEG, PNG, or WEBP images are accepted.')
+                        return self.form_invalid(form)
+                    _img.verify()
+                    img_file.seek(0)
+                except Exception:
+                    form.add_error(field_name, 'Uploaded file is not a valid image.')
+                    return self.form_invalid(form)
         # Auto-set resolved_by to the current user when marking as Resolved or Closed.
         # This prevents attributing resolution to an arbitrary (potentially fraudulent) user.
         new_status = form.cleaned_data.get('status', '')

@@ -190,13 +190,16 @@ class AuditLog(models.Model):
 
     def save(self, *args, **kwargs):
         """Compute integrity_hash after the first INSERT so timestamp is available."""
+        from django.db import transaction as _db_transaction
         is_new = self.pk is None
         super().save(*args, **kwargs)
         if is_new and not self.integrity_hash:
             # Use update() to avoid a recursive save() call.
-            computed = self.compute_hash()
-            AuditLog.objects.filter(pk=self.pk).update(integrity_hash=computed)
-            self.integrity_hash = computed
+            # Wrap in atomic so the INSERT and the hash UPDATE are one unit.
+            with _db_transaction.atomic():
+                computed = self.compute_hash()
+                AuditLog.objects.filter(pk=self.pk).update(integrity_hash=computed)
+                self.integrity_hash = computed
 
 
 class ActivityLog(models.Model):

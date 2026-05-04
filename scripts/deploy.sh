@@ -199,6 +199,15 @@ else
     [[ -z "$LAN_IP" ]] && LAN_IP="$DOMAIN"
 fi
 
+# Validate DOMAIN and LAN_IP: allow only safe hostname/IP characters (no shell metacharacters).
+_SAFE_PATTERN='^[A-Za-z0-9._-]+$'
+if [[ -n "$DOMAIN" ]] && ! [[ "$DOMAIN" =~ $_SAFE_PATTERN ]]; then
+    die "Invalid --domain value '$DOMAIN'. Only alphanumeric, '.', '_', and '-' are allowed."
+fi
+if [[ -n "$LAN_IP" ]] && ! [[ "$LAN_IP" =~ $_SAFE_PATTERN ]]; then
+    die "Invalid --lan-ip value '$LAN_IP'. Only alphanumeric, '.', '_', and '-' are allowed."
+fi
+
 # ---------------------------------------------------------------------------
 # 0. Static IP configuration (optional — triggered by --static-ip)
 # ---------------------------------------------------------------------------
@@ -541,10 +550,11 @@ step "Running Django setup (migrate + collectstatic)"
 MANAGE="$VENV_PYTHON $PROJECT_DIR/manage.py"
 DJANGO_ENV="DJANGO_SETTINGS_MODULE=armguard.settings.production"
 
-# Source env vars for manage.py calls
+# Source env vars for manage.py calls — filter to bare KEY=VALUE lines only
+# to prevent command-injection via $(cmd) expressions in .env values.
 set -a
 # shellcheck source=/dev/null
-[[ -f "$ENV_FILE" ]] && source "$ENV_FILE"
+[[ -f "$ENV_FILE" ]] && source <(grep -E '^\s*[A-Za-z_][A-Za-z0-9_]*=' "$ENV_FILE" | grep -v '^\s*#')
 set +a
 
 export DJANGO_SETTINGS_MODULE=armguard.settings.production
