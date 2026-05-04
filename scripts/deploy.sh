@@ -424,7 +424,7 @@ mkdir -p "$FA_CSS_DIR" "$FA_WEBFONTS_DIR"
 
 # Known-good SHA256 hashes for Font Awesome 6.5.0 (from official release)
 # Regenerate if you upgrade the version: sha256sum all.min.css
-FA_CSS_SHA256="b24565e67e2dab2d3d84d8e7e3dba1c32ee2db44f24fc4b5c35b66ec47f04bf4"
+FA_CSS_SHA256="c880eb3d25c765d399840aa204fec22b3230310991089f14781f09a35ed80b8a"
 
 # Download CSS and rewrite ../webfonts/ -> webfonts/ so it resolves correctly
 if wget -q --timeout=30 -O "$FA_CSS_DIR/all.min.css" "${FA_BASE_URL}/css/all.min.css"; then
