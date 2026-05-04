@@ -1,11 +1,13 @@
 # ARMGUARD_RDS_V1 — Database Schema Reference
 
-**Version:** 1.0  
-**Last Updated:** 2026-03-13  
-**Database Engine:** SQLite (dev) / PostgreSQL (prod-ready)  
+**Version:** 1.1  
+**Last Updated:** 2026-05-04  
+**Database Engine:** SQLite (dev) / PostgreSQL (production — confirmed active on server)  
 **Django Version:** 6.0.3  
 
 > This document reflects the V1 schema as implemented in migrations. It maps directly to the RDS Database Audit report and documents all applied fix-series changes.
+
+> **Production note (2026-05-04):** The production server (`armguard`, 192.168.0.162) is running PostgreSQL as the database backend (`DB_ENGINE=django.db.backends.postgresql`). The `db_backup` management command was updated (commit `b2b11c4`) to auto-detect the engine and use `pg_dump` (compressed `.sql.gz`) for PostgreSQL and `sqlite3.Connection.backup()` for SQLite.
 
 ---
 
