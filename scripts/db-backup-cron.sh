@@ -59,12 +59,11 @@ fi
 
 export DJANGO_SETTINGS_MODULE=armguard.settings.production
 
-RESULT=$(sudo -u "$DEPLOY_USER" bash -c "
-    export DJANGO_SETTINGS_MODULE=armguard.settings.production
-    [[ -f '$ENV_FILE' ]] && set -a && source <(grep -v '^\s*#' '$ENV_FILE' | grep -E '^\s*\w+=') && set +a || true
-    cd '$PROJECT_DIR'
-    '$VENV_PYTHON' manage.py db_backup --output '$BACKUP_DIR' --keep $KEEP_DAYS 2>&1
-" || echo "COMMAND_FAILED")
+# This script runs as the armguard user (via crontab -u armguard).
+# Do NOT use sudo here — armguard does not have sudo privileges.
+RESULT=$(cd "$PROJECT_DIR" && \
+    "$VENV_PYTHON" manage.py db_backup --output "$BACKUP_DIR" --keep "$KEEP_DAYS" 2>&1 \
+    || echo "COMMAND_FAILED")
 
 if echo "$RESULT" | grep -q "COMMAND_FAILED\|Error\|Traceback"; then
     err "db_backup command reported an error:"
