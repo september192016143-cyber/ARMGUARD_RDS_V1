@@ -41,7 +41,8 @@ set -Eeo pipefail
 # Configuration (matches deploy.sh)
 # ---------------------------------------------------------------------------
 BACKUP_ROOT="/var/backups/armguard"
-EXTERNAL_BACKUP_DIR="/mnt/backup/armguard"
+EXTERNAL_BACKUP_DIR="/mnt/backup/armguard"   # External HDD: sda3, UUID ff28a2b1-df2f-402b-9b88-38133225a40f
+                                               # Root disk: nvme0n1 — device names can shift, always mount by UUID
 DEPLOY_DIR="/var/www/ARMGUARD_RDS_V1"
 ENV_FILE="$DEPLOY_DIR/.env"
 PROJECT_DIR="$DEPLOY_DIR/project"
@@ -364,7 +365,11 @@ if [[ -z "$CHOSEN_BACKUP" ]]; then
     }
 
     _scan_dir "$BACKUP_ROOT"       "LOCAL   "
-    mountpoint -q /mnt/backup 2>/dev/null && _scan_dir "$EXTERNAL_BACKUP_DIR" "EXTERNAL"
+    if mountpoint -q /mnt/backup 2>/dev/null; then
+        # Ensure armguard/ subdir is listable by non-root users
+        chmod 755 "$EXTERNAL_BACKUP_DIR" 2>/dev/null || true
+        _scan_dir "$EXTERNAL_BACKUP_DIR" "EXTERNAL"
+    fi
 
     [[ ${#BACKUP_DIRS[@]} -gt 0 ]] || die "No backups found in $BACKUP_ROOT"
 
