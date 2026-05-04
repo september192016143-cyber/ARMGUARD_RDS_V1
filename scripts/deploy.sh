@@ -413,7 +413,7 @@ if [[ -f "$ENV_FILE" ]]; then
         done
         if [[ "$_updated_hosts" != "$_current_hosts" ]]; then
             sed -i "s|^DJANGO_ALLOWED_HOSTS=.*|DJANGO_ALLOWED_HOSTS=${_updated_hosts}|" "$ENV_FILE"
-            ok "ALLOWED_HOSTS updated in existing .env: ${_updated_hosts}"
+            success "ALLOWED_HOSTS updated in existing .env: ${_updated_hosts}"
         else
             info "ALLOWED_HOSTS already contains all required hosts."
         fi
