@@ -1388,7 +1388,7 @@ def _run_orex_background(run_id, user_pk):
         # pairs; Short preferred over Long.  Using order_by('-quantity') and
         # filtering by quantity__gte(pairs_count) avoids the "Available: 0"
         # error caused by picking a near-empty pool record first.
-        _pairs_count = len(pairs)
+        _pairs_count = min(len(personnel_list), len(available_rifles))
         _rifle_mag_pool = (
             _Magazine.objects
             .filter(weapon_type='Rifle', type='Short', quantity__gte=_pairs_count)
