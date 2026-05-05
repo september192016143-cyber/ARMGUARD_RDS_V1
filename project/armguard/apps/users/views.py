@@ -1202,6 +1202,78 @@ def truncate_data(request):
     deleted_summary = []
     _clear_personnel = False
     with _db_conn.cursor() as _cur:
+
+        # ── Step 1: Restore consumable pool quantities BEFORE deleting rows ──
+        # We aggregate net depletion (Withdrawals minus Returns) per pool from
+        # the Transaction table while it still exists, then add it back.
+        # This mirrors the exact sign convention in adjust_consumable_quantities().
+        if request.POST.get('truncate_transactions'):
+            from armguard.apps.inventory.models import Magazine, Ammunition, Accessory
+            _txn_tbl = Transaction._meta.db_table
+            _mag_tbl = Magazine._meta.db_table
+            _amm_tbl = Ammunition._meta.db_table
+            _acc_tbl = Accessory._meta.db_table
+
+            # Magazine pools — FK-linked per pool row
+            for _fk_col, _qty_col in [
+                ('pistol_magazine_id', 'pistol_magazine_quantity'),
+                ('rifle_magazine_id',  'rifle_magazine_quantity'),
+            ]:
+                _cur.execute(  # noqa: S608
+                    f'UPDATE "{_mag_tbl}" '
+                    f'SET quantity = MAX(0, quantity + COALESCE(('
+                    f'  SELECT'
+                    f'    COALESCE(SUM(CASE WHEN transaction_type=\'Withdrawal\' THEN {_qty_col} ELSE 0 END), 0)'
+                    f'  - COALESCE(SUM(CASE WHEN transaction_type=\'Return\'    THEN {_qty_col} ELSE 0 END), 0)'
+                    f'  FROM "{_txn_tbl}"'
+                    f'  WHERE {_fk_col} = "{_mag_tbl}".id'
+                    f'    AND {_qty_col} IS NOT NULL'
+                    f'), 0))'
+                )
+
+            # Ammunition pools — FK-linked per pool row
+            for _fk_col, _qty_col in [
+                ('pistol_ammunition_id', 'pistol_ammunition_quantity'),
+                ('rifle_ammunition_id',  'rifle_ammunition_quantity'),
+            ]:
+                _cur.execute(  # noqa: S608
+                    f'UPDATE "{_amm_tbl}" '
+                    f'SET quantity = MAX(0, quantity + COALESCE(('
+                    f'  SELECT'
+                    f'    COALESCE(SUM(CASE WHEN transaction_type=\'Withdrawal\' THEN {_qty_col} ELSE 0 END), 0)'
+                    f'  - COALESCE(SUM(CASE WHEN transaction_type=\'Return\'    THEN {_qty_col} ELSE 0 END), 0)'
+                    f'  FROM "{_txn_tbl}"'
+                    f'  WHERE {_fk_col} = "{_amm_tbl}".id'
+                    f'    AND {_qty_col} IS NOT NULL'
+                    f'), 0))'
+                )
+
+            # Accessory pools — no FK; net goes to the highest-quantity pool of
+            # each type (mirrors services.py order_by('-quantity').first()).
+            for _acc_type, _qty_col in [
+                ('Pistol Holster',        'pistol_holster_quantity'),
+                ('Pistol Magazine Pouch', 'magazine_pouch_quantity'),
+                ('Rifle Sling',           'rifle_sling_quantity'),
+                ('Bandoleer',             'bandoleer_quantity'),
+            ]:
+                _cur.execute(  # noqa: S608
+                    f'UPDATE "{_acc_tbl}" '
+                    f'SET quantity = MAX(0, quantity + ('
+                    f'  SELECT'
+                    f'    COALESCE(SUM(CASE WHEN transaction_type=\'Withdrawal\' THEN {_qty_col} ELSE 0 END), 0)'
+                    f'  - COALESCE(SUM(CASE WHEN transaction_type=\'Return\'    THEN {_qty_col} ELSE 0 END), 0)'
+                    f'  FROM "{_txn_tbl}"'
+                    f'  WHERE {_qty_col} IS NOT NULL'
+                    f')) '
+                    f'WHERE id = ('
+                    f'  SELECT id FROM "{_acc_tbl}" WHERE type = %s ORDER BY quantity DESC LIMIT 1'
+                    f')',
+                    [_acc_type],
+                )
+
+            deleted_summary.append('Inventory pool quantities restored (net of all withdrawals minus returns)')
+
+        # ── Step 2: Delete selected tables ───────────────────────────────────
         for key, (label, table) in targets.items():
             if request.POST.get(f'truncate_{key}'):
                 _cur.execute(f'DELETE FROM "{table}"')  # noqa: S608 — table name from trusted model meta
