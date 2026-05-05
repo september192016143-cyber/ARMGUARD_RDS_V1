@@ -37,6 +37,7 @@ ENV_FILE="$DEPLOY_DIR/.env"
 SERVICE_NAME="armguard-gunicorn"
 LOG_DIR="/var/log/armguard"
 BRANCH="main"
+REPO_URL="https://github.com/september192016143-cyber/ARMGUARD_RDS_V1.git"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 
 # ---------------------------------------------------------------------------
@@ -211,6 +212,35 @@ _clean_test_media_files() {
 
 # Fix ownership so the armguard user can write to .git/objects
 # (Happens when root previously cloned the repo or ran git operations)
+_git_clone_repo() {
+    # Called when no .git exists at $DEPLOY_DIR.
+    # Uses git init + fetch + reset so it works on an already-populated directory
+    # (e.g. production with live db.sqlite3, .env, media/) — untracked files are
+    # never deleted by reset --hard.
+    local repo_dir="$1"
+
+    info "Initializing git repository at $repo_dir ..."
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" init
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" config core.autocrlf false
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" remote add origin "$REPO_URL"
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" fetch --depth=1 origin "$BRANCH"
+
+    # Create / switch to branch tracking origin
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" checkout -B "$BRANCH" \
+        "origin/$BRANCH" 2>/dev/null || \
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" reset --hard "origin/$BRANCH"
+
+    # Ensure untracked live files (media/, .env, db.sqlite3) are ignored from index
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" rm -r --cached project/media/ 2>/dev/null || true
+    sudo -u "$DEPLOY_USER" git -C "$repo_dir" reset HEAD project/media/ 2>/dev/null || true
+
+    chown -R "$DEPLOY_USER:$DEPLOY_USER" "$repo_dir/.git"
+
+    local commit
+    commit=$(sudo -u "$DEPLOY_USER" git -C "$repo_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    success "Repository initialized. HEAD is now at $commit"
+}
+
 _git_pull_repo() {
     local repo_dir="$1"
     chown -R "$DEPLOY_USER:$DEPLOY_USER" "$repo_dir/.git"
@@ -343,8 +373,8 @@ if [[ -d "$PROJECT_DIR/.git" ]]; then
 elif [[ -d "$DEPLOY_DIR/.git" ]]; then
     _git_pull_repo "$DEPLOY_DIR"
 else
-    warn "No git repository found. Skipping git pull."
-    warn "Copy updated files to $PROJECT_DIR manually."
+    info "No git repository found at $DEPLOY_DIR — initializing from $REPO_URL"
+    _git_clone_repo "$DEPLOY_DIR"
 fi
 
 # ---------------------------------------------------------------------------
