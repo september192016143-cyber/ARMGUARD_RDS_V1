@@ -1267,6 +1267,121 @@ def truncate_data(request):
 
 
 @login_required
+@require_POST
+def simulate_orex_run(request):
+    """Run the simulate_orex management command in-process. Superuser-only."""
+    if not request.user.is_superuser:
+        messages.error(request, 'Only superusers can run the OREX simulation.')
+        return redirect('system-settings')
+
+    try:
+        count    = max(1, min(int(request.POST.get('sim_count', 114)), 500))
+        delay    = max(0.0, min(float(request.POST.get('sim_delay', 5.0)), 60.0))
+        operator = request.POST.get('sim_operator', '').strip() or request.user.username
+        commit   = request.POST.get('sim_commit') == '1'
+    except (ValueError, TypeError):
+        messages.error(request, 'Invalid simulation parameters.')
+        return redirect('system-settings')
+
+    from armguard.apps.personnel.models import Personnel
+    from armguard.apps.inventory.models import Rifle, FirearmDiscrepancy
+    from armguard.apps.transactions.models import Transaction
+    from django.core.exceptions import ValidationError
+    from django.utils import timezone
+    import datetime, time
+
+    # Load data
+    personnel_list = list(
+        Personnel.objects
+        .filter(status='Active', rifle_item_issued__isnull=True)
+        .order_by('Personnel_ID')[:count]
+    )
+    discrepant_ids = set(
+        FirearmDiscrepancy.objects
+        .filter(rifle__isnull=False, status='Open')
+        .values_list('rifle_id', flat=True)
+    )
+    available_rifles = list(
+        Rifle.objects
+        .filter(item_status='Available')
+        .exclude(item_id__in=discrepant_ids)
+        .order_by('item_number')
+    )
+
+    if not personnel_list:
+        messages.error(request, 'No Active personnel without a rifle found.')
+        return redirect('system-settings')
+    if not available_rifles:
+        messages.error(request, 'No Available rifles found in inventory.')
+        return redirect('system-settings')
+
+    pairs      = list(zip(personnel_list, available_rifles))
+    ok_count   = 0
+    err_count  = 0
+    skip_count = len(personnel_list) - len(pairs)
+    errors     = []
+    return_by  = timezone.now() + datetime.timedelta(hours=24)
+
+    for person, rifle in pairs:
+        txn = Transaction(
+            transaction_type='Withdrawal',
+            issuance_type='TR (Temporary Receipt)',
+            purpose='OREX',
+            personnel=person,
+            rifle=rifle,
+            rifle_sling_quantity=1,
+            transaction_personnel=operator,
+            return_by=return_by,
+        )
+        try:
+            txn.full_clean()
+        except ValidationError as exc:
+            err_count += 1
+            note = '; '.join(
+                m for msgs in exc.message_dict.values() for m in msgs
+            ) if hasattr(exc, 'message_dict') else str(exc)
+            errors.append(f'{person.Personnel_ID} / {rifle.item_id}: {note}')
+            continue
+
+        if commit:
+            try:
+                txn.save(user=request.user)
+                ok_count += 1
+            except Exception as exc:
+                err_count += 1
+                errors.append(f'{person.Personnel_ID} / {rifle.item_id}: {exc}')
+        else:
+            ok_count += 1
+
+        if delay > 0 and ok_count + err_count < len(pairs):
+            time.sleep(delay)
+
+    parts = [
+        f'{ok_count} transaction(s) {"saved" if commit else "validated (dry-run)"}',
+    ]
+    if skip_count:
+        parts.append(f'{skip_count} skipped (not enough rifles)')
+    if err_count:
+        parts.append(f'{err_count} error(s)')
+    summary = '; '.join(parts)
+
+    if errors:
+        for e in errors[:5]:
+            messages.warning(request, f'Sim error: {e}')
+        if len(errors) > 5:
+            messages.warning(request, f'…and {len(errors) - 5} more error(s).')
+
+    if commit and ok_count:
+        messages.success(request, f'OREX Simulation complete — {summary}.')
+    elif not commit:
+        messages.info(request, f'OREX Simulation dry-run — {summary}. Enable "Commit to DB" to save.')
+    else:
+        messages.error(request, f'OREX Simulation finished with errors — {summary}.')
+
+    return redirect('system-settings')
+
+
+@login_required
 def storage_status_json(request):
     if not _is_admin(request.user):
         return JsonResponse({'error': 'Forbidden'}, status=403)
