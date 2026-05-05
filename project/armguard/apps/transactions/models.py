@@ -197,7 +197,7 @@ class Transaction(models.Model):
         constraints = [
             # L-19: Enforce purpose values at the DB level.
             models.CheckConstraint(
-                check=models.Q(purpose__in=[
+                condition=models.Q(purpose__in=[
                     'Duty Sentinel', 'Duty Vigil', 'Duty Security',
                     'Honor Guard', 'Others', 'OREX',
                 ]),
