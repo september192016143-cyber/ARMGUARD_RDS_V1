@@ -160,9 +160,11 @@ else:
             # lock issues after a long idle period).
             'CONN_HEALTH_CHECKS': True,
             'OPTIONS': {
-                # Wait up to 5 s when a second Gunicorn worker holds a write lock
-                # before raising OperationalError: database is locked.
-                'timeout': 5,
+                # Wait up to 30 s when another Gunicorn worker or background thread
+                # holds the write lock before raising OperationalError: database is locked.
+                # Increased from 5 s to handle the OREX simulation background thread
+                # writing at 5 s intervals alongside live request traffic.
+                'timeout': 30,
             },
         }
     }

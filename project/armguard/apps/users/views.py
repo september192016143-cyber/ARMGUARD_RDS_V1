@@ -1468,13 +1468,25 @@ def _run_orex_background(run_id, user_pk):
                 results.append([idx, person.Personnel_ID, person_name, rifle.item_id, 'error', note])
             else:
                 if commit:
-                    try:
-                        txn.save(user=user)
+                    _saved = False
+                    _save_exc = None
+                    for _attempt in range(4):  # up to 4 attempts with backoff
+                        try:
+                            txn.save(user=user)
+                            _saved = True
+                            break
+                        except Exception as _exc:
+                            _save_exc = _exc
+                            if 'database is locked' in str(_exc).lower() and _attempt < 3:
+                                _time.sleep(2 ** _attempt)  # 1s, 2s, 4s
+                                continue
+                            break
+                    if _saved:
                         ok_count += 1
                         results.append([idx, person.Personnel_ID, person_name, rifle.item_id, 'saved', ''])
-                    except Exception as save_exc:
+                    else:
                         err_count += 1
-                        results.append([idx, person.Personnel_ID, person_name, rifle.item_id, 'error', str(save_exc)[:120]])
+                        results.append([idx, person.Personnel_ID, person_name, rifle.item_id, 'error', str(_save_exc)[:120]])
                 else:
                     ok_count += 1
                     results.append([idx, person.Personnel_ID, person_name, rifle.item_id, 'dry-ok', ''])
