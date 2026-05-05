@@ -296,19 +296,23 @@ def _build_front(personnel) -> Image.Image:
         f_size -= 1
     f_name_line = _font(f_size, bold=True)
 
-    name_bb   = draw.textbbox((0, 0), name_line, font=f_name_line)
-    line_h    = name_bb[3] - name_bb[1]          # actual rendered text height
-    gap       = 4                                  # px between lines
+    # Vertically centre name in pill box 1 (y 667..721)
+    PILL1_TOP, PILL1_BOT = 667, 721
+    name_bb = draw.textbbox((0, 0), name_line, font=f_name_line)
+    line_h  = name_bb[3] - name_bb[1]
+    name_y  = PILL1_TOP + (PILL1_BOT - PILL1_TOP - line_h) // 2
+    _centered_text(draw, name_y, name_line, f_name_line, color=WHITE)
 
-    _centered_text(draw, NAME_LINE_Y, name_line, f_name_line, color=WHITE)
-
-    # -- Pill box 2 : ID + issuance date (same size, flush below name line) ---
+    # -- Pill box 2 : ID + Issuance Date evenly distributed (y 730..806) -----
+    PILL2_TOP, PILL2_BOT = 730, 806
     f_pill2   = _font(f_size, bold=True)
     id_text   = f"ID No: {personnel.Personnel_ID}"
     date_text = "Issuance Date: " + date.today().strftime("%d %b %Y")
 
-    id_y   = NAME_LINE_Y + line_h + gap
-    date_y = id_y + line_h + gap
+    # Space = pill height split into 3 equal slots, text centred in each slot
+    slot_h = (PILL2_BOT - PILL2_TOP) // 3
+    id_y   = PILL2_TOP + slot_h * 0 + (slot_h - line_h) // 2
+    date_y = PILL2_TOP + slot_h * 1 + (slot_h - line_h) // 2
 
     _centered_text(draw, id_y,   id_text,   f_pill2, color=WHITE)
     _centered_text(draw, date_y, date_text, f_pill2, color=WHITE)
