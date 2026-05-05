@@ -159,14 +159,21 @@ fi
 # ---------------------------------------------------------------------------
 step "2/8 Pulling latest code (branch: $BRANCH)"
 
-# Pre-emptively remove generated/downloaded files that are never meant to be
-# tracked by git. If a previous update failed mid-way, these can end up as
-# unmerged (conflicted) index entries that block both 'git stash' and 'git pull'.
+# Pre-emptively handle Font Awesome CSS, which was historically committed to
+# the repo (commits 3dc2b9b / 9a5af3b) and later removed.  Servers still on an
+# old commit have the file tracked; on those servers 'git pull' applies the
+# deletion commit, causing a modify/delete conflict on 'git stash pop'.
+#
+# FIX: only delete the physical file here.  Do NOT run 'git rm --cached'.
+# Reason: 'git rm --cached' stages a deletion, which 'git stash' captures.
+# 'git stash pop' then tries to replay the deletion after 'git pull' has
+# already deleted the file → conflict.
+# Leaving the file tracked (but physically absent) means 'git checkout -- .'
+# inside _git_pull_repo will restore it to HEAD's version (no modification),
+# so stash has nothing to capture and 'git pull' removes it cleanly.
 _REPO_DIR="$DEPLOY_DIR"
 [[ -d "$PROJECT_DIR/.git" ]] && _REPO_DIR="$PROJECT_DIR"
 rm -f "$_REPO_DIR/project/armguard/static/css/fontawesome/all.min.css"
-sudo -u "$DEPLOY_USER" git -C "$_REPO_DIR" rm --cached -f \
-    project/armguard/static/css/fontawesome/all.min.css 2>/dev/null || true
 unset _REPO_DIR
 
 # ---------------------------------------------------------------------------

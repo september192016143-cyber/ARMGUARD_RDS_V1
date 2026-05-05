@@ -45,7 +45,8 @@ Thumbs.db
 project/media/**
 !project/media/**/
 !project/media/**/.gitkeep
-# Font Awesome webfonts (downloaded at deploy time by update-server.sh)
+# Font Awesome files (downloaded at deploy time by update-server.sh — never commit)
+project/armguard/static/css/fontawesome/all.min.css
 project/armguard/static/css/fontawesome/webfonts/
 
 # Arial Nova TTF files (commercial font — copy manually to fonts/arial-nova/ before deploy)
