@@ -60,7 +60,7 @@ class PistolAdmin(admin.ModelAdmin):
         'item_status', 'item_condition', 'item_issued_to', 'item_assigned_to', 'created',
     ]
     list_filter = ['item_status', 'item_condition', 'model']
-    search_fields = ['item_id', 'serial_number', 'item_issued_to__Personnel_ID', 'item_assigned_to']
+    search_fields = ['item_id', 'serial_number', 'item_issued_to__Personnel_ID', 'item_assigned_to__Personnel_ID']
     readonly_fields = ['item_id', 'qr_code', 'remarks_timestamp', 'remarks_updated_by']
     actions = [_compact_item_numbers]
 
@@ -86,7 +86,7 @@ class RifleAdmin(admin.ModelAdmin):
         'item_status', 'item_condition', 'item_issued_to', 'item_assigned_to', 'created',
     ]
     list_filter = ['item_status', 'item_condition', 'model']
-    search_fields = ['item_id', 'serial_number', 'item_issued_to__Personnel_ID', 'item_assigned_to']
+    search_fields = ['item_id', 'serial_number', 'item_issued_to__Personnel_ID', 'item_assigned_to__Personnel_ID']
     readonly_fields = ['item_id', 'qr_code', 'remarks_timestamp', 'remarks_updated_by']
     actions = [_compact_item_numbers]
 
