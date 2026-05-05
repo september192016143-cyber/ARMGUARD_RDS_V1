@@ -1164,7 +1164,31 @@ def truncate_data(request):
 
     from armguard.apps.transactions.models import Transaction, TransactionLogs
     from armguard.apps.inventory.models import AnalyticsSnapshot
+    from armguard.apps.personnel.models import Personnel
     from django.db import connection as _db_conn
+
+    # All Personnel columns that hold transaction-derived state.
+    # Cleared whenever transactions OR transaction_logs are truncated so the
+    # Personnel records don't show stale "issued/assigned" data against items
+    # that no longer exist in the transaction history.
+    _PERSONNEL_CLEAR_COLS = [
+        'rifle_item_assigned',            'rifle_item_assigned_timestamp',  'rifle_item_assigned_by',
+        'rifle_item_issued',              'rifle_item_issued_timestamp',     'rifle_item_issued_by',
+        'pistol_item_assigned',           'pistol_item_assigned_timestamp',  'pistol_item_assigned_by',
+        'pistol_item_issued',             'pistol_item_issued_timestamp',    'pistol_item_issued_by',
+        'magazine_item_assigned',         'magazine_item_assigned_quantity', 'magazine_item_assigned_timestamp', 'magazine_item_assigned_by',
+        'magazine_item_issued',           'magazine_item_issued_quantity',   'magazine_item_issued_timestamp',   'magazine_item_issued_by',
+        'pistol_magazine_item_issued',    'pistol_magazine_item_issued_quantity', 'pistol_magazine_item_issued_timestamp', 'pistol_magazine_item_issued_by',
+        'rifle_magazine_item_issued',     'rifle_magazine_item_issued_quantity',  'rifle_magazine_item_issued_timestamp',  'rifle_magazine_item_issued_by',
+        'ammunition_item_assigned',       'ammunition_item_assigned_quantity', 'ammunition_item_assigned_timestamp', 'ammunition_item_assigned_by',
+        'ammunition_item_issued',         'ammunition_item_issued_quantity',   'ammunition_item_issued_timestamp',   'ammunition_item_issued_by',
+        'pistol_ammunition_item_issued',  'pistol_ammunition_item_issued_quantity', 'pistol_ammunition_item_issued_timestamp', 'pistol_ammunition_item_issued_by',
+        'rifle_ammunition_item_issued',   'rifle_ammunition_item_issued_quantity',  'rifle_ammunition_item_issued_timestamp',  'rifle_ammunition_item_issued_by',
+        'pistol_holster_issued',          'pistol_holster_issued_quantity',   'pistol_holster_issued_timestamp',   'pistol_holster_issued_by',
+        'magazine_pouch_issued',          'magazine_pouch_issued_quantity',   'magazine_pouch_issued_timestamp',   'magazine_pouch_issued_by',
+        'rifle_sling_issued',             'rifle_sling_issued_quantity',      'rifle_sling_issued_timestamp',      'rifle_sling_issued_by',
+        'bandoleer_issued',               'bandoleer_issued_quantity',        'bandoleer_issued_timestamp',        'bandoleer_issued_by',
+    ]
 
     # Map checkbox key → (label, db_table).
     # We use raw SQL DELETE instead of ORM .delete() to:
@@ -1181,11 +1205,22 @@ def truncate_data(request):
     }
 
     deleted_summary = []
+    _clear_personnel = False
     with _db_conn.cursor() as _cur:
         for key, (label, table) in targets.items():
             if request.POST.get(f'truncate_{key}'):
                 _cur.execute(f'DELETE FROM "{table}"')  # noqa: S608 — table name from trusted model meta
                 deleted_summary.append(f'{label}: {_cur.rowcount} row(s) deleted')
+                if key in ('transaction_logs', 'transactions'):
+                    _clear_personnel = True
+
+        # Clear all transaction-derived fields from Personnel rows so they don't
+        # show stale issued/assigned data after the transaction history is wiped.
+        if _clear_personnel:
+            _p_table = Personnel._meta.db_table
+            _set_clause = ', '.join(f'"{col}" = NULL' for col in _PERSONNEL_CLEAR_COLS)
+            _cur.execute(f'UPDATE "{_p_table}" SET {_set_clause}')  # noqa: S608
+            deleted_summary.append(f'Personnel fields cleared: {_cur.rowcount} record(s) reset')
 
     if deleted_summary:
         detail = ' | '.join(deleted_summary)
