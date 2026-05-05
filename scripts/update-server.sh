@@ -392,6 +392,29 @@ if [[ -f "$NGINX_DEST_ALT" ]] && [[ ! -f "$NGINX_DEST" ]]; then
     NGINX_DEST="$NGINX_DEST_ALT"
 fi
 
+# Ensure proxy-params.conf snippet exists (deploy.sh creates it on first run;
+# servers bootstrapped without deploy.sh or after a re-image may be missing it).
+# Without X-Forwarded-Proto, Django cannot detect HTTPS behind Nginx and may
+# enter an HTTPS→HTTPS redirect loop when SECURE_SSL_REDIRECT is enabled.
+PROXY_PARAMS="/etc/nginx/snippets/proxy-params.conf"
+if [[ ! -f "$PROXY_PARAMS" ]]; then
+    mkdir -p /etc/nginx/snippets
+    cat > "$PROXY_PARAMS" <<'SNIPPET'
+proxy_set_header Host              $host;
+proxy_set_header X-Real-IP         $remote_addr;
+proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_redirect    off;
+proxy_http_version 1.1;
+proxy_set_header   Connection "";
+proxy_buffering         on;
+proxy_buffer_size       8k;
+proxy_buffers           8 16k;
+proxy_busy_buffers_size 32k;
+SNIPPET
+    info "Created missing $PROXY_PARAMS"
+fi
+
 if [[ -f "$NGINX_SRC" ]]; then
     # Resolve placeholder values — read DOMAIN/LAN_IP from the existing deployed
     # config so they survive updates without needing deploy.sh to re-run.
