@@ -1141,6 +1141,60 @@ def squadron_delete(request, pk):
     return redirect('system-settings')
 
 
+# ── Data Truncation (superuser-only) ──────────────────────────────────────────
+
+@login_required
+@require_POST
+def truncate_data(request):
+    """
+    Truncate selected data tables.  Superuser-only.
+    Supported targets (via POST checkbox 'truncate_<name>'):
+      - transaction_logs  → TransactionLogs
+      - transactions      → Transaction
+      - snapshots         → AnalyticsSnapshot
+    """
+    if not request.user.is_superuser:
+        messages.error(request, 'Only superusers can perform data truncation.')
+        return redirect('system-settings')
+
+    confirm = request.POST.get('confirm_truncate', '').strip()
+    if confirm != 'TRUNCATE':
+        messages.error(request, 'Confirmation text did not match. Nothing was deleted.')
+        return redirect('system-settings')
+
+    from armguard.apps.transactions.models import Transaction, TransactionLogs
+    from armguard.apps.inventory.models import AnalyticsSnapshot
+
+    targets = {
+        'transaction_logs': ('Transaction Logs',  TransactionLogs),
+        'transactions':     ('Transactions',       Transaction),
+        'snapshots':        ('Analytics Snapshots', AnalyticsSnapshot),
+    }
+
+    deleted_summary = []
+    for key, (label, Model) in targets.items():
+        if request.POST.get(f'truncate_{key}'):
+            count, _ = Model.objects.all().delete()
+            deleted_summary.append(f'{label}: {count} row(s) deleted')
+
+    if deleted_summary:
+        detail = ' | '.join(deleted_summary)
+        AuditLog.objects.create(
+            user=request.user,
+            action='DELETE',
+            model_name='DataTruncation',
+            object_pk='—',
+            message=f'Manual data truncation by {request.user.username}: {detail}',
+            ip_address=_get_client_ip(request),
+            user_agent=_get_user_agent(request),
+        )
+        messages.success(request, f'Truncation complete. {detail}.')
+    else:
+        messages.warning(request, 'No tables were selected.')
+
+    return redirect('system-settings')
+
+
 @login_required
 def storage_status_json(request):
     if not _is_admin(request.user):

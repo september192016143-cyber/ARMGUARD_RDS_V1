@@ -346,19 +346,6 @@ def _build_back(personnel, skip_qr: bool = False) -> Image.Image:
         except Exception as exc:
             logger.warning("Back: QR generation failed  %s", exc)
 
-    # -- Tel / contact number (dark text on white gap, y ~ 882) ----------------
-    f_label = _font(20, bold=False)
-    f_val   = _font(24, bold=True)
-    if personnel.tel:
-        tel_text = personnel.tel.strip()
-        _centered_text(draw, BACK_TEL_Y, f"CONTACT NR: {tel_text}",
-                       f_val, color=BODY_NAVY)
-
-    # -- Personnel ID (dark text on white gap, y ~ 914) ------------------------
-    _centered_text(draw, FOOTER_ID_Y,
-                   f"PERSONNEL ID: {personnel.Personnel_ID}",
-                   f_label, color=BODY_NAVY)
-
     return img
 
 
