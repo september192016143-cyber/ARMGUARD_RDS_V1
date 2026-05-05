@@ -9,6 +9,7 @@ Models:
 import hashlib
 import json
 import logging
+import uuid
 from django.db import models
 from django.conf import settings
 from django.db.models.signals import post_save, m2m_changed
@@ -930,3 +931,54 @@ def log_system_event(source, event, message='', level='INFO', **detail):
 
     log_fn = getattr(_sys_logger, level.lower(), _sys_logger.info)
     log_fn("[SYSTEM] source=%-10s event=%-30s %s", source, event, message)
+
+
+class SimulationRun(models.Model):
+    """
+    Tracks a single OREX withdrawal simulation run executed in a background
+    thread.  The view creates the record, starts a thread, then redirects the
+    user to the dashboard immediately.  The thread writes progress updates and
+    final results back here.
+    """
+    STATUS_QUEUED    = 'queued'
+    STATUS_RUNNING   = 'running'
+    STATUS_COMPLETED = 'completed'
+    STATUS_ERROR     = 'error'
+    STATUS_CHOICES   = [
+        ('queued',    'Queued'),
+        ('running',   'Running'),
+        ('completed', 'Completed'),
+        ('error',     'Error'),
+    ]
+
+    run_id        = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    status        = models.CharField(max_length=20, choices=STATUS_CHOICES,
+                                     default='queued', db_index=True)
+    operator      = models.CharField(max_length=150)
+    commit        = models.BooleanField(default=False)
+    sim_count     = models.PositiveIntegerField(default=114)
+    delay_seconds = models.PositiveIntegerField(default=5)
+    ok_count      = models.IntegerField(default=0)
+    err_count     = models.IntegerField(default=0)
+    skip_count    = models.IntegerField(default=0)
+    total         = models.IntegerField(default=0)
+    progress      = models.IntegerField(default=0)   # pairs processed so far
+    wall_time     = models.FloatField(null=True, blank=True)
+    results_json  = models.JSONField(default=list, blank=True)
+    error_message = models.TextField(blank=True)
+    started_by    = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='simulation_runs',
+    )
+    started_at    = models.DateTimeField(auto_now_add=True)
+    completed_at  = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering           = ['-started_at']
+        verbose_name       = "Simulation Run"
+        verbose_name_plural = "Simulation Runs"
+
+    def __str__(self):
+        return f"SimRun {self.run_id} [{self.status}] by {self.operator}"

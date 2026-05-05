@@ -1270,10 +1270,10 @@ def truncate_data(request):
 @require_POST
 def simulate_orex_run(request):
     """
-    Run OREX withdrawal simulation in-process. Superuser-only.
-    No sleep/delay — the delay parameter only applies to the management command
-    (CLI) version. Running with sleep in an HTTP request causes gateway timeouts.
-    Returns a results page with per-row detail instead of redirecting.
+    Start an OREX withdrawal simulation in a background thread and return
+    to the dashboard immediately.  The thread writes progress and results
+    to a SimulationRun record so the dashboard widget can poll for status.
+    Superuser-only.
     """
     if not request.user.is_superuser:
         messages.error(request, 'Only superusers can run the OREX simulation.')
@@ -1283,124 +1283,264 @@ def simulate_orex_run(request):
         count    = max(1, min(int(request.POST.get('sim_count', 114)), 500))
         operator = request.POST.get('sim_operator', '').strip() or request.user.username
         commit   = request.POST.get('sim_commit') == '1'
+        delay    = max(0, min(int(request.POST.get('sim_delay', 5)), 60))
     except (ValueError, TypeError):
         messages.error(request, 'Invalid simulation parameters.')
         return redirect('system-settings')
 
+    from armguard.apps.users.models import SimulationRun
+    import threading
+
+    # Block a new run if one is already in progress
+    if SimulationRun.objects.filter(status__in=['queued', 'running']).exists():
+        messages.warning(request, 'A simulation is already in progress. Check the Dashboard for status.')
+        return redirect('dashboard')
+
+    run = SimulationRun.objects.create(
+        operator=operator,
+        commit=commit,
+        sim_count=count,
+        delay_seconds=delay,
+        started_by=request.user,
+    )
+
+    t = threading.Thread(
+        target=_run_orex_background,
+        args=(str(run.run_id), request.user.pk),
+        daemon=True,
+    )
+    t.start()
+
+    mode = 'COMMIT' if commit else 'DRY-RUN'
+    messages.info(
+        request,
+        f'OREX simulation started [{mode}] — {count} personnel, {delay}s/transaction. '
+        f'Check the Dashboard for live progress.',
+    )
+    return redirect('dashboard')
+
+
+def _run_orex_background(run_id, user_pk):
+    """
+    Background thread: runs the OREX simulation with per-transaction delay,
+    writes progress back to SimulationRun, then marks it completed/error.
+    DB connection is closed when the thread exits (thread-local connection).
+    """
+    from armguard.apps.users.models import SimulationRun, ActivityLog, AuditLog
     from armguard.apps.personnel.models import Personnel
     from armguard.apps.inventory.models import Rifle, FirearmDiscrepancy
     from armguard.apps.transactions.models import Transaction
-    from armguard.apps.users.models import ActivityLog
+    from django.contrib.auth import get_user_model
     from django.core.exceptions import ValidationError
     from django.utils import timezone
-    import datetime, time as _time
+    from django.db import connection as _db_conn
+    import datetime
+    import time as _time
 
-    # ── Load data ─────────────────────────────────────────────────────────────
-    personnel_list = list(
-        Personnel.objects
-        .filter(status='Active', rifle_item_issued__isnull=True)
-        .order_by('Personnel_ID')[:count]
-    )
-    discrepant_ids = set(
-        FirearmDiscrepancy.objects
-        .filter(rifle__isnull=False, status='Open')
-        .values_list('rifle_id', flat=True)
-    )
-    available_rifles = list(
-        Rifle.objects
-        .filter(item_status='Available')
-        .exclude(item_id__in=discrepant_ids)
-        .order_by('item_number')
-    )
+    try:
+        run = SimulationRun.objects.get(run_id=run_id)
+        run.status = SimulationRun.STATUS_RUNNING
+        run.save(update_fields=['status'])
 
-    if not personnel_list:
-        messages.error(request, 'No Active personnel without a rifle found.')
-        return redirect('system-settings')
-    if not available_rifles:
-        messages.error(request, 'No Available rifles found in inventory.')
-        return redirect('system-settings')
-
-    pairs      = list(zip(personnel_list, available_rifles))
-    skip_count = len(personnel_list) - len(pairs)
-    ok_count   = 0
-    err_count  = 0
-    results    = []   # (idx, person_id, person_name, rifle_id, status, note)
-    return_by  = timezone.now() + datetime.timedelta(hours=24)
-    wall_start = _time.perf_counter()
-
-    for idx, (person, rifle) in enumerate(pairs, start=1):
-        person_name = f'{person.rank or ""} {person.first_name} {person.last_name}'.strip()
-        txn = Transaction(
-            transaction_type='Withdrawal',
-            issuance_type='TR (Temporary Receipt)',
-            purpose='OREX',
-            personnel=person,
-            rifle=rifle,
-            transaction_personnel=operator,
-            return_by=return_by,
-        )
+        User = get_user_model()
         try:
-            txn.full_clean()
-        except ValidationError as exc:
-            err_count += 1
-            note = '; '.join(
-                m for msgs in exc.message_dict.values() for m in msgs
-            ) if hasattr(exc, 'message_dict') else str(exc)
-            results.append((idx, person.Personnel_ID, person_name, rifle.item_id, 'error', note))
-            continue
+            user = User.objects.get(pk=user_pk)
+        except User.DoesNotExist:
+            user = None
 
-        if commit:
+        count     = run.sim_count
+        operator  = run.operator
+        commit    = run.commit
+        delay_s   = run.delay_seconds
+
+        personnel_list = list(
+            Personnel.objects
+            .filter(status='Active', rifle_item_issued__isnull=True)
+            .order_by('Personnel_ID')[:count]
+        )
+        discrepant_ids = set(
+            FirearmDiscrepancy.objects
+            .filter(rifle__isnull=False, status='Open')
+            .values_list('rifle_id', flat=True)
+        )
+        available_rifles = list(
+            Rifle.objects
+            .filter(item_status='Available')
+            .exclude(item_id__in=discrepant_ids)
+            .order_by('item_number')
+        )
+
+        if not personnel_list or not available_rifles:
+            SimulationRun.objects.filter(run_id=run_id).update(
+                status=SimulationRun.STATUS_ERROR,
+                error_message='No Active personnel without a rifle, or no Available rifles.',
+                completed_at=timezone.now(),
+            )
+            return
+
+        pairs      = list(zip(personnel_list, available_rifles))
+        skip_count = len(personnel_list) - len(pairs)
+        ok_count   = 0
+        err_count  = 0
+        results    = []
+        return_by  = timezone.now() + datetime.timedelta(hours=24)
+        wall_start = _time.perf_counter()
+
+        SimulationRun.objects.filter(run_id=run_id).update(
+            total=len(pairs) + skip_count,
+            skip_count=skip_count,
+        )
+
+        for idx, (person, rifle) in enumerate(pairs, start=1):
+            person_name = f'{person.rank or ""} {person.first_name} {person.last_name}'.strip()
+            txn = Transaction(
+                transaction_type='Withdrawal',
+                issuance_type='TR (Temporary Receipt)',
+                purpose='OREX',
+                personnel=person,
+                rifle=rifle,
+                transaction_personnel=operator,
+                return_by=return_by,
+            )
             try:
-                txn.save(user=request.user)
-                ok_count += 1
-                results.append((idx, person.Personnel_ID, person_name, rifle.item_id, 'saved', ''))
-            except Exception as save_exc:
+                txn.full_clean()
+            except ValidationError as exc:
                 err_count += 1
-                results.append((idx, person.Personnel_ID, person_name, rifle.item_id, 'error', str(save_exc)[:120]))
-        else:
-            ok_count += 1
-            results.append((idx, person.Personnel_ID, person_name, rifle.item_id, 'dry-ok', ''))
+                note = '; '.join(
+                    m for msgs in exc.message_dict.values() for m in msgs
+                ) if hasattr(exc, 'message_dict') else str(exc)
+                results.append([idx, person.Personnel_ID, person_name, rifle.item_id, 'error', note])
+            else:
+                if commit:
+                    try:
+                        txn.save(user=user)
+                        ok_count += 1
+                        results.append([idx, person.Personnel_ID, person_name, rifle.item_id, 'saved', ''])
+                    except Exception as save_exc:
+                        err_count += 1
+                        results.append([idx, person.Personnel_ID, person_name, rifle.item_id, 'error', str(save_exc)[:120]])
+                else:
+                    ok_count += 1
+                    results.append([idx, person.Personnel_ID, person_name, rifle.item_id, 'dry-ok', ''])
 
-    wall_time = _time.perf_counter() - wall_start
+            # Atomic progress update — other readers see this while thread runs
+            SimulationRun.objects.filter(run_id=run_id).update(
+                progress=idx,
+                ok_count=ok_count,
+                err_count=err_count,
+            )
 
-    # ── Write ActivityLog ─────────────────────────────────────────────────────
-    mode_label = 'COMMIT' if commit else 'DRY-RUN'
-    ActivityLog.objects.create(
-        user=request.user,
-        ip_address=_get_client_ip(request),
-        user_agent=_get_user_agent(request),
-        method='POST',
-        path=request.path_info,
-        view_name='settings-simulate-orex',
-        flag='NORMAL',
-        status_code=200,
-        response_ms=int(wall_time * 1000),
-    )
-    AuditLog.objects.create(
-        user=request.user,
-        action='OREX_SIM',
-        model_name='Transaction',
-        object_pk='—',
-        message=(
-            f'OREX simulation [{mode_label}] by {request.user.username}: '
-            f'{ok_count} ok, {err_count} error(s), {skip_count} skipped '
-            f'out of {len(pairs) + skip_count} personnel in {wall_time:.1f}s'
-        ),
-        ip_address=_get_client_ip(request),
-        user_agent=_get_user_agent(request),
-    )
+            if delay_s > 0:
+                _time.sleep(delay_s)
 
-    ctx = {
-        'results':    results,
-        'ok_count':   ok_count,
-        'err_count':  err_count,
-        'skip_count': skip_count,
-        'total':      len(pairs) + skip_count,
-        'wall_time':  round(wall_time, 2),
-        'commit':     commit,
-        'operator':   operator,
-    }
-    return render(request, 'users/sim_orex_results.html', ctx)
+        wall_time  = _time.perf_counter() - wall_start
+        mode_label = 'COMMIT' if commit else 'DRY-RUN'
+
+        # Write audit logs
+        if user:
+            ActivityLog.objects.create(
+                user=user,
+                ip_address=None,
+                user_agent='SimulationThread/background',
+                method='POST',
+                path='/users/settings/simulate-orex/',
+                view_name='settings-simulate-orex',
+                flag='NORMAL',
+                status_code=200,
+                response_ms=int(wall_time * 1000),
+            )
+            AuditLog.objects.create(
+                user=user,
+                action='OTHER',
+                model_name='Transaction',
+                object_pk='—',
+                message=(
+                    f'OREX simulation [{mode_label}] by {operator}: '
+                    f'{ok_count} ok, {err_count} error(s), {skip_count} skipped '
+                    f'out of {len(pairs) + skip_count} personnel in {wall_time:.1f}s '
+                    f'({delay_s}s/transaction)'
+                ),
+                ip_address=None,
+                user_agent='SimulationThread/background',
+            )
+
+        SimulationRun.objects.filter(run_id=run_id).update(
+            status=SimulationRun.STATUS_COMPLETED,
+            ok_count=ok_count,
+            err_count=err_count,
+            wall_time=round(wall_time, 2),
+            results_json=results,
+            completed_at=timezone.now(),
+        )
+
+    except Exception as exc:
+        try:
+            from django.utils import timezone as _tz
+            SimulationRun.objects.filter(run_id=run_id).update(
+                status='error',
+                error_message=str(exc)[:500],
+                completed_at=_tz.now(),
+            )
+        except Exception:
+            pass
+    finally:
+        _db_conn.close()
+
+
+@login_required
+def simulate_orex_status_json(request):
+    """Return status of the most recent SimulationRun as JSON. Superuser only."""
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+
+    from armguard.apps.users.models import SimulationRun
+    run = SimulationRun.objects.first()
+    if not run:
+        return JsonResponse({'status': 'none'})
+
+    pct = round(run.progress / run.total * 100) if run.total > 0 else 0
+    return JsonResponse({
+        'status':        run.status,
+        'run_id':        str(run.run_id),
+        'operator':      run.operator,
+        'commit':        run.commit,
+        'sim_count':     run.sim_count,
+        'delay_seconds': run.delay_seconds,
+        'ok_count':      run.ok_count,
+        'err_count':     run.err_count,
+        'skip_count':    run.skip_count,
+        'total':         run.total,
+        'progress':      run.progress,
+        'pct':           pct,
+        'wall_time':     run.wall_time,
+        'error_message': run.error_message,
+        'started_at':    run.started_at.isoformat(),
+        'completed_at':  run.completed_at.isoformat() if run.completed_at else None,
+    })
+
+
+@login_required
+def simulate_orex_results(request, run_id):
+    """Show the per-row results table for a completed SimulationRun. Superuser only."""
+    if not request.user.is_superuser:
+        messages.error(request, 'Only superusers can view simulation results.')
+        return redirect('dashboard')
+
+    from armguard.apps.users.models import SimulationRun
+    run = get_object_or_404(SimulationRun, run_id=run_id)
+
+    return render(request, 'users/sim_orex_results.html', {
+        'run':        run,
+        'results':    run.results_json,
+        'ok_count':   run.ok_count,
+        'err_count':  run.err_count,
+        'skip_count': run.skip_count,
+        'total':      run.total,
+        'wall_time':  run.wall_time,
+        'commit':     run.commit,
+        'operator':   run.operator,
+    })
+
 
 
 @login_required
