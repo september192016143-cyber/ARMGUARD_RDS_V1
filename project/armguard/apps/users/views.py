@@ -1307,7 +1307,7 @@ def simulate_orex_run(request):
     t = threading.Thread(
         target=_run_orex_background,
         args=(str(run.run_id), request.user.pk),
-        daemon=True,
+        daemon=False,  # non-daemon: worker process won't exit until simulation finishes
     )
     t.start()
 

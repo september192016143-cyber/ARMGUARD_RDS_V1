@@ -46,10 +46,12 @@ graceful_timeout = 30  # seconds a worker has to finish in-flight requests on HU
 keepalive = 5
 
 # ── Worker recycling ─────────────────────────────────────────────────────────
-# Recycle workers every 1000 requests (±100 jitter) to prevent memory leaks
-# in long-running Python processes.
-max_requests = 1000
-max_requests_jitter = 100
+# Worker recycling is disabled (max_requests=0) because background simulation
+# threads (OREX) can run for ~10 minutes.  If a worker is recycled mid-run the
+# daemon thread is killed and the SimulationRun stays stuck in 'running' state.
+# This is an internal low-traffic app so memory-leak recycling is not needed.
+max_requests = 0
+max_requests_jitter = 0
 
 # ── Binding ───────────────────────────────────────────────────────────────────
 # Override GUNICORN_BIND to use a Unix socket for lower latency:
