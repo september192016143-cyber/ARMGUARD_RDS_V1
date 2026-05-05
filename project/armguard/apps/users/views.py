@@ -1163,7 +1163,7 @@ def truncate_data(request):
         return redirect('system-settings')
 
     from armguard.apps.transactions.models import Transaction, TransactionLogs
-    from armguard.apps.inventory.models import AnalyticsSnapshot
+    from armguard.apps.inventory.models import AnalyticsSnapshot, Rifle, Pistol
     from armguard.apps.personnel.models import Personnel
     from django.db import connection as _db_conn
 
@@ -1216,6 +1216,21 @@ def truncate_data(request):
             _set_clause = ', '.join(f'"{col}" = NULL' for col in _PERSONNEL_CLEAR_COLS)
             _cur.execute(f'UPDATE "{_p_table}" SET {_set_clause}')  # noqa: S608
             deleted_summary.append(f'Personnel fields cleared: {_cur.rowcount} record(s) reset')
+
+            # Reset Rifle and Pistol item_status back to 'Available' and clear
+            # issued tracking (item_issued_to_id, item_issued_timestamp, item_issued_by).
+            for _inv_model in (Rifle, Pistol):
+                _inv_table = _inv_model._meta.db_table
+                _cur.execute(
+                    f'UPDATE "{_inv_table}" SET '  # noqa: S608
+                    f'"item_status" = \'Available\', '
+                    f'"item_issued_to_id" = NULL, '
+                    f'"item_issued_timestamp" = NULL, '
+                    f'"item_issued_by" = NULL '
+                    f'WHERE "item_status" = \'Issued\''
+                )
+                _label = _inv_model.__name__
+                deleted_summary.append(f'{_label} items reset to Available: {_cur.rowcount} item(s)')
 
     if deleted_summary:
         detail = ' | '.join(deleted_summary)
