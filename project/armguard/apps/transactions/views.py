@@ -726,11 +726,15 @@ def personnel_search(request):
 
 @login_required
 @require_GET
-@ratelimit(rate='60/m')
 def item_status_check(request):
     """
     Real-time lookup: return availability/status of a pistol or rifle.
     GET ?type=pistol&item_id=<pk>  OR  ?type=rifle&item_id=<pk>
+
+    No rate limit — this is a read-only status check fired on every dropdown
+    change in the transaction form. It is already protected by @login_required
+    and the _can_view_transactions() permission check. Rate-limiting it caused
+    false 'cannot validate' errors for operators processing many transactions.
     """
     if not _can_view_transactions(request.user):
         return JsonResponse({'error': 'Forbidden'}, status=403)

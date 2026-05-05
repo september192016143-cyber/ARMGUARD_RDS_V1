@@ -597,7 +597,15 @@ function checkItem(selectId, bannerId, itemType) {
     credentials: 'same-origin',
     signal: _itemCtl.signal,
   })
-    .then(function (r) { clearTimeout(_itemTimeout); return r.json(); })
+    .then(function (r) {
+      clearTimeout(_itemTimeout);
+      // 429 = rate-limited: show a soft warning but don't block the form.
+      if (r.status === 429) {
+        setBanner(bannerId, 'warn', 'Status check unavailable — too many requests. You can still submit.');
+        return Promise.reject({ name: 'RateLimit' });
+      }
+      return r.json();
+    })
     .then(function (d) {
       if (d.error) { setBanner(bannerId, 'err', escHtml(d.error)); return; }
       // F2 FIX: d.model / d.serial_number / d.issued_to / d.reason escaped via escHtml().
@@ -634,7 +642,8 @@ function checkItem(selectId, bannerId, itemType) {
       clearTimeout(_itemTimeout);
       // Ignore AbortError — triggered intentionally when a newer selection supersedes this
       // request or when the 8-second timeout fires.
-      if (err && err.name === 'AbortError') return;
+      // Ignore RateLimit — already handled above with a soft warning banner.
+      if (err && (err.name === 'AbortError' || err.name === 'RateLimit')) return;
       setBanner(bannerId, 'err', 'Could not fetch item status.');
     });
 }
