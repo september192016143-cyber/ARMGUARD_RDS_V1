@@ -1,8 +1,8 @@
 # ArmGuard RDS V1 — System Requirements & Storage Planning
 
-**Version:** 1.0
+**Version:** 1.1
 **Date:** 2026-05-06
-**Environment:** Ubuntu Server 24.04 LTS · Production server: `192.168.0.162`
+**Environment:** Ubuntu Server 24.04 LTS · Two production servers (Server 1 — HP ProDesk 400 G3 DM, Server 2 — Gigabyte H410M S2H)
 
 ---
 
@@ -25,16 +25,16 @@
 
 ### Minimum Specification
 
-| Component | Minimum | Recommended | **Actual Server** |
-|-----------|---------|-------------|-------------------|
-| **CPU** | 4 cores / 8 threads | 6 cores / 12 threads | **4 cores / 4 threads** ⚠️ |
-| **RAM** | 8 GB | 16 GB | **8 GB** ✅ (meets minimum) |
-| **Primary Storage** | **SSD 120 GB** | SSD 256 GB | **128 GB SSD** ✅ |
-| **Backup Storage** | External HDD 500 GB | External HDD 1 TB | Not verified |
-| **Network** | 100 Mbps LAN | 1 Gbps LAN | **1 Gbps** ✅ |
-| **OS** | Ubuntu Server 22.04 LTS | Ubuntu Server 24.04 LTS | **Ubuntu 24.04.4 LTS** ✅ |
+| Component | Minimum | Recommended | **Server 1** | **Server 2** |
+|-----------|---------|-------------|--------------|---------------|
+| **CPU** | 4 cores / 8 threads | 6 cores / 12 threads | **4 cores / 4 threads** ⚠️ | **6 cores / 12 threads** ✅ |
+| **RAM** | 8 GB | 16 GB | **8 GB** ✅ (meets minimum) | **16 GB** ✅ |
+| **Primary Storage** | **SSD 120 GB** | SSD 256 GB | **128 GB SSD** ✅ | **250 GB NVMe SSD** ✅ |
+| **Backup Storage** | External HDD 500 GB | External HDD 1 TB | Not connected | **1 TB External HDD** ✅ |
+| **Network** | 100 Mbps LAN | 1 Gbps LAN | **1 Gbps** ✅ | **1 Gbps** ✅ |
+| **OS** | Ubuntu Server 22.04 LTS | Ubuntu Server 24.04 LTS | **Ubuntu 24.04.4 LTS** ✅ | **Ubuntu 24.04.4 LTS** ✅ |
 
-> **⚠️ CPU note:** The i5-6500T has 4 cores with no hyperthreading (1 thread/core = 4 logical CPUs).
+> **⚠️ Server 1 CPU note:** The i5-6500T has 4 cores with no hyperthreading (1 thread/core = 4 logical CPUs).
 > This meets the absolute minimum but is below the recommended 8-thread target.
 > At the current scale (~20 users, 114 personnel), this is fully adequate.
 > CPU will become the bottleneck if concurrent users exceed ~30 or OREX simulations
@@ -53,6 +53,8 @@
 
 ## 2. Current Server Specifications
 
+### Server 1 — HP ProDesk 400 G3 DM
+
 | Component | Value |
 |-----------|-------|
 | Machine | HP ProDesk 400 G3 DM |
@@ -60,28 +62,63 @@
 | CPU model | Intel Core i5-6500T @ 2.50GHz (4 cores, 1 thread/core, no HT) |
 | CPU max frequency | 3.1 GHz |
 | RAM | 8 GB DDR4 (2 × 4 GB SODIMM) |
-| Primary disk | **128 GB Samsung SSD** (SAMSUNG MZ7LN128, SATA) |
-| Disk used | 11 GB (10%) |
-| Disk free | 99 GB |
+| Primary disk | **128 GB Samsung SSD** (SAMSUNG MZ7LN128, SATA, on `sda`) |
+| Disk used | ~11 GB |
+| Disk free | ~99 GB |
+| Backup disk | None connected |
 | Network | RTL8111 Gigabit Ethernet (1 Gbps) |
 | OS | Ubuntu 24.04.4 LTS |
 | Kernel | Linux 6.8.0-110-generic x86-64 |
-| Disk encryption | LUKS + LVM (dm-crypt) |
+| Disk encryption | LUKS + LVM (`sda → dm_crypt-0 → ubuntu--vg-ubuntu--lv`) |
 
-> **Note:** The `gunicorn-autoconf.sh` script previously misdetected the Samsung SSD as HDD
-> because the LUKS/LVM encryption layer (`dm_crypt-0`) reports `ROTA=1` regardless of the
-> underlying device. This was fixed in commit `930f821` — the script now skips `dm-*` and
-> `crypt` devices and reads `ROTA` from the physical disk (`sda`) directly.
-> After the next deploy, Gunicorn will correctly auto-tune to **SSD mode: 9 workers × 2 threads**.
+#### Server 1 — Gunicorn auto-tune result
 
-### Gunicorn — Correct Values After Fix
+| Setting | Value |
+|---------|-------|
+| Logical CPUs | 4 |
+| Disk type | SSD |
+| Workers | **9** `(4×2)+1` |
+| Threads per worker | **2** (SSD mode) |
 
-| Setting | Previous (wrong — HDD mode) | Correct (SSD mode) |
-|---------|-----------------------------|--------------------|
-| Logical CPUs detected | 12 (incorrect) | 4 |
-| Workers | 25 | **9** `(4×2)+1` |
-| Threads per worker | 4 (HDD) | **2** (SSD) |
-| Disk type | HDD | **SSD** |
+> **History:** `gunicorn-autoconf.sh` initially misdetected the SSD as HDD because the LUKS
+> mapper device (`dm_crypt-0`) always reports `ROTA=1`. Fixed in commit `fe34810` — the script
+> now uses `findmnt -n -o SOURCE /` to trace from the root filesystem to the physical disk,
+> bypassing all virtual LUKS/LVM devices.
+
+---
+
+### Server 2 — Gigabyte H410M S2H *(primary / newest)*
+
+| Component | Value |
+|-----------|-------|
+| Machine | Gigabyte Technology Co., Ltd. H410M S2H |
+| Logical CPUs | 12 |
+| CPU model | Intel Core i5-10400 @ 2.90GHz (6 cores × 2 threads, HT enabled) |
+| CPU max frequency | 4.3 GHz |
+| L3 cache | 12 MiB |
+| RAM | 16 GB DDR4 (2 × 8 GB DIMM, 2 slots empty) |
+| Primary disk | **250 GB WDC WDS250G1B NVMe SSD** (`nvme0n1`, PCIe) |
+| OS disk used | 9.9 GB (5%) |
+| OS disk free | 206 GB |
+| Backup disk | **1 TB External USB HDD** (`sda`, mounted at `/mnt/backup`, 636 GB free) |
+| Network | RTL8111/8168/8411 Gigabit Ethernet (`enp2s0`, 1 Gbps) |
+| IP address | 192.168.0.162 |
+| OS | Ubuntu 24.04.4 LTS |
+| Kernel | Linux 6.8.0-111-generic x86-64 |
+| Disk layout | LVM only (`nvme0n1p3 → ubuntu--vg-ubuntu--lv`) — no LUKS |
+
+#### Server 2 — Gunicorn auto-tune result (after fix)
+
+| Setting | Previous (wrong) | Correct (after fix) |
+|---------|-----------------|---------------------|
+| Disk detected | HDD (picked `sda` USB drive, ROTA=1) | **SSD** (NVMe `nvme0n1`, ROTA=0) |
+| Workers | 25 | **25** `(12×2)+1` *(unchanged)* |
+| Threads per worker | 4 (HDD mode) | **2** (SSD mode) |
+
+> **History:** `sda` (1 TB USB HDD) appeared before `nvme0n1` (NVMe SSD) in `lsblk` output
+> because USB devices enumerate first. The old logic picked the first disk in the list.
+> Fixed in the same commit — the script now uses `findmnt -n -o SOURCE /` to identify the
+> device backing `/`, then uses `lsblk -nso` to walk up the device tree to the physical disk.
 
 ---
 

@@ -81,14 +81,25 @@ log "Detected RAM: ${RAM_MB} MB (${RAM_GB} GB)"
 # ---------------------------------------------------------------------------
 # Step 3: Detect disk type (SSD vs HDD) — affects thread count
 # ---------------------------------------------------------------------------
-# Find the primary block device (first non-loop, non-dm, non-crypt device).
-# We explicitly skip dm-* and crypt devices so that LUKS/LVM setups report
-# the rotational flag of the underlying physical disk (e.g. sda), not the
-# virtual mapper device (which always returns ROTA=1 on older kernels).
-PRIMARY_DISK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null \
-    | grep -v 'loop\|rom\|ram\|dm\|crypt' \
-    | head -1 \
-    | awk '{print $1}')
+# Find the physical disk that backs the root filesystem (/).
+# Strategy: ask findmnt for the SOURCE of /, then walk up lsblk's ancestor
+# tree (-s = "print inverse/slave chain") to find the TYPE=disk entry.
+# This correctly handles:
+#   • Plain partition       : /dev/sda3            → sda
+#   • LVM without LUKS      : /dev/mapper/ubuntu--vg → nvme0n1
+#   • LUKS + LVM            : /dev/mapper/ubuntu--vg → sda
+#   • NVMe with USB present : nvme0n1 is root; sda is USB — picks nvme0n1
+# Fallback: first non-virtual disk from lsblk (old behaviour).
+_ROOT_SOURCE=$(findmnt -n -o SOURCE / 2>/dev/null)
+PRIMARY_DISK=$(lsblk -nso NAME,TYPE "$_ROOT_SOURCE" 2>/dev/null \
+    | awk '$2=="disk"{print $1}' | head -1)
+if [[ -z "$PRIMARY_DISK" ]]; then
+    PRIMARY_DISK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null \
+        | grep -v 'loop\|rom\|ram\|dm\|crypt' \
+        | head -1 \
+        | awk '{print $1}')
+fi
+unset _ROOT_SOURCE
 
 DISK_ROTA=1  # default: HDD
 if [[ -n "$PRIMARY_DISK" && -r "/sys/block/$PRIMARY_DISK/queue/rotational" ]]; then

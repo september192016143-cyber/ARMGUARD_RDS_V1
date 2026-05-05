@@ -320,7 +320,12 @@ _git_pull_repo() {
     if [[ -n "$dirty" ]]; then
         sudo -u "$DEPLOY_USER" git -C "$repo_dir" \
             -c user.email="armguard@localhost" -c user.name="armguard" \
-            stash 2>&1 && stashed=true || true
+            stash 2>&1
+        # 'git stash' exits 0 even when "No local changes to save" (nothing stashed).
+        # Only attempt stash pop if an entry was actually created.
+        if sudo -u "$DEPLOY_USER" git -C "$repo_dir" stash list 2>/dev/null | grep -q .; then
+            stashed=true
+        fi
     fi
 
     sudo -u "$DEPLOY_USER" git -C "$repo_dir" fetch --all
