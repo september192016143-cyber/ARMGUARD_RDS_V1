@@ -17,6 +17,19 @@
 
   var timer = null;
 
+  /* Read Django's CSRF token from the cookie so the Reset form can POST. */
+  function getCsrf() {
+    var name = 'csrftoken=';
+    var parts = document.cookie.split(';');
+    for (var i = 0; i < parts.length; i++) {
+      var c = parts[i].trim();
+      if (c.indexOf(name) === 0) {
+        return decodeURIComponent(c.slice(name.length));
+      }
+    }
+    return '';
+  }
+
   function fmtDate(iso) {
     if (!iso) { return '\u2014'; }
     return new Date(iso).toLocaleString();
@@ -44,6 +57,7 @@
       var resetBtn = resetUrl
         ? ('<form method="post" action="' + resetUrl + '" style="display:inline" ' +
            'onsubmit="return confirm(\'Cancel and clear this simulation run?\')">' +
+           '<input type="hidden" name="csrfmiddlewaretoken" value="' + getCsrf() + '">' +
            '<input type="hidden" name="run_id" value="' + d.run_id + '">' +
            '<button type="submit" style="font-size:.72rem;padding:.2rem .55rem;' +
            'background:#c0392b;color:#fff;border:none;border-radius:4px;cursor:pointer;' +
