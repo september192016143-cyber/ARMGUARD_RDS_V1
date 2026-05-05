@@ -52,22 +52,10 @@
       }, Promise.resolve());
     }
 
-    // import() enforces strict MIME checking; bypass by fetching as text and
-    // creating a correctly-typed Blob URL (browser checks Blob MIME, not server header).
+    // Load PDF.js via direct import(). Nginx serves .mjs as text/javascript
+    // (patched by update-server.sh). Same-origin URL — allowed by CSP script-src 'self'.
     function importPdfjsViaBlob(url) {
-      return fetch(url)
-        .then(function (r) {
-          if (!r.ok) throw new Error('PDF.js load failed: HTTP ' + r.status);
-          return r.text();
-        })
-        .then(function (src) {
-          var blob    = new Blob([src], {type: 'text/javascript'});
-          var blobUrl = URL.createObjectURL(blob);
-          return import(blobUrl).then(function (mod) {
-            URL.revokeObjectURL(blobUrl);
-            return mod;
-          });
-        });
+      return import(url);
     }
 
     fetch(pdfUrl, {credentials: 'same-origin'})
