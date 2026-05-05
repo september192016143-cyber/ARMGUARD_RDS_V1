@@ -156,7 +156,6 @@ class Command(BaseCommand):
                 purpose='OREX',
                 personnel=person,
                 rifle=rifle,
-                rifle_sling_quantity=1,
                 transaction_personnel=operator,
                 return_by=return_by,
             )
