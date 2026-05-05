@@ -25,20 +25,20 @@
 
 ### Minimum Specification
 
-| Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| **CPU** | 4 cores / 8 threads | 6 cores / 12 threads |
-| **RAM** | 8 GB | 16 GB |
-| **Primary Storage** | **SSD 120 GB** | SSD 256 GB |
-| **Backup Storage** | External HDD 500 GB | External HDD 1 TB |
-| **Network** | 100 Mbps LAN | 1 Gbps LAN |
-| **OS** | Ubuntu Server 22.04 LTS | Ubuntu Server 24.04 LTS |
+| Component | Minimum | Recommended | **Actual Server** |
+|-----------|---------|-------------|-------------------|
+| **CPU** | 4 cores / 8 threads | 6 cores / 12 threads | **4 cores / 4 threads** ⚠️ |
+| **RAM** | 8 GB | 16 GB | **8 GB** ✅ (meets minimum) |
+| **Primary Storage** | **SSD 120 GB** | SSD 256 GB | **128 GB SSD** ✅ |
+| **Backup Storage** | External HDD 500 GB | External HDD 1 TB | Not verified |
+| **Network** | 100 Mbps LAN | 1 Gbps LAN | **1 Gbps** ✅ |
+| **OS** | Ubuntu Server 22.04 LTS | Ubuntu Server 24.04 LTS | **Ubuntu 24.04.4 LTS** ✅ |
 
-> **SSD is the most critical requirement.** ArmGuard uses SQLite, which holds a
-> file-level write lock during every INSERT/UPDATE. On HDD, lock contention
-> between concurrent Gunicorn workers can cause intermittent
-> `OperationalError: database is locked`. An SSD reduces lock hold time by 10–30×,
-> effectively eliminating this error class at normal load.
+> **⚠️ CPU note:** The i5-6500T has 4 cores with no hyperthreading (1 thread/core = 4 logical CPUs).
+> This meets the absolute minimum but is below the recommended 8-thread target.
+> At the current scale (~20 users, 114 personnel), this is fully adequate.
+> CPU will become the bottleneck if concurrent users exceed ~30 or OREX simulations
+> are run while heavy report/PDF generation is in progress.
 
 ### Why These Numbers
 
@@ -55,19 +55,33 @@
 
 | Component | Value |
 |-----------|-------|
-| Logical CPUs | 12 |
-| RAM | 15,852 MB (~16 GB) |
-| Primary disk type | **HDD** (ROTA=1) |
-| Primary disk size | 226 GB |
-| Disk used | 9.9 GB (5%) |
-| Gunicorn workers | 25 (auto-tuned) |
-| Gunicorn threads | 4 per worker (HDD mode) |
-| Django WSGI service | `armguard-gunicorn` (systemd) |
-| Web server | Nginx (SSL) |
+| Machine | HP ProDesk 400 G3 DM |
+| Logical CPUs | 4 |
+| CPU model | Intel Core i5-6500T @ 2.50GHz (4 cores, 1 thread/core, no HT) |
+| CPU max frequency | 3.1 GHz |
+| RAM | 8 GB DDR4 (2 × 4 GB SODIMM) |
+| Primary disk | **128 GB Samsung SSD** (SAMSUNG MZ7LN128, SATA) |
+| Disk used | 11 GB (10%) |
+| Disk free | 99 GB |
+| Network | RTL8111 Gigabit Ethernet (1 Gbps) |
+| OS | Ubuntu 24.04.4 LTS |
+| Kernel | Linux 6.8.0-110-generic x86-64 |
+| Disk encryption | LUKS + LVM (dm-crypt) |
 
-> The current server **exceeds the recommended spec** on CPU and RAM. The only
-> weakness is the HDD — consider adding an SSD for the OS/app partition if
-> SQLite lock errors recur under heavier load.
+> **Note:** The `gunicorn-autoconf.sh` script previously misdetected the Samsung SSD as HDD
+> because the LUKS/LVM encryption layer (`dm_crypt-0`) reports `ROTA=1` regardless of the
+> underlying device. This was fixed in commit `930f821` — the script now skips `dm-*` and
+> `crypt` devices and reads `ROTA` from the physical disk (`sda`) directly.
+> After the next deploy, Gunicorn will correctly auto-tune to **SSD mode: 9 workers × 2 threads**.
+
+### Gunicorn — Correct Values After Fix
+
+| Setting | Previous (wrong — HDD mode) | Correct (SSD mode) |
+|---------|-----------------------------|--------------------|
+| Logical CPUs detected | 12 (incorrect) | 4 |
+| Workers | 25 | **9** `(4×2)+1` |
+| Threads per worker | 4 (HDD) | **2** (SSD) |
+| Disk type | HDD | **SSD** |
 
 ---
 

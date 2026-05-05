@@ -81,9 +81,12 @@ log "Detected RAM: ${RAM_MB} MB (${RAM_GB} GB)"
 # ---------------------------------------------------------------------------
 # Step 3: Detect disk type (SSD vs HDD) — affects thread count
 # ---------------------------------------------------------------------------
-# Find the primary block device (first non-loop, non-dm device).
+# Find the primary block device (first non-loop, non-dm, non-crypt device).
+# We explicitly skip dm-* and crypt devices so that LUKS/LVM setups report
+# the rotational flag of the underlying physical disk (e.g. sda), not the
+# virtual mapper device (which always returns ROTA=1 on older kernels).
 PRIMARY_DISK=$(lsblk -d -n -o NAME,TYPE 2>/dev/null \
-    | grep -v 'loop\|rom\|ram' \
+    | grep -v 'loop\|rom\|ram\|dm\|crypt' \
     | head -1 \
     | awk '{print $1}')
 
