@@ -1269,14 +1269,18 @@ def truncate_data(request):
 @login_required
 @require_POST
 def simulate_orex_run(request):
-    """Run the simulate_orex management command in-process. Superuser-only."""
+    """
+    Run OREX withdrawal simulation in-process. Superuser-only.
+    No sleep/delay — the delay parameter only applies to the management command
+    (CLI) version. Running with sleep in an HTTP request causes gateway timeouts.
+    Returns a results page with per-row detail instead of redirecting.
+    """
     if not request.user.is_superuser:
         messages.error(request, 'Only superusers can run the OREX simulation.')
         return redirect('system-settings')
 
     try:
         count    = max(1, min(int(request.POST.get('sim_count', 114)), 500))
-        delay    = max(0.0, min(float(request.POST.get('sim_delay', 5.0)), 60.0))
         operator = request.POST.get('sim_operator', '').strip() or request.user.username
         commit   = request.POST.get('sim_commit') == '1'
     except (ValueError, TypeError):
@@ -1286,11 +1290,12 @@ def simulate_orex_run(request):
     from armguard.apps.personnel.models import Personnel
     from armguard.apps.inventory.models import Rifle, FirearmDiscrepancy
     from armguard.apps.transactions.models import Transaction
+    from armguard.apps.users.models import ActivityLog
     from django.core.exceptions import ValidationError
     from django.utils import timezone
-    import datetime, time
+    import datetime, time as _time
 
-    # Load data
+    # ── Load data ─────────────────────────────────────────────────────────────
     personnel_list = list(
         Personnel.objects
         .filter(status='Active', rifle_item_issued__isnull=True)
@@ -1316,13 +1321,15 @@ def simulate_orex_run(request):
         return redirect('system-settings')
 
     pairs      = list(zip(personnel_list, available_rifles))
+    skip_count = len(personnel_list) - len(pairs)
     ok_count   = 0
     err_count  = 0
-    skip_count = len(personnel_list) - len(pairs)
-    errors     = []
+    results    = []   # (idx, person_id, person_name, rifle_id, status, note)
     return_by  = timezone.now() + datetime.timedelta(hours=24)
+    wall_start = _time.perf_counter()
 
-    for person, rifle in pairs:
+    for idx, (person, rifle) in enumerate(pairs, start=1):
+        person_name = f'{person.rank or ""} {person.first_name} {person.last_name}'.strip()
         txn = Transaction(
             transaction_type='Withdrawal',
             issuance_type='TR (Temporary Receipt)',
@@ -1340,45 +1347,61 @@ def simulate_orex_run(request):
             note = '; '.join(
                 m for msgs in exc.message_dict.values() for m in msgs
             ) if hasattr(exc, 'message_dict') else str(exc)
-            errors.append(f'{person.Personnel_ID} / {rifle.item_id}: {note}')
+            results.append((idx, person.Personnel_ID, person_name, rifle.item_id, 'error', note))
             continue
 
         if commit:
             try:
                 txn.save(user=request.user)
                 ok_count += 1
-            except Exception as exc:
+                results.append((idx, person.Personnel_ID, person_name, rifle.item_id, 'saved', ''))
+            except Exception as save_exc:
                 err_count += 1
-                errors.append(f'{person.Personnel_ID} / {rifle.item_id}: {exc}')
+                results.append((idx, person.Personnel_ID, person_name, rifle.item_id, 'error', str(save_exc)[:120]))
         else:
             ok_count += 1
+            results.append((idx, person.Personnel_ID, person_name, rifle.item_id, 'dry-ok', ''))
 
-        if delay > 0 and ok_count + err_count < len(pairs):
-            time.sleep(delay)
+    wall_time = _time.perf_counter() - wall_start
 
-    parts = [
-        f'{ok_count} transaction(s) {"saved" if commit else "validated (dry-run)"}',
-    ]
-    if skip_count:
-        parts.append(f'{skip_count} skipped (not enough rifles)')
-    if err_count:
-        parts.append(f'{err_count} error(s)')
-    summary = '; '.join(parts)
+    # ── Write ActivityLog ─────────────────────────────────────────────────────
+    mode_label = 'COMMIT' if commit else 'DRY-RUN'
+    ActivityLog.objects.create(
+        user=request.user,
+        ip_address=_get_client_ip(request),
+        user_agent=_get_user_agent(request),
+        method='POST',
+        path=request.path_info,
+        view_name='settings-simulate-orex',
+        flag='NORMAL',
+        status_code=200,
+        response_ms=int(wall_time * 1000),
+    )
+    AuditLog.objects.create(
+        user=request.user,
+        action='OREX_SIM',
+        model_name='Transaction',
+        object_pk='—',
+        message=(
+            f'OREX simulation [{mode_label}] by {request.user.username}: '
+            f'{ok_count} ok, {err_count} error(s), {skip_count} skipped '
+            f'out of {len(pairs) + skip_count} personnel in {wall_time:.1f}s'
+        ),
+        ip_address=_get_client_ip(request),
+        user_agent=_get_user_agent(request),
+    )
 
-    if errors:
-        for e in errors[:5]:
-            messages.warning(request, f'Sim error: {e}')
-        if len(errors) > 5:
-            messages.warning(request, f'…and {len(errors) - 5} more error(s).')
-
-    if commit and ok_count:
-        messages.success(request, f'OREX Simulation complete — {summary}.')
-    elif not commit:
-        messages.info(request, f'OREX Simulation dry-run — {summary}. Enable "Commit to DB" to save.')
-    else:
-        messages.error(request, f'OREX Simulation finished with errors — {summary}.')
-
-    return redirect('system-settings')
+    ctx = {
+        'results':    results,
+        'ok_count':   ok_count,
+        'err_count':  err_count,
+        'skip_count': skip_count,
+        'total':      len(pairs) + skip_count,
+        'wall_time':  round(wall_time, 2),
+        'commit':     commit,
+        'operator':   operator,
+    }
+    return render(request, 'users/sim_orex_results.html', ctx)
 
 
 @login_required
