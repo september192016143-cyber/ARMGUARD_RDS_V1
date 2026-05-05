@@ -3,6 +3,7 @@ from .models import Personnel
 
 class PersonnelAdmin(admin.ModelAdmin):
     exclude = ('duty_type',)
+    search_fields = ('Personnel_ID', 'first_name', 'last_name', 'rank', 'AFSN', 'squadron')
 
     def save_model(self, request, obj, form, change):
         if not obj.pk:
