@@ -107,6 +107,7 @@ def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
          r"C:\Windows\Fonts\arialbd.ttf",
          r"C:\Windows\Fonts\calibrib.ttf",
          r"C:\Windows\Fonts\segoeuib.ttf",
+         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
          "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]
         if bold else
         [r"C:\Windows\Fonts\ArialNova.ttf",
@@ -116,6 +117,7 @@ def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
          r"C:\Windows\Fonts\arial.ttf",
          r"C:\Windows\Fonts\calibri.ttf",
          r"C:\Windows\Fonts\segoeui.ttf",
+         "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
          "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
     )
     font = None
