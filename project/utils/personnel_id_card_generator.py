@@ -287,8 +287,8 @@ def _build_front(personnel) -> Image.Image:
 
     # Auto-shrink so it always fits within pill box width (20 px margin each side)
     max_w  = CARD_W - 40
-    f_size = 19
-    while f_size > 11:
+    f_size = 26
+    while f_size > 14:
         f_candidate = _font(f_size, bold=True)
         bb = draw.textbbox((0, 0), name_line, font=f_candidate)
         if (bb[2] - bb[0]) <= max_w:
@@ -299,7 +299,7 @@ def _build_front(personnel) -> Image.Image:
     _centered_text(draw, NAME_LINE_Y, name_line, f_name_line, color=WHITE)
 
     # -- Pill box 2 : ID + issuance date --------------------------------------
-    f_pill2 = _font(19, bold=True)
+    f_pill2 = _font(22, bold=True)
     id_text   = f"ID No: {personnel.Personnel_ID}"
     date_text = "Issuance Date: " + date.today().strftime("%d %b %Y")
 
