@@ -76,11 +76,18 @@ NAME_LINE_Y = 680   # pill box 1 — rank + full name + AFSN + PAF
 ID_LINE_Y   = 743   # pill box 2 upper — "ID No: {Personnel_ID}"
 DATE_LINE_Y = 771   # pill box 2 lower — "Issuance Date: {DD Mon YYYY}"
 
-# Back card QR placeholder  (486 x 563 px)
-BACK_QR_X1, BACK_QR_Y1 = 76, 147
-BACK_QR_X2, BACK_QR_Y2 = 562, 710
-BACK_QR_W = BACK_QR_X2 - BACK_QR_X1   # 486 px
-BACK_QR_H = BACK_QR_Y2 - BACK_QR_Y1   # 563 px
+# Back card gray placeholder bounds  (486 x 563 px)
+_BACK_PLACEHOLDER_X1, _BACK_PLACEHOLDER_Y1 = 76, 147
+_BACK_PLACEHOLDER_X2, _BACK_PLACEHOLDER_Y2 = 562, 710
+
+# QR code render area — exactly 486 x 486, centred vertically in the placeholder
+BACK_QR_X1 = _BACK_PLACEHOLDER_X1                                        # 76
+BACK_QR_X2 = _BACK_PLACEHOLDER_X2                                        # 562
+BACK_QR_W  = BACK_QR_X2 - BACK_QR_X1                                    # 486 px
+BACK_QR_H  = BACK_QR_W                                                   # 486 px (square)
+_ph         = (_BACK_PLACEHOLDER_Y2 - _BACK_PLACEHOLDER_Y1 - BACK_QR_H) // 2  # 38 px
+BACK_QR_Y1 = _BACK_PLACEHOLDER_Y1 + _ph                                  # 185
+BACK_QR_Y2 = BACK_QR_Y1 + BACK_QR_H                                     # 671
 
 # ---------------------------------------------------------------------------
 # Font helpers
@@ -326,15 +333,12 @@ def _build_back(personnel, skip_qr: bool = False) -> Image.Image:
         bbox = qr_rgb.getbbox()
         if bbox:
             qr_rgb = qr_rgb.crop(bbox)
-        # Scale to fill the full rect, centred (QR is square so use min of W/H)
-        size = min(BACK_QR_W, BACK_QR_H)   # 483 px
-        qr_scaled = qr_rgb.resize((size, size), Image.LANCZOS)
-        cx = BACK_QR_X1 + (BACK_QR_W - size) // 2
-        cy = BACK_QR_Y1 + (BACK_QR_H - size) // 2
-        img.paste(qr_scaled, (cx, cy))
+        # Scale QR to exactly 486 x 486 and paste at the centred render area
+        qr_scaled = qr_rgb.resize((BACK_QR_W, BACK_QR_H), Image.LANCZOS)
+        img.paste(qr_scaled, (BACK_QR_X1, BACK_QR_Y1))
         # Draw a thin white border to separate QR from the gray placeholder
         ImageDraw.Draw(img).rectangle(
-            (cx - 2, cy - 2, cx + size + 1, cy + size + 1),
+            (BACK_QR_X1 - 2, BACK_QR_Y1 - 2, BACK_QR_X1 + BACK_QR_W + 1, BACK_QR_Y1 + BACK_QR_H + 1),
             outline=WHITE, width=2)
 
     if getattr(personnel, "qr_code_image", None):
