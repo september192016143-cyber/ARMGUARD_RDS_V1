@@ -1518,6 +1518,20 @@ def simulate_orex_status_json(request):
         return JsonResponse({'error': 'Forbidden'}, status=403)
 
     from armguard.apps.users.models import SimulationRun
+    from django.utils import timezone as _tz
+    import datetime
+
+    # Auto-expire runs stuck in queued/running for > 30 minutes
+    stale_cutoff = _tz.now() - datetime.timedelta(minutes=30)
+    SimulationRun.objects.filter(
+        status__in=['queued', 'running'],
+        started_at__lt=stale_cutoff,
+    ).update(
+        status='error',
+        error_message='Run expired — no progress in 30 minutes (server may have restarted).',
+        completed_at=_tz.now(),
+    )
+
     run = SimulationRun.objects.first()
     if not run:
         return JsonResponse({'status': 'none'})
@@ -1541,6 +1555,33 @@ def simulate_orex_status_json(request):
         'started_at':    run.started_at.isoformat(),
         'completed_at':  run.completed_at.isoformat() if run.completed_at else None,
     })
+
+
+@login_required
+@require_POST
+def simulate_orex_reset(request):
+    """Force-cancel a stuck queued/running SimulationRun. Superuser only."""
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+
+    from armguard.apps.users.models import SimulationRun
+    from django.utils import timezone as _tz
+
+    run_id = request.POST.get('run_id', '').strip()
+    qs = SimulationRun.objects.filter(status__in=['queued', 'running'])
+    if run_id:
+        qs = qs.filter(run_id=run_id)
+
+    updated = qs.update(
+        status='error',
+        error_message=f'Manually reset by {request.user.username}.',
+        completed_at=_tz.now(),
+    )
+    if updated:
+        messages.success(request, f'Simulation run reset ({updated} record(s) cleared).')
+    else:
+        messages.warning(request, 'No active simulation run found to reset.')
+    return redirect('dashboard')
 
 
 @login_required

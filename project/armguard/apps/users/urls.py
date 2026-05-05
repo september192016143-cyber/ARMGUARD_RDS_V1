@@ -20,6 +20,7 @@ urlpatterns = [
     path('settings/truncate/',       views.truncate_data,                    name='settings-truncate'),
     path('settings/simulate-orex/',   views.simulate_orex_run,               name='settings-simulate-orex'),
     path('settings/simulate-orex/status/', views.simulate_orex_status_json,  name='simulate-orex-status'),
+    path('settings/simulate-orex/reset/',  views.simulate_orex_reset,        name='simulate-orex-reset'),
     path('settings/simulate-orex/<str:run_id>/results/', views.simulate_orex_results, name='simulate-orex-results'),
     path('storage/',       views.storage_status_json,                       name='storage-status'),
     path('storage/cleanup-orphans/', views.cleanup_orphaned_personnel_media, name='storage-cleanup-orphans'),
