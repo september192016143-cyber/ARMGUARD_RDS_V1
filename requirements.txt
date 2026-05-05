@@ -2,13 +2,16 @@
 # Generated from active venv on 2026-03-09 (Django 6.0.3, Python 3.x)
 # Update with: pip freeze > requirements.txt
 #
-# ── System font dependency (NOT a pip package) ─────────────────────────────
-# Arial Nova — required by project/utils/personnel_id_card_generator.py
-# Copy ArialNova.ttf / ArialNovaBd.ttf (and variants) to:
-#   /usr/share/fonts/truetype/arial-nova/
-# then run:  fc-cache -fv
-# The update-server.sh script handles this automatically when the TTF files
-# are placed in fonts/arial-nova/ at the repository root before deploying.
+# ── System font dependencies (NOT pip packages) ────────────────────────────
+# Required by: project/utils/personnel_id_card_generator.py
+#
+# fonts-liberation  (Arial-compatible, free)  — installed automatically by update-server.sh
+#   sudo apt install -y fonts-liberation fontconfig
+#
+# Arial Nova  (exact design font, commercial)  — NOT auto-installed
+#   Copy ArialNova.ttf / ArialNovaBd.ttf to: /usr/share/fonts/truetype/arial-nova/
+#   Place files in fonts/arial-nova/ at repo root; update-server.sh will install them.
+#   Falls back to: Liberation Sans → DejaVu Sans if not present.
 # ── Core framework ─────────────────────────────────────────────
 asgiref==3.11.1
 Django==6.0.3

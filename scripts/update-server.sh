@@ -503,16 +503,28 @@ unset _SA_JSON
 success "Dependencies updated."
 
 # ---------------------------------------------------------------------------
-# 3b. Install Arial Nova font (required by personnel ID card generator)
+# 3b. Install fonts required by the personnel ID card generator
 # ---------------------------------------------------------------------------
-ARIAL_NOVA_DIR="/usr/share/fonts/truetype/arial-nova"
-ARIAL_NOVA_PRESENT=false
-if fc-list 2>/dev/null | grep -qi "arial nova"; then
-    ARIAL_NOVA_PRESENT=true
+
+# Ensure fontconfig and fc-cache are available
+if ! command -v fc-cache >/dev/null 2>&1; then
+    info "Installing fontconfig..."
+    apt-get install -y fontconfig >/dev/null 2>&1 && success "fontconfig installed." || warn "Could not install fontconfig — font registration may fail."
 fi
 
-if [[ "$ARIAL_NOVA_PRESENT" == "false" ]]; then
-    info "Arial Nova not found — attempting install..."
+# Install fonts-liberation (Arial-compatible, free, from Ubuntu repo)
+if ! fc-list 2>/dev/null | grep -qi "liberation sans"; then
+    info "Installing fonts-liberation (Arial-compatible fallback)..."
+    apt-get install -y fonts-liberation >/dev/null 2>&1 && fc-cache -fv >/dev/null 2>&1 && success "fonts-liberation installed." || warn "Could not install fonts-liberation."
+else
+    info "fonts-liberation already installed."
+fi
+
+# Install Arial Nova if TTF files are bundled in the repo (commercial font, not auto-downloaded)
+ARIAL_NOVA_DIR="/usr/share/fonts/truetype/arial-nova"
+if fc-list 2>/dev/null | grep -qi "arial nova"; then
+    success "Arial Nova already installed."
+else
     FONT_SRC_DIR="$DEPLOY_DIR/fonts/arial-nova"
     if [[ -d "$FONT_SRC_DIR" ]] && ls "$FONT_SRC_DIR"/*.ttf 2>/dev/null | grep -qi "arial"; then
         mkdir -p "$ARIAL_NOVA_DIR"
@@ -520,12 +532,9 @@ if [[ "$ARIAL_NOVA_PRESENT" == "false" ]]; then
         fc-cache -fv "$ARIAL_NOVA_DIR" >/dev/null 2>&1
         success "Arial Nova installed from $FONT_SRC_DIR."
     else
-        warn "Arial Nova TTF files not found in $FONT_SRC_DIR."
-        warn "Place ArialNova*.ttf files there so the ID card generator uses the correct font."
-        warn "The generator will fall back to Arial → DejaVu Sans until Arial Nova is installed."
+        warn "Arial Nova TTF files not found in $FONT_SRC_DIR — using Liberation Sans fallback."
+        warn "Place ArialNova*.ttf in fonts/arial-nova/ to use the exact design font."
     fi
-else
-    success "Arial Nova already installed."
 fi
 
 # ---------------------------------------------------------------------------
