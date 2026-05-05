@@ -1062,7 +1062,10 @@
 
 {% if request.user.is_superuser %}
 <!-- ── OREX Simulation ──────────────────────────────────────────────────── -->
-<div class="card mb-2" style="max-width:680px;margin-top:1.5rem;border:1.5px solid #1a6b3a44">
+<div style="display:flex;flex-wrap:wrap;gap:1.25rem;align-items:flex-start;margin-top:1.5rem;margin-bottom:.5rem">
+
+<!-- Form card -->
+<div class="card mb-2" style="flex:0 0 auto;max-width:680px;border:1.5px solid #1a6b3a44">
   <div class="card-header" style="background:rgba(26,107,58,.08)">
     <span class="card-title" style="color:#1a6b3a">
       <i class="fa-solid fa-person-rifle"></i> OREX Withdrawal Simulation
@@ -1105,6 +1108,25 @@
     </button>
   </form>
 </div>
+
+<!-- Status card (live-polling) -->
+<div class="card mb-2" style="flex:1 1 340px;min-width:300px;max-width:500px;border:1.5px solid #1a6b3a44">
+  <div class="card-header" style="background:rgba(26,107,58,.08)">
+    <span class="card-title" style="color:#1a6b3a">
+      <i class="fa-solid fa-chart-line"></i> Simulation Status
+    </span>
+  </div>
+  <div id="sim-status-body" style="min-height:60px;padding:.25rem 0">
+    <span style="color:var(--muted);font-size:.85rem">Loading&hellip;</span>
+  </div>
+</div>
+
+</div><!-- end flex row -->
+<span id="sim-status-meta"
+      data-url="{% url 'simulate-orex-status' %}"
+      data-reset-url="{% url 'simulate-orex-reset' %}"
+      hidden></span>
+<script src="{% static 'js/dashboard_sim_status.js' %}"></script>
 
 <!-- ── Data Truncation ──────────────────────────────────────────────────── -->
 <div class="card mb-2" style="max-width:680px;margin-top:1.5rem;border:1.5px solid #c0392b22">
