@@ -1384,19 +1384,16 @@ def _run_orex_background(run_id, user_pk):
 
         ss = SystemSettings.get()
 
-        # Rifle magazine pool: prefer Short if qty configured, else Long
+        # Rifle magazine pool: prefer Short, else Long — fixed 1 mag per person for simulation
         _rifle_mag_pool = None
-        _rifle_mag_qty  = 0
-        if ss.orex_rifle_short_mag_qty > 0:
-            _short = _Magazine.objects.filter(weapon_type='Rifle', type='Short').first()
-            if _short:
-                _rifle_mag_pool = _short
-                _rifle_mag_qty  = ss.orex_rifle_short_mag_qty
-        if not _rifle_mag_pool and ss.orex_rifle_long_mag_qty > 0:
+        _rifle_mag_qty  = 1
+        _short = _Magazine.objects.filter(weapon_type='Rifle', type='Short').first()
+        if _short:
+            _rifle_mag_pool = _short
+        if not _rifle_mag_pool:
             _long = _Magazine.objects.filter(weapon_type='Rifle', type='Long').first()
             if _long:
                 _rifle_mag_pool = _long
-                _rifle_mag_qty  = ss.orex_rifle_long_mag_qty
 
         _rifle_sling_qty = ss.orex_rifle_sling_qty if ss.orex_rifle_sling_qty else None
         _bandoleer_qty   = ss.orex_bandoleer_qty   if ss.orex_bandoleer_qty   else None
