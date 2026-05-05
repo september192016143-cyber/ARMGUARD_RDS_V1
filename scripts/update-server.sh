@@ -363,7 +363,7 @@ _git_pull_repo() {
             warn "Stash pop had conflicts — review manually: git -C $repo_dir stash show"
     fi
 
-    COMMIT=$(git -C "$repo_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    COMMIT=$(sudo -u "$DEPLOY_USER" git -C "$repo_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
     success "Code updated to commit: $COMMIT"
 }
 
