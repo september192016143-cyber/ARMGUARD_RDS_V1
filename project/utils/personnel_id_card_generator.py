@@ -298,8 +298,8 @@ def _build_front(personnel) -> Image.Image:
 
     _centered_text(draw, NAME_LINE_Y, name_line, f_name_line, color=WHITE)
 
-    # -- Pill box 2 : ID + issuance date --------------------------------------
-    f_pill2 = _font(22, bold=True)
+    # -- Pill box 2 : ID + issuance date (same size as name line) -------------
+    f_pill2 = _font(f_size, bold=True)
     id_text   = f"ID No: {personnel.Personnel_ID}"
     date_text = "Issuance Date: " + date.today().strftime("%d %b %Y")
 
