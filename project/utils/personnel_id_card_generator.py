@@ -38,48 +38,45 @@ BODY_NAVY   = (26, 25, 106)   # dark text on white body
 FOOTER_TEXT = (255, 255, 255) # white text on purple/navy footer
 
 # ---------------------------------------------------------------------------
-# Layout constants  (pixels, scanned from new ARMORY CARD template images)
+# Layout constants  (pixels, scanned from new PAF 950CEWW template images)
 #
-# FRONT  "ARMORY CARD -front.png"  (638 x 1013 px)
-#  Header navy         : y   0 .. 127
-#  Orange "ENLISTED PERSONNEL" banner : y 128 .. 181
-#  Dark body           : y 182 .. 231
-#  White photo box     : x 114..519 ,  y 232..637  (405 x 405 px)
-#  Dark info band 1    : y 640 .. 666
-#  Dark info band 2    : y 668 .. 806  ← text goes here
-#  Gap                 : y 808 .. 857
-#  Orange chevron      : y 858 .. 915
+# FRONT  "CARD-FRONT.png"  (638 x 1013 px)
+#  PAF navy header      : y   0 .. 127
+#  Orange chevron band  : y 128 .. 231
+#  White photo box      : x 114..519 ,  y 232..637  (405 x 405 px)
+#  Dark info band       : y 640 .. 806  ← text goes here
+#  Orange chevron       : y 858 .. 915
 #  Navy footer "ARMORY CARD" : y 920 .. 1012
 #
-# BACK  "ARMORY CARD- back.png"  (638 x 1013 px)
-#  ARMGUARD navy header : y   0 .. 129
-#  White strip          : y 131 .. 172
-#  Gray QR placeholder  : x 76..562 ,  y 174..657  (486 x 483 px)
-#  Light-blue text box  : y 667 .. 865  (pre-printed non-transferable text)
-#  White gap            : y 870 .. 934  ← our tel / ID text goes here
-#  Navy footer          : y 935 .. 1012
+# BACK  "back.png"  (638 x 1013 px)
+#  PAF navy header      : y   0 .. 127
+#  Orange chevron band  : y 128 .. 236
+#  White card body      : y 237 .. 840
+#  White photo box      : x 162..474 ,  y 237..580  (312 x 343 px)
+#  Non-transferable text: y 600 .. 780  (pre-printed on template)
+#  Orange chevron       : y 790 .. 880
+#  Gray footer          : y 880 .. 1012  ← Personnel ID text here
 # ---------------------------------------------------------------------------
 
-# Front card photo placeholder  (405 x 405 px)
+# Front card photo placeholder  (405 x 405 px) — CARD-FRONT.png
 PHOTO_X1, PHOTO_Y1 = 114, 232
 PHOTO_X2, PHOTO_Y2 = 519, 637
 PHOTO_W = PHOTO_X2 - PHOTO_X1   # 405 px
 PHOTO_H = PHOTO_Y2 - PHOTO_Y1   # 405 px
 
-# Front info-band text rows  (white text on dark navy band, y 668..806)
+# Front info-band text rows  (white text on dark navy band, y 640..806)
 NAME_LINE_Y = 700   # rank + full name + AFSN + PAF
 CATEGORY_Y  = 742   # ENLISTED or OFFICER
 ID_FRONT_Y  = 775   # Personnel ID value
 
-# Back card QR placeholder  (486 x 483 px)
-BACK_QR_X1, BACK_QR_Y1 = 76, 174
-BACK_QR_X2, BACK_QR_Y2 = 562, 657
-BACK_QR_W = BACK_QR_X2 - BACK_QR_X1   # 486 px
-BACK_QR_H = BACK_QR_Y2 - BACK_QR_Y1   # 483 px
+# Back card photo placeholder  (312 x 343 px) — back.png
+BACK_PHOTO_X1, BACK_PHOTO_Y1 = 162, 237
+BACK_PHOTO_X2, BACK_PHOTO_Y2 = 474, 580
+BACK_PHOTO_W = BACK_PHOTO_X2 - BACK_PHOTO_X1   # 312 px
+BACK_PHOTO_H = BACK_PHOTO_Y2 - BACK_PHOTO_Y1   # 343 px
 
-# Back white-gap text rows  (dark text on white, y 870..934)
-BACK_TEL_Y  = 882   # contact / tel number
-FOOTER_ID_Y = 914   # Personnel ID value
+# Back footer text row  (dark text on gray band, y 880..975)
+BACK_FOOTER_ID_Y = 935   # Personnel ID value
 
 # ---------------------------------------------------------------------------
 # Font helpers
@@ -208,14 +205,14 @@ def _draw_placeholder(canvas: Image.Image,
 
 def _build_front(personnel) -> Image.Image:
     """
-    Overlay personnel data onto "ARMORY CARD -front.png".
+    Overlay personnel data onto "CARD-FRONT.png" (PAF 950CEWW dark-tech template).
     Content placed:
       - Photo in white placeholder rectangle  (405 x 405 px)
       - Line 1 (info band) : Rank + Full Name + AFSN + PAF  (white, bold)
       - Line 2 (info band) : ENLISTED or OFFICER             (white, bold)
       - Line 3 (info band) : Personnel ID value              (white, bold)
     """
-    img  = _load_template("ARMORY CARD -front.png")
+    img  = _load_template("CARD-FRONT.png")
     draw = ImageDraw.Draw(img)
 
     # -- Photo (pasted into the white placeholder box) -------------------------
@@ -287,64 +284,34 @@ def _build_front(personnel) -> Image.Image:
 
 def _build_back(personnel, skip_qr: bool = False) -> Image.Image:
     """
-    Overlay personnel data onto "ARMORY CARD- back.png".
+    Overlay personnel data onto "back.png" (PAF 950CEWW light-background template).
     Content placed:
-      - QR code in gray placeholder rectangle  (486 x 483 px)
-      - Contact number  (white gap, y ~ 882)
-      - Personnel ID    (white gap, y ~ 914)
+      - Personnel photo in white rounded photo placeholder  (312 x 343 px)
+      - Personnel ID value in gray footer band
 
-    skip_qr=True  — omit QR (used by live preview before a record is saved).
+    skip_qr is kept for API compatibility but is no longer used.
     """
-    img  = _load_template("ARMORY CARD- back.png")
+    img  = _load_template("back.png")
     draw = ImageDraw.Draw(img)
 
-    # -- QR code — fitted into the back-specific placeholder rect -------------
-    qr_placed = False
-
-    if skip_qr:
-        qr_placed = True   # skip both load and fallback generation
-
-    def _paste_qr(qr_img: Image.Image):
-        """
-        Auto-crop any solid border from *qr_img*, scale to fill the
-        placeholder rect (centred), and paste onto *img*.
-        """
-        qr_rgb = qr_img.convert("RGB")
-        # getbbox() returns bounding box of non-black pixels (removes outer black frame)
-        bbox = qr_rgb.getbbox()
-        if bbox:
-            qr_rgb = qr_rgb.crop(bbox)
-        # Scale to fill the full rect, centred (QR is square so use min of W/H)
-        size = min(BACK_QR_W, BACK_QR_H)   # 483 px
-        qr_scaled = qr_rgb.resize((size, size), Image.LANCZOS)
-        cx = BACK_QR_X1 + (BACK_QR_W - size) // 2
-        cy = BACK_QR_Y1 + (BACK_QR_H - size) // 2
-        img.paste(qr_scaled, (cx, cy))
-
-    if getattr(personnel, "qr_code_image", None):
+    # -- Photo (pasted into the white photo placeholder) ----------------------
+    if personnel.personnel_image:
         try:
-            qr_path = os.path.join(settings.MEDIA_ROOT, str(personnel.qr_code_image))
-            with Image.open(qr_path) as qr_src:
-                _paste_qr(qr_src.copy())
-            qr_placed = True
+            _paste_image_in_rect(
+                img, BACK_PHOTO_X1, BACK_PHOTO_Y1, BACK_PHOTO_X2, BACK_PHOTO_Y2,
+                os.path.join(settings.MEDIA_ROOT, str(personnel.personnel_image)),
+                rounded_radius=8)
         except Exception as exc:
-            logger.warning("Back: QR image load failed  %s", exc)
+            logger.warning("Back: photo load failed  %s", exc)
+            _draw_placeholder(img, BACK_PHOTO_X1, BACK_PHOTO_Y1,
+                              BACK_PHOTO_X2, BACK_PHOTO_Y2, personnel)
+    else:
+        _draw_placeholder(img, BACK_PHOTO_X1, BACK_PHOTO_Y1,
+                          BACK_PHOTO_X2, BACK_PHOTO_Y2, personnel)
 
-    if not qr_placed:
-        try:
-            import qrcode as qrlib
-            qr_data = (getattr(personnel, "qr_code", None)
-                       or personnel.Personnel_ID)
-            qr_obj  = qrlib.QRCode(
-                box_size=10, border=1,
-                error_correction=qrlib.constants.ERROR_CORRECT_M)
-            qr_obj.add_data(qr_data)
-            qr_obj.make(fit=True)
-            qr_pil = qr_obj.make_image(fill_color="black",
-                                        back_color="white").convert("RGB")
-            _paste_qr(qr_pil)
-        except Exception as exc:
-            logger.warning("Back: QR generation failed  %s", exc)
+    # -- Personnel ID in footer band (y 880..975) ----------------------------
+    f_id = _font(22, bold=True)
+    _centered_text(draw, BACK_FOOTER_ID_Y, personnel.Personnel_ID, f_id, color=NAVY)
 
     return img
 
