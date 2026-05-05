@@ -349,7 +349,9 @@ def _build_back(personnel, skip_qr: bool = False) -> Image.Image:
         Auto-crop any solid border from *qr_img*, scale to fill the
         placeholder rect (centred), and paste onto *img*.
         """
-        qr_rgb = qr_img.convert("RGB")
+        qr_rgb = qr_img.convert("L")           # grayscale
+        qr_rgb = qr_rgb.point(lambda p: 0 if p < 128 else 255, "L")  # pure B&W threshold
+        qr_rgb = qr_rgb.convert("RGB")         # back to RGB for pasting
         # getbbox() returns bounding box of non-black pixels (removes outer black frame)
         bbox = qr_rgb.getbbox()
         if bbox:
