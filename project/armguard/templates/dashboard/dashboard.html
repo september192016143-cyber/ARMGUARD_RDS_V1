@@ -113,6 +113,29 @@
 
 </div>
 
+{% if request.user.is_superuser %}
+<!-- ── OREX Simulation Status ─────────────────────────────────────────────── -->
+<div class="card" style="max-width:700px;margin-bottom:1.25rem;border:1.5px solid #1a6b3a44">
+  <div class="card-header" style="background:rgba(26,107,58,.08);display:flex;align-items:center;justify-content:space-between">
+    <span class="card-title" style="color:#1a6b3a">
+      <i class="fa-solid fa-person-rifle"></i> OREX Simulation Status
+    </span>
+    <a href="{% url 'system-settings' %}#sim-orex-form"
+       style="font-size:.75rem;padding:.25rem .7rem;background:transparent;color:#1a6b3a;border:1px solid #1a6b3a55;border-radius:5px;text-decoration:none">
+      New Run
+    </a>
+  </div>
+  <div id="sim-status-body" style="min-height:52px;padding:.25rem 0">
+    <span style="color:var(--muted);font-size:.85rem">Loading…</span>
+  </div>
+</div>
+<span id="sim-status-meta"
+      data-url="{% url 'simulate-orex-status' %}"
+      data-reset-url="{% url 'simulate-orex-reset' %}"
+      hidden></span>
+<script src="{% static 'js/dashboard_sim_status.js' %}"></script>
+{% endif %}
+
 <!-- ── Analytics Card (all four tables in one card) ──────────────────────── -->
 <div class="card" style="border-left:4px solid #1867d4;box-shadow:0 4px 18px rgba(0,31,107,.13);overflow-x:auto;display:inline-block;max-width:100%;vertical-align:top">
   <div style="display:flex;flex-direction:column;gap:1.25rem;padding:0.75rem 0;width:fit-content">
@@ -332,28 +355,5 @@
 <span id="dashboard-tables-poll-meta" data-url="{% url 'dashboard-tables-json' %}" hidden></span>
 <script src="{% static 'js/dashboard_cards.js' %}"></script>
 <script src="{% static 'js/dashboard_tables.js' %}"></script>
-
-{% if request.user.is_superuser %}
-<!-- ── OREX Simulation Status ─────────────────────────────────────────────── -->
-<div class="card" style="max-width:700px;margin-top:1.5rem;border:1.5px solid #1a6b3a44">
-  <div class="card-header" style="background:rgba(26,107,58,.08);display:flex;align-items:center;justify-content:space-between">
-    <span class="card-title" style="color:#1a6b3a">
-      <i class="fa-solid fa-person-rifle"></i> OREX Simulation Status
-    </span>
-    <a href="{% url 'system-settings' %}#sim-orex-form"
-       style="font-size:.75rem;padding:.25rem .7rem;background:transparent;color:#1a6b3a;border:1px solid #1a6b3a55;border-radius:5px;text-decoration:none">
-      New Run
-    </a>
-  </div>
-  <div id="sim-status-body" style="min-height:52px;padding:.25rem 0">
-    <span style="color:var(--muted);font-size:.85rem">Loading…</span>
-  </div>
-</div>
-<span id="sim-status-meta"
-      data-url="{% url 'simulate-orex-status' %}"
-      data-reset-url="{% url 'simulate-orex-reset' %}"
-      hidden></span>
-<script src="{% static 'js/dashboard_sim_status.js' %}"></script>
-{% endif %}
 
 {% endblock %}
