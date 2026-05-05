@@ -205,7 +205,9 @@ def adjust_consumable_quantities(transaction):
         ('Bandoleer',             transaction.bandoleer_quantity),
     ]:
         if acc_qty:
-            pool = Accessory.objects.filter(type=acc_type).first()
+            # Must match the same pool selected by Transaction.clean():
+            # order by -quantity so the stocked pool is used consistently.
+            pool = Accessory.objects.filter(type=acc_type).order_by('-quantity').first()
             if pool:
                 pool.adjust_quantity(sign * acc_qty)
 

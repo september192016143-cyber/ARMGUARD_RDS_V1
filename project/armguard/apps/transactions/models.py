@@ -363,7 +363,11 @@ class Transaction(models.Model):
             ]
             for acc_type, acc_qty in _acc_type_qty:
                 if acc_qty:
-                    acc_pool = Accessory.objects.filter(type=acc_type).first()
+                    # Order by -quantity so the pool with actual stock is
+                    # selected first; avoids false "Available: 0" errors
+                    # when a zero-quantity duplicate record exists with a
+                    # lower PK than the stocked pool.
+                    acc_pool = Accessory.objects.filter(type=acc_type).order_by('-quantity').first()
                     if acc_pool:
                         ok, reason = acc_pool.can_be_withdrawn(acc_qty)
                         if not ok:
