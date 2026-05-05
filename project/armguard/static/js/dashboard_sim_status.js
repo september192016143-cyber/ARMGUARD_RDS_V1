@@ -17,17 +17,25 @@
 
   var timer = null;
 
-  /* Read Django's CSRF token from the cookie so the Reset form can POST. */
+  /* Read CSRF token from any hidden input already on the page (most reliable),
+     then fall back to the csrftoken cookie. */
   function getCsrf() {
-    var name = 'csrftoken=';
-    var parts = document.cookie.split(';');
-    for (var i = 0; i < parts.length; i++) {
-      var c = parts[i].trim();
-      if (c.indexOf(name) === 0) {
-        return decodeURIComponent(c.slice(name.length));
-      }
-    }
-    return '';
+    var inp = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (inp && inp.value) { return inp.value; }
+    var match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  /* POST to resetUrl using fetch so CSRF token is read fresh at click time. */
+  function doReset(runId) {
+    if (!resetUrl) { return; }
+    if (!confirm('Cancel and clear this simulation run?')) { return; }
+    var fd = new FormData();
+    fd.append('csrfmiddlewaretoken', getCsrf());
+    fd.append('run_id', runId || '');
+    fetch(resetUrl, { method: 'POST', body: fd })
+      .then(function () { window.location.reload(); })
+      .catch(function () { window.location.reload(); });
   }
 
   function fmtDate(iso) {
@@ -55,13 +63,9 @@
     } else if (d.status === 'queued' || d.status === 'running') {
       var pct = d.pct || 0;
       var resetBtn = resetUrl
-        ? ('<form method="post" action="' + resetUrl + '" style="display:inline" ' +
-           'onsubmit="return confirm(\'Cancel and clear this simulation run?\')">' +
-           '<input type="hidden" name="csrfmiddlewaretoken" value="' + getCsrf() + '">' +
-           '<input type="hidden" name="run_id" value="' + d.run_id + '">' +
-           '<button type="submit" style="font-size:.72rem;padding:.2rem .55rem;' +
-           'background:#c0392b;color:#fff;border:none;border-radius:4px;cursor:pointer;' +
-           'margin-left:.5rem">Reset</button></form>')
+        ? ('<button class="sim-reset-btn" data-run-id="' + d.run_id + '" ' +
+           'style="font-size:.72rem;padding:.2rem .55rem;background:#c0392b;color:#fff;' +
+           'border:none;border-radius:4px;cursor:pointer;margin-left:.5rem">Reset</button>')
         : '';
 
       html = (
@@ -130,6 +134,15 @@
     }
 
     body.innerHTML = html;
+
+    /* Attach Reset handler AFTER innerHTML so the button exists in the DOM.
+       fetch+FormData reads the CSRF token fresh at click time. */
+    var btn = body.querySelector('.sim-reset-btn');
+    if (btn) {
+      btn.addEventListener('click', function () {
+        doReset(btn.getAttribute('data-run-id'));
+      });
+    }
   }
 
   function schedulePoll(ms) {
