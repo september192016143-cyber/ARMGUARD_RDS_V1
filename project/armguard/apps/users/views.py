@@ -1384,21 +1384,53 @@ def _run_orex_background(run_id, user_pk):
 
         ss = SystemSettings.get()
 
-        # Rifle magazine pool: prefer Short, else Long — fixed 1 mag per person for simulation
-        _rifle_mag_pool = None
-        _rifle_mag_qty  = 1
-        _short = _Magazine.objects.filter(weapon_type='Rifle', type='Short').first()
-        if _short:
-            _rifle_mag_pool = _short
-        if not _rifle_mag_pool:
-            _long = _Magazine.objects.filter(weapon_type='Rifle', type='Long').first()
-            if _long:
-                _rifle_mag_pool = _long
+        # Rifle magazine pool — pick the fullest single pool that can cover all
+        # pairs; Short preferred over Long.  Using order_by('-quantity') and
+        # filtering by quantity__gte(pairs_count) avoids the "Available: 0"
+        # error caused by picking a near-empty pool record first.
+        _pairs_count = len(pairs)
+        _rifle_mag_pool = (
+            _Magazine.objects
+            .filter(weapon_type='Rifle', type='Short', quantity__gte=_pairs_count)
+            .order_by('-quantity')
+            .first()
+        ) or (
+            _Magazine.objects
+            .filter(weapon_type='Rifle', type='Long', quantity__gte=_pairs_count)
+            .order_by('-quantity')
+            .first()
+        ) or (
+            # Fallback: best available Short even if stock < pairs_count
+            _Magazine.objects
+            .filter(weapon_type='Rifle', type='Short', quantity__gt=0)
+            .order_by('-quantity')
+            .first()
+        ) or (
+            # Last resort: best available Long
+            _Magazine.objects
+            .filter(weapon_type='Rifle', type='Long', quantity__gt=0)
+            .order_by('-quantity')
+            .first()
+        )
+        _rifle_mag_qty  = 1 if _rifle_mag_pool else None
 
         _rifle_sling_qty = ss.orex_rifle_sling_qty if ss.orex_rifle_sling_qty else None
         _bandoleer_qty   = ss.orex_bandoleer_qty   if ss.orex_bandoleer_qty   else None
 
         pairs      = list(zip(personnel_list, available_rifles))
+        _pairs_needed = len(pairs)
+
+        # Pre-flight: if accessory pools don't have enough stock for all pairs,
+        # skip those accessories to avoid mid-run failures.
+        from armguard.apps.inventory.models import Accessory as _Accessory
+        if _rifle_sling_qty:
+            _sling_pool = _Accessory.objects.filter(type='Rifle Sling').order_by('-quantity').first()
+            if not _sling_pool or _sling_pool.quantity < _pairs_needed * _rifle_sling_qty:
+                _rifle_sling_qty = None  # not enough stock — skip slings
+        if _bandoleer_qty:
+            _bando_pool = _Accessory.objects.filter(type='Bandoleer').order_by('-quantity').first()
+            if not _bando_pool or _bando_pool.quantity < _pairs_needed * _bandoleer_qty:
+                _bandoleer_qty = None  # not enough stock — skip bandoleers
         skip_count = len(personnel_list) - len(pairs)
         ok_count   = 0
         err_count  = 0
