@@ -1378,6 +1378,29 @@ def _run_orex_background(run_id, user_pk):
             )
             return
 
+        # ── OREX loadout from SystemSettings ──────────────────────────────────
+        from armguard.apps.users.models import SystemSettings
+        from armguard.apps.inventory.models import Magazine as _Magazine
+
+        ss = SystemSettings.get()
+
+        # Rifle magazine pool: prefer Short if qty configured, else Long
+        _rifle_mag_pool = None
+        _rifle_mag_qty  = 0
+        if ss.orex_rifle_short_mag_qty > 0:
+            _short = _Magazine.objects.filter(weapon_type='Rifle', type='Short').first()
+            if _short:
+                _rifle_mag_pool = _short
+                _rifle_mag_qty  = ss.orex_rifle_short_mag_qty
+        if not _rifle_mag_pool and ss.orex_rifle_long_mag_qty > 0:
+            _long = _Magazine.objects.filter(weapon_type='Rifle', type='Long').first()
+            if _long:
+                _rifle_mag_pool = _long
+                _rifle_mag_qty  = ss.orex_rifle_long_mag_qty
+
+        _rifle_sling_qty = ss.orex_rifle_sling_qty if ss.orex_rifle_sling_qty else None
+        _bandoleer_qty   = ss.orex_bandoleer_qty   if ss.orex_bandoleer_qty   else None
+
         pairs      = list(zip(personnel_list, available_rifles))
         skip_count = len(personnel_list) - len(pairs)
         ok_count   = 0
@@ -1401,6 +1424,10 @@ def _run_orex_background(run_id, user_pk):
                 rifle=rifle,
                 transaction_personnel=operator,
                 return_by=return_by,
+                rifle_magazine=_rifle_mag_pool,
+                rifle_magazine_quantity=_rifle_mag_qty if _rifle_mag_pool else None,
+                rifle_sling_quantity=_rifle_sling_qty,
+                bandoleer_quantity=_bandoleer_qty,
             )
             try:
                 txn.full_clean()
