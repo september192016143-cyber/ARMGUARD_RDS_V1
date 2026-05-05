@@ -76,19 +76,17 @@ NAME_LINE_Y = 680   # pill box 1 — rank + full name + AFSN + PAF
 ID_LINE_Y   = 743   # pill box 2 upper — "ID No: {Personnel_ID}"
 DATE_LINE_Y = 771   # pill box 2 lower — "Issuance Date: {DD Mon YYYY}"
 
-# Back card gray placeholder bounds  (486 x 483 px, measured from template)
-_BACK_PLACEHOLDER_X1, _BACK_PLACEHOLDER_Y1 = 76, 167
-_BACK_PLACEHOLDER_X2, _BACK_PLACEHOLDER_Y2 = 562, 650
+# Back card gray placeholder bounds — measured from template pixel colors
+_BACK_PLACEHOLDER_X1, _BACK_PLACEHOLDER_Y1 = 77, 174
+_BACK_PLACEHOLDER_X2, _BACK_PLACEHOLDER_Y2 = 560, 657
 
-# QR code render area — 460 x 460 (fits within placeholder with padding), centred
-BACK_QR_W  = 460
-BACK_QR_H  = 460
-_ph_x       = (_BACK_PLACEHOLDER_X2 - _BACK_PLACEHOLDER_X1 - BACK_QR_W) // 2  # 13 px
-_ph_y       = (_BACK_PLACEHOLDER_Y2 - _BACK_PLACEHOLDER_Y1 - BACK_QR_H) // 2  # 11 px
-BACK_QR_X1 = _BACK_PLACEHOLDER_X1 + _ph_x                                # 89
-BACK_QR_Y1 = _BACK_PLACEHOLDER_Y1 + _ph_y                                # 178
-BACK_QR_X2 = BACK_QR_X1 + BACK_QR_W                                      # 549
-BACK_QR_Y2 = BACK_QR_Y1 + BACK_QR_H                                      # 638
+# QR code render area — 479x479 (2 px inset on each side), centred in the 483x483 gray box
+BACK_QR_W  = 479
+BACK_QR_H  = 479
+BACK_QR_X1 = _BACK_PLACEHOLDER_X1 + 2   # 79
+BACK_QR_Y1 = _BACK_PLACEHOLDER_Y1 + 2   # 176
+BACK_QR_X2 = BACK_QR_X1 + BACK_QR_W    # 558
+BACK_QR_Y2 = BACK_QR_Y1 + BACK_QR_H    # 655
 
 # ---------------------------------------------------------------------------
 # Font helpers
