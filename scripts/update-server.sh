@@ -503,6 +503,32 @@ unset _SA_JSON
 success "Dependencies updated."
 
 # ---------------------------------------------------------------------------
+# 3b. Install Arial Nova font (required by personnel ID card generator)
+# ---------------------------------------------------------------------------
+ARIAL_NOVA_DIR="/usr/share/fonts/truetype/arial-nova"
+ARIAL_NOVA_PRESENT=false
+if fc-list 2>/dev/null | grep -qi "arial nova"; then
+    ARIAL_NOVA_PRESENT=true
+fi
+
+if [[ "$ARIAL_NOVA_PRESENT" == "false" ]]; then
+    info "Arial Nova not found — attempting install..."
+    FONT_SRC_DIR="$DEPLOY_DIR/fonts/arial-nova"
+    if [[ -d "$FONT_SRC_DIR" ]] && ls "$FONT_SRC_DIR"/*.ttf 2>/dev/null | grep -qi "arial"; then
+        mkdir -p "$ARIAL_NOVA_DIR"
+        cp "$FONT_SRC_DIR"/*.ttf "$ARIAL_NOVA_DIR/"
+        fc-cache -fv "$ARIAL_NOVA_DIR" >/dev/null 2>&1
+        success "Arial Nova installed from $FONT_SRC_DIR."
+    else
+        warn "Arial Nova TTF files not found in $FONT_SRC_DIR."
+        warn "Place ArialNova*.ttf files there so the ID card generator uses the correct font."
+        warn "The generator will fall back to Arial → DejaVu Sans until Arial Nova is installed."
+    fi
+else
+    success "Arial Nova already installed."
+fi
+
+# ---------------------------------------------------------------------------
 # 4. Database migrations
 # ---------------------------------------------------------------------------
 if [[ "$SKIP_MIGRATE" == "false" ]]; then

@@ -48,6 +48,9 @@ project/media/**
 # Font Awesome webfonts (downloaded at deploy time by update-server.sh)
 project/armguard/static/css/fontawesome/webfonts/
 
+# Arial Nova TTF files (commercial font — copy manually to fonts/arial-nova/ before deploy)
+fonts/arial-nova/*.ttf
+
 # General cache directories
 .cache/
 cache/
