@@ -749,6 +749,20 @@ rm -f "$_CRON_TMP2"
 success "Camera purge cron verified: daily at 03:00."
 
 # ---------------------------------------------------------------------------
+# Ensure ActivityLog purge cron is installed / up-to-date
+# Runs daily at 03:30 — deletes ActivityLog rows older than 1 year
+# (python manage.py purge_activity_logs).
+# ---------------------------------------------------------------------------
+_ACTLOG_CMD="$VENV_PYTHON $PROJECT_DIR/manage.py purge_activity_logs"
+_CRON_TMP3=$(mktemp)
+crontab -l 2>/dev/null | grep -v 'purge_activity_logs' > "$_CRON_TMP3" || true
+printf '30 3 * * * %s >> %s/purge_activity_logs.log 2>&1\n' \
+    "$_ACTLOG_CMD" "$LOG_DIR" >> "$_CRON_TMP3"
+crontab "$_CRON_TMP3"
+rm -f "$_CRON_TMP3"
+success "ActivityLog purge cron verified: daily at 03:30 (retain 1 year)."
+
+# ---------------------------------------------------------------------------
 # Post-update storage summary
 # ---------------------------------------------------------------------------
 echo
