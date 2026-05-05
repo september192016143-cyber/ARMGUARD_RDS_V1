@@ -1164,18 +1164,28 @@ def truncate_data(request):
 
     from armguard.apps.transactions.models import Transaction, TransactionLogs
     from armguard.apps.inventory.models import AnalyticsSnapshot
+    from django.db import connection as _db_conn
 
+    # Map checkbox key → (label, db_table).
+    # We use raw SQL DELETE instead of ORM .delete() to:
+    #   a) bypass per-row post_delete signals (signals.py fires _write_audit_log
+    #      for every row, which can create hundreds of AuditLog entries and
+    #      exhaust the DB connection — causing the ActivityLog middleware write
+    #      to silently fail after this view returns).
+    #   b) be significantly faster for bulk deletes.
+    # One summarising AuditLog entry is written below instead.
     targets = {
-        'transaction_logs': ('Transaction Logs',  TransactionLogs),
-        'transactions':     ('Transactions',       Transaction),
-        'snapshots':        ('Analytics Snapshots', AnalyticsSnapshot),
+        'transaction_logs': ('Transaction Logs',   TransactionLogs._meta.db_table),
+        'transactions':     ('Transactions',        Transaction._meta.db_table),
+        'snapshots':        ('Analytics Snapshots', AnalyticsSnapshot._meta.db_table),
     }
 
     deleted_summary = []
-    for key, (label, Model) in targets.items():
-        if request.POST.get(f'truncate_{key}'):
-            count, _ = Model.objects.all().delete()
-            deleted_summary.append(f'{label}: {count} row(s) deleted')
+    with _db_conn.cursor() as _cur:
+        for key, (label, table) in targets.items():
+            if request.POST.get(f'truncate_{key}'):
+                _cur.execute(f'DELETE FROM "{table}"')  # noqa: S608 — table name from trusted model meta
+                deleted_summary.append(f'{label}: {_cur.rowcount} row(s) deleted')
 
     if deleted_summary:
         detail = ' | '.join(deleted_summary)
@@ -1187,6 +1197,22 @@ def truncate_data(request):
             message=f'Manual data truncation by {request.user.username}: {detail}',
             ip_address=_get_client_ip(request),
             user_agent=_get_user_agent(request),
+        )
+        # Write directly to ActivityLog as a guaranteed failsafe — the
+        # middleware normally handles this, but the raw-SQL bulk delete above
+        # can leave the DB connection in an unexpected state, causing the
+        # middleware's _safe_record() to silently drop the entry.
+        from armguard.apps.users.models import ActivityLog
+        ActivityLog.objects.create(
+            user=request.user,
+            ip_address=_get_client_ip(request),
+            user_agent=_get_user_agent(request),
+            method='POST',
+            path=request.path_info,
+            view_name='settings-truncate',
+            flag='NORMAL',
+            status_code=302,
+            response_ms=0,
         )
         messages.success(request, f'Truncation complete. {detail}.')
     else:
