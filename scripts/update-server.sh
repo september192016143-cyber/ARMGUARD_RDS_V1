@@ -393,7 +393,27 @@ if [[ -f "$NGINX_DEST_ALT" ]] && [[ ! -f "$NGINX_DEST" ]]; then
 fi
 
 if [[ -f "$NGINX_SRC" ]]; then
-    cp "$NGINX_SRC" "$NGINX_DEST"
+    # Resolve placeholder values — read DOMAIN/LAN_IP from the existing deployed
+    # config so they survive updates without needing deploy.sh to re-run.
+    _STATIC_ROOT="$DEPLOY_DIR/project/staticfiles"
+    _MEDIA_ROOT="$DEPLOY_DIR/project/media"
+    # Try to extract the server IP/domain from the current live config
+    _EXISTING_CONF="${NGINX_DEST_ALT}"
+    [[ -f "$NGINX_DEST" ]] && _EXISTING_CONF="$NGINX_DEST"
+    _DOMAIN=$(grep -oP '(?<=server_name\s)[^\s;]+' "$_EXISTING_CONF" 2>/dev/null | head -1 || true)
+    _LAN_IP="$_DOMAIN"
+    # Fall back to the machine's primary LAN IP if not found in config
+    if [[ -z "$_DOMAIN" ]] || grep -q '__' <<< "$_DOMAIN"; then
+        _DOMAIN=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
+        _LAN_IP="$_DOMAIN"
+    fi
+    # Substitute all placeholders in the template before deploying
+    sed \
+        -e "s|__STATIC_ROOT__|${_STATIC_ROOT}|g" \
+        -e "s|__MEDIA_ROOT__|${_MEDIA_ROOT}|g" \
+        -e "s|__DOMAIN__|${_DOMAIN}|g" \
+        -e "s|__LAN_IP__|${_LAN_IP}|g" \
+        "$NGINX_SRC" > "$NGINX_DEST"
     # Ensure .mjs → JavaScript MIME type is registered in the system mime.types.
     # Nginx 1.24 on Ubuntu 24.04 does not ship .mjs in its mime.types.
     # Ubuntu 24.04 Nginx uses 'application/javascript' (not 'text/javascript');
@@ -413,12 +433,12 @@ if [[ -f "$NGINX_SRC" ]]; then
             warn "Could not patch /etc/nginx/mime.types for .mjs — check manually"
         fi
     fi
-    if nginx -t 2>/dev/null; then
+    if sudo nginx -t 2>/dev/null; then
         systemctl reload nginx 2>/dev/null || nginx -s reload 2>/dev/null || true
         success "Nginx config deployed and reloaded."
     else
         warn "Nginx config test failed — reverting."
-        nginx -t
+        sudo nginx -t
     fi
 else
     warn "Nginx config not found at $NGINX_SRC — skipping."
