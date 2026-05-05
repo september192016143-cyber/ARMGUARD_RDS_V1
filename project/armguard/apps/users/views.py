@@ -1167,20 +1167,15 @@ def truncate_data(request):
     from armguard.apps.personnel.models import Personnel
     from django.db import connection as _db_conn
 
-    # All Personnel columns that hold transaction-derived state.
-    # Cleared whenever transactions OR transaction_logs are truncated so the
-    # Personnel records don't show stale "issued/assigned" data against items
-    # that no longer exist in the transaction history.
+    # All Personnel columns that hold transaction-derived ISSUED state.
+    # "assigned" fields are set independently (not by transactions) so they
+    # are intentionally excluded — only "issued" fields are cleared.
     _PERSONNEL_CLEAR_COLS = [
-        'rifle_item_assigned',            'rifle_item_assigned_timestamp',  'rifle_item_assigned_by',
         'rifle_item_issued',              'rifle_item_issued_timestamp',     'rifle_item_issued_by',
-        'pistol_item_assigned',           'pistol_item_assigned_timestamp',  'pistol_item_assigned_by',
         'pistol_item_issued',             'pistol_item_issued_timestamp',    'pistol_item_issued_by',
-        'magazine_item_assigned',         'magazine_item_assigned_quantity', 'magazine_item_assigned_timestamp', 'magazine_item_assigned_by',
         'magazine_item_issued',           'magazine_item_issued_quantity',   'magazine_item_issued_timestamp',   'magazine_item_issued_by',
         'pistol_magazine_item_issued',    'pistol_magazine_item_issued_quantity', 'pistol_magazine_item_issued_timestamp', 'pistol_magazine_item_issued_by',
         'rifle_magazine_item_issued',     'rifle_magazine_item_issued_quantity',  'rifle_magazine_item_issued_timestamp',  'rifle_magazine_item_issued_by',
-        'ammunition_item_assigned',       'ammunition_item_assigned_quantity', 'ammunition_item_assigned_timestamp', 'ammunition_item_assigned_by',
         'ammunition_item_issued',         'ammunition_item_issued_quantity',   'ammunition_item_issued_timestamp',   'ammunition_item_issued_by',
         'pistol_ammunition_item_issued',  'pistol_ammunition_item_issued_quantity', 'pistol_ammunition_item_issued_timestamp', 'pistol_ammunition_item_issued_by',
         'rifle_ammunition_item_issued',   'rifle_ammunition_item_issued_quantity',  'rifle_ammunition_item_issued_timestamp',  'rifle_ammunition_item_issued_by',
