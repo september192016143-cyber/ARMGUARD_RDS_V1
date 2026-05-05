@@ -236,9 +236,8 @@ _git_clone_repo() {
 
     chown -R "$DEPLOY_USER:$DEPLOY_USER" "$repo_dir/.git"
 
-    local commit
-    commit=$(sudo -u "$DEPLOY_USER" git -C "$repo_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
-    success "Repository initialized. HEAD is now at $commit"
+    COMMIT=$(sudo -u "$DEPLOY_USER" git -C "$repo_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    success "Repository initialized. HEAD is now at $COMMIT"
 }
 
 _git_pull_repo() {
