@@ -57,7 +57,13 @@
             {% if t.magazine_pouch_quantity %}
               <span style="color:#ef4444">Magazine Pouch x{{ t.magazine_pouch_quantity }}</span><br>
             {% endif %}
-            {% if not t.pistol_holster_quantity and not t.magazine_pouch_quantity %}
+            {% if t.rifle_sling_quantity %}
+              <span style="color:#ef4444">Rifle Sling x{{ t.rifle_sling_quantity }}</span><br>
+            {% endif %}
+            {% if t.bandoleer_quantity %}
+              <span style="color:#ef4444">Bandoleer x{{ t.bandoleer_quantity }}</span><br>
+            {% endif %}
+            {% if not t.pistol_holster_quantity and not t.magazine_pouch_quantity and not t.rifle_sling_quantity and not t.bandoleer_quantity %}
               <span style="color:#ef4444">None</span>
             {% endif %}
           </div>
