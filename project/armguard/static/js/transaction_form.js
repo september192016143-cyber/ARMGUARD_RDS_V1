@@ -513,8 +513,22 @@ function checkPersonnel(val) {
     credentials: 'same-origin',
     signal: _signal,
   })
-    .then(function (r) { clearTimeout(_personnelTimeout); return r.json(); })
+    .then(function (r) {
+      clearTimeout(_personnelTimeout);
+      // Handle non-2xx responses explicitly so r.json() never throws an
+      // unexpected SyntaxError (e.g. an HTML error page would go to .catch()
+      // and show the generic "Could not fetch" message instead of the real error).
+      if (!r.ok) {
+        return r.json().catch(function () { return {}; }).then(function (d) {
+          setBanner('personnel-status-banner', 'err',
+            escHtml((d && d.error) ? d.error : 'Could not fetch personnel status (HTTP ' + r.status + ').'));
+          return null;
+        });
+      }
+      return r.json();
+    })
     .then(function (d) {
+      if (!d) return; // handled above (non-OK response)
       if (d.error) { setBanner('personnel-status-banner', 'err', escHtml(d.error)); return; }
       var txnType = document.getElementById('tb_transaction_type');
       // Use the actual transaction type the operator selected — not a computed guess.
@@ -562,6 +576,11 @@ function checkPersonnel(val) {
         // AUTO-FILL Return form: populate all issued consumable fields so the
         // operator doesn't have to enter them manually (binding rule enforces completeness).
         autoFillReturnConsumables(d);
+      }
+      // Update the sidebar ID card using data already in hand — avoids a
+      // second round-trip to the same personnel_status endpoint.
+      if (typeof window._sidebarUpdatePersonnel === 'function') {
+        window._sidebarUpdatePersonnel(d);
       }
     })
     .catch(function (err) {
@@ -1318,7 +1337,6 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
 // ── Sidebar: personnel ID card + item images ──────────────────────────────────
 (function() {
   var _form = document.getElementById('txn-form');
-  var PERSONNEL_URL = _form ? _form.dataset.personnelUrl : '';
   var ITEM_URL      = _form ? _form.dataset.itemUrl : '';
 
   function showEl(id, flexDir) {
@@ -1336,20 +1354,16 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
     else     { el.src = ''; el.style.display = 'none'; }
   }
 
-  function updatePersonnelSidebar(val) {
-    if (!val) { hideEl('sidebar-personnel'); return; }
-    fetch(PERSONNEL_URL + '?personnel_id=' + encodeURIComponent(val), { credentials: 'same-origin' })
-      .then(function(r) { return r.json(); })
-      .then(function(d) {
-        if (d.id_card_front_url) {
-          setImg('sidebar-id-card-img', d.id_card_front_url);
-          showEl('sidebar-personnel', 'flex');
-        } else {
-          hideEl('sidebar-personnel');
-        }
-      })
-      .catch(function() { hideEl('sidebar-personnel'); });
-  }
+  // Called by checkPersonnel() with the already-fetched personnel_status data,
+  // so no second round-trip to the same endpoint is needed.
+  window._sidebarUpdatePersonnel = function(d) {
+    if (d && d.id_card_front_url) {
+      setImg('sidebar-id-card-img', d.id_card_front_url);
+      showEl('sidebar-personnel', 'flex');
+    } else {
+      hideEl('sidebar-personnel');
+    }
+  };
 
   function updateItemSidebar(type, val) {
     var blockId  = 'sidebar-' + type;
@@ -1374,9 +1388,11 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
     var personnelSel = document.querySelector('[name="personnel"]');
     var pistolSel    = document.getElementById('id_pistol') || document.querySelector('[name="pistol"]');
     var rifleSel     = document.getElementById('id_rifle')  || document.querySelector('[name="rifle"]');
-    if (personnelSel) {
-      personnelSel.addEventListener('change', function() { updatePersonnelSidebar(this.value); });
-      if (personnelSel.value) updatePersonnelSidebar(personnelSel.value);
+    // Personnel sidebar is now updated by checkPersonnel() using the data it
+    // already receives — no separate fetch or change listener needed here.
+    if (personnelSel && !personnelSel.value) {
+      // If no personnel is selected on load, ensure the sidebar is hidden.
+      hideEl('sidebar-personnel');
     }
     if (pistolSel) {
       pistolSel.addEventListener('change', function() { updateItemSidebar('pistol', this.value); });

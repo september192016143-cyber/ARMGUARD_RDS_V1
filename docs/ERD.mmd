@@ -1,0 +1,383 @@
+erDiagram
+
+    %% ─────────────────────────────────────────────────────────────────────
+    %% AUTH / USERS CLUSTER
+    %% ─────────────────────────────────────────────────────────────────────
+
+    AUTH_USER {
+        int     id           PK
+        string  username
+        string  email
+        string  password
+        bool    is_superuser
+        bool    is_active
+    }
+
+    USER_PROFILE {
+        int     user_id      PK  "FK → AUTH_USER (1:1)"
+        string  role             "System Administrator | Admin | Armorer"
+        string  last_session_key
+        bool    perm_inventory_view
+        bool    perm_inventory_add
+        bool    perm_inventory_edit
+        bool    perm_inventory_delete
+        bool    perm_personnel_view
+        bool    perm_personnel_add
+        bool    perm_personnel_edit
+        bool    perm_personnel_delete
+        bool    perm_transaction_view
+        bool    perm_transaction_create
+        bool    perm_reports
+        bool    perm_print
+        bool    perm_users_manage
+        bool    require_2fa
+    }
+
+    AUDIT_LOG {
+        int      id           PK
+        int      user_id      FK  "→ AUTH_USER (SET_NULL)"
+        string   action           "CREATE|UPDATE|DELETE|LOGIN|LOGOUT|…"
+        string   model_name
+        string   object_pk
+        text     message
+        string   ip_address
+        string   user_agent
+        string   integrity_hash   "SHA-256 tamper seal"
+        datetime timestamp
+    }
+
+    ACTIVITY_LOG {
+        int      id           PK
+        int      user_id      FK  "→ AUTH_USER (SET_NULL)"
+        string   session_key
+        string   method           "GET|POST|PUT|PATCH|DELETE"
+        string   path
+        text     query_string
+        string   view_name
+        int      status_code
+        int      response_ms
+        string   ip_address
+        string   user_agent
+        string   flag             "NORMAL|SLOW|WARNING|SUSPICIOUS|ERROR"
+        string   search_query
+        datetime timestamp
+    }
+
+    DELETED_RECORD {
+        int      id           PK
+        int      deleted_by_id FK "→ AUTH_USER (SET_NULL)"
+        string   model_name
+        string   object_pk
+        text     data             "JSON snapshot of deleted object"
+        datetime deleted_at
+    }
+
+    PASSWORD_HISTORY {
+        int      id           PK
+        int      user_id      FK  "→ AUTH_USER (CASCADE)"
+        string   password_hash    "Hashed only — never plaintext"
+        datetime created_at
+    }
+
+    SYSTEM_SETTINGS {
+        int      id                        PK  "Singleton — always id=1"
+        string   commander_name
+        string   commander_rank
+        string   unit_name
+        int      pistol_magazine_max_qty       "Default: 4"
+        int      rifle_magazine_max_qty        "Default: 2"
+        bool     mfa_required
+        int      password_min_length
+        int      password_history_count
+        image    app_logo
+        int      timeout_system_admin
+        int      timeout_armorer
+        bool     require_par_document
+        string   default_issuance_type
+    }
+
+    SIMULATION_RUN {
+        uuid     run_id        PK
+        int      started_by_id FK  "→ AUTH_USER (SET_NULL)"
+        string   status            "queued|running|completed|error"
+        string   operator
+        bool     commit
+        int      sim_count
+        int      delay_seconds
+        int      ok_count
+        int      err_count
+        int      skip_count
+        int      total
+        int      progress
+        float    wall_time
+        json     results_json
+        text     error_message
+        datetime started_at
+        datetime completed_at
+    }
+
+    %% ─────────────────────────────────────────────────────────────────────
+    %% PERSONNEL CLUSTER
+    %% ─────────────────────────────────────────────────────────────────────
+
+    PERSONNEL_GROUP {
+        int    id    PK
+        string name      "Unique lookup value (e.g. HAS, 951st)"
+        int    order
+    }
+
+    PERSONNEL_SQUADRON {
+        int    id    PK
+        string name      "Unique lookup value (e.g. 950th CEWW)"
+        int    order
+    }
+
+    PERSONNEL {
+        string   Personnel_ID          PK   "Auto-generated"
+        int      user_id               FK   "→ AUTH_USER (SET_NULL, optional)"
+        string   rank
+        string   first_name
+        string   last_name
+        string   AFSN                       "Unique Air Force Serial No."
+        string   group                      "Logical ref → PERSONNEL_GROUP.name"
+        string   squadron                   "Logical ref → PERSONNEL_SQUADRON.name"
+        string   tel                        "Unique 11-digit"
+        image    personnel_image
+        string   qr_code
+        string   status                     "Active|Inactive"
+        string   rifle_item_assigned        "item_id of assigned rifle"
+        string   pistol_item_assigned       "item_id of assigned pistol"
+        string   rifle_item_issued          "item_id of currently issued rifle"
+        string   pistol_item_issued         "item_id of currently issued pistol"
+        string   pistol_magazine_item_issued
+        string   rifle_magazine_item_issued
+        string   pistol_ammunition_item_issued
+        string   rifle_ammunition_item_issued
+        string   pistol_holster_issued
+        string   magazine_pouch_issued
+        string   rifle_sling_issued
+        string   bandoleer_issued
+        datetime created
+        datetime updated
+    }
+
+    %% ─────────────────────────────────────────────────────────────────────
+    %% INVENTORY CLUSTER
+    %% ─────────────────────────────────────────────────────────────────────
+
+    CATEGORY {
+        int    id   PK
+        string name
+    }
+
+    PISTOL {
+        string   item_id            PK   "IP-<model_code>-<serial>"
+        int      category_id        FK   "→ CATEGORY (SET_NULL)"
+        string   item_assigned_to   FK   "→ PERSONNEL (SET_NULL)"
+        string   item_number
+        string   property_number         "Unique govt custodian number"
+        string   model                   "Glock 17|M1911 Cal.45|…"
+        string   serial_number           "Unique"
+        image    serial_image
+        string   qr_code
+        image    item_tag
+        string   item_condition          "Serviceable|Unserviceable|Lost|Tampered"
+        string   item_status             "Available|Issued|Under Maintenance|…"
+        datetime created
+        datetime updated
+    }
+
+    RIFLE {
+        string   item_id            PK   "IR-<model_code>-<serial> or factory_qr"
+        int      category_id        FK   "→ CATEGORY (SET_NULL)"
+        string   item_assigned_to   FK   "→ PERSONNEL (SET_NULL)"
+        string   item_number
+        string   property_number
+        string   model                   "M4 Carbine|M16A1|M14|M653|…"
+        string   factory_qr              "M4 Carbine DSAR-15 only"
+        string   serial_number           "Unique"
+        image    serial_image
+        string   qr_code
+        image    item_tag
+        string   item_condition
+        string   item_status
+        datetime created
+        datetime updated
+    }
+
+    MAGAZINE {
+        int    id           PK
+        int    category_id  FK   "→ CATEGORY (SET_NULL)"
+        string type              "Pistol Standard|Short|Long"
+        string weapon_type       "Pistol|Rifle"
+        string capacity          "Standard|20-rounds|30-rounds"
+        int    quantity          "Pool stock — floored at 0"
+        datetime created
+        datetime updated
+    }
+
+    AMMUNITION {
+        int    id           PK
+        int    category_id  FK   "→ CATEGORY (SET_NULL)"
+        string type              "Cal.45|M882 9x19mm|M193 5.56mm|M855|M80 7.62mm"
+        string lot_number        "Unique batch identifier"
+        int    quantity          "Rounds in stock — floored at 0"
+        datetime created
+        datetime updated
+    }
+
+    ACCESSORY {
+        int    id           PK
+        int    category_id  FK   "→ CATEGORY (SET_NULL)"
+        string type              "Pistol Holster|Mag Pouch|Rifle Sling|Bandoleer"
+        int    quantity          "Pool stock — floored at 0"
+        datetime created
+        datetime updated
+    }
+
+    %% ─────────────────────────────────────────────────────────────────────
+    %% TRANSACTIONS CLUSTER
+    %% ─────────────────────────────────────────────────────────────────────
+
+    TRANSACTION {
+        int      transaction_id         PK
+        string   personnel_id           FK  "→ PERSONNEL (PROTECT)"
+        string   pistol_id              FK  "→ PISTOL (SET_NULL)"
+        string   rifle_id               FK  "→ RIFLE (SET_NULL)"
+        int      pistol_magazine_id     FK  "→ MAGAZINE Pistol (SET_NULL)"
+        int      rifle_magazine_id      FK  "→ MAGAZINE Rifle (SET_NULL)"
+        int      pistol_ammunition_id   FK  "→ AMMUNITION pistol (SET_NULL)"
+        int      rifle_ammunition_id    FK  "→ AMMUNITION rifle (SET_NULL)"
+        string   transaction_type           "Withdrawal|Return"
+        string   issuance_type             "PAR|TR"
+        string   purpose                   "Duty Sentinel|Vigil|Security|Honor Guard|OREX|Others"
+        int      pistol_magazine_quantity
+        int      rifle_magazine_quantity
+        int      pistol_ammunition_quantity
+        int      rifle_ammunition_quantity
+        int      pistol_holster_quantity    "Max 1"
+        int      magazine_pouch_quantity    "Max 3"
+        int      rifle_sling_quantity       "Max 1"
+        int      bandoleer_quantity         "Max 1"
+        string   transaction_personnel      "Username of armorer"
+        datetime timestamp
+        datetime return_by                  "TR deadline"
+        datetime updated_at
+        file     par_document
+        text     notes
+    }
+
+    TRANSACTION_LOGS {
+        int      record_id                          PK
+        string   personnel_id                       FK  "→ PERSONNEL (PROTECT)"
+        int      withdrawal_pistol_txn_id           FK  "→ TRANSACTION (SET_NULL)"
+        int      withdrawal_rifle_txn_id            FK  "→ TRANSACTION (SET_NULL)"
+        int      withdrawal_pmag_txn_id             FK  "→ TRANSACTION (SET_NULL)"
+        int      withdrawal_rmag_txn_id             FK  "→ TRANSACTION (SET_NULL)"
+        int      withdrawal_pammo_txn_id            FK  "→ TRANSACTION (SET_NULL)"
+        int      withdrawal_rammo_txn_id            FK  "→ TRANSACTION (SET_NULL)"
+        int      return_pistol_txn_id               FK  "→ TRANSACTION (SET_NULL)"
+        int      return_rifle_txn_id                FK  "→ TRANSACTION (SET_NULL)"
+        string   withdraw_pistol_id                 FK  "→ PISTOL (SET_NULL)"
+        string   withdraw_rifle_id                  FK  "→ RIFLE (SET_NULL)"
+        int      withdraw_pmag_id                   FK  "→ MAGAZINE Pistol (SET_NULL)"
+        int      withdraw_rmag_id                   FK  "→ MAGAZINE Rifle (SET_NULL)"
+        int      withdraw_pammo_id                  FK  "→ AMMUNITION (SET_NULL)"
+        int      withdraw_rammo_id                  FK  "→ AMMUNITION (SET_NULL)"
+        string   return_pistol_id                   FK  "→ PISTOL (SET_NULL)"
+        string   return_rifle_id                    FK  "→ RIFLE (SET_NULL)"
+        int      return_pmag_id                     FK  "→ MAGAZINE (SET_NULL)"
+        int      return_rmag_id                     FK  "→ MAGAZINE (SET_NULL)"
+        int      return_pammo_id                    FK  "→ AMMUNITION (SET_NULL)"
+        int      return_rammo_id                    FK  "→ AMMUNITION (SET_NULL)"
+        int      withdraw_pmag_quantity
+        int      withdraw_rmag_quantity
+        int      withdraw_pammo_quantity
+        int      withdraw_rammo_quantity
+        int      return_pmag_quantity
+        int      return_rmag_quantity
+        int      return_pammo_quantity
+        int      return_rammo_quantity
+        int      pistol_holster_quantity
+        int      magazine_pouch_quantity
+        int      rifle_sling_quantity
+        int      bandoleer_quantity
+        string   log_status                         "Open|Partially Returned|Closed"
+    }
+
+    %% ─────────────────────────────────────────────────────────────────────
+    %% CAMERA CLUSTER
+    %% ─────────────────────────────────────────────────────────────────────
+
+    CAMERA_DEVICE {
+        int      id                 PK
+        int      user_id            FK   "→ AUTH_USER (CASCADE, 1:1)"
+        int      revoked_by_id      FK   "→ AUTH_USER (SET_NULL)"
+        string   device_token            "256-bit secret; shared once via QR"
+        string   device_name
+        string   device_fingerprint
+        bool     is_active
+        uuid     pending_serial_task
+        string   current_pin             "6-digit; rotates every 30s"
+        datetime pin_expires_at
+        int      failed_attempts
+        datetime locked_until            "30-min lockout after 5 failures"
+        datetime paired_at
+        datetime activated_at
+        datetime last_seen_at
+        datetime revoked_at
+    }
+
+    CAMERA_UPLOAD_LOG {
+        int      id               PK
+        int      uploaded_by_id   FK   "→ AUTH_USER (SET_NULL)"
+        int      device_id        FK   "→ CAMERA_DEVICE (SET_NULL)"
+        string   original_name
+        string   stored_name
+        string   file_path
+        int      file_size_bytes
+        datetime uploaded_at
+        string   ip_address
+        text     notes
+        datetime file_purged_at
+    }
+
+    %% ─────────────────────────────────────────────────────────────────────
+    %% RELATIONSHIPS
+    %% ─────────────────────────────────────────────────────────────────────
+
+    AUTH_USER        ||--||    USER_PROFILE        : "extends (1:1)"
+    AUTH_USER        ||--o{    AUDIT_LOG           : "performed"
+    AUTH_USER        ||--o{    ACTIVITY_LOG        : "generated"
+    AUTH_USER        ||--o{    DELETED_RECORD      : "deleted_by"
+    AUTH_USER        ||--o{    PASSWORD_HISTORY    : "previous passwords"
+    AUTH_USER        ||--o{    SIMULATION_RUN      : "started_by"
+    AUTH_USER        ||--o|    PERSONNEL           : "linked account"
+    AUTH_USER        ||--o|    CAMERA_DEVICE       : "paired device (1:1)"
+    AUTH_USER        ||--o{    CAMERA_UPLOAD_LOG   : "uploaded_by"
+
+    CATEGORY         ||--o{    PISTOL              : "classifies"
+    CATEGORY         ||--o{    RIFLE               : "classifies"
+    CATEGORY         ||--o{    MAGAZINE            : "classifies"
+    CATEGORY         ||--o{    AMMUNITION          : "classifies"
+    CATEGORY         ||--o{    ACCESSORY           : "classifies"
+
+    PERSONNEL        ||--o{    PISTOL              : "pistols assigned"
+    PERSONNEL        ||--o{    RIFLE               : "rifles assigned"
+
+    PERSONNEL        ||--|{    TRANSACTION         : "involved in (PROTECT)"
+    PISTOL           ||--o{    TRANSACTION         : "pistol"
+    RIFLE            ||--o{    TRANSACTION         : "rifle"
+    MAGAZINE         ||--o{    TRANSACTION         : "pistol magazine"
+    MAGAZINE         ||--o{    TRANSACTION         : "rifle magazine"
+    AMMUNITION       ||--o{    TRANSACTION         : "pistol ammunition"
+    AMMUNITION       ||--o{    TRANSACTION         : "rifle ammunition"
+
+    PERSONNEL        ||--|{    TRANSACTION_LOGS    : "logged (PROTECT)"
+    TRANSACTION      ||--o{    TRANSACTION_LOGS    : "withdrawal txn refs"
+    PISTOL           ||--o{    TRANSACTION_LOGS    : "withdraw / return pistol"
+    RIFLE            ||--o{    TRANSACTION_LOGS    : "withdraw / return rifle"
+    MAGAZINE         ||--o{    TRANSACTION_LOGS    : "withdraw / return mag"
+    AMMUNITION       ||--o{    TRANSACTION_LOGS    : "withdraw / return ammo"
+
+    CAMERA_DEVICE    ||--o{    CAMERA_UPLOAD_LOG   : "upload logs"

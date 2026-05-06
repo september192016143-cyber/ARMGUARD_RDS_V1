@@ -610,12 +610,19 @@ def tr_preview(request):
 
 @login_required
 @require_GET
-@ratelimit(rate='60/m')
 def personnel_status(request):
     """
     Real-time lookup: return what a selected personnel currently has issued
     and whether they're allowed to withdraw a pistol / rifle.
     GET ?personnel_id=<pk>
+
+    No rate limit — this is a read-only status check fired on every personnel
+    selection change. It is already protected by @login_required and the
+    _can_view_transactions() permission check. Rate-limiting it caused false
+    'Could not fetch personnel status' errors for operators processing many
+    transactions in rapid succession (the fetch calls do not send AJAX headers,
+    so the rate limiter fell through to an HTML redirect path, making r.json()
+    throw and triggering the generic catch handler).
     """
     if not _can_view_transactions(request.user):
         return JsonResponse({'error': 'Forbidden'}, status=403)
