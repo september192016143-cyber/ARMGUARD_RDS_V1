@@ -249,12 +249,18 @@ class Transaction(models.Model):
             raise ValidationError('Personnel is required for every transaction.')
 
         # --- Purpose validation (always enforced) ---
-        # purpose must be one of the known choices, OR 'Others' with a non-empty purpose_other.
+        # purpose must be one of the known choices, OR a custom value entered via the
+        # 'Others' path (where WithdrawalReturnTransactionForm.clean() replaces
+        # purpose='Others' with the custom text from purpose_other and stores both).
+        # Allowing custom values here is intentional — the DB comment on the field
+        # explicitly states "Custom values are allowed when 'Others' is selected."
         _valid_purposes = {p for p, _ in PURPOSE_CHOICES}
         purpose = (self.purpose or '').strip()
         if not purpose:
             raise ValidationError("Purpose is required.")
-        if purpose not in _valid_purposes:
+        # Accept: standard purpose values, OR any non-empty custom value when
+        # purpose_other is set (i.e., the form substituted a custom 'Others' text).
+        if purpose not in _valid_purposes and not (self.purpose_other or '').strip():
             raise ValidationError(
                 f"Invalid purpose '{purpose}'. Choose one of: {', '.join(sorted(_valid_purposes))}."
             )
@@ -761,7 +767,11 @@ class Transaction(models.Model):
                 ('Bandoleer',             self.bandoleer_quantity),
             ]:
                 if _acc_qty:
-                    _lock(Accessory.objects.filter(type=_acc_type)).first()
+                    # Lock the same row that adjust_consumable_quantities() will modify:
+                    # the pool with the highest current quantity (order_by('-quantity')).
+                    # Previously used .first() (lowest PK) which could be a different row,
+                    # leaving the adjusted row unprotected against concurrent writes.
+                    _lock(Accessory.objects.filter(type=_acc_type).order_by('-quantity')).first()
 
             super().save(*args, **kwargs)
 
