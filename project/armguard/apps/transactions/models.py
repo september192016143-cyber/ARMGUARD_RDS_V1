@@ -274,6 +274,13 @@ class Transaction(models.Model):
 
         # Withdrawal rules
         if self.transaction_type == 'Withdrawal':
+            # A Withdrawal must include at least one firearm.
+            # Accessories and consumables alone cannot be the sole items.
+            if not self.pistol and not self.rifle:
+                raise ValidationError(
+                    'A Withdrawal must include at least one firearm (Pistol or Rifle). '
+                    'Accessories and consumables cannot be withdrawn without a firearm.'
+                )
             # Pistol: personnel must not already have one, and item must be available
             if self.pistol:
                 # Check if personnel already has a pistol issued

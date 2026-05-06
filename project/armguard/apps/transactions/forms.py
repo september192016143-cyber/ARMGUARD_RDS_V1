@@ -373,6 +373,11 @@ class TransactionAdminForm(forms.ModelForm):
         if not has_any:
             errors.append('At least one item (Pistol, Rifle, Magazine, Ammunition, or Accessory) must be selected.')
 
+        # Withdrawal requires at least one firearm — accessories and consumables
+        # alone cannot be the sole items on a Withdrawal transaction.
+        if transaction_type == 'Withdrawal' and not pistol and not rifle:
+            errors.append('A Withdrawal must include at least one firearm (Pistol or Rifle). Accessories and consumables cannot be withdrawn without a firearm.')
+
         if transaction_type == 'Withdrawal':
             if pistol:
                 fresh_pistol = Pistol.objects.get(pk=pistol.pk)
