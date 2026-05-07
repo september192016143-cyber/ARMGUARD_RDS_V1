@@ -444,7 +444,7 @@ def dashboard_view(request):
         _mag = Magazine.objects.aggregate(
             total=Sum('quantity'),
             short=Sum('quantity', filter=Q(capacity='20-rounds', weapon_type='Rifle')),
-            long=Sum('quantity', filter=Q(capacity='30-rounds', weapon_type='Rifle')),
+            long=Sum('quantity', filter=Q(capacity__in=['30-rounds', 'EMTAN'], weapon_type='Rifle')),
         )
 
         # 1 query: transaction day totals + all-time count
@@ -469,9 +469,9 @@ def dashboard_view(request):
             short_mag_r=Sum('return_rifle_magazine_quantity',
                 filter=Q(withdraw_rifle_magazine__capacity='20-rounds')),
             long_mag_w=Sum('withdraw_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__capacity='30-rounds')),
+                filter=Q(withdraw_rifle_magazine__capacity__in=['30-rounds', 'EMTAN'])),
             long_mag_r=Sum('return_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__capacity='30-rounds')),
+                filter=Q(withdraw_rifle_magazine__capacity__in=['30-rounds', 'EMTAN'])),
         )
 
         issued_tr  = _logs['tr_pistol']  + _logs['tr_rifle']
@@ -630,13 +630,13 @@ def dashboard_cards_json(request):
         # Magazine card
         'total_magazine_qty':       Magazine.objects.aggregate(t=Sum('quantity'))['t'] or 0,
         'short_magazine_available': Magazine.objects.filter(weapon_type='Rifle', capacity='20-rounds').aggregate(t=Sum('quantity'))['t'] or 0,
-        'long_magazine_available':  Magazine.objects.filter(weapon_type='Rifle', capacity='30-rounds').aggregate(t=Sum('quantity'))['t'] or 0,
+        'long_magazine_available':  Magazine.objects.filter(weapon_type='Rifle', capacity__in=['30-rounds', 'EMTAN']).aggregate(t=Sum('quantity'))['t'] or 0,
         'short_magazine_issued': (lambda a: max((a['w'] or 0) - (a['r'] or 0), 0))(
             TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__capacity='20-rounds')
             .aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
         ),
         'long_magazine_issued': (lambda a: max((a['w'] or 0) - (a['r'] or 0), 0))(
-            TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__capacity='30-rounds')
+            TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__capacity__in=['30-rounds', 'EMTAN'])
             .aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
         ),
         # Issued Firearms card
