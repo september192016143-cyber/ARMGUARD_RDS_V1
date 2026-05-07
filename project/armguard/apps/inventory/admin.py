@@ -120,11 +120,17 @@ class MagazineAdminForm(forms.ModelForm):
         js = ('admin/js/magazine_capacity_autofill.js',)
 
     def _capacity_for_type(self, type_value):
-        if type_value == 'Short':
-            return '20-rounds'
-        elif type_value == 'Long':
-            return '30-rounds'
-        return ''
+        _MAP = {
+            'Mag Assy, 9mm: Glock 17':            'Standard',
+            'Mag Assy, Cal.45: 7 rds Cap':        '7-rounds',
+            'Mag Assy, Cal.45: 8 rds Cap':        '8-rounds',
+            'Mag Assy, Cal.45: Hi Cap':           'Hi-Cap',
+            'Mag Assy, 5.56mm: 20 rds Cap Alloy': '20-rounds',
+            'Mag Assy, 5.56mm: 30 rds Cap Alloy': '30-rounds',
+            'Mag Assy, 5.56mm: EMTAN':            '30-rounds',
+            'Mag Assy, 7.62mm: M14':              'M14',
+        }
+        return _MAP.get(type_value, '')
 
 class MagazineAdmin(admin.ModelAdmin):
     form = MagazineAdminForm

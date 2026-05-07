@@ -274,6 +274,10 @@ def _build_magazine_table():
                 filter=Q(withdraw_rifle_magazine__capacity='30-rounds')),
             long_r=Sum('return_rifle_magazine_quantity',
                 filter=Q(withdraw_rifle_magazine__capacity='30-rounds')),
+            m14_w=Sum('withdraw_rifle_magazine_quantity',
+                filter=Q(withdraw_rifle_magazine__capacity='M14')),
+            m14_r=Sum('return_rifle_magazine_quantity',
+                filter=Q(withdraw_rifle_magazine__capacity='M14')),
         )
 
     def _net(a, w, r):
@@ -292,11 +296,16 @@ def _build_magazine_table():
     long_issued       = _net(total_agg, 'long_w',   'long_r')
     long_issued_par   = _net(par_agg,   'long_w',   'long_r')
     long_issued_tr    = _net(tr_agg,    'long_w',   'long_r')
+    m14_stock         = _grp_stock('Rifle', 'M14')
+    m14_issued        = _net(total_agg, 'm14_w',  'm14_r')
+    m14_issued_par    = _net(par_agg,   'm14_w',  'm14_r')
+    m14_issued_tr     = _net(tr_agg,    'm14_w',  'm14_r')
 
     MAG_DEFS = [
-        ('Pistol',   'Pistol', 'Pistol Magazine',         pistol_stock,   pistol_issued, pistol_issued_par, pistol_issued_tr),
-        ('Rifle-20', 'Rifle',  'Rifle Magazine (20-rnd)', rifle_20_stock, short_issued,  short_issued_par,  short_issued_tr),
-        ('Rifle-30', 'Rifle',  'Rifle Magazine (30-rnd)', rifle_30_stock, long_issued,   long_issued_par,   long_issued_tr),
+        ('Pistol',   'Pistol', 'Pistol Magazine',              pistol_stock,   pistol_issued, pistol_issued_par, pistol_issued_tr),
+        ('Rifle-20', 'Rifle',  'Rifle Magazine (20-rnd)',       rifle_20_stock, short_issued,  short_issued_par,  short_issued_tr),
+        ('Rifle-30', 'Rifle',  'Rifle Magazine (30-rnd)',       rifle_30_stock, long_issued,   long_issued_par,   long_issued_tr),
+        ('Rifle-M14','Rifle',  'Rifle Magazine (7.62mm M14)',   m14_stock,      m14_issued,    m14_issued_par,    m14_issued_tr),
     ]
     list_url = reverse('magazine-list')
     rows, totals = [], {'on_stock': 0, 'issued': 0, 'issued_par': 0, 'issued_tr': 0}
