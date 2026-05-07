@@ -432,7 +432,7 @@ class MagazineCapValidationTest(TestCase):
         self.pistol = _make_pistol(serial='SN-GLOCK-MAG-001')
         # Create a pistol magazine pool with plenty of stock
         from armguard.apps.inventory.models import Magazine
-        self.mag_pool = Magazine(type='Pistol Standard', quantity=20)
+        self.mag_pool = Magazine(type='Mag Assy, 9mm: Glock 17', quantity=20)
         self.mag_pool.save()
 
     def test_within_cap_passes(self):

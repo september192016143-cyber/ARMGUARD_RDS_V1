@@ -1457,30 +1457,30 @@ def _run_orex_background(run_id, user_pk):
         ss = SystemSettings.get()
 
         # Rifle magazine pool — pick the fullest single pool that can cover all
-        # pairs; Short preferred over Long.  Using order_by('-quantity') and
+        # pairs; 20-round preferred over 30-round.  Using order_by('-quantity') and
         # filtering by quantity__gte(pairs_count) avoids the "Available: 0"
         # error caused by picking a near-empty pool record first.
         _pairs_count = min(len(personnel_list), len(available_rifles))
         _rifle_mag_pool = (
             _Magazine.objects
-            .filter(weapon_type='Rifle', type='Short', quantity__gte=_pairs_count)
+            .filter(weapon_type='Rifle', capacity='20-rounds', quantity__gte=_pairs_count)
             .order_by('-quantity')
             .first()
         ) or (
             _Magazine.objects
-            .filter(weapon_type='Rifle', type='Long', quantity__gte=_pairs_count)
+            .filter(weapon_type='Rifle', capacity='30-rounds', quantity__gte=_pairs_count)
             .order_by('-quantity')
             .first()
         ) or (
-            # Fallback: best available Short even if stock < pairs_count
+            # Fallback: best available 20-round even if stock < pairs_count
             _Magazine.objects
-            .filter(weapon_type='Rifle', type='Short', quantity__gt=0)
+            .filter(weapon_type='Rifle', capacity='20-rounds', quantity__gt=0)
             .order_by('-quantity')
             .first()
         ) or (
-            # Last resort: best available Long
+            # Last resort: best available 30-round
             _Magazine.objects
-            .filter(weapon_type='Rifle', type='Long', quantity__gt=0)
+            .filter(weapon_type='Rifle', capacity='30-rounds', quantity__gt=0)
             .order_by('-quantity')
             .first()
         )

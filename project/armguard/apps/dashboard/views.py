@@ -246,10 +246,19 @@ def _build_magazine_table():
     _PAR = 'PAR (Property Acknowledgement Receipt)'
     _TR  = 'TR (Temporary Receipt)'
 
-    on_stock_map = {
-        row['type']: row['total']
-        for row in Magazine.objects.values('type').annotate(total=Sum('quantity'))
-    }
+    on_stock_map = {}
+    for row in Magazine.objects.values('weapon_type', 'capacity').annotate(total=Sum('quantity')):
+        key = (row['weapon_type'], row['capacity'])
+        on_stock_map[key] = on_stock_map.get(key, 0) + row['total']
+
+    def _grp_stock(weapon_type, capacity=None):
+        if capacity is None:
+            return sum(v for (wt, _), v in on_stock_map.items() if wt == weapon_type)
+        return on_stock_map.get((weapon_type, capacity), 0)
+
+    pistol_stock   = _grp_stock('Pistol')
+    rifle_20_stock = _grp_stock('Rifle', '20-rounds')
+    rifle_30_stock = _grp_stock('Rifle', '30-rounds')
 
     # N+1 FIX: replace 9 separate per-type queries with 3 conditional aggregates
     # (total, PAR, TR) — one database round-trip each instead of one per type×issuance.
@@ -258,13 +267,13 @@ def _build_magazine_table():
             pistol_w=Sum('withdraw_pistol_magazine_quantity'),
             pistol_r=Sum('return_pistol_magazine_quantity'),
             short_w=Sum('withdraw_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__type='Short')),
+                filter=Q(withdraw_rifle_magazine__capacity='20-rounds')),
             short_r=Sum('return_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__type='Short')),
+                filter=Q(withdraw_rifle_magazine__capacity='20-rounds')),
             long_w=Sum('withdraw_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__type='Long')),
+                filter=Q(withdraw_rifle_magazine__capacity='30-rounds')),
             long_r=Sum('return_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__type='Long')),
+                filter=Q(withdraw_rifle_magazine__capacity='30-rounds')),
         )
 
     def _net(a, w, r):
@@ -285,14 +294,13 @@ def _build_magazine_table():
     long_issued_tr    = _net(tr_agg,    'long_w',   'long_r')
 
     MAG_DEFS = [
-        ('Pistol Standard', 'Pistol', 'Pistol Magazine',               pistol_issued, pistol_issued_par, pistol_issued_tr),
-        ('Short',           'Rifle',  'Rifle Magazine (Short/20-rnd)', short_issued,  short_issued_par,  short_issued_tr),
-        ('Long',            'Rifle',  'Rifle Magazine (Long/30-rnd)',  long_issued,   long_issued_par,   long_issued_tr),
+        ('Pistol',   'Pistol', 'Pistol Magazine',         pistol_stock,   pistol_issued, pistol_issued_par, pistol_issued_tr),
+        ('Rifle-20', 'Rifle',  'Rifle Magazine (20-rnd)', rifle_20_stock, short_issued,  short_issued_par,  short_issued_tr),
+        ('Rifle-30', 'Rifle',  'Rifle Magazine (30-rnd)', rifle_30_stock, long_issued,   long_issued_par,   long_issued_tr),
     ]
     list_url = reverse('magazine-list')
     rows, totals = [], {'on_stock': 0, 'issued': 0, 'issued_par': 0, 'issued_tr': 0}
-    for type_key, label, nomenclature, issued, issued_par, issued_tr in MAG_DEFS:
-        on_stock = on_stock_map.get(type_key, 0)
+    for type_key, label, nomenclature, on_stock, issued, issued_par, issued_tr in MAG_DEFS:
         rows.append(dict(label=label, nomenclature=nomenclature, type=type_key,
                          on_stock=on_stock, issued=issued,
                          issued_par=issued_par, issued_tr=issued_tr,
@@ -417,8 +425,8 @@ def dashboard_view(request):
         # 1 query: magazine + ammo totals
         _mag = Magazine.objects.aggregate(
             total=Sum('quantity'),
-            short=Sum('quantity', filter=Q(type='Short')),
-            long=Sum('quantity', filter=Q(type='Long')),
+            short=Sum('quantity', filter=Q(capacity='20-rounds', weapon_type='Rifle')),
+            long=Sum('quantity', filter=Q(capacity='30-rounds', weapon_type='Rifle')),
         )
 
         # 1 query: transaction day totals + all-time count
@@ -439,13 +447,13 @@ def dashboard_view(request):
             par_rifle=Count('record_id', filter=Q(issuance_type=_PAR,
                 withdraw_rifle__isnull=False, return_rifle__isnull=True)),
             short_mag_w=Sum('withdraw_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__type='Short')),
+                filter=Q(withdraw_rifle_magazine__capacity='20-rounds')),
             short_mag_r=Sum('return_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__type='Short')),
+                filter=Q(withdraw_rifle_magazine__capacity='20-rounds')),
             long_mag_w=Sum('withdraw_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__type='Long')),
+                filter=Q(withdraw_rifle_magazine__capacity='30-rounds')),
             long_mag_r=Sum('return_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__type='Long')),
+                filter=Q(withdraw_rifle_magazine__capacity='30-rounds')),
         )
 
         issued_tr  = _logs['tr_pistol']  + _logs['tr_rifle']
@@ -603,14 +611,14 @@ def dashboard_cards_json(request):
         'enlisted_count':           Personnel.objects.filter(status='Active').exclude(rank__in=list(_officer_ranks)).count(),
         # Magazine card
         'total_magazine_qty':       Magazine.objects.aggregate(t=Sum('quantity'))['t'] or 0,
-        'short_magazine_available': Magazine.objects.filter(type='Short').aggregate(t=Sum('quantity'))['t'] or 0,
-        'long_magazine_available':  Magazine.objects.filter(type='Long').aggregate(t=Sum('quantity'))['t'] or 0,
+        'short_magazine_available': Magazine.objects.filter(weapon_type='Rifle', capacity='20-rounds').aggregate(t=Sum('quantity'))['t'] or 0,
+        'long_magazine_available':  Magazine.objects.filter(weapon_type='Rifle', capacity='30-rounds').aggregate(t=Sum('quantity'))['t'] or 0,
         'short_magazine_issued': (lambda a: max((a['w'] or 0) - (a['r'] or 0), 0))(
-            TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__type='Short')
+            TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__capacity='20-rounds')
             .aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
         ),
         'long_magazine_issued': (lambda a: max((a['w'] or 0) - (a['r'] or 0), 0))(
-            TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__type='Long')
+            TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__capacity='30-rounds')
             .aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
         ),
         # Issued Firearms card

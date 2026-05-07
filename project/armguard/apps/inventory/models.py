@@ -55,12 +55,17 @@ RIFLE_AMMUNITION_TYPES = [
 AMMUNITION_TYPES = PISTOL_AMMUNITION_TYPES + RIFLE_AMMUNITION_TYPES
 # Pistol Magazine Types
 PISTOL_MAGAZINE_TYPES = [
-    ('Pistol Standard', 'Pistol Standard'),
+    ('Mag Assy, 9mm: Glock 17', 'Mag Assy, 9mm: Glock 17'),
+    ('Mag Assy, Cal.45: 7 rds Cap', 'Mag Assy, Cal.45: 7 rds Cap'),
+    ('Mag Assy, Cal.45: 8 rds Cap', 'Mag Assy, Cal.45: 8 rds Cap'),
+    ('Mag Assy, Cal.45: Hi Cap', 'Mag Assy, Cal.45: Hi Cap'),
 ]
 # Rifle Magazine Types
 RIFLE_MAGAZINE_TYPES = [
-    ('Short', 'Short'),
-    ('Long', 'Long'),
+    ('Mag Assy, 5.56mm: 20 rds Cap Alloy', 'Mag Assy, 5.56mm: 20 rds Cap Alloy'),
+    ('Mag Assy, 5.56mm: 30 rds Cap Alloy', 'Mag Assy, 5.56mm: 30 rds Cap Alloy'),
+    ('Mag Assy, 5.56mm: EMTAN', 'Mag Assy, 5.56mm: EMTAN'),
+    ('Mag Assy, 7.62mm: M14', 'Mag Assy, 7.62mm: M14'),
 ]
 # Combined magazine choices (pistol + rifle) — used by Magazine.type field.
 ALL_MAGAZINE_TYPES = PISTOL_MAGAZINE_TYPES + RIFLE_MAGAZINE_TYPES
@@ -681,9 +686,9 @@ class Magazine(models.Model):
     """
     Inventory pool model for pistol and rifle magazines.
     Each record represents a weapon_type + type pool:
-      - Pistol: weapon_type='Pistol', type='Pistol Standard'
-      - Rifle Short: weapon_type='Rifle', type='Short' (20-rounds)
-      - Rifle Long:  weapon_type='Rifle', type='Long'  (30-rounds)
+      - Pistol: weapon_type='Pistol' (e.g. 'Mag Assy, 9mm: Glock 17', 'Mag Assy, Cal.45: …')
+      - Rifle 20-rnd: weapon_type='Rifle', capacity='20-rounds'
+      - Rifle 30-rnd: weapon_type='Rifle', capacity='30-rounds'
     quantity reflects total available stock; transactions adjust it via adjust_quantity().
     Use can_be_withdrawn() before any Transaction withdrawal to validate available stock.
     """
@@ -698,16 +703,16 @@ class Magazine(models.Model):
         help_text="Optional category classification for this magazine pool."
     )
     # weapon_type distinguishes pistol pools from rifle pools.
-    # Pistol pools: type='Pistol Standard'  (max 4 per withdrawal per spec)
-    # Rifle pools:  type='Short' or 'Long'
+    # Pistol pools: weapon_type='Pistol' (multiple types, max 4 per withdrawal)
+    # Rifle pools:  weapon_type='Rifle', capacity='20-rounds' or '30-rounds'
     weapon_type = models.CharField(
         max_length=10,
         choices=[('Pistol', 'Pistol'), ('Rifle', 'Rifle')],
         default='Rifle',
         help_text="Whether this magazine pool is for pistols or rifles. Auto-set by save() from type."
     )
-    type = models.CharField(max_length=30, choices=ALL_MAGAZINE_TYPES)
-    # capacity is auto-set by save(): Pistol Standard ? 'Standard', Short ? '20-rounds', Long ? '30-rounds'.
+    type = models.CharField(max_length=50, choices=ALL_MAGAZINE_TYPES)
+    # capacity is auto-set by save() from the type string (see _TYPE_MAP inside save()).
     capacity = models.CharField(max_length=10, blank=True, editable=True)
     quantity = models.PositiveIntegerField(
         validators=[MinValueValidator(0)],
@@ -768,23 +773,26 @@ class Magazine(models.Model):
 
     def save(self, *args, **kwargs):
         """
-        Auto-sets weapon_type and capacity from type:
-          Pistol Standard ? weapon_type='Pistol', capacity='Standard'
-          Short           ? weapon_type='Rifle',  capacity='20-rounds'
-          Long            ? weapon_type='Rifle',  capacity='30-rounds'
+        Auto-sets weapon_type and capacity from the magazine type string.
         Records created/updated timestamps and the acting username.
         """
         user = kwargs.pop('user', None)
-        # Derive weapon_type and capacity label from magazine type
-        if self.type == 'Pistol Standard':
-            self.weapon_type = 'Pistol'
-            self.capacity = 'Standard'
-        elif self.type == 'Short':
-            self.weapon_type = 'Rifle'
-            self.capacity = '20-rounds'
-        elif self.type == 'Long':
-            self.weapon_type = 'Rifle'
-            self.capacity = '30-rounds'
+        # Map each magazine type to (weapon_type, capacity).
+        # capacity groups related types for dashboard/query aggregation.
+        _TYPE_MAP = {
+            # Pistol magazines
+            'Mag Assy, 9mm: Glock 17':            ('Pistol', 'Standard'),
+            'Mag Assy, Cal.45: 7 rds Cap':        ('Pistol', '7-rounds'),
+            'Mag Assy, Cal.45: 8 rds Cap':        ('Pistol', '8-rounds'),
+            'Mag Assy, Cal.45: Hi Cap':           ('Pistol', 'Hi-Cap'),
+            # Rifle magazines
+            'Mag Assy, 5.56mm: 20 rds Cap Alloy': ('Rifle', '20-rounds'),
+            'Mag Assy, 5.56mm: 30 rds Cap Alloy': ('Rifle', '30-rounds'),
+            'Mag Assy, 5.56mm: EMTAN':            ('Rifle', '30-rounds'),
+            'Mag Assy, 7.62mm: M14':              ('Rifle', 'M14'),
+        }
+        if self.type in _TYPE_MAP:
+            self.weapon_type, self.capacity = _TYPE_MAP[self.type]
         if not self.created:
             self.created = timezone.now()
             if user and not self.created_by:

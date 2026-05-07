@@ -160,9 +160,9 @@ class TransactionAdminForm(forms.ModelForm):
                     rifle_sling_quantity = _s.duty_security_rifle_sling_qty
                     cleaned_data['include_rifle_sling'] = True
             if _s.purpose_duty_security_auto_consumables:
-                # Rifle Magazine — Long type
+                # Rifle Magazine — 30-round type (alloy or EMTAN)
                 if not rifle_magazine:
-                    mag_pool = Magazine.objects.filter(weapon_type='Rifle', type='Long').first()
+                    mag_pool = Magazine.objects.filter(weapon_type='Rifle', capacity='30-rounds').order_by('-quantity').first()
                     if mag_pool:
                         cleaned_data['rifle_magazine'] = mag_pool
                         rifle_magazine = mag_pool
@@ -221,7 +221,7 @@ class TransactionAdminForm(forms.ModelForm):
         # open-log lookup in update_return_logs() matches the correct withdrawn record.
         if transaction_type == 'Withdrawal' and rifle_magazine_quantity and not rifle_magazine:
             from armguard.apps.inventory.models import Magazine
-            mag_pool = (Magazine.objects.filter(weapon_type='Rifle', type='Short').first()
+            mag_pool = (Magazine.objects.filter(weapon_type='Rifle', capacity='20-rounds').order_by('-quantity').first()
                         or Magazine.objects.filter(weapon_type='Rifle').first())
             if mag_pool:
                 cleaned_data['rifle_magazine'] = mag_pool

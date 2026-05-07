@@ -104,12 +104,17 @@ AMMUNITION_LOAD_ROUNDS = {
 # MAGAZINE TYPES — synced with inventory/models.py ALL_MAGAZINE_TYPES
 # ---------------------------------------------------------------------------
 PISTOL_MAGAZINE_TYPES = [
-    ('Pistol Standard', 'Pistol Standard'),
+    ('Mag Assy, 9mm: Glock 17', 'Mag Assy, 9mm: Glock 17'),
+    ('Mag Assy, Cal.45: 7 rds Cap', 'Mag Assy, Cal.45: 7 rds Cap'),
+    ('Mag Assy, Cal.45: 8 rds Cap', 'Mag Assy, Cal.45: 8 rds Cap'),
+    ('Mag Assy, Cal.45: Hi Cap', 'Mag Assy, Cal.45: Hi Cap'),
 ]
 
 RIFLE_MAGAZINE_TYPES = [
-    ('Short', 'Short'),  # 20-round rifle magazine
-    ('Long', 'Long'),    # 30-round rifle magazine
+    ('Mag Assy, 5.56mm: 20 rds Cap Alloy', 'Mag Assy, 5.56mm: 20 rds Cap Alloy'),
+    ('Mag Assy, 5.56mm: 30 rds Cap Alloy', 'Mag Assy, 5.56mm: 30 rds Cap Alloy'),
+    ('Mag Assy, 5.56mm: EMTAN', 'Mag Assy, 5.56mm: EMTAN'),
+    ('Mag Assy, 7.62mm: M14', 'Mag Assy, 7.62mm: M14'),
 ]
 
 ALL_MAGAZINE_TYPES = PISTOL_MAGAZINE_TYPES + RIFLE_MAGAZINE_TYPES
