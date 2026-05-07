@@ -65,8 +65,9 @@ def serve_item_tag_image(request, item_id):
         raise Http404('Item not found')
     media_root = Path(settings.MEDIA_ROOT).resolve()
     filepath = (media_root / 'item_id_tags' / f"{item_id}.png").resolve()
-    # 4.6 FIX: Ensure the resolved path is inside MEDIA_ROOT (prevents path traversal).
-    if not str(filepath).startswith(str(media_root)):
+    # Ensure the resolved path is strictly inside MEDIA_ROOT (prevents path traversal).
+    # is_relative_to() is correct: startswith(str) is fragile on sibling dirs that share a prefix.
+    if not filepath.is_relative_to(media_root):
         raise Http404('Invalid path')
     if not filepath.exists():
         raise Http404('Item tag image not found')
@@ -228,8 +229,9 @@ def delete_item_tag(request, item_id):
     from pathlib import Path
     media_root = Path(settings.MEDIA_ROOT).resolve()
     filepath = (media_root / 'item_id_tags' / f"{item_id}.png").resolve()
-    # 4.6 FIX: Prevent path traversal — reject any path that escapes MEDIA_ROOT.
-    if not str(filepath).startswith(str(media_root)):
+    # Prevent path traversal — reject any path that escapes MEDIA_ROOT.
+    # is_relative_to() is correct: startswith(str) is fragile on sibling dirs that share a prefix.
+    if not filepath.is_relative_to(media_root):
         return JsonResponse({'success': False, 'error': 'Invalid item ID'}, status=400)
     deleted = False
     if filepath.exists():

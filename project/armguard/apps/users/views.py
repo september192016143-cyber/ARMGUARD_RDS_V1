@@ -843,9 +843,25 @@ class SystemSettingsView(LoginRequiredMixin, View):
             obj.app_logo.delete(save=False)
             obj.app_logo = None
         elif request.FILES.get('app_logo'):
+            _logo_file = request.FILES['app_logo']
+            # Validate size (2 MB cap) and content (magic-byte check via Pillow).
+            _LOGO_MAX_BYTES = 2 * 1024 * 1024
+            if _logo_file.size > _LOGO_MAX_BYTES:
+                messages.error(request, 'Logo file too large (max 2 MB).')
+                return redirect('system-settings')
+            try:
+                from PIL import Image as _PilImg
+                _pil = _PilImg.open(_logo_file)
+                if _pil.format not in ('JPEG', 'PNG', 'GIF', 'WEBP'):
+                    raise ValueError('unsupported format')
+                _pil.verify()
+                _logo_file.seek(0)
+            except Exception:
+                messages.error(request, 'Logo must be a valid image file (JPEG, PNG, GIF, or WebP).')
+                return redirect('system-settings')
             if obj.app_logo:
                 obj.app_logo.delete(save=False)
-            obj.app_logo = request.FILES['app_logo']
+            obj.app_logo = _logo_file
         # ── Per-purpose auto TR print ─────────────────────────────────────────
         for field in [
             'auto_print_tr_duty_sentinel', 'auto_print_tr_duty_vigil',

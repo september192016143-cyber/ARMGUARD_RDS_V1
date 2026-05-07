@@ -356,6 +356,24 @@ def upload_image(request):
             status=400,
         )
 
+    # Validate using magic bytes (Pillow) — file extension is client-controlled and trivially spoofed.
+    # This matches the same check used in discrepancy and serial-capture upload views.
+    try:
+        from PIL import Image as _PilImage
+        _img = _PilImage.open(file)
+        if _img.format not in ('JPEG', 'PNG', 'GIF', 'WEBP'):
+            return JsonResponse(
+                {'success': False, 'error': 'File content is not a valid image.'},
+                status=400,
+            )
+        _img.verify()
+    except Exception:
+        return JsonResponse(
+            {'success': False, 'error': 'File is not a valid image.'},
+            status=400,
+        )
+    file.seek(0)
+
     # Auto-named filename: <username>_YYYYMMDD_<NNN>.<ext>
     # Never accept or trust client-supplied filenames on disk.
     date_str   = timezone.localdate().strftime('%Y%m%d')
