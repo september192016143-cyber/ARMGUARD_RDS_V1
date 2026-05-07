@@ -238,15 +238,15 @@ class TransactionAdminForm(forms.ModelForm):
                     pistol_magazine = mag_pool
         # ── AUTO-FILL: Rifle magazine quantity when blank ─────────────────────────
         if transaction_type == 'Withdrawal' and not _no_auto_consumables and rifle and not rifle_magazine_quantity:
-            _rm_type = getattr(cleaned_data.get('rifle_magazine'), 'type', None)
-            _rm_qty = _lq('rifle_long_mag_qty') if _rm_type == 'Long' else _lq('rifle_short_mag_qty')
+            _rm_cap = getattr(cleaned_data.get('rifle_magazine'), 'capacity', None)
+            _rm_qty = _lq('rifle_long_mag_qty') if _rm_cap == '30-rounds' else _lq('rifle_short_mag_qty')
             if _rm_qty > 0:
                 cleaned_data['rifle_magazine_quantity'] = _rm_qty
                 rifle_magazine_quantity = _rm_qty
                 if not cleaned_data.get('rifle_magazine'):
                     from armguard.apps.inventory.models import Magazine
-                    _preferred_type = _rm_type or 'Short'
-                    mag_pool = Magazine.objects.filter(weapon_type='Rifle', type=_preferred_type).first()
+                    _preferred_cap = _rm_cap or '20-rounds'
+                    mag_pool = Magazine.objects.filter(weapon_type='Rifle', capacity=_preferred_cap).order_by('-quantity').first()
                     if not mag_pool:
                         mag_pool = Magazine.objects.filter(weapon_type='Rifle').first()
                     if mag_pool:
