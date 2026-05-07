@@ -46,12 +46,13 @@ function updateRifleMagQtyHint(pcfg) {
   var hint = document.getElementById('rifle-mag-qty-hint');
   var shortQty = pcfg.rifle_short_mag_qty;
   var longQty  = pcfg.rifle_long_mag_qty;
-  // Detect selected magazine type from the dropdown option text (contains '20-rounds' or '30-rounds').
+  // Detect selected magazine type from the dropdown option text (contains '20-rounds', '30-rounds', or 'EMTAN').
   // Magazine.__str__ returns "<type> (<capacity>)" e.g. "Mag Assy, 5.56mm: 30 rds Cap Alloy (30-rounds)".
+  // EMTAN magazines display as "Mag Assy, 5.56mm: EMTAN (EMTAN)" — treated as long (30-rnd equiv).
   var magSel = document.getElementById('id_rifle_magazine') || document.querySelector('[name="rifle_magazine"]');
   var selText = (magSel && magSel.options && magSel.selectedIndex >= 0)
     ? (magSel.options[magSel.selectedIndex].text || '') : '';
-  var isLong  = /30-rounds/.test(selText);
+  var isLong  = /30-rounds|\(EMTAN\)/.test(selText);
   var isShort = /20-rounds/.test(selText);
 
   // Update hint label.

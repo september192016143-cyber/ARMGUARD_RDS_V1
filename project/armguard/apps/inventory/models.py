@@ -98,6 +98,48 @@ AMMO_WEAPON_COMPATIBILITY = {
         'M14 Rifle 7.62mm',
     ],
 }
+# Magazine-to-weapon caliber compatibility map.
+# Keys are Magazine.type values; values are lists of allowed pistol/rifle model strings.
+# Used by Transaction.clean() to validate that a magazine matches the weapon it is issued with.
+MAG_WEAPON_COMPATIBILITY = {
+    # --- Pistol magazines ---
+    'Mag Assy, 9mm: Glock 17': [
+        'Glock 17 9mm',
+    ],
+    'Mag Assy, Cal.45: 7 rds Cap': [
+        'M1911 Cal.45',
+        'Armscor Hi Cap Cal.45',
+        'RIA Hi Cap Cal.45',
+        'M1911 Customized Cal.45',
+    ],
+    'Mag Assy, Cal.45: 8 rds Cap': [
+        'M1911 Cal.45',
+        'Armscor Hi Cap Cal.45',
+        'RIA Hi Cap Cal.45',
+        'M1911 Customized Cal.45',
+    ],
+    'Mag Assy, Cal.45: Hi Cap': [
+        'Armscor Hi Cap Cal.45',
+        'RIA Hi Cap Cal.45',
+    ],
+    # --- Rifle magazines ---
+    'Mag Assy, 5.56mm: 20 rds Cap Alloy': [
+        'M4 Carbine DSAR-15 5.56mm',
+        'M16A1 Rifle 5.56mm',
+        'M653 Carbine 5.56mm',
+    ],
+    'Mag Assy, 5.56mm: 30 rds Cap Alloy': [
+        'M4 Carbine DSAR-15 5.56mm',
+        'M16A1 Rifle 5.56mm',
+        'M653 Carbine 5.56mm',
+    ],
+    'Mag Assy, 5.56mm: EMTAN': [
+        'M4 14.5" DGIS EMTAN 5.56mm',
+    ],
+    'Mag Assy, 7.62mm: M14': [
+        'M14 Rifle 7.62mm',
+    ],
+}
 # Standard maximum quantities per accessory type when paired with a weapon.
 # L4-EXT: Values are read live from SystemSettings so they can be changed
 # without a code or server restart.  The module-level dict is kept as a
@@ -788,7 +830,7 @@ class Magazine(models.Model):
             # Rifle magazines
             'Mag Assy, 5.56mm: 20 rds Cap Alloy': ('Rifle', '20-rounds'),
             'Mag Assy, 5.56mm: 30 rds Cap Alloy': ('Rifle', '30-rounds'),
-            'Mag Assy, 5.56mm: EMTAN':            ('Rifle', '30-rounds'),
+            'Mag Assy, 5.56mm: EMTAN':            ('Rifle', 'EMTAN'),
             'Mag Assy, 7.62mm: M14':              ('Rifle', 'M14'),
         }
         if self.type in _TYPE_MAP:

@@ -125,9 +125,9 @@ class TransactionAdminForm(forms.ModelForm):
                     magazine_pouch_quantity = _s.duty_sentinel_mag_pouch_qty
                     cleaned_data['include_magazine_pouch'] = True
             if _s.purpose_duty_sentinel_auto_consumables:
-                # Pistol Magazine
+                # Pistol Magazine — Duty Sentinel is always Glock 17 9mm (outer guard)
                 if not pistol_magazine:
-                    mag_pool = Magazine.objects.filter(weapon_type='Pistol').first()
+                    mag_pool = Magazine.objects.filter(type='Mag Assy, 9mm: Glock 17').order_by('-quantity').first()
                     if mag_pool:
                         cleaned_data['pistol_magazine'] = mag_pool
                         pistol_magazine = mag_pool
@@ -160,9 +160,18 @@ class TransactionAdminForm(forms.ModelForm):
                     rifle_sling_quantity = _s.duty_security_rifle_sling_qty
                     cleaned_data['include_rifle_sling'] = True
             if _s.purpose_duty_security_auto_consumables:
-                # Rifle Magazine — 30-round type (alloy or EMTAN)
+                # Rifle Magazine — caliber-aware:
+                #   M14 7.62mm   → 'M14' capacity pool
+                #   EMTAN 5.56mm → 'EMTAN' capacity (30-rounds EMTAN-specific mag)
+                #   Other 5.56mm → generic '30-rounds' alloy pool
                 if not rifle_magazine:
-                    mag_pool = Magazine.objects.filter(weapon_type='Rifle', capacity='30-rounds').order_by('-quantity').first()
+                    _ds_rifle_model = getattr(rifle, 'model', '') if rifle else ''
+                    if _ds_rifle_model == 'M14 Rifle 7.62mm':
+                        mag_pool = Magazine.objects.filter(weapon_type='Rifle', capacity='M14').order_by('-quantity').first()
+                    elif _ds_rifle_model == 'M4 14.5" DGIS EMTAN 5.56mm':
+                        mag_pool = Magazine.objects.filter(weapon_type='Rifle', type='Mag Assy, 5.56mm: EMTAN').order_by('-quantity').first()
+                    else:
+                        mag_pool = Magazine.objects.filter(weapon_type='Rifle', capacity='30-rounds').order_by('-quantity').first()
                     if mag_pool:
                         cleaned_data['rifle_magazine'] = mag_pool
                         rifle_magazine = mag_pool
@@ -171,12 +180,17 @@ class TransactionAdminForm(forms.ModelForm):
                     if _long_qty > 0:
                         cleaned_data['rifle_magazine_quantity'] = _long_qty
                         rifle_magazine_quantity = _long_qty
-                # Rifle Ammunition — M193 5.56mm
+                # Rifle Ammunition — caliber-aware: use AMMO_WEAPON_COMPATIBILITY to match the issued rifle.
                 if not rifle_ammunition:
-                    ammo_pool = Ammunition.objects.filter(type='M193 5.56mm Ball 428 Ctg').first()
-                    if ammo_pool:
-                        cleaned_data['rifle_ammunition'] = ammo_pool
-                        rifle_ammunition = ammo_pool
+                    from armguard.apps.inventory.models import AMMO_WEAPON_COMPATIBILITY
+                    _ds_rifle_model = getattr(rifle, 'model', '') if rifle else ''
+                    for _ammo_type, _weapons in AMMO_WEAPON_COMPATIBILITY.items():
+                        if _ds_rifle_model in _weapons:
+                            ammo_pool = Ammunition.objects.filter(type=_ammo_type).first()
+                            if ammo_pool:
+                                cleaned_data['rifle_ammunition'] = ammo_pool
+                                rifle_ammunition = ammo_pool
+                            break
                 if not rifle_ammunition_quantity and _s.duty_security_rifle_ammo_qty > 0:
                     cleaned_data['rifle_ammunition_quantity'] = _s.duty_security_rifle_ammo_qty
                     rifle_ammunition_quantity = _s.duty_security_rifle_ammo_qty
@@ -209,8 +223,13 @@ class TransactionAdminForm(forms.ModelForm):
                 return int(val) if val is not None else fallback
             return fallback
         if transaction_type == 'Withdrawal' and not _no_auto_consumables and pistol_magazine_quantity and not pistol_magazine:
-            from armguard.apps.inventory.models import Magazine
-            mag_pool = Magazine.objects.filter(weapon_type='Pistol').first()
+            from armguard.apps.inventory.models import Magazine, MAG_WEAPON_COMPATIBILITY
+            _pa_pistol_model = getattr(pistol, 'model', '') if pistol else ''
+            _pa_allowed_types = [t for t, models in MAG_WEAPON_COMPATIBILITY.items() if _pa_pistol_model in models]
+            if _pa_allowed_types:
+                mag_pool = Magazine.objects.filter(weapon_type='Pistol', type__in=_pa_allowed_types).order_by('-quantity').first()
+            else:
+                mag_pool = Magazine.objects.filter(weapon_type='Pistol').order_by('-quantity').first()
             if mag_pool:
                 cleaned_data['pistol_magazine'] = mag_pool
                 pistol_magazine = mag_pool
@@ -221,8 +240,14 @@ class TransactionAdminForm(forms.ModelForm):
         # open-log lookup in update_return_logs() matches the correct withdrawn record.
         if transaction_type == 'Withdrawal' and rifle_magazine_quantity and not rifle_magazine:
             from armguard.apps.inventory.models import Magazine
-            mag_pool = (Magazine.objects.filter(weapon_type='Rifle', capacity='20-rounds').order_by('-quantity').first()
-                        or Magazine.objects.filter(weapon_type='Rifle').first())
+            _ar_rifle_model = getattr(rifle, 'model', '') if rifle else ''
+            if _ar_rifle_model == 'M14 Rifle 7.62mm':
+                _ar_default_cap = 'M14'
+                mag_pool = Magazine.objects.filter(weapon_type='Rifle', capacity=_ar_default_cap).order_by('-quantity').first()
+            elif _ar_rifle_model == 'M4 14.5" DGIS EMTAN 5.56mm':
+                mag_pool = Magazine.objects.filter(weapon_type='Rifle', type='Mag Assy, 5.56mm: EMTAN').order_by('-quantity').first()
+            else:
+                mag_pool = Magazine.objects.filter(weapon_type='Rifle', capacity='20-rounds').order_by('-quantity').first()
             if mag_pool:
                 cleaned_data['rifle_magazine'] = mag_pool
                 rifle_magazine = mag_pool
@@ -231,24 +256,41 @@ class TransactionAdminForm(forms.ModelForm):
             cleaned_data['pistol_magazine_quantity'] = _lq('pistol_mag_qty')
             pistol_magazine_quantity = _lq('pistol_mag_qty')
             if not pistol_magazine:
-                from armguard.apps.inventory.models import Magazine
-                mag_pool = Magazine.objects.filter(weapon_type='Pistol').first()
+                from armguard.apps.inventory.models import Magazine, MAG_WEAPON_COMPATIBILITY
+                _pf_pistol_model = getattr(pistol, 'model', '')
+                _pf_allowed_types = [t for t, models in MAG_WEAPON_COMPATIBILITY.items() if _pf_pistol_model in models]
+                if _pf_allowed_types:
+                    mag_pool = Magazine.objects.filter(weapon_type='Pistol', type__in=_pf_allowed_types).order_by('-quantity').first()
+                else:
+                    mag_pool = Magazine.objects.filter(weapon_type='Pistol').order_by('-quantity').first()
                 if mag_pool:
                     cleaned_data['pistol_magazine'] = mag_pool
                     pistol_magazine = mag_pool
         # ── AUTO-FILL: Rifle magazine quantity when blank ─────────────────────────
         if transaction_type == 'Withdrawal' and not _no_auto_consumables and rifle and not rifle_magazine_quantity:
             _rm_cap = getattr(cleaned_data.get('rifle_magazine'), 'capacity', None)
-            _rm_qty = _lq('rifle_long_mag_qty') if _rm_cap == '30-rounds' else _lq('rifle_short_mag_qty')
+            _af_rifle_model = getattr(rifle, 'model', '')
+            if _af_rifle_model == 'M14 Rifle 7.62mm':
+                # M14 is a 7.62mm rifle — use short-mag qty slot as no dedicated M14 setting exists
+                _rm_qty = _lq('rifle_short_mag_qty')
+            elif _af_rifle_model == 'M4 14.5" DGIS EMTAN 5.56mm':
+                # EMTAN rifle uses its own EMTAN mag; treat as 30-round equivalent for qty purposes
+                _rm_qty = _lq('rifle_long_mag_qty')
+            else:
+                _rm_qty = _lq('rifle_long_mag_qty') if _rm_cap == '30-rounds' else _lq('rifle_short_mag_qty')
             if _rm_qty > 0:
                 cleaned_data['rifle_magazine_quantity'] = _rm_qty
                 rifle_magazine_quantity = _rm_qty
                 if not cleaned_data.get('rifle_magazine'):
                     from armguard.apps.inventory.models import Magazine
-                    _preferred_cap = _rm_cap or '20-rounds'
-                    mag_pool = Magazine.objects.filter(weapon_type='Rifle', capacity=_preferred_cap).order_by('-quantity').first()
-                    if not mag_pool:
-                        mag_pool = Magazine.objects.filter(weapon_type='Rifle').first()
+                    if _af_rifle_model == 'M14 Rifle 7.62mm':
+                        _preferred_cap = 'M14'
+                        mag_pool = Magazine.objects.filter(weapon_type='Rifle', capacity=_preferred_cap).order_by('-quantity').first()
+                    elif _af_rifle_model == 'M4 14.5" DGIS EMTAN 5.56mm':
+                        mag_pool = Magazine.objects.filter(weapon_type='Rifle', type='Mag Assy, 5.56mm: EMTAN').order_by('-quantity').first()
+                    else:
+                        _preferred_cap = _rm_cap or '20-rounds'
+                        mag_pool = Magazine.objects.filter(weapon_type='Rifle', capacity=_preferred_cap).order_by('-quantity').first()
                     if mag_pool:
                         cleaned_data['rifle_magazine'] = mag_pool
                         rifle_magazine = mag_pool

@@ -259,6 +259,7 @@ def _build_magazine_table():
     pistol_stock   = _grp_stock('Pistol')
     rifle_20_stock = _grp_stock('Rifle', '20-rounds')
     rifle_30_stock = _grp_stock('Rifle', '30-rounds')
+    emtan_stock    = _grp_stock('Rifle', 'EMTAN')
 
     # N+1 FIX: replace 9 separate per-type queries with 3 conditional aggregates
     # (total, PAR, TR) — one database round-trip each instead of one per type×issuance.
@@ -278,6 +279,10 @@ def _build_magazine_table():
                 filter=Q(withdraw_rifle_magazine__capacity='M14')),
             m14_r=Sum('return_rifle_magazine_quantity',
                 filter=Q(withdraw_rifle_magazine__capacity='M14')),
+            emtan_w=Sum('withdraw_rifle_magazine_quantity',
+                filter=Q(withdraw_rifle_magazine__capacity='EMTAN')),
+            emtan_r=Sum('return_rifle_magazine_quantity',
+                filter=Q(withdraw_rifle_magazine__capacity='EMTAN')),
         )
 
     def _net(a, w, r):
@@ -297,15 +302,19 @@ def _build_magazine_table():
     long_issued_par   = _net(par_agg,   'long_w',   'long_r')
     long_issued_tr    = _net(tr_agg,    'long_w',   'long_r')
     m14_stock         = _grp_stock('Rifle', 'M14')
-    m14_issued        = _net(total_agg, 'm14_w',  'm14_r')
-    m14_issued_par    = _net(par_agg,   'm14_w',  'm14_r')
-    m14_issued_tr     = _net(tr_agg,    'm14_w',  'm14_r')
+    m14_issued        = _net(total_agg, 'm14_w',   'm14_r')
+    m14_issued_par    = _net(par_agg,   'm14_w',   'm14_r')
+    m14_issued_tr     = _net(tr_agg,    'm14_w',   'm14_r')
+    emtan_issued      = _net(total_agg, 'emtan_w', 'emtan_r')
+    emtan_issued_par  = _net(par_agg,   'emtan_w', 'emtan_r')
+    emtan_issued_tr   = _net(tr_agg,    'emtan_w', 'emtan_r')
 
     MAG_DEFS = [
         ('Pistol',   'Pistol', 'Pistol Magazine',              pistol_stock,   pistol_issued, pistol_issued_par, pistol_issued_tr),
         ('Rifle-20', 'Rifle',  'Rifle Magazine (20-rnd)',       rifle_20_stock, short_issued,  short_issued_par,  short_issued_tr),
         ('Rifle-30', 'Rifle',  'Rifle Magazine (30-rnd)',       rifle_30_stock, long_issued,   long_issued_par,   long_issued_tr),
-        ('Rifle-M14','Rifle',  'Rifle Magazine (7.62mm M14)',   m14_stock,      m14_issued,    m14_issued_par,    m14_issued_tr),
+        ('Rifle-M14', 'Rifle', 'Rifle Magazine (7.62mm M14)',   m14_stock,   m14_issued,   m14_issued_par,   m14_issued_tr),
+        ('Rifle-EMTAN','Rifle', 'Rifle Magazine (5.56mm EMTAN)',  emtan_stock, emtan_issued, emtan_issued_par, emtan_issued_tr),
     ]
     list_url = reverse('magazine-list')
     rows, totals = [], {'on_stock': 0, 'issued': 0, 'issued_par': 0, 'issued_tr': 0}
