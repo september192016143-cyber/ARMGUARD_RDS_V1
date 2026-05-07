@@ -46,12 +46,13 @@ function updateRifleMagQtyHint(pcfg) {
   var hint = document.getElementById('rifle-mag-qty-hint');
   var shortQty = pcfg.rifle_short_mag_qty;
   var longQty  = pcfg.rifle_long_mag_qty;
-  // Detect selected magazine type from the dropdown option text (contains 'Short' or 'Long').
+  // Detect selected magazine type from the dropdown option text (contains '20-rounds' or '30-rounds').
+  // Magazine.__str__ returns "<type> (<capacity>)" e.g. "Mag Assy, 5.56mm: 30 rds Cap Alloy (30-rounds)".
   var magSel = document.getElementById('id_rifle_magazine') || document.querySelector('[name="rifle_magazine"]');
   var selText = (magSel && magSel.options && magSel.selectedIndex >= 0)
     ? (magSel.options[magSel.selectedIndex].text || '') : '';
-  var isLong  = /\blong\b/i.test(selText);
-  var isShort = /\bshort\b/i.test(selText);
+  var isLong  = /30-rounds/.test(selText);
+  var isShort = /20-rounds/.test(selText);
 
   // Update hint label.
   if (hint) {
@@ -111,7 +112,7 @@ function toggleWeaponSections() {
   if (rifleslingQtyLabel && pcfg.rifle_sling_qty !== undefined) rifleslingQtyLabel.textContent = _qtyText(pcfg.rifle_sling_qty);
   if (bandoleerQtyLabel  && pcfg.bandoleer_qty   !== undefined) bandoleerQtyLabel.textContent  = _qtyText(pcfg.bandoleer_qty);
 
-  // Rifle magazine qty hint: update based on selected magazine type (Short/Long).
+  // Rifle magazine qty hint: update based on selected magazine type (20-rounds/30-rounds).
   updateRifleMagQtyHint(pcfg);
 
   // Auto-check rifle sling and bandoleer based on purpose config qty.
