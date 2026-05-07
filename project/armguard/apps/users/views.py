@@ -1353,7 +1353,7 @@ def simulate_orex_run(request):
 
     try:
         count    = max(1, min(int(request.POST.get('sim_count', 114)), 500))
-        operator = request.POST.get('sim_operator', '').strip() or request.user.username
+        operator = (request.POST.get('sim_operator', '').strip() or request.user.username)[:150]
         commit   = request.POST.get('sim_commit') == '1'
         delay    = max(0, min(int(request.POST.get('sim_delay', 5)), 60))
     except (ValueError, TypeError):
@@ -1456,35 +1456,29 @@ def _run_orex_background(run_id, user_pk):
 
         ss = SystemSettings.get()
 
-        # Rifle magazine pool — pick the fullest single pool that can cover all
-        # pairs; 20-round preferred over 30-round.  Using order_by('-quantity') and
-        # filtering by quantity__gte(pairs_count) avoids the "Available: 0"
-        # error caused by picking a near-empty pool record first.
-        _pairs_count = min(len(personnel_list), len(available_rifles))
-        _rifle_mag_pool = (
-            _Magazine.objects
-            .filter(weapon_type='Rifle', capacity='20-rounds', quantity__gte=_pairs_count)
-            .order_by('-quantity')
-            .first()
-        ) or (
-            _Magazine.objects
-            .filter(weapon_type='Rifle', capacity='30-rounds', quantity__gte=_pairs_count)
-            .order_by('-quantity')
-            .first()
-        ) or (
-            # Fallback: best available 20-round even if stock < pairs_count
-            _Magazine.objects
-            .filter(weapon_type='Rifle', capacity='20-rounds', quantity__gt=0)
-            .order_by('-quantity')
-            .first()
-        ) or (
-            # Last resort: best available 30-round
-            _Magazine.objects
-            .filter(weapon_type='Rifle', capacity='30-rounds', quantity__gt=0)
-            .order_by('-quantity')
-            .first()
-        )
-        _rifle_mag_qty  = 1 if _rifle_mag_pool else None
+        # Magazine pool selection is now done per-transaction inside the loop
+        # because different rifle models require different magazine calibers:
+        #   M14 Rifle 7.62mm     → 'M14' capacity (Mag Assy, 7.62mm: M14)
+        #   M4 14.5" DGIS EMTAN  → 'EMTAN' type   (Mag Assy, 5.56mm: EMTAN)
+        #   All other 5.56mm     → '20-rounds' or '30-rounds' alloy pool
+        # Pre-cache pool objects keyed by capacity to avoid N queries per pair.
+        from armguard.apps.inventory.models import MAG_WEAPON_COMPATIBILITY as _MAG_COMPAT
+        _mag_pool_cache = {}
+
+        def _get_orex_mag_pool(rifle_model):
+            """Return the best available magazine pool for the given rifle model."""
+            allowed_types = [t for t, ms in _MAG_COMPAT.items() if rifle_model in ms]
+            if not allowed_types:
+                return None
+            pool = (
+                _Magazine.objects
+                .filter(weapon_type='Rifle', type__in=allowed_types, quantity__gt=0)
+                .order_by('-quantity')
+                .first()
+            )
+            return pool
+
+        _rifle_mag_qty = 1  # OREX standard: 1 magazine per rifle
 
         _rifle_sling_qty = ss.orex_rifle_sling_qty if ss.orex_rifle_sling_qty else None
         _bandoleer_qty   = ss.orex_bandoleer_qty   if ss.orex_bandoleer_qty   else None
@@ -1517,6 +1511,13 @@ def _run_orex_background(run_id, user_pk):
 
         for idx, (person, rifle) in enumerate(pairs, start=1):
             person_name = f'{person.rank or ""} {person.first_name} {person.last_name}'.strip()
+            # Select magazine pool caliber-matched to this specific rifle model.
+            _rifle_model = getattr(rifle, 'model', '')
+            _rifle_mag_pool = _mag_pool_cache.get(_rifle_model)
+            if _rifle_mag_pool is None:
+                _rifle_mag_pool = _get_orex_mag_pool(_rifle_model)
+                # Cache even None so we don't re-query for same model that has no stock.
+                _mag_pool_cache[_rifle_model] = _rifle_mag_pool
             txn = Transaction(
                 transaction_type='Withdrawal',
                 issuance_type='TR (Temporary Receipt)',

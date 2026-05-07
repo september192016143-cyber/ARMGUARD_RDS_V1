@@ -411,7 +411,26 @@ class Transaction(models.Model):
                         f"'{self.rifle.model}'. Allowed weapons: {', '.join(allowed_weapons)}."
                     )
 
-            # ── Magazine quantity caps ─────────────────────────────────────────
+            # ── Magazine-weapon caliber compatibility ──────────────────────────
+            from armguard.apps.inventory.models import MAG_WEAPON_COMPATIBILITY
+            if self.pistol_magazine and self.pistol:
+                mag_type = self.pistol_magazine.type
+                allowed = MAG_WEAPON_COMPATIBILITY.get(mag_type, [])
+                if allowed and self.pistol.model not in allowed:
+                    raise ValidationError(
+                        f"Magazine '{mag_type}' is not compatible with "
+                        f"'{self.pistol.model}'. Compatible pistols: {', '.join(allowed)}."
+                    )
+            if self.rifle_magazine and self.rifle:
+                mag_type = self.rifle_magazine.type
+                allowed = MAG_WEAPON_COMPATIBILITY.get(mag_type, [])
+                if allowed and self.rifle.model not in allowed:
+                    raise ValidationError(
+                        f"Magazine '{mag_type}' is not compatible with "
+                        f"'{self.rifle.model}'. Compatible rifles: {', '.join(allowed)}."
+                    )
+
+
             # L4 FIX: Use _get_magazine_max_qty() so Django-settings overrides
             # are respected at call time rather than at module import time.
             #
@@ -752,11 +771,43 @@ class Transaction(models.Model):
                 return qs.select_for_update() if _conn.vendor != 'sqlite' else qs
 
             if self.personnel_id:
-                _lock(Personnel.objects.filter(pk=self.personnel_id)).get()
+                _fresh_person = _lock(Personnel.objects.filter(pk=self.personnel_id)).get()
+                # M-12b: Post-lock re-validation. The SELECT FOR UPDATE above blocks
+                # until any concurrent transaction for this personnel commits.  We
+                # re-check the two most critical business rules against the now-current
+                # DB row so that a concurrent Withdrawal that beat us can't cause
+                # double-issuance even under PostgreSQL read-committed isolation.
+                if not self.pk and self.transaction_type == 'Withdrawal':
+                    if self.pistol_id and _fresh_person.has_pistol_issued():
+                        raise ValidationError(
+                            f"Personnel {_fresh_person.Personnel_ID} already has pistol "
+                            f"'{_fresh_person.pistol_item_issued}' issued "
+                            "(concurrent transaction detected). "
+                            "Please try again or select a different personnel."
+                        )
+                    if self.rifle_id and _fresh_person.has_rifle_issued():
+                        raise ValidationError(
+                            f"Personnel {_fresh_person.Personnel_ID} already has rifle "
+                            f"'{_fresh_person.rifle_item_issued}' issued "
+                            "(concurrent transaction detected). "
+                            "Please try again or select a different personnel."
+                        )
             if self.pistol_id:
-                _lock(Pistol.objects.filter(pk=self.pistol_id)).get()
+                _fresh_pistol = _lock(Pistol.objects.filter(pk=self.pistol_id)).get()
+                # Post-lock check: confirm the pistol wasn't issued between clean() and now.
+                if not self.pk and self.transaction_type == 'Withdrawal' and _fresh_pistol.item_status == 'Issued':
+                    raise ValidationError(
+                        f"Pistol {_fresh_pistol.item_id} was just issued to another operator "
+                        "(concurrent transaction). Please select a different pistol."
+                    )
             if self.rifle_id:
-                _lock(Rifle.objects.filter(pk=self.rifle_id)).get()
+                _fresh_rifle = _lock(Rifle.objects.filter(pk=self.rifle_id)).get()
+                # Post-lock check: confirm the rifle wasn't issued between clean() and now.
+                if not self.pk and self.transaction_type == 'Withdrawal' and _fresh_rifle.item_status == 'Issued':
+                    raise ValidationError(
+                        f"Rifle {_fresh_rifle.item_id} was just issued to another operator "
+                        "(concurrent transaction). Please select a different rifle."
+                    )
             # L10-EXT: Lock consumable pool rows to prevent double-adjustment race
             # conditions on Magazine, Ammunition, and Accessory pools.
             if self.pistol_magazine_id:
