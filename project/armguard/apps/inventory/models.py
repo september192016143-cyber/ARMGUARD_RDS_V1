@@ -731,6 +731,8 @@ class Magazine(models.Model):
       - Pistol: weapon_type='Pistol' (e.g. 'Mag Assy, 9mm: Glock 17', 'Mag Assy, Cal.45: …')
       - Rifle 20-rnd: weapon_type='Rifle', capacity='20-rounds'
       - Rifle 30-rnd: weapon_type='Rifle', capacity='30-rounds'
+      - Rifle EMTAN:  weapon_type='Rifle', capacity='EMTAN'
+      - Rifle M14:    weapon_type='Rifle', capacity='M14'
     quantity reflects total available stock; transactions adjust it via adjust_quantity().
     Use can_be_withdrawn() before any Transaction withdrawal to validate available stock.
     """
@@ -746,7 +748,7 @@ class Magazine(models.Model):
     )
     # weapon_type distinguishes pistol pools from rifle pools.
     # Pistol pools: weapon_type='Pistol' (multiple types, max 4 per withdrawal)
-    # Rifle pools:  weapon_type='Rifle', capacity='20-rounds' or '30-rounds'
+    # Rifle pools:  weapon_type='Rifle', capacity='20-rounds', '30-rounds', 'EMTAN', or 'M14'
     weapon_type = models.CharField(
         max_length=10,
         choices=[('Pistol', 'Pistol'), ('Rifle', 'Rifle')],
