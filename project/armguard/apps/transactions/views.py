@@ -403,9 +403,14 @@ def create_transaction(request):
             # Create discrepancy record if the operator flagged one on Return.
             if (request.POST.get('report_discrepancy')
                     and txn.transaction_type == 'Return'):
-                from armguard.apps.inventory.pistol_rifle_discrepancy_model import FirearmDiscrepancy
+                from armguard.apps.inventory.pistol_rifle_discrepancy_model import (
+                    FirearmDiscrepancy, DISCREPANCY_TYPE_CHOICES,
+                )
+                _valid_disc_types = {c for c, _ in DISCREPANCY_TYPE_CHOICES}
                 _disc_type = request.POST.get('discrepancy_type', '').strip()
                 _disc_desc = request.POST.get('discrepancy_description', '').strip()
+                if _disc_type not in _valid_disc_types:
+                    _disc_type = ''
                 if _disc_type and _disc_desc:
                     # Validate images once before the loop; warn if any were rejected.
                     _disc_uploads = [
