@@ -626,6 +626,10 @@ class TransactionAdminForm(forms.ModelForm):
                         f"No open withdrawal record found for pistol magazine '{pistol_magazine}' for "
                         f"personnel {personnel.Personnel_ID}."
                     )
+                elif (pistol_magazine_quantity or 0) <= 0:
+                    errors.append(
+                        f"Return quantity must be greater than 0 for pistol magazine '{pistol_magazine}'."
+                    )
                 elif (pistol_magazine_quantity or 0) > (open_log.withdraw_pistol_magazine_quantity or 0):
                     errors.append(
                         f"Return quantity ({pistol_magazine_quantity}) exceeds the originally withdrawn "
@@ -642,6 +646,10 @@ class TransactionAdminForm(forms.ModelForm):
                     errors.append(
                         f"No open withdrawal record found for rifle magazine '{rifle_magazine}' for "
                         f"personnel {personnel.Personnel_ID}."
+                    )
+                elif (rifle_magazine_quantity or 0) <= 0:
+                    errors.append(
+                        f"Return quantity must be greater than 0 for rifle magazine '{rifle_magazine}'."
                     )
                 elif (rifle_magazine_quantity or 0) > (open_log.withdraw_rifle_magazine_quantity or 0):
                     errors.append(
@@ -660,6 +668,10 @@ class TransactionAdminForm(forms.ModelForm):
                         f"No open withdrawal record found for pistol ammunition '{pistol_ammunition}' for "
                         f"personnel {personnel.Personnel_ID}."
                     )
+                elif (pistol_ammunition_quantity or 0) <= 0:
+                    errors.append(
+                        f"Return quantity must be greater than 0 for pistol ammunition '{pistol_ammunition}'."
+                    )
                 elif (pistol_ammunition_quantity or 0) > (open_log.withdraw_pistol_ammunition_quantity or 0):
                     errors.append(
                         f"Return quantity ({pistol_ammunition_quantity}) exceeds the originally withdrawn "
@@ -676,6 +688,10 @@ class TransactionAdminForm(forms.ModelForm):
                     errors.append(
                         f"No open withdrawal record found for rifle ammunition '{rifle_ammunition}' for "
                         f"personnel {personnel.Personnel_ID}."
+                    )
+                elif (rifle_ammunition_quantity or 0) <= 0:
+                    errors.append(
+                        f"Return quantity must be greater than 0 for rifle ammunition '{rifle_ammunition}'."
                     )
                 elif (rifle_ammunition_quantity or 0) > (open_log.withdraw_rifle_ammunition_quantity or 0):
                     errors.append(

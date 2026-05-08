@@ -615,6 +615,10 @@ class Transaction(models.Model):
                     )
                 return_qty = self.pistol_magazine_quantity or 0
                 withdrawn_qty = open_log.withdraw_pistol_magazine_quantity or 0
+                if return_qty <= 0:
+                    raise ValidationError(
+                        f"Return quantity must be greater than 0 for pistol magazine '{self.pistol_magazine}'."
+                    )
                 if return_qty > withdrawn_qty:
                     raise ValidationError(
                         f"Return quantity ({return_qty}) exceeds withdrawn quantity "
@@ -634,6 +638,10 @@ class Transaction(models.Model):
                     )
                 return_qty = self.rifle_magazine_quantity or 0
                 withdrawn_qty = open_log.withdraw_rifle_magazine_quantity or 0
+                if return_qty <= 0:
+                    raise ValidationError(
+                        f"Return quantity must be greater than 0 for rifle magazine '{self.rifle_magazine}'."
+                    )
                 if return_qty > withdrawn_qty:
                     raise ValidationError(
                         f"Return quantity ({return_qty}) exceeds withdrawn quantity "
@@ -653,6 +661,10 @@ class Transaction(models.Model):
                     )
                 return_qty = self.pistol_ammunition_quantity or 0
                 withdrawn_qty = open_log.withdraw_pistol_ammunition_quantity or 0
+                if return_qty <= 0:
+                    raise ValidationError(
+                        f"Return quantity must be greater than 0 for pistol ammunition '{self.pistol_ammunition}'."
+                    )
                 if return_qty > withdrawn_qty:
                     raise ValidationError(
                         f"Return quantity ({return_qty}) exceeds withdrawn quantity "
@@ -672,6 +684,10 @@ class Transaction(models.Model):
                     )
                 return_qty = self.rifle_ammunition_quantity or 0
                 withdrawn_qty = open_log.withdraw_rifle_ammunition_quantity or 0
+                if return_qty <= 0:
+                    raise ValidationError(
+                        f"Return quantity must be greater than 0 for rifle ammunition '{self.rifle_ammunition}'."
+                    )
                 if return_qty > withdrawn_qty:
                     raise ValidationError(
                         f"Return quantity ({return_qty}) exceeds withdrawn quantity "
