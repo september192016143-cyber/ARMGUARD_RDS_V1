@@ -929,17 +929,6 @@ def serial_capture_upload(request, token):
         return JsonResponse({'error': 'File is not a valid image.'}, status=400)
     file.seek(0)
 
-    # Validate using magic bytes (Pillow) — content_type is client-controlled.
-    try:
-        from PIL import Image, UnidentifiedImageError
-        img = Image.open(file)
-        if img.format not in ('JPEG', 'PNG', 'WEBP'):
-            return JsonResponse({'error': 'Invalid image format.'}, status=400)
-        img.verify()
-    except Exception:
-        return JsonResponse({'error': 'File is not a valid image.'}, status=400)
-    file.seek(0)
-
     if session.image:
         try:
             session.image.delete(save=False)
