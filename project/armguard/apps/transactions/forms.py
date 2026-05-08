@@ -761,6 +761,7 @@ class WithdrawalReturnTransactionForm(TransactionAdminForm):
     purpose_other = forms.CharField(
         required=False,
         label="Other Purpose",
+        max_length=100,
         widget=forms.TextInput(attrs={'placeholder': 'Enter purpose'}),
     )
 

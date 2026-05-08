@@ -60,6 +60,20 @@ class ProfileEditForm(forms.Form):
             ext = photo.name.lower().rsplit('.', 1)[-1]
             if ext not in ('jpg', 'jpeg', 'png', 'gif', 'webp'):
                 raise ValidationError('Invalid image format. Use JPG, PNG, GIF, or WebP.')
+            # SECURITY FIX: Validate magic bytes via Pillow — extension checks are
+            # trivially bypassed by renaming a non-image file to .jpg etc.
+            try:
+                from PIL import Image, UnidentifiedImageError
+                img = Image.open(photo)
+                if img.format not in ('JPEG', 'PNG', 'GIF', 'WEBP'):
+                    raise ValidationError('Invalid image format. Use JPG, PNG, GIF, or WebP.')
+                img.verify()
+            except ValidationError:
+                raise
+            except Exception:
+                raise ValidationError('Uploaded file is not a valid image.')
+            finally:
+                photo.seek(0)
         return photo
 
 
