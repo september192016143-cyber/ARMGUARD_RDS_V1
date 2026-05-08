@@ -437,7 +437,8 @@ def _download_drive_photo(file_id: str) -> bytes | None:
 
 def _save_personnel_photo(p: 'Personnel', photo_bytes: bytes) -> None:
 	"""Write photo_bytes to a media path and set p.personnel_image."""
-	import uuid
+	import os, uuid
+	from django.conf import settings
 	rel = f'personnel_id_cards/{p.AFSN}_{uuid.uuid4().hex[:8]}.jpg'
 	abs_path = os.path.join(settings.MEDIA_ROOT, rel)
 	os.makedirs(os.path.dirname(abs_path), exist_ok=True)
@@ -459,6 +460,7 @@ def _import_rows(request, data_rows, group_override='', upsert=False):
 	created_count = 0
 	updated_count = 0
 	skipped = []
+	import re as _re
 
 	def g(row, key, default=''):
 		return str(row.get(key) or '').strip() or default
@@ -479,7 +481,6 @@ def _import_rows(request, data_rows, group_override='', upsert=False):
 			status = 'Active'
 
 		# ── Validation ────────────────────────────────────────────────────────
-		import re as _re
 		row_errors = []
 		if rank not in valid_ranks:
 			row_errors.append(f'invalid rank "{rank}"')
