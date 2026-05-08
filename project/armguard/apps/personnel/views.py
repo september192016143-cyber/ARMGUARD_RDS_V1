@@ -223,12 +223,17 @@ class PersonnelCardPreviewView(LoginRequiredMixin, UserPassesTestMixin, View):
 			# Edit form: no new upload — use the existing saved photo path
 			existing = source.get('existing_personnel_image', '').strip()
 			if existing:
-				# Prevent path traversal: normalise and confirm resolves inside MEDIA_ROOT.
-				safe_rel = os.path.normpath(existing)
-				if not safe_rel.startswith('..'):
-					abs_path = os.path.realpath(os.path.join(settings.MEDIA_ROOT, safe_rel))
-					if abs_path.startswith(os.path.realpath(settings.MEDIA_ROOT)) and os.path.isfile(abs_path):
-						p.personnel_image = safe_rel
+				# Prevent path traversal: resolve fully and confirm it sits inside MEDIA_ROOT.
+				# Path.is_relative_to() avoids the startswith() false-match on sibling directories
+				# that share a common prefix (e.g. /srv/media_evil when root is /srv/media).
+				from pathlib import Path as _PathT
+				_media_root = _PathT(settings.MEDIA_ROOT).resolve()
+				try:
+					_abs = _PathT(os.path.join(settings.MEDIA_ROOT, existing)).resolve()
+					if _abs.is_relative_to(_media_root) and _abs.is_file():
+						p.personnel_image = str(_abs.relative_to(_media_root))
+				except (ValueError, OSError):
+					pass
 		if photo_file:
 			# Validate extension against allowed image types
 			_ALLOWED_EXTS = {'.jpg', '.jpeg', '.png'}
@@ -238,13 +243,21 @@ class PersonnelCardPreviewView(LoginRequiredMixin, UserPassesTestMixin, View):
 			# Enforce 5 MB size cap
 			if photo_file.size > 5 * 1024 * 1024:
 				return HttpResponse(status=400)
+			# Validate actual file content with Pillow (reject non-images disguised as JPEG/PNG)
+			import io as _io_pv
+			from PIL import Image as _PILPv
+			try:
+				_photo_bytes = photo_file.read()
+				with _PILPv.open(_io_pv.BytesIO(_photo_bytes)) as _pv_img:
+					_pv_img.verify()
+			except Exception:
+				return HttpResponse(status=400)
 			# Use uuid4 for temp filename to prevent path-separator injection
 			tmp_rel = f"personnel_id_cards/preview_{uuid.uuid4().hex}{ext}"
 			tmp_abs = os.path.join(settings.MEDIA_ROOT, tmp_rel)
 			os.makedirs(os.path.dirname(tmp_abs), exist_ok=True)
 			with open(tmp_abs, 'wb') as fh:
-				for chunk in photo_file.chunks():
-					fh.write(chunk)
+				fh.write(_photo_bytes)
 			p.personnel_image = tmp_rel
 
 		# Show QR as soon as we have a real simulated ID (rank + AFSN are enough)
