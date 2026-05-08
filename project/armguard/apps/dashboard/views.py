@@ -310,11 +310,11 @@ def _build_magazine_table():
     emtan_issued_tr   = _net(tr_agg,    'emtan_w', 'emtan_r')
 
     MAG_DEFS = [
-        ('Pistol',   'Pistol', 'Pistol Magazine',              pistol_stock,   pistol_issued, pistol_issued_par, pistol_issued_tr),
-        ('Rifle-20', 'Rifle',  'Rifle Magazine (20-rnd)',       rifle_20_stock, short_issued,  short_issued_par,  short_issued_tr),
-        ('Rifle-30', 'Rifle',  'Rifle Magazine (30-rnd)',       rifle_30_stock, long_issued,   long_issued_par,   long_issued_tr),
-        ('Rifle-M14', 'Rifle', 'Rifle Magazine (7.62mm M14)',   m14_stock,   m14_issued,   m14_issued_par,   m14_issued_tr),
-        ('Rifle-EMTAN','Rifle', 'Rifle Magazine (5.56mm EMTAN)',  emtan_stock, emtan_issued, emtan_issued_par, emtan_issued_tr),
+        ('Pistol',    'Pistol', 'Pistol Magazine (All Types)',           pistol_stock,   pistol_issued, pistol_issued_par, pistol_issued_tr),
+        ('Rifle-20',  'Rifle',  'Mag Assy, 5.56mm: 20 rds Cap Alloy',   rifle_20_stock, short_issued,  short_issued_par,  short_issued_tr),
+        ('Rifle-30',  'Rifle',  'Mag Assy, 5.56mm: 30 rds Cap Alloy',   rifle_30_stock, long_issued,   long_issued_par,   long_issued_tr),
+        ('Rifle-M14', 'Rifle',  'Mag Assy, 7.62mm: M14',                m14_stock,      m14_issued,    m14_issued_par,    m14_issued_tr),
+        ('Rifle-EMTAN','Rifle', 'Mag Assy, 5.56mm: EMTAN',              emtan_stock,    emtan_issued,  emtan_issued_par,  emtan_issued_tr),
     ]
     list_url = reverse('magazine-list')
     rows, totals = [], {'on_stock': 0, 'issued': 0, 'issued_par': 0, 'issued_tr': 0}
