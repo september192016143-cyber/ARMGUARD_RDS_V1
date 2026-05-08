@@ -575,24 +575,32 @@ class TransactionAdminForm(forms.ModelForm):
                 if _rifle_open_log:
                     _missing = []
                     if _rifle_open_log.withdraw_rifle_magazine_id and not _rifle_open_log.return_rifle_magazine_id:
-                        if not rifle_magazine:
+                        _required_qty = _rifle_open_log.withdraw_rifle_magazine_quantity or 0
+                        _returned_qty = rifle_magazine_quantity or 0
+                        if not rifle_magazine or _returned_qty < _required_qty:
                             _missing.append(
-                                f"Rifle Magazine ×{_rifle_open_log.withdraw_rifle_magazine_quantity}"
+                                f"Rifle Magazine ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _rifle_open_log.withdraw_rifle_ammunition_id and not _rifle_open_log.return_rifle_ammunition_id:
-                        if not rifle_ammunition:
+                        _required_qty = _rifle_open_log.withdraw_rifle_ammunition_quantity or 0
+                        _returned_qty = rifle_ammunition_quantity or 0
+                        if not rifle_ammunition or _returned_qty < _required_qty:
                             _missing.append(
-                                f"Rifle Ammunition ×{_rifle_open_log.withdraw_rifle_ammunition_quantity} rounds"
+                                f"Rifle Ammunition ×{_required_qty} rounds (returned: {_returned_qty})"
                             )
                     if _rifle_open_log.withdraw_rifle_sling_quantity and not _rifle_open_log.return_rifle_sling_quantity:
-                        if not rifle_sling_quantity:
+                        _required_qty = _rifle_open_log.withdraw_rifle_sling_quantity or 0
+                        _returned_qty = rifle_sling_quantity or 0
+                        if _returned_qty < _required_qty:
                             _missing.append(
-                                f"Rifle Sling ×{_rifle_open_log.withdraw_rifle_sling_quantity}"
+                                f"Rifle Sling ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _rifle_open_log.withdraw_bandoleer_quantity and not _rifle_open_log.return_bandoleer_quantity:
-                        if not bandoleer_quantity:
+                        _required_qty = _rifle_open_log.withdraw_bandoleer_quantity or 0
+                        _returned_qty = bandoleer_quantity or 0
+                        if _returned_qty < _required_qty:
                             _missing.append(
-                                f"Bandoleer ×{_rifle_open_log.withdraw_bandoleer_quantity}"
+                                f"Bandoleer ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _missing:
                         errors.append(

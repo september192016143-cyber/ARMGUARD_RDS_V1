@@ -195,14 +195,6 @@ class Transaction(models.Model):
             models.Index(fields=['personnel_id', 'transaction_type', 'timestamp'], name='txn_person_type_ts_idx'),
         ]
         constraints = [
-            # L-19: Enforce purpose values at the DB level.
-            models.CheckConstraint(
-                condition=models.Q(purpose__in=[
-                    'Duty Sentinel', 'Duty Vigil', 'Duty Security',
-                    'Honor Guard', 'Others', 'OREX',
-                ]),
-                name='txn_purpose_valid',
-            ),
         ]
 
     def __str__(self):
@@ -573,26 +565,34 @@ class Transaction(models.Model):
                 if _rifle_open_log:
                     _missing = []
                     if _rifle_open_log.withdraw_rifle_magazine_id and not _rifle_open_log.return_rifle_magazine_id:
-                        if not self.rifle_magazine:
+                        _required_qty = _rifle_open_log.withdraw_rifle_magazine_quantity or 0
+                        _returned_qty = self.rifle_magazine_quantity or 0
+                        if not self.rifle_magazine or _returned_qty < _required_qty:
                             _missing.append(
                                 f"Rifle Magazine '{_rifle_open_log.withdraw_rifle_magazine}'"
-                                f" ×{_rifle_open_log.withdraw_rifle_magazine_quantity}"
+                                f" ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _rifle_open_log.withdraw_rifle_ammunition_id and not _rifle_open_log.return_rifle_ammunition_id:
-                        if not self.rifle_ammunition:
+                        _required_qty = _rifle_open_log.withdraw_rifle_ammunition_quantity or 0
+                        _returned_qty = self.rifle_ammunition_quantity or 0
+                        if not self.rifle_ammunition or _returned_qty < _required_qty:
                             _missing.append(
                                 f"Rifle Ammunition '{_rifle_open_log.withdraw_rifle_ammunition}'"
-                                f" ×{_rifle_open_log.withdraw_rifle_ammunition_quantity} rounds"
+                                f" ×{_required_qty} rounds (returned: {_returned_qty})"
                             )
                     if _rifle_open_log.withdraw_rifle_sling_quantity and not _rifle_open_log.return_rifle_sling_quantity:
-                        if not self.rifle_sling_quantity:
+                        _required_qty = _rifle_open_log.withdraw_rifle_sling_quantity or 0
+                        _returned_qty = self.rifle_sling_quantity or 0
+                        if _returned_qty < _required_qty:
                             _missing.append(
-                                f"Rifle Sling ×{_rifle_open_log.withdraw_rifle_sling_quantity}"
+                                f"Rifle Sling ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _rifle_open_log.withdraw_bandoleer_quantity and not _rifle_open_log.return_bandoleer_quantity:
-                        if not self.bandoleer_quantity:
+                        _required_qty = _rifle_open_log.withdraw_bandoleer_quantity or 0
+                        _returned_qty = self.bandoleer_quantity or 0
+                        if _returned_qty < _required_qty:
                             _missing.append(
-                                f"Bandoleer ×{_rifle_open_log.withdraw_bandoleer_quantity}"
+                                f"Bandoleer ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _missing:
                         raise ValidationError(
