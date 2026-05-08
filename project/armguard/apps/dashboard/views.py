@@ -247,42 +247,51 @@ def _build_magazine_table():
     _TR  = 'TR (Temporary Receipt)'
 
     on_stock_map = {}
-    for row in Magazine.objects.values('weapon_type', 'capacity').annotate(total=Sum('quantity')):
-        key = (row['weapon_type'], row['capacity'])
-        on_stock_map[key] = on_stock_map.get(key, 0) + row['total']
+    for row in Magazine.objects.values('type', 'capacity').annotate(total=Sum('quantity')):
+        on_stock_map[row['type']] = on_stock_map.get(row['type'], 0) + row['total']
 
-    def _grp_stock(weapon_type, capacity=None):
-        if capacity is None:
-            return sum(v for (wt, _), v in on_stock_map.items() if wt == weapon_type)
-        return on_stock_map.get((weapon_type, capacity), 0)
+    def _type_stock(mag_type):
+        return on_stock_map.get(mag_type, 0)
 
-    pistol_stock   = _grp_stock('Pistol')
-    rifle_20_stock = _grp_stock('Rifle', '20-rounds')
-    rifle_30_stock = _grp_stock('Rifle', '30-rounds')
-    emtan_stock    = _grp_stock('Rifle', 'EMTAN')
-
-    # N+1 FIX: replace 9 separate per-type queries with 3 conditional aggregates
-    # (total, PAR, TR) — one database round-trip each instead of one per type×issuance.
+    # N+1 FIX: single conditional aggregate per issuance filter covering all 8 types.
     def _mag_agg(qs_filter):
+        _PT = 'withdraw_pistol_magazine__type'
+        _PC = 'withdraw_rifle_magazine__capacity'
         return TransactionLogs.objects.filter(log_status__in=open_statuses, **qs_filter).aggregate(
-            pistol_w=Sum('withdraw_pistol_magazine_quantity'),
-            pistol_r=Sum('return_pistol_magazine_quantity'),
+            # --- Pistol types (filtered by magazine FK type string) ---
+            p9mm_w=Sum('withdraw_pistol_magazine_quantity',
+                filter=Q(**{f'{_PT}': 'Mag Assy, 9mm: Glock 17'})),
+            p9mm_r=Sum('return_pistol_magazine_quantity',
+                filter=Q(return_pistol_magazine__type='Mag Assy, 9mm: Glock 17')),
+            p45_7_w=Sum('withdraw_pistol_magazine_quantity',
+                filter=Q(**{f'{_PT}': 'Mag Assy, Cal.45: 7 rds Cap'})),
+            p45_7_r=Sum('return_pistol_magazine_quantity',
+                filter=Q(return_pistol_magazine__type='Mag Assy, Cal.45: 7 rds Cap')),
+            p45_8_w=Sum('withdraw_pistol_magazine_quantity',
+                filter=Q(**{f'{_PT}': 'Mag Assy, Cal.45: 8 rds Cap'})),
+            p45_8_r=Sum('return_pistol_magazine_quantity',
+                filter=Q(return_pistol_magazine__type='Mag Assy, Cal.45: 8 rds Cap')),
+            p45_hi_w=Sum('withdraw_pistol_magazine_quantity',
+                filter=Q(**{f'{_PT}': 'Mag Assy, Cal.45: Hi Cap'})),
+            p45_hi_r=Sum('return_pistol_magazine_quantity',
+                filter=Q(return_pistol_magazine__type='Mag Assy, Cal.45: Hi Cap')),
+            # --- Rifle types (filtered by magazine FK capacity) ---
             short_w=Sum('withdraw_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__capacity='20-rounds')),
+                filter=Q(**{f'{_PC}': '20-rounds'})),
             short_r=Sum('return_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__capacity='20-rounds')),
+                filter=Q(return_rifle_magazine__capacity='20-rounds')),
             long_w=Sum('withdraw_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__capacity='30-rounds')),
+                filter=Q(**{f'{_PC}': '30-rounds'})),
             long_r=Sum('return_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__capacity='30-rounds')),
+                filter=Q(return_rifle_magazine__capacity='30-rounds')),
             m14_w=Sum('withdraw_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__capacity='M14')),
+                filter=Q(**{f'{_PC}': 'M14'})),
             m14_r=Sum('return_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__capacity='M14')),
+                filter=Q(return_rifle_magazine__capacity='M14')),
             emtan_w=Sum('withdraw_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__capacity='EMTAN')),
+                filter=Q(**{f'{_PC}': 'EMTAN'})),
             emtan_r=Sum('return_rifle_magazine_quantity',
-                filter=Q(withdraw_rifle_magazine__capacity='EMTAN')),
+                filter=Q(return_rifle_magazine__capacity='EMTAN')),
         )
 
     def _net(a, w, r):
@@ -292,29 +301,31 @@ def _build_magazine_table():
     par_agg   = _mag_agg({'issuance_type': _PAR})
     tr_agg    = _mag_agg({'issuance_type': _TR})
 
-    pistol_issued     = _net(total_agg, 'pistol_w', 'pistol_r')
-    pistol_issued_par = _net(par_agg,   'pistol_w', 'pistol_r')
-    pistol_issued_tr  = _net(tr_agg,    'pistol_w', 'pistol_r')
-    short_issued      = _net(total_agg, 'short_w',  'short_r')
-    short_issued_par  = _net(par_agg,   'short_w',  'short_r')
-    short_issued_tr   = _net(tr_agg,    'short_w',  'short_r')
-    long_issued       = _net(total_agg, 'long_w',   'long_r')
-    long_issued_par   = _net(par_agg,   'long_w',   'long_r')
-    long_issued_tr    = _net(tr_agg,    'long_w',   'long_r')
-    m14_stock         = _grp_stock('Rifle', 'M14')
-    m14_issued        = _net(total_agg, 'm14_w',   'm14_r')
-    m14_issued_par    = _net(par_agg,   'm14_w',   'm14_r')
-    m14_issued_tr     = _net(tr_agg,    'm14_w',   'm14_r')
-    emtan_issued      = _net(total_agg, 'emtan_w', 'emtan_r')
-    emtan_issued_par  = _net(par_agg,   'emtan_w', 'emtan_r')
-    emtan_issued_tr   = _net(tr_agg,    'emtan_w', 'emtan_r')
-
     MAG_DEFS = [
-        ('Pistol',    'Pistol', 'Pistol Magazine (All Types)',           pistol_stock,   pistol_issued, pistol_issued_par, pistol_issued_tr),
-        ('Rifle-20',  'Rifle',  'Mag Assy, 5.56mm: 20 rds Cap Alloy',   rifle_20_stock, short_issued,  short_issued_par,  short_issued_tr),
-        ('Rifle-30',  'Rifle',  'Mag Assy, 5.56mm: 30 rds Cap Alloy',   rifle_30_stock, long_issued,   long_issued_par,   long_issued_tr),
-        ('Rifle-M14', 'Rifle',  'Mag Assy, 7.62mm: M14',                m14_stock,      m14_issued,    m14_issued_par,    m14_issued_tr),
-        ('Rifle-EMTAN','Rifle', 'Mag Assy, 5.56mm: EMTAN',              emtan_stock,    emtan_issued,  emtan_issued_par,  emtan_issued_tr),
+        ('Pistol-9mm',   'Pistol', 'Mag Assy, 9mm: Glock 17',
+            _type_stock('Mag Assy, 9mm: Glock 17'),
+            _net(total_agg,'p9mm_w','p9mm_r'), _net(par_agg,'p9mm_w','p9mm_r'), _net(tr_agg,'p9mm_w','p9mm_r')),
+        ('Pistol-45-7',  'Pistol', 'Mag Assy, Cal.45: 7 rds Cap',
+            _type_stock('Mag Assy, Cal.45: 7 rds Cap'),
+            _net(total_agg,'p45_7_w','p45_7_r'), _net(par_agg,'p45_7_w','p45_7_r'), _net(tr_agg,'p45_7_w','p45_7_r')),
+        ('Pistol-45-8',  'Pistol', 'Mag Assy, Cal.45: 8 rds Cap',
+            _type_stock('Mag Assy, Cal.45: 8 rds Cap'),
+            _net(total_agg,'p45_8_w','p45_8_r'), _net(par_agg,'p45_8_w','p45_8_r'), _net(tr_agg,'p45_8_w','p45_8_r')),
+        ('Pistol-45-hi', 'Pistol', 'Mag Assy, Cal.45: Hi Cap',
+            _type_stock('Mag Assy, Cal.45: Hi Cap'),
+            _net(total_agg,'p45_hi_w','p45_hi_r'), _net(par_agg,'p45_hi_w','p45_hi_r'), _net(tr_agg,'p45_hi_w','p45_hi_r')),
+        ('Rifle-20',     'Rifle',  'Mag Assy, 5.56mm: 20 rds Cap Alloy',
+            _type_stock('Mag Assy, 5.56mm: 20 rds Cap Alloy'),
+            _net(total_agg,'short_w','short_r'), _net(par_agg,'short_w','short_r'), _net(tr_agg,'short_w','short_r')),
+        ('Rifle-30',     'Rifle',  'Mag Assy, 5.56mm: 30 rds Cap Alloy',
+            _type_stock('Mag Assy, 5.56mm: 30 rds Cap Alloy'),
+            _net(total_agg,'long_w','long_r'), _net(par_agg,'long_w','long_r'), _net(tr_agg,'long_w','long_r')),
+        ('Rifle-M14',    'Rifle',  'Mag Assy, 7.62mm: M14',
+            _type_stock('Mag Assy, 7.62mm: M14'),
+            _net(total_agg,'m14_w','m14_r'), _net(par_agg,'m14_w','m14_r'), _net(tr_agg,'m14_w','m14_r')),
+        ('Rifle-EMTAN',  'Rifle',  'Mag Assy, 5.56mm: EMTAN',
+            _type_stock('Mag Assy, 5.56mm: EMTAN'),
+            _net(total_agg,'emtan_w','emtan_r'), _net(par_agg,'emtan_w','emtan_r'), _net(tr_agg,'emtan_w','emtan_r')),
     ]
     list_url = reverse('magazine-list')
     rows, totals = [], {'on_stock': 0, 'issued': 0, 'issued_par': 0, 'issued_tr': 0}
