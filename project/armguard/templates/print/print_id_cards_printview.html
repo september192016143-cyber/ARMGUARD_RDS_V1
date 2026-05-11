@@ -79,6 +79,10 @@
             text-transform: uppercase;
             letter-spacing: 0.08em;
             font-weight: 600;
+            width: 126px;
+            text-align: center;
+            word-break: break-word;
+            line-height: 1.3;
         }
 
         .card-set .sides {
@@ -87,9 +91,10 @@
         }
 
         .card-set img {
-            /* Portrait CR80 preview */
+            /* Portrait CR80 preview — fixed width prevents ragged columns */
             height: 200px;
-            width: auto;
+            width: 126px;   /* 54mm / 85.6mm × 200px = 126.2px */
+            object-fit: cover;
             border-radius: 6px;
             border: 1px solid #e5e7eb;
             display: block;
