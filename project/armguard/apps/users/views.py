@@ -887,6 +887,29 @@ class SystemSettingsView(LoginRequiredMixin, View):
         return redirect('system-settings')
 
 
+# ── Manual Backup (Settings page) ────────────────────────────────────────────
+
+@login_required
+@require_POST
+def manual_backup(request):
+    """Trigger a db_backup management-command run and return JSON result."""
+    if not request.user.is_superuser:
+        return JsonResponse({'ok': False, 'error': 'Access denied.'}, status=403)
+    try:
+        from django.core.management import call_command
+        from io import StringIO
+        buf = StringIO()
+        call_command('db_backup', stdout=buf, stderr=buf)
+        detail = buf.getvalue().strip()
+        log_system_event(
+            'BACKUP', 'manual_backup',
+            message=f'Manual backup triggered by {request.user.username}.',
+        )
+        return JsonResponse({'ok': True, 'detail': detail})
+    except Exception as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=500)
+
+
 # ── Personnel Group management (Settings page) ───────────────────────────────
 
 def _group_guard(request):

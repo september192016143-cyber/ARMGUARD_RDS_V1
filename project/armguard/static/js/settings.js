@@ -174,6 +174,51 @@
   });
 })();
 
+// ── Manual Backup ────────────────────────────────────────────────────────────
+(function () {
+  var btn    = document.getElementById('btn-manual-backup');
+  var status = document.getElementById('backup-status');
+  var detail = document.getElementById('backup-detail');
+  var urlEl  = document.getElementById('backup-url');
+  if (!btn || !urlEl) return;
+
+  btn.addEventListener('click', function () {
+    btn.disabled = true;
+    status.style.color = 'var(--muted)';
+    status.textContent = 'Creating backup\u2026';
+    detail.style.display = 'none';
+
+    fetch(urlEl.dataset.url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '',
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.ok) {
+        status.style.color = '#22c55e';
+        status.textContent = '\u2713 Backup created successfully.';
+        if (data.detail) {
+          detail.textContent = data.detail;
+          detail.style.display = '';
+        }
+      } else {
+        status.style.color = '#ef4444';
+        status.textContent = '\u2717 Backup failed: ' + (data.error || 'Unknown error');
+      }
+    })
+    .catch(function (err) {
+      status.style.color = '#ef4444';
+      status.textContent = '\u2717 Request error: ' + err;
+    })
+    .finally(function () {
+      btn.disabled = false;
+    });
+  });
+})();
+
 // ── Data Truncation — confirm ────────────────────────────────────────────────
 (function () {
   var btn = document.getElementById('btn-truncate');

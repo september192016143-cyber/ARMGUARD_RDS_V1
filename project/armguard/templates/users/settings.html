@@ -893,6 +893,30 @@
       hidden></span>
 <script src="{% static 'js/dashboard_sim_status.js' %}"></script>
 
+<!-- ── Manual Database Backup ───────────────────────────────────────────── -->
+<div class="card mb-2" style="max-width:680px;margin-top:1.5rem;border:1.5px solid #0d6efd33">
+  <div class="card-header" style="background:rgba(13,110,253,.07)">
+    <span class="card-title" style="color:#4f8ef7">
+      <i class="fa-solid fa-database"></i> Database Backup
+    </span>
+  </div>
+  <p style="font-size:.84rem;color:var(--muted);margin-bottom:1rem">
+    <i class="fa-solid fa-circle-info" style="color:#4f8ef7"></i>
+    Create a manual hot-copy backup of the database right now. The backup is saved to the
+    <code>backups/</code> folder and a SHA-256 checksum sidecar is written alongside it.
+    Backups are also taken automatically on a scheduled basis.
+  </p>
+  <div style="display:flex;align-items:center;gap:.85rem;flex-wrap:wrap">
+    <button type="button" id="btn-manual-backup" class="btn btn-sm"
+            style="background:#0d6efd;color:#fff;border:none;padding:.45rem 1.2rem;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:.45rem">
+      <i class="fa-solid fa-floppy-disk"></i> Save Backup Now
+    </button>
+    <span id="backup-status" style="font-size:.83rem"></span>
+  </div>
+  <div id="backup-detail" style="display:none;margin-top:.85rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.65rem .9rem;font-size:.78rem;font-family:monospace;white-space:pre-wrap;color:var(--muted);max-height:140px;overflow-y:auto"></div>
+  <span id="backup-url" data-url="{% url 'settings-manual-backup' %}" hidden></span>
+</div>
+
 <!-- ── Data Truncation ──────────────────────────────────────────────────── -->
 <div class="card mb-2" style="max-width:680px;margin-top:1.5rem;border:1.5px solid #c0392b22">
   <div class="card-header" style="background:rgba(192,57,43,.08)">
