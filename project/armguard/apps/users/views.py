@@ -1217,139 +1217,147 @@ def truncate_data(request):
 
     deleted_summary = []
     _clear_personnel = False
-    with _db_conn.cursor() as _cur:
+    try:
+        with _db_conn.cursor() as _cur:
 
-        # ── Step 1: Restore consumable pool quantities BEFORE deleting rows ──
-        # We aggregate net depletion (Withdrawals minus Returns) per pool from
-        # the Transaction table while it still exists, then add it back.
-        # This mirrors the exact sign convention in adjust_consumable_quantities().
-        if request.POST.get('truncate_transactions'):
-            from armguard.apps.inventory.models import Magazine, Ammunition, Accessory
-            _txn_tbl = Transaction._meta.db_table
-            _mag_tbl = Magazine._meta.db_table
-            _amm_tbl = Ammunition._meta.db_table
-            _acc_tbl = Accessory._meta.db_table
+            # ── Step 1: Restore consumable pool quantities BEFORE deleting rows ──
+            # We aggregate net depletion (Withdrawals minus Returns) per pool from
+            # the Transaction table while it still exists, then add it back.
+            # This mirrors the exact sign convention in adjust_consumable_quantities().
+            if request.POST.get('truncate_transactions'):
+                from armguard.apps.inventory.models import Magazine, Ammunition, Accessory
+                _txn_tbl = Transaction._meta.db_table
+                _mag_tbl = Magazine._meta.db_table
+                _amm_tbl = Ammunition._meta.db_table
+                _acc_tbl = Accessory._meta.db_table
 
-            # Magazine pools — FK-linked per pool row
-            for _fk_col, _qty_col in [
-                ('pistol_magazine_id', 'pistol_magazine_quantity'),
-                ('rifle_magazine_id',  'rifle_magazine_quantity'),
-            ]:
-                _cur.execute(  # noqa: S608
-                    f'UPDATE "{_mag_tbl}" '
-                    f'SET quantity = MAX(0, quantity + COALESCE(('
-                    f'  SELECT'
-                    f'    COALESCE(SUM(CASE WHEN transaction_type=\'Withdrawal\' THEN {_qty_col} ELSE 0 END), 0)'
-                    f'  - COALESCE(SUM(CASE WHEN transaction_type=\'Return\'    THEN {_qty_col} ELSE 0 END), 0)'
-                    f'  FROM "{_txn_tbl}"'
-                    f'  WHERE {_fk_col} = "{_mag_tbl}".id'
-                    f'    AND {_qty_col} IS NOT NULL'
-                    f'), 0))'
-                )
+                # Magazine pools — FK-linked per pool row
+                for _fk_col, _qty_col in [
+                    ('pistol_magazine_id', 'pistol_magazine_quantity'),
+                    ('rifle_magazine_id',  'rifle_magazine_quantity'),
+                ]:
+                    _cur.execute(  # noqa: S608
+                        f'UPDATE "{_mag_tbl}" '
+                        f'SET quantity = MAX(0, quantity + COALESCE(('
+                        f'  SELECT'
+                        f'    COALESCE(SUM(CASE WHEN transaction_type=\'Withdrawal\' THEN {_qty_col} ELSE 0 END), 0)'
+                        f'  - COALESCE(SUM(CASE WHEN transaction_type=\'Return\'    THEN {_qty_col} ELSE 0 END), 0)'
+                        f'  FROM "{_txn_tbl}"'
+                        f'  WHERE {_fk_col} = "{_mag_tbl}".id'
+                        f'    AND {_qty_col} IS NOT NULL'
+                        f'), 0))'
+                    )
 
-            # Ammunition pools — FK-linked per pool row
-            for _fk_col, _qty_col in [
-                ('pistol_ammunition_id', 'pistol_ammunition_quantity'),
-                ('rifle_ammunition_id',  'rifle_ammunition_quantity'),
-            ]:
-                _cur.execute(  # noqa: S608
-                    f'UPDATE "{_amm_tbl}" '
-                    f'SET quantity = MAX(0, quantity + COALESCE(('
-                    f'  SELECT'
-                    f'    COALESCE(SUM(CASE WHEN transaction_type=\'Withdrawal\' THEN {_qty_col} ELSE 0 END), 0)'
-                    f'  - COALESCE(SUM(CASE WHEN transaction_type=\'Return\'    THEN {_qty_col} ELSE 0 END), 0)'
-                    f'  FROM "{_txn_tbl}"'
-                    f'  WHERE {_fk_col} = "{_amm_tbl}".id'
-                    f'    AND {_qty_col} IS NOT NULL'
-                    f'), 0))'
-                )
+                # Ammunition pools — FK-linked per pool row
+                for _fk_col, _qty_col in [
+                    ('pistol_ammunition_id', 'pistol_ammunition_quantity'),
+                    ('rifle_ammunition_id',  'rifle_ammunition_quantity'),
+                ]:
+                    _cur.execute(  # noqa: S608
+                        f'UPDATE "{_amm_tbl}" '
+                        f'SET quantity = MAX(0, quantity + COALESCE(('
+                        f'  SELECT'
+                        f'    COALESCE(SUM(CASE WHEN transaction_type=\'Withdrawal\' THEN {_qty_col} ELSE 0 END), 0)'
+                        f'  - COALESCE(SUM(CASE WHEN transaction_type=\'Return\'    THEN {_qty_col} ELSE 0 END), 0)'
+                        f'  FROM "{_txn_tbl}"'
+                        f'  WHERE {_fk_col} = "{_amm_tbl}".id'
+                        f'    AND {_qty_col} IS NOT NULL'
+                        f'), 0))'
+                    )
 
-            # Accessory pools — no FK; net goes to the highest-quantity pool of
-            # each type (mirrors services.py order_by('-quantity').first()).
-            for _acc_type, _qty_col in [
-                ('Pistol Holster',        'pistol_holster_quantity'),
-                ('Pistol Magazine Pouch', 'magazine_pouch_quantity'),
-                ('Rifle Sling',           'rifle_sling_quantity'),
-                ('Bandoleer',             'bandoleer_quantity'),
-            ]:
-                _cur.execute(  # noqa: S608
-                    f'UPDATE "{_acc_tbl}" '
-                    f'SET quantity = MAX(0, quantity + ('
-                    f'  SELECT'
-                    f'    COALESCE(SUM(CASE WHEN transaction_type=\'Withdrawal\' THEN {_qty_col} ELSE 0 END), 0)'
-                    f'  - COALESCE(SUM(CASE WHEN transaction_type=\'Return\'    THEN {_qty_col} ELSE 0 END), 0)'
-                    f'  FROM "{_txn_tbl}"'
-                    f'  WHERE {_qty_col} IS NOT NULL'
-                    f')) '
-                    f'WHERE id = ('
-                    f'  SELECT id FROM "{_acc_tbl}" WHERE type = %s ORDER BY quantity DESC LIMIT 1'
-                    f')',
-                    [_acc_type],
-                )
+                # Accessory pools — no FK; net goes to the highest-quantity pool of
+                # each type (mirrors services.py order_by('-quantity').first()).
+                for _acc_type, _qty_col in [
+                    ('Pistol Holster',        'pistol_holster_quantity'),
+                    ('Pistol Magazine Pouch', 'magazine_pouch_quantity'),
+                    ('Rifle Sling',           'rifle_sling_quantity'),
+                    ('Bandoleer',             'bandoleer_quantity'),
+                ]:
+                    _cur.execute(  # noqa: S608
+                        f'UPDATE "{_acc_tbl}" '
+                        f'SET quantity = MAX(0, quantity + ('
+                        f'  SELECT'
+                        f'    COALESCE(SUM(CASE WHEN transaction_type=\'Withdrawal\' THEN {_qty_col} ELSE 0 END), 0)'
+                        f'  - COALESCE(SUM(CASE WHEN transaction_type=\'Return\'    THEN {_qty_col} ELSE 0 END), 0)'
+                        f'  FROM "{_txn_tbl}"'
+                        f'  WHERE {_qty_col} IS NOT NULL'
+                        f')) '
+                        f'WHERE id = ('
+                        f'  SELECT id FROM "{_acc_tbl}" WHERE type = %s ORDER BY quantity DESC LIMIT 1'
+                        f')',
+                        [_acc_type],
+                    )
 
-            deleted_summary.append('Inventory pool quantities restored (net of all withdrawals minus returns)')
+                deleted_summary.append('Inventory pool quantities restored (net of all withdrawals minus returns)')
 
-        # ── Step 2: Delete selected tables ───────────────────────────────────
-        for key, (label, table) in targets.items():
-            if request.POST.get(f'truncate_{key}'):
-                _cur.execute(f'DELETE FROM "{table}"')  # noqa: S608 — table name from trusted model meta
-                deleted_summary.append(f'{label}: {_cur.rowcount} row(s) deleted')
-                if key in ('transaction_logs', 'transactions'):
-                    _clear_personnel = True
+            # ── Step 2: Delete selected tables ───────────────────────────────────
+            for key, (label, table) in targets.items():
+                if request.POST.get(f'truncate_{key}'):
+                    _cur.execute(f'DELETE FROM "{table}"')  # noqa: S608 — table name from trusted model meta
+                    deleted_summary.append(f'{label}: {_cur.rowcount} row(s) deleted')
+                    if key in ('transaction_logs', 'transactions'):
+                        _clear_personnel = True
 
-        # Clear all transaction-derived fields from Personnel rows so they don't
-        # show stale issued/assigned data after the transaction history is wiped.
-        if _clear_personnel:
-            _p_table = Personnel._meta.db_table
-            _set_clause = ', '.join(f'"{col}" = NULL' for col in _PERSONNEL_CLEAR_COLS)
-            _cur.execute(f'UPDATE "{_p_table}" SET {_set_clause}')  # noqa: S608
-            deleted_summary.append(f'Personnel fields cleared: {_cur.rowcount} record(s) reset')
+            # Clear all transaction-derived fields from Personnel rows so they don't
+            # show stale issued/assigned data after the transaction history is wiped.
+            if _clear_personnel:
+                _p_table = Personnel._meta.db_table
+                _set_clause = ', '.join(f'"{col}" = NULL' for col in _PERSONNEL_CLEAR_COLS)
+                _cur.execute(f'UPDATE "{_p_table}" SET {_set_clause}')  # noqa: S608
+                deleted_summary.append(f'Personnel fields cleared: {_cur.rowcount} record(s) reset')
 
-            # Reset Rifle and Pistol item_status back to 'Available' and clear
-            # issued tracking (item_issued_to_id, item_issued_timestamp, item_issued_by).
-            for _inv_model in (Rifle, Pistol):
-                _inv_table = _inv_model._meta.db_table
-                _cur.execute(
-                    f'UPDATE "{_inv_table}" SET '  # noqa: S608
-                    f'"item_status" = \'Available\', '
-                    f'"item_issued_to_id" = NULL, '
-                    f'"item_issued_timestamp" = NULL, '
-                    f'"item_issued_by" = NULL '
-                    f'WHERE "item_status" = \'Issued\''
-                )
-                _label = _inv_model.__name__
-                deleted_summary.append(f'{_label} items reset to Available: {_cur.rowcount} item(s)')
+                # Reset Rifle and Pistol item_status back to 'Available' and clear
+                # issued tracking (item_issued_to_id, item_issued_timestamp, item_issued_by).
+                for _inv_model in (Rifle, Pistol):
+                    _inv_table = _inv_model._meta.db_table
+                    _cur.execute(
+                        f'UPDATE "{_inv_table}" SET '  # noqa: S608
+                        f'"item_status" = \'Available\', '
+                        f'"item_issued_to_id" = NULL, '
+                        f'"item_issued_timestamp" = NULL, '
+                        f'"item_issued_by" = NULL '
+                        f'WHERE "item_status" = \'Issued\''
+                    )
+                    _label = _inv_model.__name__
+                    deleted_summary.append(f'{_label} items reset to Available: {_cur.rowcount} item(s)')
 
-    if deleted_summary:
-        detail = ' | '.join(deleted_summary)
-        AuditLog.objects.create(
-            user=request.user,
-            action='DELETE',
-            model_name='DataTruncation',
-            object_pk='—',
-            message=f'Manual data truncation by {request.user.username}: {detail}',
-            ip_address=_get_client_ip(request),
-            user_agent=_get_user_agent(request),
+        if deleted_summary:
+            detail = ' | '.join(deleted_summary)
+            AuditLog.objects.create(
+                user=request.user,
+                action='DELETE',
+                model_name='DataTruncation',
+                object_pk='—',
+                message=f'Manual data truncation by {request.user.username}: {detail}',
+                ip_address=_get_client_ip(request),
+                user_agent=_get_user_agent(request),
+            )
+            # Write directly to ActivityLog as a guaranteed failsafe — the
+            # middleware normally handles this, but the raw-SQL bulk delete above
+            # can leave the DB connection in an unexpected state, causing the
+            # middleware's _safe_record() to silently drop the entry.
+            from armguard.apps.users.models import ActivityLog
+            ActivityLog.objects.create(
+                user=request.user,
+                ip_address=_get_client_ip(request),
+                user_agent=_get_user_agent(request),
+                method='POST',
+                path=request.path_info,
+                view_name='settings-truncate',
+                flag='NORMAL',
+                status_code=302,
+                response_ms=0,
+            )
+            messages.success(request, f'Truncation complete. {detail}.')
+        else:
+            messages.warning(request, 'No tables were selected.')
+    except Exception as _exc:
+        _logger.error('Data truncation failed: %s', _exc, exc_info=True)
+        messages.error(
+            request,
+            f'Truncation failed ({type(_exc).__name__}). No data was changed. '
+            f'Check server logs for details.',
         )
-        # Write directly to ActivityLog as a guaranteed failsafe — the
-        # middleware normally handles this, but the raw-SQL bulk delete above
-        # can leave the DB connection in an unexpected state, causing the
-        # middleware's _safe_record() to silently drop the entry.
-        from armguard.apps.users.models import ActivityLog
-        ActivityLog.objects.create(
-            user=request.user,
-            ip_address=_get_client_ip(request),
-            user_agent=_get_user_agent(request),
-            method='POST',
-            path=request.path_info,
-            view_name='settings-truncate',
-            flag='NORMAL',
-            status_code=302,
-            response_ms=0,
-        )
-        messages.success(request, f'Truncation complete. {detail}.')
-    else:
-        messages.warning(request, 'No tables were selected.')
 
     return redirect('system-settings')
 
