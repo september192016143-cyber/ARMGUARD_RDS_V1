@@ -1238,14 +1238,14 @@ def truncate_data(request):
                 ]:
                     _cur.execute(  # noqa: S608
                         f'UPDATE "{_mag_tbl}" '
-                        f'SET quantity = MAX(0, quantity + COALESCE(('
+                        f'SET quantity = GREATEST(0, quantity + COALESCE(CAST(('
                         f'  SELECT'
                         f'    COALESCE(SUM(CASE WHEN transaction_type=\'Withdrawal\' THEN {_qty_col} ELSE 0 END), 0)'
                         f'  - COALESCE(SUM(CASE WHEN transaction_type=\'Return\'    THEN {_qty_col} ELSE 0 END), 0)'
                         f'  FROM "{_txn_tbl}"'
                         f'  WHERE {_fk_col} = "{_mag_tbl}".id'
                         f'    AND {_qty_col} IS NOT NULL'
-                        f'), 0))'
+                        f') AS INTEGER), 0))'
                     )
 
                 # Ammunition pools — FK-linked per pool row
@@ -1255,14 +1255,14 @@ def truncate_data(request):
                 ]:
                     _cur.execute(  # noqa: S608
                         f'UPDATE "{_amm_tbl}" '
-                        f'SET quantity = MAX(0, quantity + COALESCE(('
+                        f'SET quantity = GREATEST(0, quantity + COALESCE(CAST(('
                         f'  SELECT'
                         f'    COALESCE(SUM(CASE WHEN transaction_type=\'Withdrawal\' THEN {_qty_col} ELSE 0 END), 0)'
                         f'  - COALESCE(SUM(CASE WHEN transaction_type=\'Return\'    THEN {_qty_col} ELSE 0 END), 0)'
                         f'  FROM "{_txn_tbl}"'
                         f'  WHERE {_fk_col} = "{_amm_tbl}".id'
                         f'    AND {_qty_col} IS NOT NULL'
-                        f'), 0))'
+                        f') AS INTEGER), 0))'
                     )
 
                 # Accessory pools — no FK; net goes to the highest-quantity pool of
@@ -1275,13 +1275,13 @@ def truncate_data(request):
                 ]:
                     _cur.execute(  # noqa: S608
                         f'UPDATE "{_acc_tbl}" '
-                        f'SET quantity = MAX(0, quantity + ('
+                        f'SET quantity = GREATEST(0, quantity + CAST(('
                         f'  SELECT'
                         f'    COALESCE(SUM(CASE WHEN transaction_type=\'Withdrawal\' THEN {_qty_col} ELSE 0 END), 0)'
                         f'  - COALESCE(SUM(CASE WHEN transaction_type=\'Return\'    THEN {_qty_col} ELSE 0 END), 0)'
                         f'  FROM "{_txn_tbl}"'
                         f'  WHERE {_qty_col} IS NOT NULL'
-                        f')) '
+                        f') AS INTEGER)) '
                         f'WHERE id = ('
                         f'  SELECT id FROM "{_acc_tbl}" WHERE type = %s ORDER BY quantity DESC LIMIT 1'
                         f')',
@@ -1355,7 +1355,8 @@ def truncate_data(request):
         _logger.error('Data truncation failed: %s', _exc, exc_info=True)
         messages.error(
             request,
-            f'Truncation failed ({type(_exc).__name__}): {_exc}',
+            f'Truncation failed ({type(_exc).__name__}). No data was changed. '
+            f'Check server logs for details.',
         )
 
     return redirect('system-settings')
