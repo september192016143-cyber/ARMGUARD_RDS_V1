@@ -23,6 +23,28 @@ import os
 _cpus = multiprocessing.cpu_count()
 workers = int(os.environ.get("GUNICORN_WORKERS", (_cpus * 2) + 1))
 
+# ── SQLite single-worker guard (S-1 FIX) ─────────────────────────────────────
+# SQLite does not support row-level locking — SELECT FOR UPDATE is a no-op.
+# Running more than one worker with SQLite creates a TOCTOU race condition:
+# two concurrent Withdrawal requests can both pass can_be_withdrawn() and
+# issue the same weapon to two different personnel simultaneously.
+#
+# When DB_ENGINE is SQLite (the current default), force workers=1 regardless
+# of the hardware-derived count above.  This eliminates the race at the cost
+# of reduced throughput — acceptable for a single-server armory system.
+#
+# To unlock multi-worker operation, migrate to PostgreSQL and set
+# DB_ENGINE=django.db.backends.postgresql in .env.
+_db_engine = os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3')
+if 'sqlite' in _db_engine.lower():
+    workers = 1
+    import sys as _sys
+    print(
+        "[gunicorn] SQLite detected — forcing workers=1 to prevent concurrent "
+        "write race conditions. Migrate to PostgreSQL to enable multi-worker operation.",
+        file=_sys.stderr,
+    )
+
 # ── Worker class ─────────────────────────────────────────────────────────────
 # gthread: each worker spawns THREADS green threads.
 # Better than 'sync' for I/O-bound Django apps (DB queries, file reads).

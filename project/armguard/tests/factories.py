@@ -38,6 +38,13 @@ def make_user(username=None, password='TestPass123!', role='Armorer',
         is_staff=is_staff,
     )
     user.profile.role = role
+    # Apply role-specific permission presets so test users have realistic
+    # permissions matching what the production group-sync signal would set.
+    from armguard.apps.users.models import _GROUP_ROLE_MAP
+    if role in _GROUP_ROLE_MAP:
+        _, preset_perms = _GROUP_ROLE_MAP[role]
+        for field, val in preset_perms.items():
+            setattr(user.profile, field, val)
     user.profile.save()
     return user
 
@@ -79,22 +86,34 @@ def make_personnel(rank='SGT', first_name='Juan', last_name='Dela Cruz',
 
 
 def make_pistol(model='Glock 17 9mm', serial='SN-TEST-001',
-                status='Available', condition='Serviceable'):
+                status='Available', condition='Serviceable', item_number=None):
+    """Create a Pistol.  item_number is required since the item-number patch;
+    a unique 4-digit value is auto-generated when not supplied."""
+    if item_number is None:
+        item_number = f'{_pid_counter[0]:04d}'
+        _pid_counter[0] += 1
     return Pistol.objects.create(
         model=model,
         serial_number=serial,
         item_status=status,
         item_condition=condition,
+        item_number=item_number,
     )
 
 
 def make_rifle(model='M4 Carbine DSAR-15 5.56mm', serial='SN-RIFLE-001',
-               status='Available', condition='Serviceable'):
+               status='Available', condition='Serviceable', item_number=None):
+    """Create a Rifle.  item_number is required since the item-number patch;
+    a unique 4-digit value is auto-generated when not supplied."""
+    if item_number is None:
+        item_number = f'{_pid_counter[0]:04d}'
+        _pid_counter[0] += 1
     return Rifle.objects.create(
         model=model,
         serial_number=serial,
         item_status=status,
         item_condition=condition,
+        item_number=item_number,
     )
 
 

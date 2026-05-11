@@ -51,10 +51,13 @@ gunicorn==22.0.0             # WSGI server for production (systemd + Nginx)
 # ── Optional: error tracking (uncomment to enable) ─────────────
 # sentry-sdk==2.x.x         # L5: uncomment + set SENTRY_DSN env var to enable
 
-# ── PostgreSQL driver (optional — not currently used) ──────────
-# App uses SQLite (django.db.backends.sqlite3) in all environments.
-# Uncomment if migrating to PostgreSQL in the future.
-# psycopg2-binary>=2.9.9
+# ── PostgreSQL driver ───────────────────────────────────────────
+# Required for DB_ENGINE=django.db.backends.postgresql in .env
+psycopg2-binary>=2.9.9
+
+# ── Redis cache backend ─────────────────────────────────────────
+# Required for CACHE_BACKEND=django.core.cache.backends.redis.RedisCache in .env
+redis>=5.0.0
 
 # ── Excel import ───────────────────────────────────────────────
 openpyxl==3.1.5          # Bulk import of personnel and inventory from .xlsx files

@@ -29,6 +29,15 @@ STORAGES = {
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 
+# P3-Low: Redirect all test-generated media (QR images, ID cards, etc.) to a
+# temporary directory so test artefacts never accumulate in the repo working tree.
+import sys as _sys
+if 'test' in _sys.argv:
+    import atexit as _atexit, shutil as _shutil, tempfile as _tempfile
+    _TEST_MEDIA_DIR = _tempfile.mkdtemp(prefix='armguard_test_media_')
+    MEDIA_ROOT = _TEST_MEDIA_DIR
+    _atexit.register(_shutil.rmtree, _TEST_MEDIA_DIR, ignore_errors=True)
+
 # Show all SQL in the console during development (uncomment to enable):
 # LOGGING['loggers']['django.db.backends'] = {
 #     'handlers': ['console'],

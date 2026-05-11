@@ -116,7 +116,24 @@
   function printSelected() {
     var ids = Array.from(document.querySelectorAll('.tag-checkbox:checked')).map(function (c) { return c.value; });
     if (!ids.length) { alert('Select at least one item.'); return; }
-    window.open(PRINT_URL + '?ids=' + ids.join(',') + '&stack=' + getStack(), '_blank');
+    // POST the IDs in the request body so that large selections don't exceed
+    // the nginx URI size limit (414 Request-URI Too Large).
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = PRINT_URL;
+    form.target = '_blank';
+    var csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden'; csrfInput.name = 'csrfmiddlewaretoken'; csrfInput.value = CSRF;
+    form.appendChild(csrfInput);
+    var idsInput = document.createElement('input');
+    idsInput.type = 'hidden'; idsInput.name = 'ids'; idsInput.value = ids.join(',');
+    form.appendChild(idsInput);
+    var stackInput = document.createElement('input');
+    stackInput.type = 'hidden'; stackInput.name = 'stack'; stackInput.value = getStack();
+    form.appendChild(stackInput);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
   }
   function printAll() {
     window.open(PRINT_URL + '?all=1&stack=' + getStack(), '_blank');

@@ -51,10 +51,11 @@ def _perm(user, flag: str, *, armorer_default: bool = False) -> bool:
         except AttributeError:
             return False
     if role == 'Armorer':
-        try:
-            return bool(getattr(user.profile, flag))
-        except AttributeError:
-            return armorer_default
+        # Armorer permissions are fixed per-helper (armorer_default), not
+        # configurable per-user via DB flags.  Reading the DB field caused a
+        # regression: new profiles always have perm_* = False (the field
+        # default), which would never fall through to armorer_default=True.
+        return armorer_default
     return False
 
 

@@ -303,7 +303,9 @@ class TransactionAdminForm(forms.ModelForm):
             pistol_model = getattr(pistol, 'model', '')
             for ammo_type, weapons in AMMO_WEAPON_COMPATIBILITY.items():
                 if pistol_model in weapons:
-                    ammo_pool = Ammunition.objects.filter(type=ammo_type).first()
+                    # B-3 FIX: order by -quantity so the most-stocked pool is selected,
+                    # matching the ordering used for magazine and accessory auto-fill.
+                    ammo_pool = Ammunition.objects.filter(type=ammo_type).order_by('-quantity').first()
                     if ammo_pool:
                         cleaned_data['pistol_ammunition'] = ammo_pool
                         pistol_ammunition = ammo_pool
@@ -312,7 +314,8 @@ class TransactionAdminForm(forms.ModelForm):
             rifle_model = getattr(rifle, 'model', '')
             for ammo_type, weapons in AMMO_WEAPON_COMPATIBILITY.items():
                 if rifle_model in weapons:
-                    ammo_pool = Ammunition.objects.filter(type=ammo_type).first()
+                    # B-3 FIX: order by -quantity so the most-stocked pool is selected.
+                    ammo_pool = Ammunition.objects.filter(type=ammo_type).order_by('-quantity').first()
                     if ammo_pool:
                         cleaned_data['rifle_ammunition'] = ammo_pool
                         rifle_ammunition = ammo_pool
@@ -493,7 +496,9 @@ class TransactionAdminForm(forms.ModelForm):
             ]
             for acc_qty, acc_label in _form_accs:
                 if acc_qty:
-                    acc_pool = Accessory.objects.filter(type=acc_label).first()
+                    # B-2 FIX: order by -quantity so validation checks the same pool that
+                    # models.py clean() and services.adjust_consumable_quantities() use.
+                    acc_pool = Accessory.objects.filter(type=acc_label).order_by('-quantity').first()
                     if acc_pool:
                         ok, reason = acc_pool.can_be_withdrawn(acc_qty)
                         if not ok and reason not in errors:

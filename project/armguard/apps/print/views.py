@@ -263,9 +263,21 @@ def delete_item_tag(request, item_id):
 
 @login_required
 def print_item_tags_view(request):
-    """Print-ready page for selected (or all) item tags."""
-    ids_param = request.GET.get('ids', '')
-    show_all  = request.GET.get('all', '')
+    """Print-ready page for selected (or all) item tags.
+
+    Accepts both GET and POST.  Large selections use POST so that the list of
+    IDs is sent in the request body instead of the URL, avoiding the nginx
+    'Request-URI Too Large' (414) error that occurs when many items are selected.
+    """
+    # IDs may arrive via GET (single-item print link) or POST (bulk selection)
+    if request.method == 'POST':
+        ids_param = request.POST.get('ids', '')
+        show_all  = request.POST.get('all', '')
+        stack_raw = request.POST.get('stack', '1')
+    else:
+        ids_param = request.GET.get('ids', '')
+        show_all  = request.GET.get('all', '')
+        stack_raw = request.GET.get('stack', '1')
 
     if show_all:
         items_qs = sorted(
@@ -284,7 +296,7 @@ def print_item_tags_view(request):
         items_qs = []
 
     try:
-        stack = min(max(int(request.GET.get('stack', 1)), 1), 3)
+        stack = min(max(int(stack_raw), 1), 3)
     except (ValueError, TypeError):
         stack = 1
 

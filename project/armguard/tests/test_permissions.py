@@ -31,16 +31,18 @@ class TestIsAdmin(TestCase):
         u = make_user(username='perm_su', is_superuser=True)
         self.assertTrue(is_admin(u))
 
-    def test_staff_is_true(self):
+    def test_staff_does_not_grant_admin(self):
+        """is_staff controls Django admin access only; it must NOT grant web-app
+        admin rights.  Only role-based checks determine is_admin()."""
         u = make_user(username='perm_staff', is_staff=True)
-        self.assertTrue(is_admin(u))
+        self.assertFalse(is_admin(u))
 
     def test_system_administrator_role_is_true(self):
         u = make_user(username='perm_sysadm', role='System Administrator')
         self.assertTrue(is_admin(u))
 
     def test_administrator_role_is_true(self):
-        u = make_user(username='perm_adm', role='Administrator')
+        u = make_user(username='perm_adm', role='Administrator — Edit & Add')
         self.assertTrue(is_admin(u))
 
     def test_armorer_role_is_false(self):
@@ -57,7 +59,7 @@ class TestCanManageInventory(TestCase):
         self.assertTrue(can_manage_inventory(u))
 
     def test_administrator_is_true(self):
-        u = make_user(username='cmi_adm', role='Administrator')
+        u = make_user(username='cmi_adm', role='Administrator — Edit & Add')
         self.assertTrue(can_manage_inventory(u))
 
     def test_system_administrator_is_true(self):
@@ -78,7 +80,7 @@ class TestCanEditDeleteInventory(TestCase):
         self.assertFalse(can_edit_delete_inventory(u))
 
     def test_administrator_is_true(self):
-        u = make_user(username='cedi_adm', role='Administrator')
+        u = make_user(username='cedi_adm', role='Administrator — Edit & Add')
         self.assertTrue(can_edit_delete_inventory(u))
 
     def test_system_administrator_is_true(self):
@@ -99,7 +101,7 @@ class TestCanCreateTransaction(TestCase):
         self.assertTrue(can_create_transaction(u))
 
     def test_administrator_is_true(self):
-        u = make_user(username='cct_adm', role='Administrator')
+        u = make_user(username='cct_adm', role='Administrator — Edit & Add')
         self.assertTrue(can_create_transaction(u))
 
     def test_system_administrator_is_true(self):

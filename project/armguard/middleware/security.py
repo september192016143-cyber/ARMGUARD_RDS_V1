@@ -49,11 +49,11 @@ class SecurityHeadersMiddleware:
             "https://fonts.gstatic.com "        # Google Fonts files
             "https://cdnjs.cloudflare.com; "    # Font Awesome font files
         "img-src 'self' data: blob:; "          # QR codes: data: URIs; card preview: blob: URLs
-        "frame-src 'self'; "                    # No PDF iframes — all PDFs rendered via PDF.js <canvas>
+        "frame-src 'none'; "                    # No iframes — all PDFs rendered via PDF.js <canvas>
         "object-src 'none'; "                   # No <embed> or <object> — PDF.js uses <canvas> only
         "worker-src 'self' blob:; "             # PDF.js Web Worker (static/js/pdfjs/pdf.worker.min.mjs)
         "connect-src 'self'; "
-        "frame-ancestors 'self';"               # Allow self-framing; block external framing
+        "frame-ancestors 'none';"               # P2-Medium: block all framing (clickjacking prevention)
     )
 
     # Disable browser features not required by the application.

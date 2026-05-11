@@ -13,7 +13,8 @@ class TestPistolAPIList(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user = make_user(username='api_p_user', role='Armorer')
+        # PistolViewSet uses permissions.IsAdminUser → requires is_staff=True.
+        self.user = make_user(username='api_p_user', role='Armorer', is_staff=True)
         make_pistol(serial='API-P-001')
 
     def test_anonymous_gets_403(self):
@@ -46,7 +47,8 @@ class TestPistolAPIList(TestCase):
 class TestRifleAPIList(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user = make_user(username='api_r_user', role='Armorer')
+        # RifleViewSet uses permissions.IsAdminUser → requires is_staff=True.
+        self.user = make_user(username='api_r_user', role='Armorer', is_staff=True)
         make_rifle(serial='API-R-001')
 
     def test_anonymous_gets_403(self):

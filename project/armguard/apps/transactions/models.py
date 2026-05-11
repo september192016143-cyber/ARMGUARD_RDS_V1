@@ -93,7 +93,7 @@ class Transaction(models.Model):
         max_length=100,
         blank=False,
         null=False,
-        default='Others',
+        default='Duty Sentinel',
         help_text="Purpose for this transaction. Custom values are allowed when 'Others' is selected."
     )
     purpose_other = models.CharField(

@@ -478,6 +478,17 @@ def write_audit_entry(transaction, username):
         items.append(f"Pistol Ammo x{transaction.pistol_ammunition_quantity}")
     if transaction.rifle_ammunition:
         items.append(f"Rifle Ammo x{transaction.rifle_ammunition_quantity}")
+    # B-4 FIX: Include accessory quantities in the audit trail.
+    # Previously, accessory-only transactions logged items=[] falling through
+    # to the 'accessories' fallback, giving no quantities in the audit entry.
+    if transaction.pistol_holster_quantity:
+        items.append(f"Holster x{transaction.pistol_holster_quantity}")
+    if transaction.magazine_pouch_quantity:
+        items.append(f"Mag Pouch x{transaction.magazine_pouch_quantity}")
+    if transaction.rifle_sling_quantity:
+        items.append(f"Rifle Sling x{transaction.rifle_sling_quantity}")
+    if transaction.bandoleer_quantity:
+        items.append(f"Bandoleer x{transaction.bandoleer_quantity}")
     logger.info(
         "ARMORY %s | txn_id=%s | personnel=%s | issuance=%s | items=[%s] | by=%s",
         transaction.transaction_type.upper(),

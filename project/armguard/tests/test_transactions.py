@@ -55,6 +55,7 @@ class TestTransactionDetailView(TestCase):
         self.txn = Transaction.objects.create(
             transaction_type='Withdrawal',
             issuance_type='TR (Temporary Receipt)',
+            purpose='Duty Sentinel',
             personnel=self.personnel,
             pistol=self.pistol,
             transaction_personnel=self.user.username,
