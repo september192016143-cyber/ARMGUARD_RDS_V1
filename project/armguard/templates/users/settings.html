@@ -457,21 +457,21 @@
                   <div style="flex:1 1 140px">
                     <label for="pe-name-{{ p.pk }}" style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Name</label>
                     <input type="text" id="pe-name-{{ p.pk }}" name="name" class="form-control" value="{{ p.name|escapejs }}"
-                           maxlength="100" required style="height:30px;font-size:.82rem">
+                           maxlength="100" required autocomplete="off" style="height:30px;font-size:.82rem">
                   </div>
 
                   <!-- Hotkey -->
                   <div style="flex:0 0 90px">
                     <label for="pe-hotkey-{{ p.pk }}" style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Hotkey</label>
                     <input type="text" id="pe-hotkey-{{ p.pk }}" name="hotkey" class="form-control" value="{{ p.hotkey|escapejs }}"
-                           maxlength="20" placeholder="e.g. 1" style="height:30px;font-size:.82rem">
+                           maxlength="20" placeholder="e.g. 1" autocomplete="off" style="height:30px;font-size:.82rem">
                   </div>
 
                   <!-- Order -->
                   <div style="flex:0 0 70px">
                     <label for="pe-order-{{ p.pk }}" style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Order</label>
                     <input type="number" id="pe-order-{{ p.pk }}" name="order" class="form-control" value="{{ p.order }}"
-                           min="0" max="9999" style="height:30px;font-size:.82rem">
+                           min="0" max="9999" autocomplete="off" style="height:30px;font-size:.82rem">
                   </div>
 
                   <!-- Flag checkboxes -->
@@ -507,15 +507,15 @@
                       <i class="fa-solid fa-box-open" style="font-size:.78rem"></i> Loadout Quantities
                     </summary>
                     <div style="display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.5rem">
-                      <div style="flex:0 0 130px"><label for="pe-holster-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Holster Qty</label><input type="number" id="pe-holster-{{ p.pk }}" name="holster_qty" class="form-control" value="{{ p.holster_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label for="pe-magpouch-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Mag Pouch Qty</label><input type="number" id="pe-magpouch-{{ p.pk }}" name="mag_pouch_qty" class="form-control" value="{{ p.mag_pouch_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label for="pe-pmag-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Pistol Mag Qty</label><input type="number" id="pe-pmag-{{ p.pk }}" name="pistol_mag_qty" class="form-control" value="{{ p.pistol_mag_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label for="pe-pammo-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Pistol Ammo Qty</label><input type="number" id="pe-pammo-{{ p.pk }}" name="pistol_ammo_qty" class="form-control" value="{{ p.pistol_ammo_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label for="pe-sling-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Sling Qty</label><input type="number" id="pe-sling-{{ p.pk }}" name="rifle_sling_qty" class="form-control" value="{{ p.rifle_sling_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label for="pe-rsmag-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Short Mag Qty</label><input type="number" id="pe-rsmag-{{ p.pk }}" name="rifle_short_mag_qty" class="form-control" value="{{ p.rifle_short_mag_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label for="pe-rlmag-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Long Mag Qty</label><input type="number" id="pe-rlmag-{{ p.pk }}" name="rifle_long_mag_qty" class="form-control" value="{{ p.rifle_long_mag_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label for="pe-rammo-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Ammo Qty</label><input type="number" id="pe-rammo-{{ p.pk }}" name="rifle_ammo_qty" class="form-control" value="{{ p.rifle_ammo_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label for="pe-band-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Bandoleer Qty</label><input type="number" id="pe-band-{{ p.pk }}" name="bandoleer_qty" class="form-control" value="{{ p.bandoleer_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-holster-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Holster Qty</label><input type="number" id="pe-holster-{{ p.pk }}" name="holster_qty" class="form-control" value="{{ p.holster_qty }}" min="0" max="99" autocomplete="off" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-magpouch-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Mag Pouch Qty</label><input type="number" id="pe-magpouch-{{ p.pk }}" name="mag_pouch_qty" class="form-control" value="{{ p.mag_pouch_qty }}" min="0" max="99" autocomplete="off" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-pmag-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Pistol Mag Qty</label><input type="number" id="pe-pmag-{{ p.pk }}" name="pistol_mag_qty" class="form-control" value="{{ p.pistol_mag_qty }}" min="0" max="99" autocomplete="off" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-pammo-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Pistol Ammo Qty</label><input type="number" id="pe-pammo-{{ p.pk }}" name="pistol_ammo_qty" class="form-control" value="{{ p.pistol_ammo_qty }}" min="0" max="99" autocomplete="off" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-sling-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Sling Qty</label><input type="number" id="pe-sling-{{ p.pk }}" name="rifle_sling_qty" class="form-control" value="{{ p.rifle_sling_qty }}" min="0" max="99" autocomplete="off" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-rsmag-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Short Mag Qty</label><input type="number" id="pe-rsmag-{{ p.pk }}" name="rifle_short_mag_qty" class="form-control" value="{{ p.rifle_short_mag_qty }}" min="0" max="99" autocomplete="off" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-rlmag-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Long Mag Qty</label><input type="number" id="pe-rlmag-{{ p.pk }}" name="rifle_long_mag_qty" class="form-control" value="{{ p.rifle_long_mag_qty }}" min="0" max="99" autocomplete="off" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-rammo-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Ammo Qty</label><input type="number" id="pe-rammo-{{ p.pk }}" name="rifle_ammo_qty" class="form-control" value="{{ p.rifle_ammo_qty }}" min="0" max="99" autocomplete="off" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-band-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Bandoleer Qty</label><input type="number" id="pe-band-{{ p.pk }}" name="bandoleer_qty" class="form-control" value="{{ p.bandoleer_qty }}" min="0" max="99" autocomplete="off" style="height:28px;font-size:.82rem"></div>
                     </div>
                   </details>
 
@@ -551,12 +551,12 @@
         <div style="flex:1 1 160px">
           <label for="pa-name" style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Name <span style="color:var(--danger)">*</span></label>
           <input type="text" id="pa-name" name="name" class="form-control" maxlength="100" required
-                 placeholder="e.g. Field Training" style="height:32px;font-size:.85rem">
+                 placeholder="e.g. Field Training" autocomplete="off" style="height:32px;font-size:.85rem">
         </div>
         <div style="flex:0 0 100px">
           <label for="pa-hotkey" style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Hotkey</label>
           <input type="text" id="pa-hotkey" name="hotkey" class="form-control" maxlength="20"
-                 placeholder="e.g. 7" style="height:32px;font-size:.85rem">
+                 placeholder="e.g. 7" autocomplete="off" style="height:32px;font-size:.85rem">
         </div>
         <button type="submit" class="btn btn-primary btn-sm" style="height:32px;white-space:nowrap">
           <i class="fa-solid fa-plus"></i> Add Purpose
@@ -607,7 +607,7 @@
         <td style="padding:.5rem .6rem;font-weight:500">
           <span id="group-name-{{ grp.pk }}">{{ grp.name }}</span>
           <input type="text" id="group-input-display-{{ grp.pk }}"
-                 class="form-control" maxlength="50"
+                 class="form-control" maxlength="50" autocomplete="off"
                  data-syncs-to="group-input-{{ grp.pk }}"
                  style="display:none;height:30px;font-size:.85rem;padding:.15rem .5rem;min-width:140px">
         </td>
@@ -700,7 +700,7 @@
         <td style="padding:.5rem .6rem;font-weight:500">
           <span id="sq-name-{{ sq.pk }}">{{ sq.name }}</span>
           <input type="text" id="sq-input-display-{{ sq.pk }}"
-                 class="form-control" maxlength="50"
+                 class="form-control" maxlength="50" autocomplete="off"
                  data-sq-syncs-to="sq-input-{{ sq.pk }}"
                  style="display:none;height:30px;font-size:.85rem;padding:.15rem .5rem;min-width:140px">
         </td>
@@ -849,17 +849,17 @@
     <div style="display:flex;flex-wrap:wrap;gap:.75rem 1.25rem;margin-bottom:1.1rem">
       <label style="font-size:.85rem;font-weight:600;display:flex;flex-direction:column;gap:.25rem">
         Personnel count
-        <input type="number" name="sim_count" value="114" min="1" max="500"
+        <input type="number" name="sim_count" value="114" min="1" max="500" autocomplete="off"
                style="width:90px;padding:.4rem .6rem;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.9rem">
       </label>
       <label style="font-size:.85rem;font-weight:600;display:flex;flex-direction:column;gap:.25rem">
         Operator username
-        <input type="text" name="sim_operator" value="{{ request.user.username }}"
+        <input type="text" name="sim_operator" value="{{ request.user.username }}" autocomplete="off"
                style="width:150px;padding:.4rem .6rem;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.9rem">
       </label>
       <label style="font-size:.85rem;font-weight:600;display:flex;flex-direction:column;gap:.25rem">
         Seconds per transaction
-        <input type="number" name="sim_delay" value="5" min="0" max="60"
+        <input type="number" name="sim_delay" value="5" min="0" max="60" autocomplete="off"
                style="width:90px;padding:.4rem .6rem;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.9rem">
       </label>
     </div>
