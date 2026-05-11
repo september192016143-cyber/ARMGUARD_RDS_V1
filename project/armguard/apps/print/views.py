@@ -965,6 +965,61 @@ def print_id_cards_view(request):
     return render(request, 'print/print_id_cards_printview.html', {'cards': cards, 'side': side})
 
 
+@login_required
+def download_back_cards_zip(request):
+    """
+    Stream a ZIP of back-side ID card PNGs.
+
+    Query params (same convention as print_id_cards_view):
+      ?all=1          → every personnel with a _back.png on disk
+      ?ids=A001,A002  → only the listed Personnel_IDs
+    Each file inside the ZIP is named:
+      <RANK>_<LASTNAME>_<FIRSTNAME>_<pid>_back.png
+    so the operator can easily identify each card after extraction.
+    """
+    import zipfile
+    import io as _io
+    from django.http import StreamingHttpResponse, HttpResponseBadRequest
+
+    all_param = request.GET.get('all', '')
+    ids_param = request.GET.get('ids', '')
+
+    id_cards_dir = os.path.join(settings.MEDIA_ROOT, 'personnel_id_cards')
+
+    if all_param:
+        personnel_qs = Personnel.objects.filter(status='Active').order_by('last_name', 'first_name')
+    elif ids_param:
+        id_list = [i.strip() for i in ids_param.split(',') if i.strip()]
+        personnel_qs = Personnel.objects.filter(Personnel_ID__in=id_list, status='Active')
+    else:
+        return HttpResponseBadRequest('Provide ?all=1 or ?ids=...')
+
+    # Build list of (disk_path, zip_filename) pairs
+    entries = []
+    for p in personnel_qs:
+        back_abs = os.path.join(id_cards_dir, f"{p.Personnel_ID}_back.png")
+        if os.path.exists(back_abs):
+            rank   = (p.rank or '').strip().replace(' ', '_').replace('/', '-')
+            lname  = (p.last_name or '').strip().replace(' ', '_').replace('/', '-')
+            fname  = (p.first_name or '').strip().replace(' ', '_').replace('/', '-')
+            zip_name = f"{rank}_{lname}_{fname}_{p.Personnel_ID}_back.png"
+            entries.append((back_abs, zip_name))
+
+    if not entries:
+        return HttpResponseBadRequest('No back-side ID card images found for the selection.')
+
+    # Stream the ZIP directly — no temp file needed
+    buf = _io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for disk_path, zip_name in entries:
+            zf.write(disk_path, arcname=zip_name)
+    buf.seek(0)
+
+    response = StreamingHttpResponse(buf, content_type='application/zip')
+    response['Content-Disposition'] = 'attachment; filename="back_id_cards.zip"'
+    return response
+
+
 # ---------------------------------------------------------------------------
 # Mission Order (MO) PDF Viewer
 # ---------------------------------------------------------------------------

@@ -189,6 +189,12 @@
       <a href="{% url 'print_handler:print_id_cards_view' %}?all=1&side=back" class="btn btn-secondary btn-sm" target="_blank" title="Print back side only for all">
         <i class="fas fa-print"></i> Print All Back
       </a>
+      <button id="btn-dl-back-selected" class="btn btn-sm btn-secondary" disabled title="Download back PNG(s) for selected as ZIP">
+        <i class="fas fa-download"></i> Download Back Selected
+      </button>
+      <a id="btn-dl-back-all" href="{% url 'print_handler:download_back_cards_zip' %}?all=1" class="btn btn-sm btn-secondary" title="Download all back-side PNGs as ZIP (named by personnel)">
+        <i class="fas fa-file-zipper"></i> Download All Back
+      </a>
       <button id="btn-regen-missing" class="btn btn-sm btn-amber">
         <i class="fas fa-sync-alt"></i> Generate Missing
       </button>
@@ -210,6 +216,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script type="application/json" id="id-cards-config">{"regenUrlTemplate": "{% url 'print_handler:regenerate_id_card' personnel_id='__PID__' %}", "printViewUrl": "{% url 'print_handler:print_id_cards_view' %}", "genMissingUrl": "{% url 'print_handler:generate_missing_cards' %}", "csrfToken": "{{ csrf_token }}"}</script>
+<script type="application/json" id="id-cards-config">{"regenUrlTemplate": "{% url 'print_handler:regenerate_id_card' personnel_id='__PID__' %}", "printViewUrl": "{% url 'print_handler:print_id_cards_view' %}", "genMissingUrl": "{% url 'print_handler:generate_missing_cards' %}", "dlBackUrl": "{% url 'print_handler:download_back_cards_zip' %}", "csrfToken": "{{ csrf_token }}"}</script>
 <script src="{% static 'js/print_id_cards.js' %}"></script>
 {% endblock %}

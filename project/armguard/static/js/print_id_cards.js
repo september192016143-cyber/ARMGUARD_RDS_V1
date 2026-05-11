@@ -24,6 +24,7 @@
   var REGEN_URL_TEMPLATE = cfg.regenUrlTemplate;   // contains __PID__
   var PRINT_VIEW_URL     = cfg.printViewUrl;
   var GEN_MISSING_URL    = cfg.genMissingUrl;
+  var DL_BACK_URL        = cfg.dlBackUrl;
   var CSRF_TOKEN         = cfg.csrfToken;  var _sig               = window.pjaxController ? { signal: window.pjaxController.signal } : undefined;
 
   // ── Real-time filter (PJAX) ───────────────────────────────────────────────
@@ -147,6 +148,11 @@
       backBtn.disabled = count === 0;
       backBtn.innerHTML = '<i class="fas fa-print"></i> Print Back Selected' + (count ? ' (' + count + ')' : '');
     }
+    var dlBackBtn = document.getElementById('btn-dl-back-selected');
+    if (dlBackBtn) {
+      dlBackBtn.disabled = count === 0;
+      dlBackBtn.innerHTML = '<i class="fas fa-download"></i> Download Back Selected' + (count ? ' (' + count + ')' : '');
+    }
   }
 
   // ── Print Selected ────────────────────────────────────────────────────────
@@ -167,6 +173,16 @@
                      .map(function (cb) { return cb.value; });
       if (!ids.length) return;
       window.open(PRINT_VIEW_URL + '?ids=' + ids.join(',') + '&side=back', '_blank');
+    });
+  }
+
+  var dlBackSelBtn = document.getElementById('btn-dl-back-selected');
+  if (dlBackSelBtn) {
+    dlBackSelBtn.addEventListener('click', function () {
+      var ids = Array.from(document.querySelectorAll('.card-checkbox:checked'))
+                     .map(function (cb) { return cb.value; });
+      if (!ids.length) return;
+      window.location.href = DL_BACK_URL + '?ids=' + ids.join(',');
     });
   }
 
