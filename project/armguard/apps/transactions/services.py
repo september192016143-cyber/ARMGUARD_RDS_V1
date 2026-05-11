@@ -296,17 +296,6 @@ def create_withdrawal_log(transaction, username, TransactionLogs):
             **shared,
         )
 
-    # Magazine/ammo/accessories-only withdrawal (no pistol or rifle) → standalone row
-    has_consumable = any([
-        txn.pistol_magazine, txn.rifle_magazine,
-        txn.pistol_ammunition, txn.rifle_ammunition,
-        txn.pistol_holster_quantity, txn.magazine_pouch_quantity,
-        txn.rifle_sling_quantity, txn.bandoleer_quantity,
-    ])
-    if not txn.pistol and not txn.rifle and has_consumable:
-        TransactionLogs.objects.create(**shared)
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # 5. TransactionLogs — Return (find and update matching open logs)
 # ─────────────────────────────────────────────────────────────────────────────

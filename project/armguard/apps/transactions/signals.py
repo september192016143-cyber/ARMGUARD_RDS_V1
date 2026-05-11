@@ -97,6 +97,113 @@ def _resync_log_issuance_type(transaction):
         )
 
 
+def _resync_log_consumable_fields(transaction):
+    """
+    When an existing Withdrawal transaction is edited to add or correct a magazine,
+    ammunition, or accessory field, stamp those values onto the linked TransactionLogs
+    row(s) so the dashboard counts remain accurate.
+
+    create_withdrawal_log() in services.py only runs on INSERT, so edits to consumable
+    fields on existing Withdrawal transactions would otherwise leave TransactionLogs
+    permanently out of sync — causing the dashboard ISSUED counts to under-report.
+    """
+    if transaction.transaction_type != 'Withdrawal':
+        return
+    from django.apps import apps
+    from django.db.models import Q
+    TransactionLogs = apps.get_model('transactions', 'TransactionLogs')
+    ts = transaction.timestamp
+
+    # Find all log rows associated with this transaction via any withdrawal FK.
+    fk_fields = [
+        'withdrawal_pistol_transaction_id',
+        'withdrawal_rifle_transaction_id',
+        'withdrawal_pistol_magazine_transaction_id',
+        'withdrawal_rifle_magazine_transaction_id',
+        'withdrawal_pistol_ammunition_transaction_id',
+        'withdrawal_rifle_ammunition_transaction_id',
+        'withdrawal_pistol_holster_transaction_id',
+        'withdrawal_magazine_pouch_transaction_id',
+        'withdrawal_rifle_sling_transaction_id',
+        'withdrawal_bandoleer_transaction_id',
+    ]
+    query = Q()
+    for fk in fk_fields:
+        query |= Q(**{f'{fk}__pk': transaction.pk})
+    log_rows = TransactionLogs.objects.filter(query)
+    if not log_rows.exists():
+        return
+
+    update_kwargs = {}
+
+    # --- Magazines ---
+    if transaction.pistol_magazine_id:
+        update_kwargs.update({
+            'withdrawal_pistol_magazine_transaction_id': transaction,
+            'withdraw_pistol_magazine_id': transaction.pistol_magazine_id,
+            'withdraw_pistol_magazine_quantity': transaction.pistol_magazine_quantity,
+            'withdraw_pistol_magazine_timestamp': ts,
+        })
+    if transaction.rifle_magazine_id:
+        update_kwargs.update({
+            'withdrawal_rifle_magazine_transaction_id': transaction,
+            'withdraw_rifle_magazine_id': transaction.rifle_magazine_id,
+            'withdraw_rifle_magazine_quantity': transaction.rifle_magazine_quantity,
+            'withdraw_rifle_magazine_timestamp': ts,
+        })
+
+    # --- Ammunition ---
+    if transaction.pistol_ammunition_id:
+        update_kwargs.update({
+            'withdrawal_pistol_ammunition_transaction_id': transaction,
+            'withdraw_pistol_ammunition_id': transaction.pistol_ammunition_id,
+            'withdraw_pistol_ammunition_quantity': transaction.pistol_ammunition_quantity,
+            'withdraw_pistol_ammunition_timestamp': ts,
+        })
+    if transaction.rifle_ammunition_id:
+        update_kwargs.update({
+            'withdrawal_rifle_ammunition_transaction_id': transaction,
+            'withdraw_rifle_ammunition_id': transaction.rifle_ammunition_id,
+            'withdraw_rifle_ammunition_quantity': transaction.rifle_ammunition_quantity,
+            'withdraw_rifle_ammunition_timestamp': ts,
+        })
+
+    # --- Accessories ---
+    if transaction.pistol_holster_quantity:
+        update_kwargs.update({
+            'withdrawal_pistol_holster_transaction_id': transaction,
+            'withdraw_pistol_holster_quantity': transaction.pistol_holster_quantity,
+            'withdraw_pistol_holster_timestamp': ts,
+        })
+    if transaction.magazine_pouch_quantity:
+        update_kwargs.update({
+            'withdrawal_magazine_pouch_transaction_id': transaction,
+            'withdraw_magazine_pouch_quantity': transaction.magazine_pouch_quantity,
+            'withdraw_magazine_pouch_timestamp': ts,
+        })
+    if transaction.rifle_sling_quantity:
+        update_kwargs.update({
+            'withdrawal_rifle_sling_transaction_id': transaction,
+            'withdraw_rifle_sling_quantity': transaction.rifle_sling_quantity,
+            'withdraw_rifle_sling_timestamp': ts,
+        })
+    if transaction.bandoleer_quantity:
+        update_kwargs.update({
+            'withdrawal_bandoleer_transaction_id': transaction,
+            'withdraw_bandoleer_quantity': transaction.bandoleer_quantity,
+            'withdraw_bandoleer_timestamp': ts,
+        })
+
+    if update_kwargs:
+        updated = log_rows.update(**update_kwargs)
+        if updated:
+            audit_logger.info(
+                "[AUDIT] action=RESYNC   model=TransactionLogs      "
+                "reason=consumable_field_drift transaction_id=%s rows_updated=%d",
+                transaction.pk, updated,
+            )
+
+
 def _remove_file(relative_name):
     """Delete a MEDIA_ROOT-relative file silently."""
     if not relative_name:
@@ -139,6 +246,10 @@ def on_transaction_save(sender, instance, created, **kwargs):
     # rows to prevent snapshot drift when issuance_type is corrected post-creation.
     if not created and instance.issuance_type:
         _resync_log_issuance_type(instance)
+    # Resync magazine/ammo/accessory fields on linked TransactionLogs rows when
+    # an existing Withdrawal is edited (e.g. magazine added after initial save).
+    if not created and instance.transaction_type == 'Withdrawal':
+        _resync_log_consumable_fields(instance)
 
 
 @receiver(post_delete, sender='transactions.Transaction')

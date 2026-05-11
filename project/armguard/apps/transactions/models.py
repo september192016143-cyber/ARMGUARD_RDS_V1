@@ -395,6 +395,11 @@ class Transaction(models.Model):
 
         # Withdrawal rules
         if self.transaction_type == 'Withdrawal':
+            # Issuance type (PAR or TR) is required for all new Withdrawal transactions.
+            if not (self.issuance_type or '').strip():
+                raise ValidationError(
+                    {'issuance_type': 'Issuance type (PAR or TR) is required for Withdrawal transactions.'}
+                )
             # A Withdrawal must include at least one firearm.
             # Accessories and consumables alone cannot be the sole items.
             if not self.pistol and not self.rifle:
