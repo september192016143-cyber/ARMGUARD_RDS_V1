@@ -147,7 +147,7 @@
 <!-- ── Search + Toolbar ───────────────────────────────────────────────────── -->
 <div class="card mb-2">
   <div class="toolbar" style="margin-bottom:.75rem;">
-    <form id="id-cards-filter-form" method="get" style="display:flex; gap:.5rem; flex:1; min-width:220px; max-width:380px;" data-url="{% url 'print_handler:print_id_cards' %}">
+    <form id="id-cards-filter-form" method="get" style="display:flex; gap:.5rem; flex:1; flex-wrap:wrap; min-width:220px;" data-url="{% url 'print_handler:print_id_cards' %}">
       <input id="id-cards-q" type="text" name="q" value="{{ search_q }}"
              placeholder="Search name, ID, rank…" class="form-control" autocomplete="off">
       <select id="id-cards-category" name="category" class="form-control" style="max-width:140px;background:#1e293b;color:#e2e8f0;">
