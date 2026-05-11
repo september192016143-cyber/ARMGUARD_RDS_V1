@@ -1,10 +1,11 @@
 (function () {
-  var form       = document.getElementById('personnel-filter-form');
-  var qInput     = document.getElementById('personnel-q');
-  var catSelect  = document.getElementById('personnel-category');
-  var groupSelect= document.getElementById('personnel-group');
-  var resultsDiv = document.getElementById('personnel-results');
-  var countSpan  = document.getElementById('personnel-count');
+  var form          = document.getElementById('personnel-filter-form');
+  var qInput        = document.getElementById('personnel-q');
+  var catSelect     = document.getElementById('personnel-category');
+  var groupSelect   = document.getElementById('personnel-group');
+  var squadronSelect= document.getElementById('personnel-squadron');
+  var resultsDiv    = document.getElementById('personnel-results');
+  var countSpan     = document.getElementById('personnel-count');
   if (!form || !resultsDiv) return;
 
   var baseUrl = form.dataset.url || window.location.pathname;
@@ -13,9 +14,10 @@
   // ── AJAX fetch ────────────────────────────────────────────────────────────
   function buildParams(page) {
     var params = new URLSearchParams();
-    if (qInput.value.trim()) params.set('q', qInput.value.trim());
-    if (catSelect && catSelect.value) params.set('category', catSelect.value);
-    if (groupSelect && groupSelect.value) params.set('group', groupSelect.value);
+    if (qInput.value.trim())              params.set('q',        qInput.value.trim());
+    if (catSelect     && catSelect.value)     params.set('category', catSelect.value);
+    if (groupSelect   && groupSelect.value)   params.set('group',    groupSelect.value);
+    if (squadronSelect && squadronSelect.value) params.set('squadron', squadronSelect.value);
     if (page && page > 1) params.set('page', page);
     return params;
   }
@@ -52,8 +54,9 @@
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function () { doFetch(buildParams(1)); }, 400);
   });
-  if (catSelect) catSelect.addEventListener('change', function () { doFetch(buildParams(1)); });
-  if (groupSelect) groupSelect.addEventListener('change', function () { doFetch(buildParams(1)); });
+  if (catSelect)      catSelect.addEventListener('change',      function () { doFetch(buildParams(1)); });
+  if (groupSelect)    groupSelect.addEventListener('change',    function () { doFetch(buildParams(1)); });
+  if (squadronSelect) squadronSelect.addEventListener('change', function () { doFetch(buildParams(1)); });
 
   bindPagination();
 

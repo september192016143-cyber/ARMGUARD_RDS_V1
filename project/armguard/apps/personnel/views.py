@@ -34,7 +34,8 @@ class PersonnelListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 		qs = Personnel.objects.select_related().order_by('rank', 'last_name')
 		q = self.request.GET.get('q', '').strip()
 		category = self.request.GET.get('category', '').strip()
-		group = self.request.GET.get('group', '').strip()
+		group    = self.request.GET.get('group', '').strip()
+		squadron = self.request.GET.get('squadron', '').strip()
 		if q:
 			qs = qs.filter(
 				Q(first_name__icontains=q) | Q(last_name__icontains=q) |
@@ -46,6 +47,8 @@ class PersonnelListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 			qs = qs.filter(rank__in=_RANKS_ENLISTED)
 		if group:
 			qs = qs.filter(group=group)
+		if squadron:
+			qs = qs.filter(squadron=squadron)
 		return qs
 
 	def render_to_response(self, context, **response_kwargs):
@@ -55,9 +58,10 @@ class PersonnelListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
 	def get_context_data(self, **kwargs):
 		ctx = super().get_context_data(**kwargs)
-		ctx['groups'] = PersonnelGroup.objects.values_list('name', flat=True)
-		ctx['can_add'] = _can_add_personnel(self.request.user)
-		ctx['can_edit'] = _can_edit_personnel(self.request.user)
+		ctx['groups']    = PersonnelGroup.objects.values_list('name', flat=True)
+		ctx['squadrons'] = PersonnelSquadron.objects.values_list('name', flat=True)
+		ctx['can_add']   = _can_add_personnel(self.request.user)
+		ctx['can_edit']  = _can_edit_personnel(self.request.user)
 		return ctx
 
 	def test_func(self):

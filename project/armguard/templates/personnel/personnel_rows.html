@@ -47,20 +47,20 @@
 </table>
 
 {% if page_obj.has_other_pages %}
-{% with q=request.GET.q category=request.GET.category group=request.GET.group %}
+{% with q=request.GET.q category=request.GET.category group=request.GET.group squadron=request.GET.squadron %}
 <div class="pagination">
   {% if page_obj.has_previous %}
-    <a href="?{% if q %}q={{ q }}&{% endif %}{% if category %}category={{ category }}&{% endif %}{% if group %}group={{ group }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
+    <a href="?{% if q %}q={{ q }}&{% endif %}{% if category %}category={{ category }}&{% endif %}{% if group %}group={{ group }}&{% endif %}{% if squadron %}squadron={{ squadron }}&{% endif %}page={{ page_obj.previous_page_number }}" class="page-link"><i class="fa-solid fa-chevron-left"></i></a>
   {% endif %}
   {% for num in page_obj.paginator.page_range %}
     {% if page_obj.number == num %}
       <a class="page-link active" aria-current="page" aria-disabled="true">{{ num }}</a>
     {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-      <a href="?{% if q %}q={{ q }}&{% endif %}{% if category %}category={{ category }}&{% endif %}{% if group %}group={{ group }}&{% endif %}page={{ num }}" class="page-link">{{ num }}</a>
+      <a href="?{% if q %}q={{ q }}&{% endif %}{% if category %}category={{ category }}&{% endif %}{% if group %}group={{ group }}&{% endif %}{% if squadron %}squadron={{ squadron }}&{% endif %}page={{ num }}" class="page-link">{{ num }}</a>
     {% endif %}
   {% endfor %}
   {% if page_obj.has_next %}
-    <a href="?{% if q %}q={{ q }}&{% endif %}{% if category %}category={{ category }}&{% endif %}{% if group %}group={{ group }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
+    <a href="?{% if q %}q={{ q }}&{% endif %}{% if category %}category={{ category }}&{% endif %}{% if group %}group={{ group }}&{% endif %}{% if squadron %}squadron={{ squadron }}&{% endif %}page={{ page_obj.next_page_number }}" class="page-link"><i class="fa-solid fa-chevron-right"></i></a>
   {% endif %}
 </div>
 {% endwith %}

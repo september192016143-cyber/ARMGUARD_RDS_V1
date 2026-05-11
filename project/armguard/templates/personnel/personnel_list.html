@@ -43,7 +43,13 @@
         <option value="{{ g }}" {% if request.GET.group == g %}selected{% endif %}>{{ g }}</option>
         {% endfor %}
       </select>
-      {% if request.GET.q or request.GET.category or request.GET.group %}
+      <select id="personnel-squadron" name="squadron" class="form-control" style="max-width:160px">
+        <option value="">All Squadrons</option>
+        {% for s in squadrons %}
+        <option value="{{ s }}" {% if request.GET.squadron == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      {% if request.GET.q or request.GET.category or request.GET.group or request.GET.squadron %}
       <a href="{% url 'personnel-list' %}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i> Clear</a>
       {% endif %}
     </form>
