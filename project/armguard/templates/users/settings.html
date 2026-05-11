@@ -12,7 +12,7 @@
 {% endblock %}
 
 {% block content %}
-<form method="post" id="settings-form" enctype="multipart/form-data" style="max-width:680px">
+<form method="post" id="settings-form" enctype="multipart/form-data" autocomplete="off" style="max-width:680px">
   {% csrf_token %}
 
   <!-- ── Branding ────────────────────────────────────────────────────────── -->

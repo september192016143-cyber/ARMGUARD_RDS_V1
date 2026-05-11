@@ -1,7 +1,7 @@
 # Register your models here.
 from django.contrib import admin
 
-from .models import Transaction, TransactionLogs
+from .models import Transaction, TransactionLogs, TransactionPurpose
 from .forms import TransactionAdminForm
 from django.contrib import admin
 import os
@@ -206,3 +206,13 @@ class TransactionLogsAdmin(admin.ModelAdmin):
     readonly_fields = ['log_status']
 
 admin.site.register(TransactionLogs, TransactionLogsAdmin)
+
+
+@admin.register(TransactionPurpose)
+class TransactionPurposeAdmin(admin.ModelAdmin):
+    list_display = [
+        'name', 'hotkey', 'display_order', 'active',
+        'pistol_holster_qty', 'magazine_pouch_qty', 'rifle_sling_qty', 'bandoleer_qty',
+    ]
+    list_editable = ['display_order', 'active']
+    ordering = ['display_order']
