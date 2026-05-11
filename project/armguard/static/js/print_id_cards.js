@@ -30,20 +30,29 @@
   var filterForm   = document.getElementById('id-cards-filter-form');
   var qInput       = document.getElementById('id-cards-q');
   var categorySel  = document.getElementById('id-cards-category');
+  var groupSel     = document.getElementById('id-cards-group');
+  var squadronSel  = document.getElementById('id-cards-squadron');
   var gridOuter    = document.getElementById('card-grid-outer');
   var clearBtn     = document.getElementById('id-cards-clear-btn');
   var debounceTimer;
 
   function hasFilters() {
-    return !!((qInput && qInput.value.trim()) || (categorySel && categorySel.value));
+    return !!(
+      (qInput     && qInput.value.trim()) ||
+      (categorySel && categorySel.value) ||
+      (groupSel    && groupSel.value) ||
+      (squadronSel && squadronSel.value)
+    );
   }
 
   function doFilterFetch() {
     if (!filterForm || !gridOuter) return;
     var baseUrl = filterForm.dataset.url || window.location.pathname;
     var params = new URLSearchParams();
-    if (qInput && qInput.value.trim()) params.set('q', qInput.value.trim());
-    if (categorySel && categorySel.value) params.set('category', categorySel.value);
+    if (qInput      && qInput.value.trim())  params.set('q',        qInput.value.trim());
+    if (categorySel && categorySel.value)    params.set('category', categorySel.value);
+    if (groupSel    && groupSel.value)       params.set('group',    groupSel.value);
+    if (squadronSel && squadronSel.value)    params.set('squadron', squadronSel.value);
     fetch(baseUrl + '?' + params.toString(), {
       headers: { 'X-Requested-With': 'XMLHttpRequest' }
     })
@@ -74,6 +83,18 @@
   }
   if (categorySel) {
     categorySel.addEventListener('change', function () {
+      clearTimeout(debounceTimer);
+      doFilterFetch();
+    }, _sig);
+  }
+  if (groupSel) {
+    groupSel.addEventListener('change', function () {
+      clearTimeout(debounceTimer);
+      doFilterFetch();
+    }, _sig);
+  }
+  if (squadronSel) {
+    squadronSel.addEventListener('change', function () {
       clearTimeout(debounceTimer);
       doFilterFetch();
     }, _sig);

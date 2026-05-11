@@ -155,8 +155,20 @@
         <option value="officer" style="background:#1e293b;color:#e2e8f0;" {% if category == 'officer' %}selected{% endif %}>Officers</option>
         <option value="enlisted" style="background:#1e293b;color:#e2e8f0;" {% if category == 'enlisted' %}selected{% endif %}>Enlisted</option>
       </select>
+      <select id="id-cards-group" name="group" class="form-control" style="max-width:130px;background:#1e293b;color:#e2e8f0;">
+        <option value="" style="background:#1e293b;color:#e2e8f0;" {% if not group_f %}selected{% endif %}>All Groups</option>
+        {% for val, label in group_choices %}
+        <option value="{{ val }}" style="background:#1e293b;color:#e2e8f0;" {% if group_f == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select id="id-cards-squadron" name="squadron" class="form-control" style="max-width:160px;background:#1e293b;color:#e2e8f0;">
+        <option value="" style="background:#1e293b;color:#e2e8f0;" {% if not squadron_f %}selected{% endif %}>All Squadrons</option>
+        {% for val, label in squadron_choices %}
+        <option value="{{ val }}" style="background:#1e293b;color:#e2e8f0;" {% if squadron_f == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
       <button type="submit" id="id-cards-search-submit" name="search" class="btn btn-secondary btn-sm" aria-label="Search"><i class="fas fa-search"></i></button>
-      <a id="id-cards-clear-btn" href="{% url 'print_handler:print_id_cards' %}" class="btn btn-secondary btn-sm" aria-label="Clear search" style="{% if not search_q and not category %}display:none{% endif %}"><i class="fas fa-times"></i></a>
+      <a id="id-cards-clear-btn" href="{% url 'print_handler:print_id_cards' %}" class="btn btn-secondary btn-sm" aria-label="Clear search" style="{% if not search_q and not category and not group_f and not squadron_f %}display:none{% endif %}"><i class="fas fa-times"></i></a>
     </form>
 
     <label style="display:flex; align-items:center; gap:.4rem; font-size:.82rem; cursor:pointer; color:var(--text);">

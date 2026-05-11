@@ -786,8 +786,10 @@ def print_id_cards(request):
     Lists all active personnel, shows their ID card thumbnail,
     and allows single/bulk printing and card regeneration.
     """
-    search_q = request.GET.get('q', '').strip()
-    category = request.GET.get('category', '').strip().lower()  # 'officer' | 'enlisted' | ''
+    search_q  = request.GET.get('q', '').strip()
+    category  = request.GET.get('category', '').strip().lower()  # 'officer' | 'enlisted' | ''
+    group_f   = request.GET.get('group', '').strip()
+    squadron_f = request.GET.get('squadron', '').strip()
 
     _OFFICER_RANKS = set(dict(Personnel.RANKS_OFFICER).keys())
     _ENLISTED_RANKS = set(dict(Personnel.RANKS_ENLISTED).keys())
@@ -805,6 +807,10 @@ def print_id_cards(request):
         personnel_qs = personnel_qs.filter(rank__in=_OFFICER_RANKS)
     elif category == 'enlisted':
         personnel_qs = personnel_qs.filter(rank__in=_ENLISTED_RANKS)
+    if group_f:
+        personnel_qs = personnel_qs.filter(group=group_f)
+    if squadron_f:
+        personnel_qs = personnel_qs.filter(squadron=squadron_f)
 
     # PERF: one os.listdir() to build membership sets instead of N*2 os.path.exists() calls
     id_cards_dir = os.path.join(settings.MEDIA_ROOT, 'personnel_id_cards')
@@ -835,15 +841,20 @@ def print_id_cards(request):
     officers_count = active_qs.filter(rank__in=_officer_ranks).count()
     enlisted_count = active_qs.exclude(rank__in=_officer_ranks).count()
 
+    from armguard.apps.personnel.models import PersonnelGroup, PersonnelSquadron
     context = {
         'personnel_cards': personnel_cards,
         'search_q': search_q,
         'category': category,
+        'group_f': group_f,
+        'squadron_f': squadron_f,
         'total': total,
         'with_card': with_card,
         'without_card': total - with_card,
         'officers_count': officers_count,
         'enlisted_count': enlisted_count,
+        'group_choices': PersonnelGroup.get_choices(),
+        'squadron_choices': PersonnelSquadron.get_choices(),
     }
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(request, 'print/print_id_cards_grid.html', context)
