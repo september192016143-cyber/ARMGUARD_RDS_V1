@@ -900,20 +900,28 @@
       <i class="fa-solid fa-database"></i> Database Backup
     </span>
   </div>
-  <p style="font-size:.84rem;color:var(--muted);margin-bottom:1rem">
+  <p style="font-size:.84rem;color:var(--muted);margin-bottom:.75rem">
     <i class="fa-solid fa-circle-info" style="color:#4f8ef7"></i>
-    Create a manual hot-copy backup of the database right now. The backup is saved to the
-    <code>backups/</code> folder and a SHA-256 checksum sidecar is written alongside it.
-    Backups are also taken automatically on a scheduled basis.
+    Creates a full backup snapshot right now: <strong>SQLite/PostgreSQL database</strong>,
+    <strong>media files</strong>, and the <strong>.env</strong> credentials file — identical to the
+    automated <code>backup.sh</code> cron job (steps 1–3).
+    Saved to <code>/var/backups/armguard/</code> with 7-day rotation.
   </p>
-  <div style="display:flex;align-items:center;gap:.85rem;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:.85rem;flex-wrap:wrap;margin-bottom:.75rem">
     <button type="button" id="btn-manual-backup" class="btn btn-sm"
             style="background:#0d6efd;color:#fff;border:none;padding:.45rem 1.2rem;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:.45rem">
       <i class="fa-solid fa-floppy-disk"></i> Save Backup Now
     </button>
     <span id="backup-status" style="font-size:.83rem"></span>
   </div>
-  <div id="backup-detail" style="display:none;margin-top:.85rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.65rem .9rem;font-size:.78rem;font-family:monospace;white-space:pre-wrap;color:var(--muted);max-height:140px;overflow-y:auto"></div>
+  <!-- Step-by-step result panel (hidden until a backup runs) -->
+  <div id="backup-steps" style="display:none;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:.82rem">
+    <div style="padding:.4rem .75rem;background:var(--surface2);font-size:.75rem;font-weight:600;color:var(--muted);letter-spacing:.04em">BACKUP STEPS</div>
+    <table style="width:100%;border-collapse:collapse">
+      <tbody id="backup-steps-body"></tbody>
+    </table>
+    <div id="backup-total-row" style="padding:.4rem .75rem;background:var(--surface2);font-size:.78rem;color:var(--muted);border-top:1px solid var(--border)"></div>
+  </div>
   <span id="backup-url" data-url="{% url 'settings-manual-backup' %}" hidden></span>
 </div>
 

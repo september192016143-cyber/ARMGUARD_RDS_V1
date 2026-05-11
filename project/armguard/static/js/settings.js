@@ -176,17 +176,27 @@
 
 // ── Manual Backup ────────────────────────────────────────────────────────────
 (function () {
-  var btn    = document.getElementById('btn-manual-backup');
-  var status = document.getElementById('backup-status');
-  var detail = document.getElementById('backup-detail');
-  var urlEl  = document.getElementById('backup-url');
+  var btn      = document.getElementById('btn-manual-backup');
+  var status   = document.getElementById('backup-status');
+  var stepsBox = document.getElementById('backup-steps');
+  var tbody    = document.getElementById('backup-steps-body');
+  var totalRow = document.getElementById('backup-total-row');
+  var urlEl    = document.getElementById('backup-url');
   if (!btn || !urlEl) return;
+
+  var STEP_ICONS = {
+    'Database': 'fa-database',
+    'Media':    'fa-photo-film',
+    '.env':     'fa-key',
+  };
 
   btn.addEventListener('click', function () {
     btn.disabled = true;
     status.style.color = 'var(--muted)';
-    status.textContent = 'Creating backup\u2026';
-    detail.style.display = 'none';
+    status.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating backup\u2026';
+    stepsBox.style.display = 'none';
+    tbody.innerHTML = '';
+    totalRow.textContent = '';
 
     fetch(urlEl.dataset.url, {
       method: 'POST',
@@ -199,19 +209,42 @@
     .then(function (data) {
       if (data.ok) {
         status.style.color = '#22c55e';
-        status.textContent = '\u2713 Backup created successfully.';
-        if (data.detail) {
-          detail.textContent = data.detail;
-          detail.style.display = '';
-        }
+        status.innerHTML = '<i class="fa-solid fa-circle-check"></i> Backup complete — ' + (data.stamp || '');
       } else {
         status.style.color = '#ef4444';
-        status.textContent = '\u2717 Backup failed: ' + (data.error || 'Unknown error');
+        status.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Backup finished with errors';
+      }
+
+      // Render step rows
+      if (data.steps && data.steps.length) {
+        data.steps.forEach(function (s) {
+          var icon = STEP_ICONS[s.name] || 'fa-file';
+          var tr = document.createElement('tr');
+          tr.style.cssText = 'border-top:1px solid var(--border)';
+          tr.innerHTML =
+            '<td style="padding:.4rem .75rem;white-space:nowrap;width:1%;color:' + (s.ok ? '#22c55e' : '#ef4444') + '">' +
+              '<i class="fa-solid ' + (s.ok ? 'fa-check' : 'fa-xmark') + '" style="margin-right:.35rem"></i>' +
+              '<i class="fa-solid ' + icon + '" style="color:var(--muted);font-size:.8rem"></i>' +
+              '&nbsp;<strong>' + s.name + '</strong>' +
+            '</td>' +
+            '<td style="padding:.4rem .75rem;color:var(--muted);word-break:break-all">' + (s.detail || '') + '</td>' +
+            '<td style="padding:.4rem .75rem;text-align:right;white-space:nowrap;color:var(--muted)">' + (s.size || '') + '</td>';
+          tbody.appendChild(tr);
+        });
+        if (data.total_size) {
+          totalRow.innerHTML = '<i class="fa-solid fa-box-archive" style="margin-right:.35rem;color:#4f8ef7"></i>' +
+            'Total backup size: <strong>' + data.total_size + '</strong>';
+        }
+        stepsBox.style.display = '';
+      }
+
+      if (!data.ok && data.error) {
+        status.innerHTML += ' — ' + data.error;
       }
     })
     .catch(function (err) {
       status.style.color = '#ef4444';
-      status.textContent = '\u2717 Request error: ' + err;
+      status.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Request error: ' + err;
     })
     .finally(function () {
       btn.disabled = false;

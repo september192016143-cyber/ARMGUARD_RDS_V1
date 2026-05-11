@@ -892,22 +892,122 @@ class SystemSettingsView(LoginRequiredMixin, View):
 @login_required
 @require_POST
 def manual_backup(request):
-    """Trigger a db_backup management-command run and return JSON result."""
+    """Full backup: DB + media + .env — mirrors backup.sh steps 1-3."""
     if not request.user.is_superuser:
         return JsonResponse({'ok': False, 'error': 'Access denied.'}, status=403)
+
+    import tarfile as _tarfile
+    import shutil as _shutil
+    from pathlib import Path as _Path
+    from io import StringIO as _StringIO
+    from django.core.management import call_command as _call_command
+    from django.utils import timezone as _tz
+
+    stamp = _tz.localtime().strftime('%Y%m%d_%H%M%S')
+
+    # Match backup.sh: prefer /var/backups/armguard/<stamp>/, fall back to
+    # <deploy_root>/backups/<stamp>/ (used in development / Windows).
+    _preferred = _Path('/var/backups/armguard')
+    _fallback  = _Path(django_settings.BASE_DIR).parent / 'backups'
     try:
-        from django.core.management import call_command
-        from io import StringIO
-        buf = StringIO()
-        call_command('db_backup', stdout=buf, stderr=buf)
-        detail = buf.getvalue().strip()
-        log_system_event(
-            'BACKUP', 'manual_backup',
-            message=f'Manual backup triggered by {request.user.username}.',
-        )
-        return JsonResponse({'ok': True, 'detail': detail})
+        _preferred.mkdir(parents=True, exist_ok=True)
+        _preferred.chmod(0o700)
+        backup_dir = _preferred / stamp
+    except OSError:
+        backup_dir = _fallback / stamp
+    backup_dir.mkdir(parents=True, exist_ok=True)
+
+    steps = []
+    overall_ok = True
+
+    # ── Step 1: SQLite / PostgreSQL DB via db_backup management command ────
+    try:
+        buf = _StringIO()
+        _call_command('db_backup', output=str(backup_dir), keep=9999,
+                      stdout=buf, stderr=buf)
+        db_files = sorted(backup_dir.glob('armguard_backup_*'))
+        db_size  = f'{db_files[-1].stat().st_size // 1024} KB' if db_files else ''
+        steps.append({
+            'name': 'Database',
+            'ok': True,
+            'detail': db_files[-1].name if db_files else 'backup created',
+            'size': db_size,
+        })
     except Exception as exc:
-        return JsonResponse({'ok': False, 'error': str(exc)}, status=500)
+        steps.append({'name': 'Database', 'ok': False, 'detail': str(exc), 'size': ''})
+        overall_ok = False
+
+    # ── Step 2: Media directory (user-uploaded files) ──────────────────────
+    media_root = _Path(django_settings.MEDIA_ROOT)
+    if media_root.exists() and any(media_root.iterdir()):
+        try:
+            archive = backup_dir / f'media_{stamp}.tar.gz'
+            with _tarfile.open(archive, 'w:gz') as tar:
+                tar.add(media_root, arcname='media')
+            size_mb = archive.stat().st_size / (1024 * 1024)
+            steps.append({
+                'name': 'Media',
+                'ok': True,
+                'detail': archive.name,
+                'size': f'{size_mb:.1f} MB',
+            })
+        except Exception as exc:
+            steps.append({'name': 'Media', 'ok': False, 'detail': str(exc), 'size': ''})
+            overall_ok = False
+    else:
+        steps.append({
+            'name': 'Media',
+            'ok': True,
+            'detail': 'Skipped — media directory is empty',
+            'size': '',
+        })
+
+    # ── Step 3: .env file ─────────────────────────────────────────────────
+    env_file = _Path(django_settings.BASE_DIR).parent / '.env'
+    if env_file.exists():
+        try:
+            env_dest = backup_dir / f'env_{stamp}.env'
+            _shutil.copy2(env_file, env_dest)
+            env_dest.chmod(0o600)
+            steps.append({
+                'name': '.env',
+                'ok': True,
+                'detail': env_dest.name,
+                'size': f'{env_dest.stat().st_size} B',
+            })
+        except Exception as exc:
+            # .env failure is non-fatal (warns but keeps overall_ok)
+            steps.append({'name': '.env', 'ok': False, 'detail': str(exc), 'size': ''})
+    else:
+        steps.append({
+            'name': '.env',
+            'ok': True,
+            'detail': 'Skipped — .env not found at expected path',
+            'size': '',
+        })
+
+    # ── Total size ────────────────────────────────────────────────────────
+    total_bytes = sum(f.stat().st_size for f in backup_dir.rglob('*') if f.is_file())
+    if total_bytes >= 1024 * 1024:
+        total_size = f'{total_bytes / (1024 * 1024):.1f} MB'
+    else:
+        total_size = f'{total_bytes // 1024} KB'
+
+    ok_steps = [s['name'] for s in steps if s['ok']]
+    log_system_event(
+        'BACKUP', 'manual_backup',
+        message=(
+            f'Manual backup triggered by {request.user.username}. '
+            f'Steps OK: {ok_steps}. Total: {total_size}.'
+        ),
+    )
+
+    return JsonResponse({
+        'ok': overall_ok,
+        'stamp': stamp,
+        'total_size': total_size,
+        'steps': steps,
+    })
 
 
 # ── Personnel Group management (Settings page) ───────────────────────────────
