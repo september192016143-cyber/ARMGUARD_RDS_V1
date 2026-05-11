@@ -388,6 +388,14 @@ class Transaction(models.Model):
         if _is_others and not (self.purpose_other or '').strip():
             raise ValidationError("Please specify the purpose when 'Others' is selected.")
 
+        # Issuance type is required for ALL Withdrawal transactions (new and edited).
+        # Placed before the `if self.pk: return` guard so that existing records with
+        # a blank issuance_type are also forced to correct it on their next save.
+        if self.transaction_type == 'Withdrawal' and not (self.issuance_type or '').strip():
+            raise ValidationError(
+                {'issuance_type': 'Issuance type (PAR or TR) is required for Withdrawal transactions.'}
+            )
+
         # --- Business rules (only for new transactions) ---
         # Only enforce business rules for new records (not edits)
         if self.pk:
@@ -395,11 +403,6 @@ class Transaction(models.Model):
 
         # Withdrawal rules
         if self.transaction_type == 'Withdrawal':
-            # Issuance type (PAR or TR) is required for all new Withdrawal transactions.
-            if not (self.issuance_type or '').strip():
-                raise ValidationError(
-                    {'issuance_type': 'Issuance type (PAR or TR) is required for Withdrawal transactions.'}
-                )
             # A Withdrawal must include at least one firearm.
             # Accessories and consumables alone cannot be the sole items.
             if not self.pistol and not self.rifle:
