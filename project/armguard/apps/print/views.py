@@ -970,19 +970,18 @@ def download_back_cards_zip(request):
     """
     Stream a ZIP of back-side ID card PNGs.
 
-    Query params (same convention as print_id_cards_view):
-      ?all=1          → every personnel with a _back.png on disk
-      ?ids=A001,A002  → only the listed Personnel_IDs
+    Accepts GET ?all=1  OR  POST with 'ids' body parameter (comma-separated)
+    to avoid hitting the server's request-line length limit with large selections.
     Each file inside the ZIP is named:
       <RANK>_<LASTNAME>_<FIRSTNAME>_<pid>_back.png
-    so the operator can easily identify each card after extraction.
     """
     import zipfile
     import io as _io
     from django.http import StreamingHttpResponse, HttpResponseBadRequest
+    from django.views.decorators.csrf import csrf_exempt
 
-    all_param = request.GET.get('all', '')
-    ids_param = request.GET.get('ids', '')
+    all_param = request.GET.get('all', '') or request.POST.get('all', '')
+    ids_param = request.GET.get('ids', '') or request.POST.get('ids', '')
 
     id_cards_dir = os.path.join(settings.MEDIA_ROOT, 'personnel_id_cards')
 
@@ -992,7 +991,7 @@ def download_back_cards_zip(request):
         id_list = [i.strip() for i in ids_param.split(',') if i.strip()]
         personnel_qs = Personnel.objects.filter(Personnel_ID__in=id_list, status='Active')
     else:
-        return HttpResponseBadRequest('Provide ?all=1 or ?ids=...')
+        return HttpResponseBadRequest('Provide ?all=1 or post ids=...')
 
     # Build list of (disk_path, zip_filename) pairs
     entries = []
@@ -1008,7 +1007,6 @@ def download_back_cards_zip(request):
     if not entries:
         return HttpResponseBadRequest('No back-side ID card images found for the selection.')
 
-    # Stream the ZIP directly — no temp file needed
     buf = _io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
         for disk_path, zip_name in entries:

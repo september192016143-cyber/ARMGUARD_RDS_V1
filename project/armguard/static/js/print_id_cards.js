@@ -182,7 +182,19 @@
       var ids = Array.from(document.querySelectorAll('.card-checkbox:checked'))
                      .map(function (cb) { return cb.value; });
       if (!ids.length) return;
-      window.location.href = DL_BACK_URL + '?ids=' + ids.join(',');
+      // Use a hidden POST form to avoid URL length limits (400+ IDs = huge query string)
+      var form = document.createElement('form');
+      form.method = 'POST';
+      form.action = DL_BACK_URL;
+      var csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden'; csrfInput.name = 'csrfmiddlewaretoken'; csrfInput.value = CSRF_TOKEN;
+      var idsInput = document.createElement('input');
+      idsInput.type = 'hidden'; idsInput.name = 'ids'; idsInput.value = ids.join(',');
+      form.appendChild(csrfInput);
+      form.appendChild(idsInput);
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
     });
   }
 
