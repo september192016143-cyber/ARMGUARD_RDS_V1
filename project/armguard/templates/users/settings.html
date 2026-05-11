@@ -455,22 +455,22 @@
 
                   <!-- Name -->
                   <div style="flex:1 1 140px">
-                    <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Name</label>
-                    <input type="text" name="name" class="form-control" value="{{ p.name|escapejs }}"
+                    <label for="pe-name-{{ p.pk }}" style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Name</label>
+                    <input type="text" id="pe-name-{{ p.pk }}" name="name" class="form-control" value="{{ p.name|escapejs }}"
                            maxlength="100" required style="height:30px;font-size:.82rem">
                   </div>
 
                   <!-- Hotkey -->
                   <div style="flex:0 0 90px">
-                    <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Hotkey</label>
-                    <input type="text" name="hotkey" class="form-control" value="{{ p.hotkey|escapejs }}"
+                    <label for="pe-hotkey-{{ p.pk }}" style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Hotkey</label>
+                    <input type="text" id="pe-hotkey-{{ p.pk }}" name="hotkey" class="form-control" value="{{ p.hotkey|escapejs }}"
                            maxlength="20" placeholder="e.g. 1" style="height:30px;font-size:.82rem">
                   </div>
 
                   <!-- Order -->
                   <div style="flex:0 0 70px">
-                    <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Order</label>
-                    <input type="number" name="order" class="form-control" value="{{ p.order }}"
+                    <label for="pe-order-{{ p.pk }}" style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Order</label>
+                    <input type="number" id="pe-order-{{ p.pk }}" name="order" class="form-control" value="{{ p.order }}"
                            min="0" max="9999" style="height:30px;font-size:.82rem">
                   </div>
 
@@ -507,15 +507,15 @@
                       <i class="fa-solid fa-box-open" style="font-size:.78rem"></i> Loadout Quantities
                     </summary>
                     <div style="display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.5rem">
-                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Holster Qty</label><input type="number" name="holster_qty" class="form-control" value="{{ p.holster_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Mag Pouch Qty</label><input type="number" name="mag_pouch_qty" class="form-control" value="{{ p.mag_pouch_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Pistol Mag Qty</label><input type="number" name="pistol_mag_qty" class="form-control" value="{{ p.pistol_mag_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Pistol Ammo Qty</label><input type="number" name="pistol_ammo_qty" class="form-control" value="{{ p.pistol_ammo_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Sling Qty</label><input type="number" name="rifle_sling_qty" class="form-control" value="{{ p.rifle_sling_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Short Mag Qty</label><input type="number" name="rifle_short_mag_qty" class="form-control" value="{{ p.rifle_short_mag_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Long Mag Qty</label><input type="number" name="rifle_long_mag_qty" class="form-control" value="{{ p.rifle_long_mag_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Ammo Qty</label><input type="number" name="rifle_ammo_qty" class="form-control" value="{{ p.rifle_ammo_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
-                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Bandoleer Qty</label><input type="number" name="bandoleer_qty" class="form-control" value="{{ p.bandoleer_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-holster-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Holster Qty</label><input type="number" id="pe-holster-{{ p.pk }}" name="holster_qty" class="form-control" value="{{ p.holster_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-magpouch-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Mag Pouch Qty</label><input type="number" id="pe-magpouch-{{ p.pk }}" name="mag_pouch_qty" class="form-control" value="{{ p.mag_pouch_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-pmag-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Pistol Mag Qty</label><input type="number" id="pe-pmag-{{ p.pk }}" name="pistol_mag_qty" class="form-control" value="{{ p.pistol_mag_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-pammo-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Pistol Ammo Qty</label><input type="number" id="pe-pammo-{{ p.pk }}" name="pistol_ammo_qty" class="form-control" value="{{ p.pistol_ammo_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-sling-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Sling Qty</label><input type="number" id="pe-sling-{{ p.pk }}" name="rifle_sling_qty" class="form-control" value="{{ p.rifle_sling_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-rsmag-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Short Mag Qty</label><input type="number" id="pe-rsmag-{{ p.pk }}" name="rifle_short_mag_qty" class="form-control" value="{{ p.rifle_short_mag_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-rlmag-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Long Mag Qty</label><input type="number" id="pe-rlmag-{{ p.pk }}" name="rifle_long_mag_qty" class="form-control" value="{{ p.rifle_long_mag_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-rammo-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Ammo Qty</label><input type="number" id="pe-rammo-{{ p.pk }}" name="rifle_ammo_qty" class="form-control" value="{{ p.rifle_ammo_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label for="pe-band-{{ p.pk }}" style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Bandoleer Qty</label><input type="number" id="pe-band-{{ p.pk }}" name="bandoleer_qty" class="form-control" value="{{ p.bandoleer_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
                     </div>
                   </details>
 
@@ -549,13 +549,13 @@
             style="display:flex;flex-wrap:wrap;gap:.6rem;align-items:flex-end">
         {% csrf_token %}
         <div style="flex:1 1 160px">
-          <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Name <span style="color:var(--danger)">*</span></label>
-          <input type="text" name="name" class="form-control" maxlength="100" required
+          <label for="pa-name" style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Name <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="pa-name" name="name" class="form-control" maxlength="100" required
                  placeholder="e.g. Field Training" style="height:32px;font-size:.85rem">
         </div>
         <div style="flex:0 0 100px">
-          <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Hotkey</label>
-          <input type="text" name="hotkey" class="form-control" maxlength="20"
+          <label for="pa-hotkey" style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Hotkey</label>
+          <input type="text" id="pa-hotkey" name="hotkey" class="form-control" maxlength="20"
                  placeholder="e.g. 7" style="height:32px;font-size:.85rem">
         </div>
         <button type="submit" class="btn btn-primary btn-sm" style="height:32px;white-space:nowrap">
