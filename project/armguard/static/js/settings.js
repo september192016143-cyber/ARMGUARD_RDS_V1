@@ -185,9 +185,10 @@
   if (!btn || !urlEl) return;
 
   var STEP_ICONS = {
-    'Database': 'fa-database',
-    'Media':    'fa-photo-film',
-    '.env':     'fa-key',
+    'Database':       'fa-database',
+    'Media':          'fa-photo-film',
+    '.env':           'fa-key',
+    'External Drive': 'fa-hard-drive',
   };
 
   btn.addEventListener('click', function () {
@@ -219,11 +220,16 @@
       if (data.steps && data.steps.length) {
         data.steps.forEach(function (s) {
           var icon = STEP_ICONS[s.name] || 'fa-file';
+          // ok=true → green check, ok=false → red X, ok=null → muted dash (skipped)
+          var isOk      = s.ok === true;
+          var isSkipped = s.ok === null;
+          var statusColor = isOk ? '#22c55e' : (isSkipped ? 'var(--muted)' : '#ef4444');
+          var statusIcon  = isOk ? 'fa-check'  : (isSkipped ? 'fa-minus'   : 'fa-xmark');
           var tr = document.createElement('tr');
           tr.style.cssText = 'border-top:1px solid var(--border)';
           tr.innerHTML =
-            '<td style="padding:.4rem .75rem;white-space:nowrap;width:1%;color:' + (s.ok ? '#22c55e' : '#ef4444') + '">' +
-              '<i class="fa-solid ' + (s.ok ? 'fa-check' : 'fa-xmark') + '" style="margin-right:.35rem"></i>' +
+            '<td style="padding:.4rem .75rem;white-space:nowrap;width:1%;color:' + statusColor + '">' +
+              '<i class="fa-solid ' + statusIcon + '" style="margin-right:.35rem"></i>' +
               '<i class="fa-solid ' + icon + '" style="color:var(--muted);font-size:.8rem"></i>' +
               '&nbsp;<strong>' + s.name + '</strong>' +
             '</td>' +

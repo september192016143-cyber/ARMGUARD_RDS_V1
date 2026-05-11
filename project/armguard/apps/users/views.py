@@ -889,15 +889,19 @@ class SystemSettingsView(LoginRequiredMixin, View):
 
 # ── Manual Backup (Settings page) ────────────────────────────────────────────
 
+_EXTERNAL_MOUNT = '/mnt/backup'
+_EXTERNAL_DIR   = '/mnt/backup/armguard'
+
 @login_required
 @require_POST
 def manual_backup(request):
-    """Full backup: DB + media + .env — mirrors backup.sh steps 1-3."""
+    """Full backup: DB + media + .env + external drive sync — mirrors backup.sh steps 1-4."""
     if not request.user.is_superuser:
         return JsonResponse({'ok': False, 'error': 'Access denied.'}, status=403)
 
     import tarfile as _tarfile
     import shutil as _shutil
+    import subprocess as _sp
     from pathlib import Path as _Path
     from io import StringIO as _StringIO
     from django.core.management import call_command as _call_command
@@ -986,6 +990,60 @@ def manual_backup(request):
             'size': '',
         })
 
+    # ── Step 4: External drive sync (mirrors backup.sh rsync step) ────────
+    ext_mount = _Path(_EXTERNAL_MOUNT)
+    try:
+        _is_mounted = ext_mount.is_mount()
+    except OSError:
+        _is_mounted = False
+
+    if _is_mounted:
+        ext_dest = _Path(_EXTERNAL_DIR) / stamp
+        try:
+            ext_dest.mkdir(parents=True, exist_ok=True)
+            # Prefer rsync (atomic, incremental); fall back to shutil.copytree
+            _rsync = _shutil.which('rsync')
+            if _rsync:
+                result = _sp.run(
+                    [_rsync, '-a', f'{backup_dir}/', f'{ext_dest}/'],
+                    capture_output=True, text=True, timeout=300,
+                )
+                if result.returncode != 0:
+                    raise RuntimeError(result.stderr.strip() or 'rsync exited non-zero')
+            else:
+                _shutil.copytree(str(backup_dir), str(ext_dest), dirs_exist_ok=True)
+
+            # Compute synced size
+            ext_bytes = sum(f.stat().st_size for f in ext_dest.rglob('*') if f.is_file())
+            ext_size  = (f'{ext_bytes / (1024*1024):.1f} MB'
+                         if ext_bytes >= 1024*1024 else f'{ext_bytes // 1024} KB')
+
+            # Report free space remaining on external drive
+            _stat = _shutil.disk_usage(_EXTERNAL_MOUNT)
+            free_gb = _stat.free / (1024 ** 3)
+
+            steps.append({
+                'name': 'External Drive',
+                'ok': True,
+                'detail': f'{_EXTERNAL_DIR}/{stamp}  ({free_gb:.1f} GB free)',
+                'size': ext_size,
+            })
+        except Exception as exc:
+            # External sync failure is non-fatal — local backup is still good
+            steps.append({
+                'name': 'External Drive',
+                'ok': False,
+                'detail': str(exc),
+                'size': '',
+            })
+    else:
+        steps.append({
+            'name': 'External Drive',
+            'ok': None,   # None = skipped (not an error)
+            'detail': f'Not mounted at {_EXTERNAL_MOUNT} — skipped',
+            'size': '',
+        })
+
     # ── Total size ────────────────────────────────────────────────────────
     total_bytes = sum(f.stat().st_size for f in backup_dir.rglob('*') if f.is_file())
     if total_bytes >= 1024 * 1024:
@@ -998,7 +1056,8 @@ def manual_backup(request):
         'BACKUP', 'manual_backup',
         message=(
             f'Manual backup triggered by {request.user.username}. '
-            f'Steps OK: {ok_steps}. Total: {total_size}.'
+            f'Steps OK: {ok_steps}. Total: {total_size}. '
+            f'External drive: {"synced" if _is_mounted else "not mounted"}.'
         ),
     )
 
@@ -1006,6 +1065,7 @@ def manual_backup(request):
         'ok': overall_ok,
         'stamp': stamp,
         'total_size': total_size,
+        'external_mounted': _is_mounted,
         'steps': steps,
     })
 

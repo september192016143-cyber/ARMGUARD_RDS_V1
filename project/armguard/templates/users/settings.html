@@ -902,10 +902,11 @@
   </div>
   <p style="font-size:.84rem;color:var(--muted);margin-bottom:.75rem">
     <i class="fa-solid fa-circle-info" style="color:#4f8ef7"></i>
-    Creates a full backup snapshot right now: <strong>SQLite/PostgreSQL database</strong>,
-    <strong>media files</strong>, and the <strong>.env</strong> credentials file — identical to the
-    automated <code>backup.sh</code> cron job (steps 1–3).
-    Saved to <code>/var/backups/armguard/</code> with 7-day rotation.
+    Creates a full backup snapshot right now: <strong>database</strong>, <strong>media files</strong>,
+    and <strong>.env</strong> credentials — identical to the automated <code>backup.sh</code> cron job
+    (steps 1–3). Saved to <code>/var/backups/armguard/</code>.
+    If the external drive (<code>RDSDRIVEL</code>) is mounted at <code>/mnt/backup</code>,
+    the backup is also synced there automatically (step 4).
   </p>
   <div style="display:flex;align-items:center;gap:.85rem;flex-wrap:wrap;margin-bottom:.75rem">
     <button type="button" id="btn-manual-backup" class="btn btn-sm"
