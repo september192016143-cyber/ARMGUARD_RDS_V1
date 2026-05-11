@@ -558,7 +558,6 @@ if [[ "$SKIP_MIGRATE" == "false" ]]; then
         export DJANGO_SETTINGS_MODULE=armguard.settings.production
         [[ -f '$ENV_FILE' ]] && set -a && source <(grep -v '^\s*#' '$ENV_FILE' | grep '=') && set +a
         cd '$PROJECT_DIR'
-        '$VENV_PYTHON' manage.py makemigrations --noinput
         '$VENV_PYTHON' manage.py migrate --noinput
         '$VENV_PYTHON' manage.py setup_groups
         '$VENV_PYTHON' manage.py backfill_user_groups

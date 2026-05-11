@@ -3,44 +3,14 @@
 from django.db import migrations, models
 
 
-def add_index_if_not_exists(apps, schema_editor):
-    """Create txn_timestamp_idx only if it does not already exist (idempotent)."""
-    db = schema_editor.connection
-    existing = {row[0] for row in db.introspection.get_table_list(db.cursor())}
-    # Check the index directly via raw SQL — works for both SQLite and PostgreSQL.
-    with db.cursor() as cursor:
-        if db.vendor == 'sqlite':
-            cursor.execute(
-                "SELECT COUNT(*) FROM sqlite_master "
-                "WHERE type='index' AND name='txn_timestamp_idx';"
-            )
-        else:
-            cursor.execute(
-                "SELECT COUNT(*) FROM pg_indexes "
-                "WHERE indexname='txn_timestamp_idx';"
-            )
-        if cursor.fetchone()[0] == 0:
-            cursor.execute(
-                "CREATE INDEX txn_timestamp_idx "
-                "ON transactions_transaction (timestamp);"
-            )
-
-
-def remove_index_if_exists(apps, schema_editor):
-    """Drop txn_timestamp_idx only if it exists (idempotent reverse)."""
-    with schema_editor.connection.cursor() as cursor:
-        if schema_editor.connection.vendor == 'sqlite':
-            cursor.execute(
-                "SELECT COUNT(*) FROM sqlite_master "
-                "WHERE type='index' AND name='txn_timestamp_idx';"
-            )
-            if cursor.fetchone()[0]:
-                cursor.execute("DROP INDEX txn_timestamp_idx;")
-        else:
-            cursor.execute("DROP INDEX IF EXISTS txn_timestamp_idx;")
-
-
 class Migration(migrations.Migration):
+    """
+    Add the txn_timestamp_idx index.
+
+    SeparateDatabaseAndState is used so that:
+    - Django state records AddIndex (prevents makemigrations auto-generating 0010+)
+    - Database uses CREATE INDEX IF NOT EXISTS (idempotent; never crashes if index exists)
+    """
 
     dependencies = [
         ('inventory', '0017_alter_ammunition_quantity_alter_magazine_quantity_and_more'),
@@ -49,5 +19,19 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(add_index_if_not_exists, remove_index_if_exists),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AddIndex(
+                    model_name='transaction',
+                    index=models.Index(fields=['timestamp'], name='txn_timestamp_idx'),
+                ),
+            ],
+            database_operations=[
+                migrations.RunSQL(
+                    sql='CREATE INDEX IF NOT EXISTS txn_timestamp_idx ON transactions_transaction (timestamp);',
+                    reverse_sql='DROP INDEX IF EXISTS txn_timestamp_idx;',
+                ),
+            ],
+        ),
     ]
+

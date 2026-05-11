@@ -3,41 +3,96 @@
 from django.db import migrations, models
 
 
+def _create_table_if_not_exists(apps, schema_editor):
+    """Create transactions_transactionpurpose only if it doesn't exist (idempotent)."""
+    with schema_editor.connection.cursor() as cursor:
+        vendor = schema_editor.connection.vendor
+        if vendor == 'sqlite':
+            cursor.execute(
+                "SELECT COUNT(*) FROM sqlite_master "
+                "WHERE type='table' AND name='transactions_transactionpurpose';"
+            )
+        else:
+            cursor.execute(
+                "SELECT COUNT(*) FROM information_schema.tables "
+                "WHERE table_name='transactions_transactionpurpose';"
+            )
+        if cursor.fetchone()[0] > 0:
+            return  # Table already exists — nothing to do
+    TransactionPurpose = apps.get_model('transactions', 'TransactionPurpose')
+    schema_editor.create_model(TransactionPurpose)
+
+
+def _drop_table_if_exists(apps, schema_editor):
+    TransactionPurpose = apps.get_model('transactions', 'TransactionPurpose')
+    with schema_editor.connection.cursor() as cursor:
+        vendor = schema_editor.connection.vendor
+        if vendor == 'sqlite':
+            cursor.execute(
+                "SELECT COUNT(*) FROM sqlite_master "
+                "WHERE type='table' AND name='transactions_transactionpurpose';"
+            )
+        else:
+            cursor.execute(
+                "SELECT COUNT(*) FROM information_schema.tables "
+                "WHERE table_name='transactions_transactionpurpose';"
+            )
+        if cursor.fetchone()[0] > 0:
+            schema_editor.delete_model(TransactionPurpose)
+
+
 class Migration(migrations.Migration):
+    """
+    Create the TransactionPurpose model.
+
+    SeparateDatabaseAndState is used so that:
+    - Django state records CreateModel (prevents makemigrations auto-generating
+      a new migration on the server every deploy)
+    - Database operation is idempotent — skips CREATE TABLE if it already exists
+      (e.g. created by a previous partial deployment that wasn't recorded in
+      django_migrations)
+    """
 
     dependencies = [
         ('transactions', '0007_change_purpose_default'),
     ]
 
     operations = [
-        migrations.CreateModel(
-            name='TransactionPurpose',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(help_text='Purpose label shown in the transaction form dropdown.', max_length=100, unique=True)),
-                ('hotkey', models.CharField(blank=True, default='', help_text='Keyboard shortcut shown on the transaction form (e.g. "1", "F2").', max_length=20)),
-                ('order', models.PositiveSmallIntegerField(default=0, help_text='Display order in dropdowns — lower numbers appear first.')),
-                ('is_active', models.BooleanField(default=True, help_text='Inactive purposes are hidden from the transaction form.')),
-                ('is_others_type', models.BooleanField(default=False, help_text='If True a free-text input appears so the operator can type a custom purpose.')),
-                ('show_pistol', models.BooleanField(default=True)),
-                ('show_rifle', models.BooleanField(default=True)),
-                ('auto_consumables', models.BooleanField(default=False, help_text='Auto-assign magazines & ammunition for withdrawals of this purpose.')),
-                ('auto_accessories', models.BooleanField(default=False, help_text='Auto-assign accessories for withdrawals of this purpose.')),
-                ('auto_print_tr', models.BooleanField(default=False, help_text='Auto-open the TR print page after saving a TR Withdrawal of this purpose.')),
-                ('holster_qty', models.PositiveSmallIntegerField(default=1)),
-                ('mag_pouch_qty', models.PositiveSmallIntegerField(default=1)),
-                ('pistol_mag_qty', models.PositiveSmallIntegerField(default=0)),
-                ('pistol_ammo_qty', models.PositiveSmallIntegerField(default=0)),
-                ('rifle_sling_qty', models.PositiveSmallIntegerField(default=1)),
-                ('rifle_short_mag_qty', models.PositiveSmallIntegerField(default=0)),
-                ('rifle_long_mag_qty', models.PositiveSmallIntegerField(default=0)),
-                ('rifle_ammo_qty', models.PositiveSmallIntegerField(default=0)),
-                ('bandoleer_qty', models.PositiveSmallIntegerField(default=0)),
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.CreateModel(
+                    name='TransactionPurpose',
+                    fields=[
+                        ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                        ('name', models.CharField(help_text='Purpose label shown in the transaction form dropdown.', max_length=100, unique=True)),
+                        ('hotkey', models.CharField(blank=True, default='', help_text='Keyboard shortcut shown on the transaction form (e.g. "1", "F2").', max_length=20)),
+                        ('order', models.PositiveSmallIntegerField(default=0, help_text='Display order in dropdowns — lower numbers appear first.')),
+                        ('is_active', models.BooleanField(default=True, help_text='Inactive purposes are hidden from the transaction form.')),
+                        ('is_others_type', models.BooleanField(default=False, help_text='If True a free-text input appears so the operator can type a custom purpose.')),
+                        ('show_pistol', models.BooleanField(default=True)),
+                        ('show_rifle', models.BooleanField(default=True)),
+                        ('auto_consumables', models.BooleanField(default=False, help_text='Auto-assign magazines & ammunition for withdrawals of this purpose.')),
+                        ('auto_accessories', models.BooleanField(default=False, help_text='Auto-assign accessories for withdrawals of this purpose.')),
+                        ('auto_print_tr', models.BooleanField(default=False, help_text='Auto-open the TR print page after saving a TR Withdrawal of this purpose.')),
+                        ('holster_qty', models.PositiveSmallIntegerField(default=1)),
+                        ('mag_pouch_qty', models.PositiveSmallIntegerField(default=1)),
+                        ('pistol_mag_qty', models.PositiveSmallIntegerField(default=0)),
+                        ('pistol_ammo_qty', models.PositiveSmallIntegerField(default=0)),
+                        ('rifle_sling_qty', models.PositiveSmallIntegerField(default=1)),
+                        ('rifle_short_mag_qty', models.PositiveSmallIntegerField(default=0)),
+                        ('rifle_long_mag_qty', models.PositiveSmallIntegerField(default=0)),
+                        ('rifle_ammo_qty', models.PositiveSmallIntegerField(default=0)),
+                        ('bandoleer_qty', models.PositiveSmallIntegerField(default=0)),
+                    ],
+                    options={
+                        'verbose_name': 'Transaction Purpose',
+                        'verbose_name_plural': 'Transaction Purposes',
+                        'ordering': ['order', 'name'],
+                    },
+                ),
             ],
-            options={
-                'verbose_name': 'Transaction Purpose',
-                'verbose_name_plural': 'Transaction Purposes',
-                'ordering': ['order', 'name'],
-            },
+            database_operations=[
+                migrations.RunPython(_create_table_if_not_exists, _drop_table_if_exists),
+            ],
         ),
     ]
