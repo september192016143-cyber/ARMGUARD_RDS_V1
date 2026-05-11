@@ -132,6 +132,59 @@
   });
 })();
 
+// ── Purpose edit / cancel / delete ──────────────────────────────────────────
+(function () {
+  document.querySelectorAll('.btn-purpose-edit').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var pk = this.dataset.pk;
+      document.querySelectorAll('#purpose-row-' + pk + ' .p-view').forEach(function (el) { el.style.display = 'none'; });
+      document.querySelectorAll('#purpose-row-' + pk + ' .p-edit').forEach(function (el) { el.style.display = ''; });
+    });
+  });
+
+  document.querySelectorAll('.btn-purpose-cancel').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var pk = this.dataset.pk;
+      document.querySelectorAll('#purpose-row-' + pk + ' .p-view').forEach(function (el) { el.style.display = ''; });
+      document.querySelectorAll('#purpose-row-' + pk + ' .p-edit').forEach(function (el) { el.style.display = 'none'; });
+    });
+  });
+
+  document.querySelectorAll('.btn-purpose-delete').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      var name = this.dataset.name || 'this purpose';
+      if (!confirm('Delete purpose "' + name + '"? This cannot be undone.')) {
+        e.preventDefault();
+      }
+    });
+  });
+})();
+
+// ── OREX Simulation — commit confirmation ────────────────────────────────────
+(function () {
+  var btn = document.getElementById('btn-sim-orex');
+  if (!btn) return;
+  btn.addEventListener('click', function (e) {
+    var chk = document.getElementById('sim-commit-chk');
+    if (chk && chk.checked) {
+      if (!confirm('This will write real transactions to the database. Continue?')) {
+        e.preventDefault();
+      }
+    }
+  });
+})();
+
+// ── Data Truncation — confirm ────────────────────────────────────────────────
+(function () {
+  var btn = document.getElementById('btn-truncate');
+  if (!btn) return;
+  btn.addEventListener('click', function (e) {
+    if (!confirm('This will permanently delete all selected records. Are you sure?')) {
+      e.preventDefault();
+    }
+  });
+})();
+
 // ── Purpose Field Visibility — per-row validation ────────────────────────────
 // Highlights any purpose row where both Pistol and Rifle are unchecked so
 // operators know the transaction form would be unusable for that purpose.

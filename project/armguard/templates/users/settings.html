@@ -449,7 +449,7 @@
 
             <!-- ── Edit mode (hidden by default) ─────────────────── -->
             <td class="p-edit" colspan="11" style="display:none;padding:.6rem .8rem;background:var(--surface-alt,var(--surface))">
-              <form method="post" action="{% url 'purpose-edit' p.pk %}" class="purpose-edit-form">
+              <form method="post" action="{% url 'purpose-edit' p.pk %}" class="purpose-edit-form" autocomplete="off">
                 {% csrf_token %}
                 <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-start">
 
@@ -545,7 +545,7 @@
       <p style="font-size:.82rem;font-weight:600;margin-bottom:.5rem">
         <i class="fa-solid fa-plus" style="color:var(--primary)"></i> Add New Purpose
       </p>
-      <form method="post" action="{% url 'purpose-add' %}"
+      <form method="post" action="{% url 'purpose-add' %}" autocomplete="off"
             style="display:flex;flex-wrap:wrap;gap:.6rem;align-items:flex-end">
         {% csrf_token %}
         <div style="flex:1 1 160px">
@@ -564,35 +564,6 @@
       </form>
     </div>
   </div>
-
-  <script>
-  (function() {
-    // Edit / Cancel toggle for purpose rows
-    document.querySelectorAll('.btn-purpose-edit').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var pk = this.dataset.pk;
-        document.querySelectorAll('#purpose-row-' + pk + ' .p-view').forEach(function(el) { el.style.display = 'none'; });
-        document.querySelectorAll('#purpose-row-' + pk + ' .p-edit').forEach(function(el) { el.style.display = ''; });
-      });
-    });
-    document.querySelectorAll('.btn-purpose-cancel').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var pk = this.dataset.pk;
-        document.querySelectorAll('#purpose-row-' + pk + ' .p-view').forEach(function(el) { el.style.display = ''; });
-        document.querySelectorAll('#purpose-row-' + pk + ' .p-edit').forEach(function(el) { el.style.display = 'none'; });
-      });
-    });
-    // Delete confirmation
-    document.querySelectorAll('.btn-purpose-delete').forEach(function(btn) {
-      btn.addEventListener('click', function(e) {
-        var name = this.dataset.name || 'this purpose';
-        if (!confirm('Delete purpose "' + name + '"? This cannot be undone.')) {
-          e.preventDefault();
-        }
-      });
-    });
-  })();
-  </script>
 
   <div style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Changes take effect immediately for new transactions.</div>
 </div>
@@ -873,7 +844,7 @@
     <strong>TR&thinsp;/&thinsp;OREX</strong> withdrawal transactions. Run as
     <em>Dry-run</em> first to validate before committing.
   </p>
-  <form method="post" action="{% url 'settings-simulate-orex' %}" id="sim-orex-form">
+  <form method="post" action="{% url 'settings-simulate-orex' %}" id="sim-orex-form" autocomplete="off">
     {% csrf_token %}
     <div style="display:flex;flex-wrap:wrap;gap:.75rem 1.25rem;margin-bottom:1.1rem">
       <label style="font-size:.85rem;font-weight:600;display:flex;flex-direction:column;gap:.25rem">
@@ -896,11 +867,8 @@
       <input type="checkbox" name="sim_commit" value="1" id="sim-commit-chk">
       <span><strong>Commit to DB</strong> <span style="color:var(--muted)">&mdash; unchecked = dry-run only (validates without saving)</span></span>
     </label>
-    <button type="submit" class="btn btn-sm"
-            style="background:#1a6b3a;color:#fff;border:none;padding:.45rem 1.1rem;border-radius:6px;cursor:pointer"
-            onclick="var chk=document.getElementById('sim-commit-chk');
-                     if(chk.checked){return confirm('This will write real transactions to the database. Continue?');}
-                     return true;">
+    <button type="submit" id="btn-sim-orex" class="btn btn-sm"
+            style="background:#1a6b3a;color:#fff;border:none;padding:.45rem 1.1rem;border-radius:6px;cursor:pointer">
       <i class="fa-solid fa-person-rifle"></i> Run OREX Simulation
     </button>
   </form>
@@ -936,7 +904,7 @@
     <i class="fa-solid fa-triangle-exclamation" style="color:#e67e22"></i>
     <strong>Irreversible.</strong> Selected records will be permanently deleted. This action is logged in the audit trail.
   </p>
-  <form method="post" action="{% url 'settings-truncate' %}" id="truncate-form">
+  <form method="post" action="{% url 'settings-truncate' %}" id="truncate-form" autocomplete="off">
     {% csrf_token %}
 
     <div style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.25rem">
@@ -955,17 +923,16 @@
     </div>
 
     <div style="margin-bottom:1rem">
-      <label style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.35rem">
+      <label for="id_confirm_truncate" style="font-size:.85rem;font-weight:600;display:block;margin-bottom:.35rem">
         Type <code>TRUNCATE</code> to confirm
       </label>
-      <input type="text" name="confirm_truncate" autocomplete="off"
+      <input type="text" id="id_confirm_truncate" name="confirm_truncate" autocomplete="off"
              placeholder="TRUNCATE"
              style="width:100%;max-width:260px;padding:.45rem .7rem;border-radius:6px;border:1px solid #c0392b88;background:var(--surface);color:var(--text);font-family:monospace;font-size:.9rem">
     </div>
 
-    <button type="submit" class="btn btn-sm"
-            style="background:#c0392b;color:#fff;border:none;padding:.45rem 1.1rem;border-radius:6px;cursor:pointer"
-            onclick="return confirm('This will permanently delete all selected records. Are you sure?')">
+    <button type="submit" id="btn-truncate" class="btn btn-sm"
+            style="background:#c0392b;color:#fff;border:none;padding:.45rem 1.1rem;border-radius:6px;cursor:pointer">
       <i class="fa-solid fa-trash-can"></i> Truncate Selected
     </button>
   </form>
