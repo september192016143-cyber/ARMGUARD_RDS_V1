@@ -1,5 +1,7 @@
+import json as _json
 from django.urls import reverse_lazy
 from django.shortcuts import redirect, render, get_object_or_404
+from django.http import StreamingHttpResponse
 from django.views import View
 from django.views.generic import (
 	ListView, DetailView, CreateView, UpdateView, DeleteView
@@ -447,11 +449,12 @@ def _save_personnel_photo(p: 'Personnel', photo_bytes: bytes) -> None:
 	p.personnel_image = rel
 
 
-def _import_rows(request, data_rows, group_override='', upsert=False):
+def _import_rows(request, data_rows, group_override='', upsert=False, progress_cb=None):
 	"""
 	Process a list of dicts (header keys already normalised to lowercase_underscore).
 	Returns (created_count, updated_count, skipped_list).
-	data_rows  – list of dicts, one per data row (header row already stripped)
+	data_rows   – list of dicts, one per data row (header row already stripped)
+	progress_cb – optional callable(current, total) called after each row
 	"""
 	valid_ranks  = {r for r, _ in Personnel.ALL_RANKS}
 	valid_groups = PersonnelGroup.get_names_set()
@@ -461,6 +464,7 @@ def _import_rows(request, data_rows, group_override='', upsert=False):
 	updated_count = 0
 	skipped = []
 	import re as _re
+	total = len(data_rows)
 
 	def g(row, key, default=''):
 		return str(row.get(key) or '').strip() or default
@@ -500,6 +504,8 @@ def _import_rows(request, data_rows, group_override='', upsert=False):
 			row_errors.append(f'tel "{tel}" must be 10 digits starting with 9 (e.g. 9XXXXXXXXX) or 11 digits starting with 0 (e.g. 09XXXXXXXXX)')
 		if row_errors:
 			skipped.append(f'Row {i}: {"; ".join(row_errors)}')
+			if progress_cb:
+				progress_cb(i - 1, total, created_count, updated_count, skipped)
 			continue
 
 		# Normalise: 9XXXXXXXXX → 09XXXXXXXXX
@@ -511,6 +517,8 @@ def _import_rows(request, data_rows, group_override='', upsert=False):
 		if existing and upsert:
 			if tel and Personnel.objects.filter(tel=tel).exclude(pk=existing.pk).exists():
 				skipped.append(f'Row {i}: tel {tel} already registered to another person')
+				if progress_cb:
+					progress_cb(i - 1, total, created_count, updated_count, skipped)
 				continue
 			try:
 				existing.rank           = rank
@@ -540,9 +548,13 @@ def _import_rows(request, data_rows, group_override='', upsert=False):
 		else:
 			if not tel:
 				skipped.append(f'Row {i}: tel required')
+				if progress_cb:
+					progress_cb(i - 1, total, created_count, updated_count, skipped)
 				continue
 			if Personnel.objects.filter(tel=tel).exists():
 				skipped.append(f'Row {i}: tel {tel} already registered')
+				if progress_cb:
+					progress_cb(i - 1, total, created_count, updated_count, skipped)
 				continue
 			try:
 				p = Personnel(
@@ -568,6 +580,9 @@ def _import_rows(request, data_rows, group_override='', upsert=False):
 				created_count += 1
 			except Exception as exc:
 				skipped.append(f'Row {i}: {exc}')
+
+		if progress_cb:
+			progress_cb(i - 1, total, created_count, updated_count, skipped)
 
 	return created_count, updated_count, skipped
 
@@ -718,3 +733,208 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 		created, updated, skipped = _import_rows(request, data_rows, group_override=group_override, upsert=upsert)
 		_flash_import_results(request, created, updated, skipped)
 		return redirect('personnel-list')
+
+
+# ── SSE Import Progress View ───────────────────────────────────────────────────
+class PersonnelImportStreamView(LoginRequiredMixin, UserPassesTestMixin, View):
+	"""
+	Accepts the same POST as PersonnelImportView (xlsx tab only).
+	Returns a text/event-stream response that streams SSE progress events.
+	Each event: data: <JSON>\n\n
+	Final event has done=true.
+	"""
+
+	def test_func(self):
+		return self.request.user.is_superuser or _can_add_personnel(self.request.user)
+
+	def post(self, request):
+		xlsx_file = request.FILES.get('xlsx_file')
+		if not xlsx_file:
+			return self._error_stream('Please upload an Excel (.xlsx) file.')
+		if not xlsx_file.name.endswith('.xlsx'):
+			return self._error_stream('Only .xlsx files are accepted.')
+
+		valid_groups_set = PersonnelGroup.get_names_set()
+		group_override = request.POST.get('group_override', '').strip()
+		if group_override not in valid_groups_set:
+			group_override = ''
+		upsert = request.POST.get('upsert') == '1'
+
+		try:
+			import openpyxl
+			wb = openpyxl.load_workbook(xlsx_file, read_only=True, data_only=True)
+			ws = wb.active
+		except Exception as exc:
+			return self._error_stream(f'Could not read Excel file: {exc}')
+
+		rows = list(ws.iter_rows(values_only=True))
+		if not rows:
+			return self._error_stream('The Excel file is empty.')
+
+		headers = [str(h).strip().lower().replace(' ', '_') if h is not None else '' for h in rows[0]]
+		required = {'rank', 'first_name', 'last_name', 'middle_initial', 'afsn', 'squadron'}
+		if not group_override:
+			required.add('group')
+		missing = required - set(headers)
+		if missing:
+			return self._error_stream(f'Missing required columns: {", ".join(sorted(missing))}')
+
+		data_rows = [dict(zip(headers, row)) for row in rows[1:]]
+		data_rows = [r for r in data_rows if any(v is not None and str(v).strip() for v in r.values())]
+
+		response = StreamingHttpResponse(
+			self._event_stream(request, data_rows, group_override, upsert),
+			content_type='text/event-stream',
+		)
+		response['Cache-Control'] = 'no-cache'
+		response['X-Accel-Buffering'] = 'no'
+		return response
+
+	@staticmethod
+	def _sse(data: dict) -> str:
+		return f'data: {_json.dumps(data)}\n\n'
+
+	def _error_stream(self, message: str):
+		def gen():
+			yield self._sse({'error': message, 'done': True})
+		r = StreamingHttpResponse(gen(), content_type='text/event-stream')
+		r['Cache-Control'] = 'no-cache'
+		r['X-Accel-Buffering'] = 'no'
+		return r
+
+	def _event_stream(self, request, data_rows, group_override, upsert):
+		import re as _re2
+
+		total = len(data_rows)
+		yield self._sse({'current': 0, 'total': total, 'created': 0, 'updated': 0, 'skipped': 0})
+
+		valid_ranks  = {r for r, _ in Personnel.ALL_RANKS}
+		valid_groups = PersonnelGroup.get_names_set()
+		valid_status = {s for s, _ in Personnel.STATUS_CHOICES}
+
+		created_count = 0
+		updated_count = 0
+		skipped_list  = []
+
+		def g(row, key, default=''):
+			return str(row.get(key) or '').strip() or default
+
+		for idx, row in enumerate(data_rows, start=2):
+			rank           = g(row, 'rank')
+			first_name     = g(row, 'first_name')
+			last_name      = g(row, 'last_name')
+			middle_initial = g(row, 'middle_initial')
+			afsn           = g(row, 'afsn')
+			group          = group_override or g(row, 'group')
+			squadron       = g(row, 'squadron')
+			tel            = g(row, 'tel')
+			status         = g(row, 'status', 'Active')
+			photo_url      = g(row, 'photo')
+
+			if status not in valid_status:
+				status = 'Active'
+
+			row_errors = []
+			if rank not in valid_ranks:
+				row_errors.append(f'invalid rank "{rank}"')
+			if not first_name:
+				row_errors.append('first_name required')
+			if not last_name:
+				row_errors.append('last_name required')
+			if not middle_initial:
+				row_errors.append('middle_initial required')
+			if not afsn:
+				row_errors.append('afsn required')
+			if group not in valid_groups:
+				row_errors.append(f'invalid group "{group}" (valid: {", ".join(sorted(valid_groups))})')
+			if not squadron:
+				row_errors.append('squadron required')
+			if tel and not _re2.fullmatch(r'(9\d{9}|0\d{10})', tel):
+				row_errors.append(f'tel "{tel}" invalid format')
+
+			if row_errors:
+				skipped_list.append(f'Row {idx}: {"; ".join(row_errors)}')
+			else:
+				if tel and len(tel) == 10 and tel.startswith('9'):
+					tel = '0' + tel
+
+				existing = Personnel.objects.filter(AFSN=afsn).first()
+
+				if existing and upsert:
+					if tel and Personnel.objects.filter(tel=tel).exclude(pk=existing.pk).exists():
+						skipped_list.append(f'Row {idx}: tel {tel} already registered to another person')
+					else:
+						try:
+							existing.rank           = rank
+							existing.first_name     = first_name
+							existing.last_name      = last_name
+							existing.middle_initial = middle_initial[:1]
+							existing.group          = group
+							existing.squadron       = squadron
+							if tel:
+								existing.tel        = tel
+							existing.status         = status
+							existing.updated_by     = request.user.username
+							if photo_url:
+								fid = _extract_drive_file_id(photo_url)
+								if fid:
+									photo_bytes = _download_drive_photo(fid)
+									if photo_bytes:
+										_save_personnel_photo(existing, photo_bytes)
+							existing.save(user=request.user)
+							updated_count += 1
+						except Exception as exc:
+							skipped_list.append(f'Row {idx}: {exc}')
+
+				elif existing and not upsert:
+					skipped_list.append(f'Row {idx}: AFSN {afsn} already registered (use "Update existing" to overwrite)')
+
+				else:
+					if not tel:
+						skipped_list.append(f'Row {idx}: tel required')
+					elif Personnel.objects.filter(tel=tel).exists():
+						skipped_list.append(f'Row {idx}: tel {tel} already registered')
+					else:
+						try:
+							p = Personnel(
+								rank           = rank,
+								first_name     = first_name,
+								last_name      = last_name,
+								middle_initial = middle_initial[:1],
+								AFSN           = afsn,
+								group          = group,
+								squadron       = squadron,
+								tel            = tel or None,
+								status         = status,
+								created_by     = request.user.username,
+								updated_by     = request.user.username,
+							)
+							if photo_url:
+								fid = _extract_drive_file_id(photo_url)
+								if fid:
+									photo_bytes = _download_drive_photo(fid)
+									if photo_bytes:
+										_save_personnel_photo(p, photo_bytes)
+							p.save(user=request.user)
+							created_count += 1
+						except Exception as exc:
+							skipped_list.append(f'Row {idx}: {exc}')
+
+			current = idx - 1
+			yield self._sse({
+				'current': current,
+				'total':   total,
+				'created': created_count,
+				'updated': updated_count,
+				'skipped': len(skipped_list),
+			})
+
+		yield self._sse({
+			'done':          True,
+			'total':         total,
+			'created':       created_count,
+			'updated':       updated_count,
+			'skipped':       len(skipped_list),
+			'skipped_msgs':  skipped_list[:20],
+			'skipped_extra': max(0, len(skipped_list) - 20),
+		})

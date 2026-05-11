@@ -30,7 +30,7 @@
 
   {# ── Excel Upload form ────────────────────────────────────── #}
   <div id="panel-xlsx" class="card" style="padding:1.5rem">
-    <form method="post" enctype="multipart/form-data">
+    <form id="form-xlsx" method="post" enctype="multipart/form-data" action="{% url 'personnel-import-stream' %}">
       {% csrf_token %}
       <input type="hidden" name="source" value="xlsx">
       <div style="display:flex;flex-direction:column;gap:1rem">
@@ -75,6 +75,51 @@
         </div>
       </div>
     </form>
+  </div>
+
+  {# ── Import Progress panel (hidden until xlsx submit) ─────── #}
+  <div id="import-progress-panel" class="card" style="padding:1.5rem;display:none">
+    <div style="font-size:.85rem;font-weight:600;color:var(--text);margin-bottom:1rem">
+      <i class="fa-solid fa-circle-notch fa-spin" id="import-spinner"></i>
+      <span id="import-status-label">Importing…</span>
+    </div>
+
+    {# Progress bar #}
+    <div style="background:var(--border,#2d3550);border-radius:.5rem;height:1.1rem;overflow:hidden;margin-bottom:.75rem">
+      <div id="import-bar"
+           style="height:100%;width:0%;background:var(--primary,#c9952b);border-radius:.5rem;transition:width .25s ease"></div>
+    </div>
+
+    {# Row counter #}
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:.75rem">
+      Row <span id="import-current">0</span> of <span id="import-total">0</span>
+      &nbsp;—&nbsp;
+      <span style="color:var(--green,#22c55e)"><i class="fa-solid fa-circle-plus"></i> <span id="import-created">0</span> created</span>
+      &nbsp;
+      <span style="color:var(--primary,#c9952b)"><i class="fa-solid fa-pen"></i> <span id="import-updated">0</span> updated</span>
+      &nbsp;
+      <span style="color:var(--yellow,#eab308)"><i class="fa-solid fa-triangle-exclamation"></i> <span id="import-skipped">0</span> skipped</span>
+    </div>
+
+    {# Skip messages (appear on done) #}
+    <div id="import-skip-msgs" style="display:none;margin-top:.5rem">
+      <div style="font-size:.75rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem">
+        Skipped Rows
+      </div>
+      <ul id="import-skip-list"
+          style="font-size:.78rem;color:var(--yellow,#eab308);line-height:1.8;margin:0;padding-left:1.1rem;max-height:12rem;overflow-y:auto"></ul>
+      <p id="import-skip-more" style="display:none;font-size:.78rem;color:var(--muted);margin:.35rem 0 0"></p>
+    </div>
+
+    {# Done actions #}
+    <div id="import-done-actions" style="display:none;margin-top:1rem;gap:.75rem;justify-content:flex-end">
+      <button id="import-btn-again" class="btn btn-secondary">
+        <i class="fa-solid fa-arrow-left"></i> Import Another
+      </button>
+      <a id="import-btn-list" href="{% url 'personnel-list' %}" class="btn btn-primary">
+        <i class="fa-solid fa-list"></i> View Personnel
+      </a>
+    </div>
   </div>
 
   {# ── Google Sheet form ────────────────────────────────────── #}
