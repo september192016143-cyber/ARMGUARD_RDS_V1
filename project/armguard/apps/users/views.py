@@ -15,7 +15,7 @@ from django.views.decorators.http import require_POST
 from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
 from django.utils.http import url_has_allowed_host_and_scheme
-from .models import UserProfile, ROLE_CHOICES, PasswordHistory, AuditLog, _get_client_ip, _get_user_agent
+from .models import UserProfile, ROLE_CHOICES, PasswordHistory, AuditLog, _get_client_ip, _get_user_agent, log_system_event
 from armguard.apps.personnel.models import Personnel, PersonnelGroup, PersonnelSquadron
 # H1 FIX: Import per-module permission helpers for user management.
 from armguard.utils.permissions import can_manage_users as _can_manage_users, is_admin as _is_admin
