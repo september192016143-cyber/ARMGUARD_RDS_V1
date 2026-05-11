@@ -924,15 +924,24 @@ def regenerate_id_card(request, personnel_id):
 def print_id_cards_view(request):
     """
     Print-ready page for selected (or all) personnel ID cards.
-    Accepts ?ids=PO-xxx,PE-xxx,... or ?all=1
+    Accepts GET ?ids=PO-xxx,PE-xxx,... or ?all=1
+    Also accepts POST with 'ids' body parameter to avoid request-line
+    length limits when many personnel are selected (long IDs exceed
+    Gunicorn's default 4094-byte limit on GET query strings).
     Optional ?side=front|back|both (default: both)
     """
     if not _can_print(request.user):
         from django.core.exceptions import PermissionDenied
         raise PermissionDenied
-    ids_param = request.GET.get('ids', '')
-    show_all  = request.GET.get('all', '')
-    side      = request.GET.get('side', 'both').lower()
+    # Accept ids/side from POST body (avoids URL length limit) or GET params
+    if request.method == 'POST':
+        ids_param = request.POST.get('ids', '')
+        show_all  = request.POST.get('all', '')
+        side      = request.POST.get('side', 'both').lower()
+    else:
+        ids_param = request.GET.get('ids', '')
+        show_all  = request.GET.get('all', '')
+        side      = request.GET.get('side', 'both').lower()
     if side not in ('front', 'back', 'both'):
         side = 'both'
 

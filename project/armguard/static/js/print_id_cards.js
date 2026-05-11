@@ -156,13 +156,37 @@
   }
 
   // ── Print Selected ────────────────────────────────────────────────────────
+  // Helper: POST ids + side to the print view in a new tab.
+  // Using POST avoids the request-line length limit (Gunicorn default 4094 bytes)
+  // that triggers a 400 "Bad Request" when many personnel with long IDs are selected.
+  function openPrintViewPost(ids, side) {
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = PRINT_VIEW_URL;
+    form.target = '_blank';
+    var csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden'; csrfInput.name = 'csrfmiddlewaretoken'; csrfInput.value = CSRF_TOKEN;
+    var idsInput = document.createElement('input');
+    idsInput.type = 'hidden'; idsInput.name = 'ids'; idsInput.value = ids.join(',');
+    form.appendChild(csrfInput);
+    form.appendChild(idsInput);
+    if (side) {
+      var sideInput = document.createElement('input');
+      sideInput.type = 'hidden'; sideInput.name = 'side'; sideInput.value = side;
+      form.appendChild(sideInput);
+    }
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  }
+
   var printSelBtn = document.getElementById('btn-print-selected');
   if (printSelBtn) {
     printSelBtn.addEventListener('click', function () {
       var ids = Array.from(document.querySelectorAll('.card-checkbox:checked'))
                      .map(function (cb) { return cb.value; });
       if (!ids.length) return;
-      window.open(PRINT_VIEW_URL + '?ids=' + ids.join(','), '_blank');
+      openPrintViewPost(ids, 'both');
     });
   }
 
@@ -172,7 +196,7 @@
       var ids = Array.from(document.querySelectorAll('.card-checkbox:checked'))
                      .map(function (cb) { return cb.value; });
       if (!ids.length) return;
-      window.open(PRINT_VIEW_URL + '?ids=' + ids.join(',') + '&side=back', '_blank');
+      openPrintViewPost(ids, 'back');
     });
   }
 
