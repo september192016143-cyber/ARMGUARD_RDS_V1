@@ -66,5 +66,8 @@ class PersonnelForm(forms.ModelForm):
 		self.fields['squadron'].choices = [('', '---------')] + list(sq_choices)
 
 	def clean_tel(self):
-		"""Strip whitespace from tel before saving."""
-		return self.cleaned_data.get('tel', '').strip()
+		"""Strip whitespace and normalise: 9XXXXXXXXX → 09XXXXXXXXX."""
+		val = self.cleaned_data.get('tel', '').strip()
+		if len(val) == 10 and val.startswith('9'):
+			val = '0' + val
+		return val

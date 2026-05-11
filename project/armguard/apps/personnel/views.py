@@ -502,6 +502,10 @@ def _import_rows(request, data_rows, group_override='', upsert=False):
 			skipped.append(f'Row {i}: {"; ".join(row_errors)}')
 			continue
 
+		# Normalise: 9XXXXXXXXX → 09XXXXXXXXX
+		if tel and len(tel) == 10 and tel.startswith('9'):
+			tel = '0' + tel
+
 		existing = Personnel.objects.filter(AFSN=afsn).first()
 
 		if existing and upsert:
