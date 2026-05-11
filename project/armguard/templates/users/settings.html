@@ -331,388 +331,6 @@
     <!-- Divider -->
     <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0 1rem">
 
-    <!-- Standard Loadout Defaults -->
-    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Standard Loadout Auto-Fill — Duty Sentinel</div>
-    <div class="form-hint" style="margin-bottom:.75rem">
-      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
-      Quantities auto-filled when a Duty Sentinel withdrawal is submitted with the fields left blank. Set to 0 to skip auto-filling that item.
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_ds_holster">Pistol Holsters</label>
-        <input type="number" id="id_ds_holster" name="duty_sentinel_holster_qty" class="form-control"
-               value="{{ s.duty_sentinel_holster_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_ds_magpouch">Magazine Pouches</label>
-        <input type="number" id="id_ds_magpouch" name="duty_sentinel_mag_pouch_qty" class="form-control"
-               value="{{ s.duty_sentinel_mag_pouch_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_ds_pistol_mag">Pistol Magazines (qty)</label>
-        <input type="number" id="id_ds_pistol_mag" name="duty_sentinel_pistol_mag_qty" class="form-control"
-               value="{{ s.duty_sentinel_pistol_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_ds_pistol_ammo">Pistol Ammunition (rounds)</label>
-        <input type="number" id="id_ds_pistol_ammo" name="duty_sentinel_pistol_ammo_qty" class="form-control"
-               value="{{ s.duty_sentinel_pistol_ammo_qty }}" min="0" max="9999" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_ds_rifle_sling">Rifle Slings</label>
-        <input type="number" id="id_ds_rifle_sling" name="duty_sentinel_rifle_sling_qty" class="form-control"
-               value="{{ s.duty_sentinel_rifle_sling_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_ds_rifle_short_mag">Rifle Magazines — Short (20-rd)</label>
-        <input type="number" id="id_ds_rifle_short_mag" name="duty_sentinel_rifle_short_mag_qty" class="form-control"
-               value="{{ s.duty_sentinel_rifle_short_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_ds_rifle_long_mag">Rifle Magazines — Long (30-rd)</label>
-        <input type="number" id="id_ds_rifle_long_mag" name="duty_sentinel_rifle_long_mag_qty" class="form-control"
-               value="{{ s.duty_sentinel_rifle_long_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_ds_rifle_ammo">Rifle Ammunition (rounds)</label>
-        <input type="number" id="id_ds_rifle_ammo" name="duty_sentinel_rifle_ammo_qty" class="form-control"
-               value="{{ s.duty_sentinel_rifle_ammo_qty }}" min="0" max="9999" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_ds_bandoleer">Bandoleer</label>
-        <input type="number" id="id_ds_bandoleer" name="duty_sentinel_bandoleer_qty" class="form-control"
-               value="{{ s.duty_sentinel_bandoleer_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-
-    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.75rem;margin-bottom:.5rem">Standard Loadout Auto-Fill — Duty Vigil</div>
-    <div class="form-hint" style="margin-bottom:.75rem">
-      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
-      Quantities auto-filled when a Duty Vigil withdrawal is submitted with the fields left blank. Set to 0 to skip auto-filling that item.
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_dv_holster">Pistol Holsters</label>
-        <input type="number" id="id_dv_holster" name="duty_vigil_holster_qty" class="form-control"
-               value="{{ s.duty_vigil_holster_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_dv_magpouch">Magazine Pouches</label>
-        <input type="number" id="id_dv_magpouch" name="duty_vigil_mag_pouch_qty" class="form-control"
-               value="{{ s.duty_vigil_mag_pouch_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_dv_pistol_mag">Pistol Magazines (qty)</label>
-        <input type="number" id="id_dv_pistol_mag" name="duty_vigil_pistol_mag_qty" class="form-control"
-               value="{{ s.duty_vigil_pistol_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_dv_pistol_ammo">Pistol Ammunition (rounds)</label>
-        <input type="number" id="id_dv_pistol_ammo" name="duty_vigil_pistol_ammo_qty" class="form-control"
-               value="{{ s.duty_vigil_pistol_ammo_qty }}" min="0" max="9999" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_dv_rifle_sling">Rifle Slings</label>
-        <input type="number" id="id_dv_rifle_sling" name="duty_vigil_rifle_sling_qty" class="form-control"
-               value="{{ s.duty_vigil_rifle_sling_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_dv_rifle_short_mag">Rifle Magazines — Short (20-rd)</label>
-        <input type="number" id="id_dv_rifle_short_mag" name="duty_vigil_rifle_short_mag_qty" class="form-control"
-               value="{{ s.duty_vigil_rifle_short_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_dv_rifle_long_mag">Rifle Magazines — Long (30-rd)</label>
-        <input type="number" id="id_dv_rifle_long_mag" name="duty_vigil_rifle_long_mag_qty" class="form-control"
-               value="{{ s.duty_vigil_rifle_long_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_dv_rifle_ammo">Rifle Ammunition (rounds)</label>
-        <input type="number" id="id_dv_rifle_ammo" name="duty_vigil_rifle_ammo_qty" class="form-control"
-               value="{{ s.duty_vigil_rifle_ammo_qty }}" min="0" max="9999" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_dv_bandoleer">Bandoleer</label>
-        <input type="number" id="id_dv_bandoleer" name="duty_vigil_bandoleer_qty" class="form-control"
-               value="{{ s.duty_vigil_bandoleer_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-
-    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.75rem;margin-bottom:.5rem">Standard Loadout Auto-Fill — Duty Security</div>
-    <div class="form-hint" style="margin-bottom:.75rem">
-      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
-      Quantities auto-filled when a Duty Security withdrawal is submitted with the fields left blank. Set to 0 to skip auto-filling that item.
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_dsc_holster">Pistol Holsters</label>
-        <input type="number" id="id_dsc_holster" name="duty_security_holster_qty" class="form-control"
-               value="{{ s.duty_security_holster_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_dsc_magpouch">Magazine Pouches</label>
-        <input type="number" id="id_dsc_magpouch" name="duty_security_mag_pouch_qty" class="form-control"
-               value="{{ s.duty_security_mag_pouch_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_dsc_pistol_mag">Pistol Magazines (qty)</label>
-        <input type="number" id="id_dsc_pistol_mag" name="duty_security_pistol_mag_qty" class="form-control"
-               value="{{ s.duty_security_pistol_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_dsc_pistol_ammo">Pistol Ammunition (rounds)</label>
-        <input type="number" id="id_dsc_pistol_ammo" name="duty_security_pistol_ammo_qty" class="form-control"
-               value="{{ s.duty_security_pistol_ammo_qty }}" min="0" max="9999" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_dsc_rifle_sling">Rifle Slings</label>
-        <input type="number" id="id_dsc_rifle_sling" name="duty_security_rifle_sling_qty" class="form-control"
-               value="{{ s.duty_security_rifle_sling_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_dsc_rifle_short_mag">Rifle Magazines — Short (20-rd)</label>
-        <input type="number" id="id_dsc_rifle_short_mag" name="duty_security_rifle_short_mag_qty" class="form-control"
-               value="{{ s.duty_security_rifle_short_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_dsc_rifle_long_mag">Rifle Magazines — Long (30-rd)</label>
-        <input type="number" id="id_dsc_rifle_long_mag" name="duty_security_rifle_long_mag_qty" class="form-control"
-               value="{{ s.duty_security_rifle_long_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_dsc_rifle_ammo">Rifle Ammunition (rounds)</label>
-        <input type="number" id="id_dsc_rifle_ammo" name="duty_security_rifle_ammo_qty" class="form-control"
-               value="{{ s.duty_security_rifle_ammo_qty }}" min="0" max="9999" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_dsc_bandoleer">Bandoleer</label>
-        <input type="number" id="id_dsc_bandoleer" name="duty_security_bandoleer_qty" class="form-control"
-               value="{{ s.duty_security_bandoleer_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-
-    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.75rem;margin-bottom:.5rem">Standard Loadout Auto-Fill — Honor Guard</div>
-    <div class="form-hint" style="margin-bottom:.75rem">
-      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
-      Quantities auto-filled when an Honor Guard withdrawal is submitted with the fields left blank. Set to 0 to skip auto-filling that item.
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_hg_holster">Pistol Holsters</label>
-        <input type="number" id="id_hg_holster" name="honor_guard_holster_qty" class="form-control"
-               value="{{ s.honor_guard_holster_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_hg_magpouch">Magazine Pouches</label>
-        <input type="number" id="id_hg_magpouch" name="honor_guard_mag_pouch_qty" class="form-control"
-               value="{{ s.honor_guard_mag_pouch_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_hg_pistol_mag">Pistol Magazines (qty)</label>
-        <input type="number" id="id_hg_pistol_mag" name="honor_guard_pistol_mag_qty" class="form-control"
-               value="{{ s.honor_guard_pistol_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_hg_pistol_ammo">Pistol Ammunition (rounds)</label>
-        <input type="number" id="id_hg_pistol_ammo" name="honor_guard_pistol_ammo_qty" class="form-control"
-               value="{{ s.honor_guard_pistol_ammo_qty }}" min="0" max="9999" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_hg_rifle_sling">Rifle Slings</label>
-        <input type="number" id="id_hg_rifle_sling" name="honor_guard_rifle_sling_qty" class="form-control"
-               value="{{ s.honor_guard_rifle_sling_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_hg_rifle_short_mag">Rifle Magazines — Short (20-rd)</label>
-        <input type="number" id="id_hg_rifle_short_mag" name="honor_guard_rifle_short_mag_qty" class="form-control"
-               value="{{ s.honor_guard_rifle_short_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_hg_rifle_long_mag">Rifle Magazines — Long (30-rd)</label>
-        <input type="number" id="id_hg_rifle_long_mag" name="honor_guard_rifle_long_mag_qty" class="form-control"
-               value="{{ s.honor_guard_rifle_long_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_hg_rifle_ammo">Rifle Ammunition (rounds)</label>
-        <input type="number" id="id_hg_rifle_ammo" name="honor_guard_rifle_ammo_qty" class="form-control"
-               value="{{ s.honor_guard_rifle_ammo_qty }}" min="0" max="9999" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_hg_bandoleer">Bandoleer</label>
-        <input type="number" id="id_hg_bandoleer" name="honor_guard_bandoleer_qty" class="form-control"
-               value="{{ s.honor_guard_bandoleer_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-
-    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.75rem;margin-bottom:.5rem">Standard Loadout Auto-Fill — Others</div>
-    <div class="form-hint" style="margin-bottom:.75rem">
-      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
-      Quantities auto-filled when an Others withdrawal is submitted with the fields left blank. Set to 0 to skip auto-filling that item.
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_oth_holster">Pistol Holsters</label>
-        <input type="number" id="id_oth_holster" name="others_holster_qty" class="form-control"
-               value="{{ s.others_holster_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_oth_magpouch">Magazine Pouches</label>
-        <input type="number" id="id_oth_magpouch" name="others_mag_pouch_qty" class="form-control"
-               value="{{ s.others_mag_pouch_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_oth_pistol_mag">Pistol Magazines (qty)</label>
-        <input type="number" id="id_oth_pistol_mag" name="others_pistol_mag_qty" class="form-control"
-               value="{{ s.others_pistol_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_oth_pistol_ammo">Pistol Ammunition (rounds)</label>
-        <input type="number" id="id_oth_pistol_ammo" name="others_pistol_ammo_qty" class="form-control"
-               value="{{ s.others_pistol_ammo_qty }}" min="0" max="9999" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_oth_rifle_sling">Rifle Slings</label>
-        <input type="number" id="id_oth_rifle_sling" name="others_rifle_sling_qty" class="form-control"
-               value="{{ s.others_rifle_sling_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_oth_rifle_short_mag">Rifle Magazines — Short (20-rd)</label>
-        <input type="number" id="id_oth_rifle_short_mag" name="others_rifle_short_mag_qty" class="form-control"
-               value="{{ s.others_rifle_short_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_oth_rifle_long_mag">Rifle Magazines — Long (30-rd)</label>
-        <input type="number" id="id_oth_rifle_long_mag" name="others_rifle_long_mag_qty" class="form-control"
-               value="{{ s.others_rifle_long_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_oth_rifle_ammo">Rifle Ammunition (rounds)</label>
-        <input type="number" id="id_oth_rifle_ammo" name="others_rifle_ammo_qty" class="form-control"
-               value="{{ s.others_rifle_ammo_qty }}" min="0" max="9999" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_oth_bandoleer">Bandoleer</label>
-        <input type="number" id="id_oth_bandoleer" name="others_bandoleer_qty" class="form-control"
-               value="{{ s.others_bandoleer_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-
-    <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.75rem;margin-bottom:.5rem">Standard Loadout Auto-Fill — OREX</div>
-    <div class="form-hint" style="margin-bottom:.75rem">
-      <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
-      Quantities auto-filled when an OREX withdrawal is submitted with the fields left blank. Set to 0 to skip auto-filling that item.
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_orex_holster">Pistol Holsters</label>
-        <input type="number" id="id_orex_holster" name="orex_holster_qty" class="form-control"
-               value="{{ s.orex_holster_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_orex_magpouch">Magazine Pouches</label>
-        <input type="number" id="id_orex_magpouch" name="orex_mag_pouch_qty" class="form-control"
-               value="{{ s.orex_mag_pouch_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_orex_pistol_mag">Pistol Magazines (qty)</label>
-        <input type="number" id="id_orex_pistol_mag" name="orex_pistol_mag_qty" class="form-control"
-               value="{{ s.orex_pistol_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_orex_pistol_ammo">Pistol Ammunition (rounds)</label>
-        <input type="number" id="id_orex_pistol_ammo" name="orex_pistol_ammo_qty" class="form-control"
-               value="{{ s.orex_pistol_ammo_qty }}" min="0" max="9999" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_orex_rifle_sling">Rifle Slings</label>
-        <input type="number" id="id_orex_rifle_sling" name="orex_rifle_sling_qty" class="form-control"
-               value="{{ s.orex_rifle_sling_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_orex_rifle_short_mag">Rifle Magazines — Short (20-rd)</label>
-        <input type="number" id="id_orex_rifle_short_mag" name="orex_rifle_short_mag_qty" class="form-control"
-               value="{{ s.orex_rifle_short_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="id_orex_rifle_long_mag">Rifle Magazines — Long (30-rd)</label>
-        <input type="number" id="id_orex_rifle_long_mag" name="orex_rifle_long_mag_qty" class="form-control"
-               value="{{ s.orex_rifle_long_mag_qty }}" min="0" max="99" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_orex_rifle_ammo">Rifle Ammunition (rounds)</label>
-        <input type="number" id="id_orex_rifle_ammo" name="orex_rifle_ammo_qty" class="form-control"
-               value="{{ s.orex_rifle_ammo_qty }}" min="0" max="9999" autocomplete="off">
-      </div>
-    </div>
-    <div class="form-row cols-2">
-      <div class="form-group">
-        <label class="form-label" for="id_orex_bandoleer">Bandoleer</label>
-        <input type="number" id="id_orex_bandoleer" name="orex_bandoleer_qty" class="form-control"
-               value="{{ s.orex_bandoleer_qty }}" min="0" max="9" autocomplete="off">
-      </div>
-    </div>
-
-    <!-- Divider -->
-    <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0 1rem">
-
     <!-- Accessory Max Quantities -->
     <div style="font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Accessory Max Quantities per Withdrawal</div>
     <div class="form-hint" style="margin-bottom:.75rem">
@@ -745,59 +363,237 @@
     </div>
   </div>
 
-  <!-- ── Transaction Form — Purpose Field Visibility ─────────────────────── -->
-  <div class="card mb-2">
-    <div class="card-header">
-      <span class="card-title"><i class="fa-solid fa-sliders"></i> Transaction Form — Purpose Field Visibility</span>
+  <!-- ── Transaction Form — Purpose Management ──────────────────────────── -->
+  <div class="card mb-2" style="max-width:980px;margin-top:1.5rem" id="purposes-card">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+      <span class="card-title"><i class="fa-solid fa-sliders"></i> Transaction Purposes</span>
+      <span style="font-size:.78rem;color:var(--muted)">{{ all_purposes|length }} purpose{{ all_purposes|length|pluralize }}</span>
     </div>
     <div class="form-hint" style="margin-bottom:.85rem">
       <i class="fa-solid fa-circle-info" style="color:var(--primary)"></i>
-      Configure per-purpose: weapon visibility (Pistol / Rifle), auto-consumables (mags &amp; ammo), auto-accessories (holster, mag pouch, rifle sling), and auto TR print.
+      Add, edit, or delete transaction purposes. Configure weapon visibility, auto-consumables, auto-accessories, auto TR-print, and the keyboard shortcut (hotkey) for each purpose.
     </div>
-    <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+
+    <!-- Per-purpose delete forms (outside tables to avoid invalid HTML nesting) -->
+    {% for p in all_purposes %}
+    <form id="form-del-purpose-{{ p.pk }}" method="post"
+          action="{% url 'purpose-delete' p.pk %}">{% csrf_token %}</form>
+    {% endfor %}
+
+    <!-- Purpose table -->
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:.82rem">
         <thead>
           <tr>
             <th style="text-align:left;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Purpose</th>
-            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-gun" style="font-size:.8rem;margin-right:.3rem"></i>Pistol</th>
-            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-rifle" style="font-size:.8rem;margin-right:.3rem"></i>Rifle</th>
-            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-fire-flame-curved" style="font-size:.8rem;margin-right:.3rem"></i>Auto Consumables</th>
-            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-briefcase" style="font-size:.8rem;margin-right:.3rem"></i>Auto Accessories</th>
-            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)"><i class="fa-solid fa-print" style="font-size:.8rem;margin-right:.3rem"></i>Auto Print</th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Hotkey</th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)" title="Active"><i class="fa-solid fa-toggle-on"></i></th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)" title="Pistol"><i class="fa-solid fa-gun" style="font-size:.8rem"></i></th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)" title="Rifle"><i class="fa-solid fa-rifle" style="font-size:.8rem"></i></th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)" title="Auto Consumables"><i class="fa-solid fa-fire-flame-curved" style="font-size:.8rem"></i></th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)" title="Auto Accessories"><i class="fa-solid fa-briefcase" style="font-size:.8rem"></i></th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)" title="Auto Print TR"><i class="fa-solid fa-print" style="font-size:.8rem"></i></th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)" title="Others-type (free-text)"><i class="fa-solid fa-pen-line" style="font-size:.8rem"></i></th>
+            <th style="text-align:center;padding:.4rem .6rem;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)">Order</th>
+            <th style="padding:.4rem .6rem;border-bottom:1px solid var(--border)"></th>
           </tr>
         </thead>
-        <tbody id="purpose-vis-tbody">
-          {% for row in purpose_visibility_rows %}
-          <tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:.5rem .6rem;font-weight:500">{{ row.label }}</td>
-            <td style="text-align:center;padding:.5rem .6rem">
-              <input type="checkbox" name="{{ row.pistol_field }}" {% if row.pistol_value %}checked{% endif %}
-                     style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
+        <tbody>
+          {% for p in all_purposes %}
+          <tr id="purpose-row-{{ p.pk }}" style="border-bottom:1px solid var(--border)" data-pk="{{ p.pk }}">
+
+            <!-- ── View mode ─────────────────────────────────────── -->
+            <td class="p-view" style="padding:.45rem .6rem;font-weight:500">
+              {{ p.name }}{% if not p.is_active %} <span style="color:var(--muted);font-size:.75rem">(inactive)</span>{% endif %}
             </td>
-            <td style="text-align:center;padding:.5rem .6rem">
-              <input type="checkbox" name="{{ row.rifle_field }}" {% if row.rifle_value %}checked{% endif %}
-                     style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
+            <td class="p-view" style="text-align:center;padding:.45rem .6rem">
+              {% if p.hotkey %}<kbd style="font-size:.8rem">{{ p.hotkey }}</kbd>{% else %}<span style="color:var(--muted)">—</span>{% endif %}
             </td>
-            <td style="text-align:center;padding:.5rem .6rem">
-              <input type="checkbox" name="{{ row.auto_consumables_field }}" {% if row.auto_consumables_value %}checked{% endif %}
-                     style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
+            <td class="p-view" style="text-align:center;padding:.45rem .6rem">
+              {% if p.is_active %}<i class="fa-solid fa-check" style="color:var(--success,#22c55e)"></i>{% else %}<i class="fa-solid fa-xmark" style="color:var(--muted)"></i>{% endif %}
             </td>
-            <td style="text-align:center;padding:.5rem .6rem">
-              <input type="checkbox" name="{{ row.auto_accessories_field }}" {% if row.auto_accessories_value %}checked{% endif %}
-                     style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
+            <td class="p-view" style="text-align:center;padding:.45rem .6rem">
+              {% if p.show_pistol %}<i class="fa-solid fa-check" style="color:var(--success,#22c55e)"></i>{% else %}<i class="fa-solid fa-xmark" style="color:var(--muted)"></i>{% endif %}
             </td>
-            <td style="text-align:center;padding:.5rem .6rem">
-              <input type="checkbox" name="{{ row.auto_print_field }}" {% if row.auto_print_value %}checked{% endif %}
-                     style="width:16px;height:16px;accent-color:var(--primary,#4f8ef7);cursor:pointer">
+            <td class="p-view" style="text-align:center;padding:.45rem .6rem">
+              {% if p.show_rifle %}<i class="fa-solid fa-check" style="color:var(--success,#22c55e)"></i>{% else %}<i class="fa-solid fa-xmark" style="color:var(--muted)"></i>{% endif %}
+            </td>
+            <td class="p-view" style="text-align:center;padding:.45rem .6rem">
+              {% if p.auto_consumables %}<i class="fa-solid fa-check" style="color:var(--success,#22c55e)"></i>{% else %}<i class="fa-solid fa-xmark" style="color:var(--muted)"></i>{% endif %}
+            </td>
+            <td class="p-view" style="text-align:center;padding:.45rem .6rem">
+              {% if p.auto_accessories %}<i class="fa-solid fa-check" style="color:var(--success,#22c55e)"></i>{% else %}<i class="fa-solid fa-xmark" style="color:var(--muted)"></i>{% endif %}
+            </td>
+            <td class="p-view" style="text-align:center;padding:.45rem .6rem">
+              {% if p.auto_print_tr %}<i class="fa-solid fa-check" style="color:var(--success,#22c55e)"></i>{% else %}<i class="fa-solid fa-xmark" style="color:var(--muted)"></i>{% endif %}
+            </td>
+            <td class="p-view" style="text-align:center;padding:.45rem .6rem">
+              {% if p.is_others_type %}<i class="fa-solid fa-check" style="color:var(--success,#22c55e)"></i>{% else %}<i class="fa-solid fa-xmark" style="color:var(--muted)"></i>{% endif %}
+            </td>
+            <td class="p-view" style="text-align:center;padding:.45rem .6rem;color:var(--muted)">{{ p.order }}</td>
+
+            <!-- View actions -->
+            <td class="p-view" style="text-align:right;padding:.45rem .6rem;white-space:nowrap">
+              <button type="button" class="btn btn-secondary btn-sm btn-purpose-edit"
+                      data-pk="{{ p.pk }}" title="Edit purpose">
+                <i class="fa-solid fa-pencil"></i>
+              </button>
+              <button type="submit" form="form-del-purpose-{{ p.pk }}"
+                      class="btn btn-secondary btn-sm btn-purpose-delete"
+                      style="color:var(--danger)" title="Delete purpose"
+                      data-name="{{ p.name|escapejs }}">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+
+            <!-- ── Edit mode (hidden by default) ─────────────────── -->
+            <td class="p-edit" colspan="11" style="display:none;padding:.6rem .8rem;background:var(--surface-alt,var(--surface))">
+              <form method="post" action="{% url 'purpose-edit' p.pk %}" class="purpose-edit-form">
+                {% csrf_token %}
+                <div style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-start">
+
+                  <!-- Name -->
+                  <div style="flex:1 1 140px">
+                    <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Name</label>
+                    <input type="text" name="name" class="form-control" value="{{ p.name|escapejs }}"
+                           maxlength="100" required style="height:30px;font-size:.82rem">
+                  </div>
+
+                  <!-- Hotkey -->
+                  <div style="flex:0 0 90px">
+                    <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Hotkey</label>
+                    <input type="text" name="hotkey" class="form-control" value="{{ p.hotkey|escapejs }}"
+                           maxlength="20" placeholder="e.g. 1" style="height:30px;font-size:.82rem">
+                  </div>
+
+                  <!-- Order -->
+                  <div style="flex:0 0 70px">
+                    <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Order</label>
+                    <input type="number" name="order" class="form-control" value="{{ p.order }}"
+                           min="0" max="9999" style="height:30px;font-size:.82rem">
+                  </div>
+
+                  <!-- Flag checkboxes -->
+                  <div style="flex:0 0 auto;display:flex;flex-direction:column;gap:.3rem;font-size:.82rem;padding-top:1.4rem">
+                    <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer">
+                      <input type="checkbox" name="is_active" {% if p.is_active %}checked{% endif %}> Active
+                    </label>
+                    <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer">
+                      <input type="checkbox" name="show_pistol" {% if p.show_pistol %}checked{% endif %}> Pistol
+                    </label>
+                    <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer">
+                      <input type="checkbox" name="show_rifle" {% if p.show_rifle %}checked{% endif %}> Rifle
+                    </label>
+                  </div>
+                  <div style="flex:0 0 auto;display:flex;flex-direction:column;gap:.3rem;font-size:.82rem;padding-top:1.4rem">
+                    <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer">
+                      <input type="checkbox" name="auto_consumables" {% if p.auto_consumables %}checked{% endif %}> Auto Consumables
+                    </label>
+                    <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer">
+                      <input type="checkbox" name="auto_accessories" {% if p.auto_accessories %}checked{% endif %}> Auto Accessories
+                    </label>
+                    <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer">
+                      <input type="checkbox" name="auto_print_tr" {% if p.auto_print_tr %}checked{% endif %}> Auto Print TR
+                    </label>
+                    <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer">
+                      <input type="checkbox" name="is_others_type" {% if p.is_others_type %}checked{% endif %}> Others-type
+                    </label>
+                  </div>
+
+                  <!-- Loadout quantities -->
+                  <details style="flex:1 1 100%;font-size:.82rem">
+                    <summary style="cursor:pointer;color:var(--muted);user-select:none;padding:.15rem 0">
+                      <i class="fa-solid fa-box-open" style="font-size:.78rem"></i> Loadout Quantities
+                    </summary>
+                    <div style="display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.5rem">
+                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Holster Qty</label><input type="number" name="holster_qty" class="form-control" value="{{ p.holster_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Mag Pouch Qty</label><input type="number" name="mag_pouch_qty" class="form-control" value="{{ p.mag_pouch_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Pistol Mag Qty</label><input type="number" name="pistol_mag_qty" class="form-control" value="{{ p.pistol_mag_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Pistol Ammo Qty</label><input type="number" name="pistol_ammo_qty" class="form-control" value="{{ p.pistol_ammo_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Sling Qty</label><input type="number" name="rifle_sling_qty" class="form-control" value="{{ p.rifle_sling_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Short Mag Qty</label><input type="number" name="rifle_short_mag_qty" class="form-control" value="{{ p.rifle_short_mag_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Long Mag Qty</label><input type="number" name="rifle_long_mag_qty" class="form-control" value="{{ p.rifle_long_mag_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Rifle Ammo Qty</label><input type="number" name="rifle_ammo_qty" class="form-control" value="{{ p.rifle_ammo_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                      <div style="flex:0 0 130px"><label style="font-size:.77rem;color:var(--muted);display:block;margin-bottom:.2rem">Bandoleer Qty</label><input type="number" name="bandoleer_qty" class="form-control" value="{{ p.bandoleer_qty }}" min="0" max="99" style="height:28px;font-size:.82rem"></div>
+                    </div>
+                  </details>
+
+                  <!-- Save / Cancel -->
+                  <div style="flex:1 1 100%;display:flex;gap:.5rem;margin-top:.25rem">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                      <i class="fa-solid fa-floppy-disk"></i> Save
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm btn-purpose-cancel"
+                            data-pk="{{ p.pk }}">
+                      <i class="fa-solid fa-xmark"></i> Cancel
+                    </button>
+                  </div>
+                </div>
+              </form>
             </td>
           </tr>
+          {% empty %}
+          <tr><td colspan="11" style="padding:1rem;text-align:center;color:var(--muted)">No purposes configured.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+
+    <!-- ── Add New Purpose ──────────────────────────────────────────────── -->
+    <div style="margin-top:1rem;padding-top:.85rem;border-top:1px solid var(--border)">
+      <p style="font-size:.82rem;font-weight:600;margin-bottom:.5rem">
+        <i class="fa-solid fa-plus" style="color:var(--primary)"></i> Add New Purpose
+      </p>
+      <form method="post" action="{% url 'purpose-add' %}"
+            style="display:flex;flex-wrap:wrap;gap:.6rem;align-items:flex-end">
+        {% csrf_token %}
+        <div style="flex:1 1 160px">
+          <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Name <span style="color:var(--danger)">*</span></label>
+          <input type="text" name="name" class="form-control" maxlength="100" required
+                 placeholder="e.g. Field Training" style="height:32px;font-size:.85rem">
+        </div>
+        <div style="flex:0 0 100px">
+          <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:.25rem">Hotkey</label>
+          <input type="text" name="hotkey" class="form-control" maxlength="20"
+                 placeholder="e.g. 7" style="height:32px;font-size:.85rem">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" style="height:32px;white-space:nowrap">
+          <i class="fa-solid fa-plus"></i> Add Purpose
+        </button>
+      </form>
+    </div>
   </div>
 
-  <div style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Changes apply immediately.</div>
+  <script>
+  (function() {
+    // Edit / Cancel toggle for purpose rows
+    document.querySelectorAll('.btn-purpose-edit').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var pk = this.dataset.pk;
+        document.querySelectorAll('#purpose-row-' + pk + ' .p-view').forEach(function(el) { el.style.display = 'none'; });
+        document.querySelectorAll('#purpose-row-' + pk + ' .p-edit').forEach(function(el) { el.style.display = ''; });
+      });
+    });
+    document.querySelectorAll('.btn-purpose-cancel').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var pk = this.dataset.pk;
+        document.querySelectorAll('#purpose-row-' + pk + ' .p-view').forEach(function(el) { el.style.display = ''; });
+        document.querySelectorAll('#purpose-row-' + pk + ' .p-edit').forEach(function(el) { el.style.display = 'none'; });
+      });
+    });
+    // Delete confirmation
+    document.querySelectorAll('.btn-purpose-delete').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        var name = this.dataset.name || 'this purpose';
+        if (!confirm('Delete purpose "' + name + '"? This cannot be undone.')) {
+          e.preventDefault();
+        }
+      });
+    });
+  })();
+  </script>
+
+  <div style="font-size:.8rem;color:var(--muted);margin-top:.5rem">Changes take effect immediately for new transactions.</div>
 </form>
 
 <!-- ── Personnel Groups ────────────────────────────────────────────────── -->

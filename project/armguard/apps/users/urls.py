@@ -17,6 +17,10 @@ urlpatterns = [
     path('settings/squadrons/add/',             views.squadron_add,            name='squadron-add'),
     path('settings/squadrons/<int:pk>/rename/', views.squadron_rename,         name='squadron-rename'),
     path('settings/squadrons/<int:pk>/delete/', views.squadron_delete,         name='squadron-delete'),
+    # Transaction Purpose management
+    path('settings/purposes/add/',             views.purpose_add,              name='purpose-add'),
+    path('settings/purposes/<int:pk>/edit/',   views.purpose_edit,             name='purpose-edit'),
+    path('settings/purposes/<int:pk>/delete/', views.purpose_delete,           name='purpose-delete'),
     path('settings/truncate/',       views.truncate_data,                    name='settings-truncate'),
     path('settings/simulate-orex/',   views.simulate_orex_run,               name='settings-simulate-orex'),
     path('settings/simulate-orex/status/', views.simulate_orex_status_json,  name='simulate-orex-status'),

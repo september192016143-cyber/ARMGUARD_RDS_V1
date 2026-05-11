@@ -28,12 +28,9 @@
     <label for="tb_purpose" style="font-size:.68rem;font-weight:700;color:#cbd5e1;letter-spacing:.07em;text-transform:uppercase">Purpose <span style="color:#ef4444">*</span></label>
     <div style="display:flex;align-items:center;gap:.5rem;">
       <select id="tb_purpose" name="purpose" style="background:#1e293b;border:1.5px solid #475569;color:#f1f5f9;border-radius:.4rem;font-size:.82rem;padding:.35rem .7rem;width:auto;outline:none;transition:border-color .15s">
-        <option value="Duty Sentinel"{% if form.purpose.value == 'Duty Sentinel' %} selected{% endif %}>Duty Sentinel</option>
-        <option value="Duty Vigil"{% if form.purpose.value == 'Duty Vigil' %} selected{% endif %}>Duty Vigil</option>
-        <option value="Duty Security"{% if form.purpose.value == 'Duty Security' %} selected{% endif %}>Duty Security</option>
-        <option value="Honor Guard"{% if form.purpose.value == 'Honor Guard' %} selected{% endif %}>Honor Guard</option>
-        <option value="Others"{% if form.purpose.value == 'Others' %} selected{% endif %}>Others</option>
-        <option value="OREX"{% if form.purpose.value == 'OREX' %} selected{% endif %}>OREX</option>
+        {% for p in active_purposes %}
+        <option value="{{ p.name }}"{% if form.purpose.value == p.name %} selected{% endif %}{% if p.hotkey %} data-hotkey="{{ p.hotkey|escapejs }}"{% endif %}>{{ p.name }}</option>
+        {% endfor %}
       </select>
       <input type="text" id="tb_purpose_other" name="purpose_other" value="{{ form.purpose_other.value|default:'' }}" style="display:none;background:#1e293b;border:1.5px solid #475569;color:#f1f5f9;border-radius:.4rem;font-size:.82rem;padding:.35rem .7rem;min-width:140px;" placeholder="Enter purpose">
     </div>

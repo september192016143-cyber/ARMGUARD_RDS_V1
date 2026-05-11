@@ -39,7 +39,16 @@ function importPdfjsViaBlob(url) {
 function toggleDutyOther() {
   var sel = document.getElementById('tb_purpose');
   var other = document.getElementById('tb_purpose_other');
-  if (other) other.style.display = sel && sel.value === 'Others' ? '' : 'none';
+  if (!sel || !other) return;
+  // Check is_others_type from the purpose config (injected via data-purpose-config)
+  var formEl = document.getElementById('txn-form');
+  var pcfgAll = {};
+  if (formEl && formEl.dataset.purposeConfig) {
+    try { pcfgAll = JSON.parse(formEl.dataset.purposeConfig); } catch (_) {}
+  }
+  var cfg = pcfgAll[sel.value] || {};
+  var isOthersType = cfg.is_others_type === true;
+  other.style.display = isOthersType ? '' : 'none';
 }
 
 function updateRifleMagQtyHint(pcfg) {
@@ -823,14 +832,27 @@ function _attachSelectStyles(el) {
       e.preventDefault();
       var btn = document.getElementById('btn-tr-preview');
       if (btn && btn.style.display !== 'none') openTrPreview();
-    } else if (e.key >= '1' && e.key <= '6') {
-      e.preventDefault();
+    } else if (e.altKey || (e.key >= '1' && e.key <= '9')) {
+      // Purpose hotkeys: read from data-hotkey attributes on the <option> elements.
+      // Each option may carry data-hotkey="1", "F2", "Alt+3" etc. set by TransactionPurpose.
       if (_isReturn) return; // purpose not applicable on returns
-      var purposes = ['Duty Sentinel', 'Duty Vigil', 'Duty Security', 'Honor Guard', 'Others', 'OREX'];
-      var newPurpose = purposes[parseInt(e.key, 10) - 1];
-      if (tbPurpose && tbPurpose.value !== newPurpose) {
-        tbPurpose.value = newPurpose;
-        tbPurpose.dispatchEvent(new Event('change'));
+      var purposeSel2 = document.getElementById('tb_purpose');
+      if (!purposeSel2) return;
+      var pressedKey = e.altKey ? ('Alt+' + e.key) : e.key;
+      var matched = null;
+      purposeSel2.querySelectorAll('option').forEach(function (opt) {
+        if (opt.dataset.hotkey === pressedKey) matched = opt.value;
+      });
+      if (matched === null && e.key >= '1' && e.key <= '9') {
+        // Fallback: numeric key N selects the Nth option (1-based) for backward compat
+        var idx = parseInt(e.key, 10) - 1;
+        var opts = purposeSel2.querySelectorAll('option');
+        if (idx >= 0 && idx < opts.length) matched = opts[idx].value;
+      }
+      if (matched !== null && purposeSel2.value !== matched) {
+        e.preventDefault();
+        purposeSel2.value = matched;
+        purposeSel2.dispatchEvent(new Event('change'));
       }
     }
   }, window.pjaxController ? { signal: window.pjaxController.signal } : {});
@@ -890,25 +912,35 @@ function _attachSelectStyles(el) {
     });
   }
 
-  // Auto-check accessories for Duty Sentinel + Glock 17 9mm
-  function autoCheckDutySentinelAccessories() {
+  // Auto-check accessories based on purpose's auto_accessories config flag
+  function autoCheckPurposeAccessories() {
     var purposeSel = document.getElementById('tb_purpose');
-    var pistolText = pistolSel && pistolSel.options[pistolSel.selectedIndex]
-      ? pistolSel.options[pistolSel.selectedIndex].text : '';
-    var isGlock17       = pistolSel && pistolSel.value && pistolText.toLowerCase().indexOf('glock 17') !== -1;
-    var isDutySentinel  = purposeSel && purposeSel.value === 'Duty Sentinel';
-    var isWithdrawal    = tbType && tbType.value === 'Withdrawal';
-    if (isGlock17 && isDutySentinel && isWithdrawal) {
-      var holster  = document.querySelector('[name="include_pistol_holster"]');
-      var magPouch = document.querySelector('[name="include_magazine_pouch"]');
-      if (holster)  holster.checked  = true;
-      if (magPouch) magPouch.checked = true;
+    if (!purposeSel || !purposeSel.value) return;
+    var formEl = document.getElementById('txn-form');
+    var pcfgAll = {};
+    if (formEl && formEl.dataset.purposeConfig) {
+      try { pcfgAll = JSON.parse(formEl.dataset.purposeConfig); } catch (_) {}
+    }
+    var cfg = pcfgAll[purposeSel.value] || {};
+    var isWithdrawal = tbType && tbType.value === 'Withdrawal';
+    if (cfg.auto_accessories && isWithdrawal) {
+      if (pistolSel && pistolSel.value) {
+        var holster  = document.querySelector('[name="include_pistol_holster"]');
+        var magPouch = document.querySelector('[name="include_magazine_pouch"]');
+        if (holster)  holster.checked = true;
+        if (magPouch) magPouch.checked = true;
+      }
+      if (rifleSel && rifleSel.value) {
+        var rifleSling = document.querySelector('[name="include_rifle_sling"]');
+        if (rifleSling) rifleSling.checked = true;
+      }
     }
   }
-  if (pistolSel) pistolSel.addEventListener('change', autoCheckDutySentinelAccessories);
-  if (tbPurpose) tbPurpose.addEventListener('change', autoCheckDutySentinelAccessories);
-  if (tbType)    tbType.addEventListener('change',    autoCheckDutySentinelAccessories);
-  autoCheckDutySentinelAccessories();
+  if (pistolSel) pistolSel.addEventListener('change', autoCheckPurposeAccessories);
+  if (rifleSel)  rifleSel.addEventListener('change',  autoCheckPurposeAccessories);
+  if (tbPurpose) tbPurpose.addEventListener('change', autoCheckPurposeAccessories);
+  if (tbType)    tbType.addEventListener('change',    autoCheckPurposeAccessories);
+  autoCheckPurposeAccessories();
 
   // Discrepancy checkbox — expand/collapse the type+description fields
   var discCb = document.getElementById('cb_report_discrepancy');
@@ -1220,7 +1252,7 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
   }, window.pjaxController ? { capture: true, signal: window.pjaxController.signal } : true); // capture phase
 })();
 
-// ── Duty Sentinel + weapon -> auto-fill ammo quantities ───────────────────────
+// ── Purpose weapon selection → auto-fill ammo quantities ─────────────────────
 (function() {
   var dutyEl    = document.getElementById('tb_purpose');
   var pistolEl  = document.querySelector('[name="pistol"]');
@@ -1267,20 +1299,26 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
     if (rifleLabel) rifleLabel.textContent = rifleAmmo ? '\u2192 ' + rifleAmmo : '';
   }
 
-  function applySentinelDefaults() {
-    var isSentinel = dutyEl && dutyEl.value === 'Duty Sentinel';
-    var hasPistol  = pistolEl && pistolEl.value;
-    if (isSentinel && hasPistol) {
-      if (magQtyEl  && !magQtyEl.value)  magQtyEl.value  = 4;
-      if (ammoQtyEl && !ammoQtyEl.value) ammoQtyEl.value = 42;
+  function applyPurposeDefaults() {
+    if (!dutyEl || !dutyEl.value) { updateAmmoLabels(); return; }
+    var formEl = document.getElementById('txn-form');
+    var pcfgAll = {};
+    if (formEl && formEl.dataset.purposeConfig) {
+      try { pcfgAll = JSON.parse(formEl.dataset.purposeConfig); } catch (_) {}
+    }
+    var cfg = pcfgAll[dutyEl.value] || {};
+    var hasPistol = pistolEl && pistolEl.value;
+    if (hasPistol) {
+      if (magQtyEl  && !magQtyEl.value  && cfg.pistol_mag_qty)  magQtyEl.value  = cfg.pistol_mag_qty;
+      if (ammoQtyEl && !ammoQtyEl.value && cfg.pistol_ammo_qty) ammoQtyEl.value = cfg.pistol_ammo_qty;
     }
     updateAmmoLabels();
   }
 
-  if (dutyEl)   dutyEl.addEventListener('change', applySentinelDefaults);
-  if (pistolEl) pistolEl.addEventListener('change', applySentinelDefaults);
+  if (dutyEl)   dutyEl.addEventListener('change', applyPurposeDefaults);
+  if (pistolEl) pistolEl.addEventListener('change', applyPurposeDefaults);
   if (rifleEl)  rifleEl.addEventListener('change', updateAmmoLabels);
-  applySentinelDefaults();
+  applyPurposeDefaults();
 })();
 
 // ── PAR issuance section toggle ───────────────────────────────────────────────

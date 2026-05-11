@@ -32,7 +32,8 @@ LOG_STATUS_CHOICES = [
     ('Closed', 'Closed'),
 ]
 
- # Purpose options (can be expanded as needed)
+ # Legacy static choices — kept so existing imports don't break.
+# Business logic now reads purposes from the TransactionPurpose table.
 PURPOSE_CHOICES = [
     ('Duty Sentinel', 'Duty Sentinel'),
     ('Duty Vigil',    'Duty Vigil'),
@@ -41,6 +42,128 @@ PURPOSE_CHOICES = [
     ('Others',        'Others'),
     ('OREX',          'OREX'),
 ]
+
+
+class TransactionPurpose(models.Model):
+    """
+    Dynamic, DB-managed list of transaction purposes.
+
+    Each row owns every per-purpose setting that was previously scattered across
+    hardcoded dicts in forms.py / views.py and per-purpose fields on SystemSettings.
+    Administrators can add, edit, reorder, and deactivate purposes without a code
+    change or a Django migration.
+    """
+    name = models.CharField(
+        max_length=100, unique=True,
+        help_text='Purpose label shown in the transaction form dropdown.',
+    )
+    hotkey = models.CharField(
+        max_length=20, blank=True, default='',
+        help_text='Keyboard shortcut shown on the transaction form (e.g. "1", "F2").',
+    )
+    order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text='Display order in dropdowns — lower numbers appear first.',
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text='Inactive purposes are hidden from the transaction form.',
+    )
+    is_others_type = models.BooleanField(
+        default=False,
+        help_text='If True a free-text input appears so the operator can type a custom purpose.',
+    )
+
+    # ── Weapon visibility ─────────────────────────────────────────────────────
+    show_pistol = models.BooleanField(default=True)
+    show_rifle  = models.BooleanField(default=True)
+
+    # ── Auto-fill toggles ─────────────────────────────────────────────────────
+    auto_consumables = models.BooleanField(
+        default=False,
+        help_text='Auto-assign magazines & ammunition for withdrawals of this purpose.',
+    )
+    auto_accessories = models.BooleanField(
+        default=False,
+        help_text='Auto-assign accessories for withdrawals of this purpose.',
+    )
+    auto_print_tr = models.BooleanField(
+        default=False,
+        help_text='Auto-open the TR print page after saving a TR Withdrawal of this purpose.',
+    )
+
+    # ── Standard loadout quantities ───────────────────────────────────────────
+    holster_qty         = models.PositiveSmallIntegerField(default=1)
+    mag_pouch_qty       = models.PositiveSmallIntegerField(default=1)
+    pistol_mag_qty      = models.PositiveSmallIntegerField(default=0)
+    pistol_ammo_qty     = models.PositiveSmallIntegerField(default=0)
+    rifle_sling_qty     = models.PositiveSmallIntegerField(default=1)
+    rifle_short_mag_qty = models.PositiveSmallIntegerField(default=0)
+    rifle_long_mag_qty  = models.PositiveSmallIntegerField(default=0)
+    rifle_ammo_qty      = models.PositiveSmallIntegerField(default=0)
+    bandoleer_qty       = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name        = 'Transaction Purpose'
+        verbose_name_plural = 'Transaction Purposes'
+
+    def __str__(self):
+        return self.name
+
+    # ── Class helpers used by forms and views ─────────────────────────────────
+
+    @classmethod
+    def get_active(cls):
+        """Return active purposes ordered for display."""
+        return list(cls.objects.filter(is_active=True).order_by('order', 'name'))
+
+    @classmethod
+    def get_choices(cls):
+        """Return (value, label) pairs for form Select widgets."""
+        return [(p.name, p.name) for p in cls.get_active()]
+
+    @classmethod
+    def get_config_dict(cls):
+        """
+        Return a JSON-serialisable dict keyed by purpose name with all the
+        per-purpose config that transaction_form.js needs.
+        """
+        result = {}
+        for p in cls.get_active():
+            result[p.name] = {
+                'pistol':              p.show_pistol,
+                'rifle':               p.show_rifle,
+                'holster_qty':         p.holster_qty,
+                'mag_pouch_qty':       p.mag_pouch_qty,
+                'pistol_mag_qty':      p.pistol_mag_qty,
+                'pistol_ammo_qty':     p.pistol_ammo_qty,
+                'rifle_sling_qty':     p.rifle_sling_qty,
+                'bandoleer_qty':       p.bandoleer_qty,
+                'rifle_short_mag_qty': p.rifle_short_mag_qty,
+                'rifle_long_mag_qty':  p.rifle_long_mag_qty,
+                'hotkey':              p.hotkey,
+                'is_others_type':      p.is_others_type,
+                'auto_accessories':    p.auto_accessories,
+                'auto_consumables':    p.auto_consumables,
+            }
+        return result
+
+    @classmethod
+    def get_by_name(cls, name):
+        """
+        Return the TransactionPurpose for *name*, or None.
+        Treats any name not matching an active purpose as belonging to the
+        'Others' type (custom free-text), returning the first is_others_type
+        purpose if one exists.
+        """
+        try:
+            return cls.objects.get(name=name, is_active=True)
+        except cls.DoesNotExist:
+            pass
+        # Fall back to the others-type purpose for custom text values
+        return cls.objects.filter(is_active=True, is_others_type=True).first()
+
 
 def _sanitize_par_upload(instance, filename):
     """
@@ -241,22 +364,28 @@ class Transaction(models.Model):
             raise ValidationError('Personnel is required for every transaction.')
 
         # --- Purpose validation (always enforced) ---
-        # purpose must be one of the known choices, OR a custom value entered via the
-        # 'Others' path (where WithdrawalReturnTransactionForm.clean() replaces
-        # purpose='Others' with the custom text from purpose_other and stores both).
-        # Allowing custom values here is intentional — the DB comment on the field
-        # explicitly states "Custom values are allowed when 'Others' is selected."
-        _valid_purposes = {p for p, _ in PURPOSE_CHOICES}
+        # Validate against the DB-driven TransactionPurpose table so that newly
+        # added purposes are accepted immediately without a code change.
+        # Falls back to the static PURPOSE_CHOICES list if the table is not yet
+        # available (e.g. during the initial migration run).
         purpose = (self.purpose or '').strip()
         if not purpose:
             raise ValidationError("Purpose is required.")
+        try:
+            _valid_purposes = {p for p, _ in TransactionPurpose.get_choices()}
+            if not _valid_purposes:
+                raise ValueError('empty')
+        except Exception:
+            _valid_purposes = {p for p, _ in PURPOSE_CHOICES}
         # Accept: standard purpose values, OR any non-empty custom value when
         # purpose_other is set (i.e., the form substituted a custom 'Others' text).
         if purpose not in _valid_purposes and not (self.purpose_other or '').strip():
             raise ValidationError(
                 f"Invalid purpose '{purpose}'. Choose one of: {', '.join(sorted(_valid_purposes))}."
             )
-        if purpose == 'Others' and not (self.purpose_other or '').strip():
+        # Accept free-text for any purpose flagged as is_others_type
+        _is_others = TransactionPurpose.objects.filter(name=purpose, is_others_type=True).exists()
+        if _is_others and not (self.purpose_other or '').strip():
             raise ValidationError("Please specify the purpose when 'Others' is selected.")
 
         # --- Business rules (only for new transactions) ---
@@ -320,14 +449,8 @@ class Transaction(models.Model):
                 qty = self.pistol_ammunition_quantity or 0
                 if qty <= 0:
                     try:
-                        from armguard.apps.users.models import SystemSettings as _SS_m
-                        _purpose_prefix_m = {
-                            'Duty Sentinel': 'duty_sentinel', 'Duty Vigil': 'duty_vigil',
-                            'Duty Security': 'duty_security', 'Honor Guard': 'honor_guard',
-                            'Others': 'others', 'OREX': 'orex',
-                        }
-                        _pfx_m = _purpose_prefix_m.get(self.purpose, '')
-                        _cfg_ammo = int(getattr(_SS_m.get(), f'{_pfx_m}_pistol_ammo_qty', 0) or 0) if _pfx_m else 0
+                        _tp_ammo = TransactionPurpose.get_by_name(self.purpose)
+                        _cfg_ammo = _tp_ammo.pistol_ammo_qty if _tp_ammo else 1
                     except Exception:
                         _cfg_ammo = 1  # safe default: require qty if settings unavailable
                     if _cfg_ammo > 0:
@@ -341,14 +464,8 @@ class Transaction(models.Model):
                 qty = self.rifle_ammunition_quantity or 0
                 if qty <= 0:
                     try:
-                        from armguard.apps.users.models import SystemSettings as _SS_m
-                        _purpose_prefix_m = {
-                            'Duty Sentinel': 'duty_sentinel', 'Duty Vigil': 'duty_vigil',
-                            'Duty Security': 'duty_security', 'Honor Guard': 'honor_guard',
-                            'Others': 'others', 'OREX': 'orex',
-                        }
-                        _pfx_m = _purpose_prefix_m.get(self.purpose, '')
-                        _cfg_ammo = int(getattr(_SS_m.get(), f'{_pfx_m}_rifle_ammo_qty', 0) or 0) if _pfx_m else 0
+                        _tp_ammo = TransactionPurpose.get_by_name(self.purpose)
+                        _cfg_ammo = _tp_ammo.rifle_ammo_qty if _tp_ammo else 1
                     except Exception:
                         _cfg_ammo = 1
                     if _cfg_ammo > 0:
@@ -449,24 +566,11 @@ class Transaction(models.Model):
                     # Raise the effective cap to the loadout max for this purpose so that
                     # auto-filled quantities are never incorrectly blocked.
                     try:
-                        from armguard.apps.users.models import SystemSettings
-                        _ss = SystemSettings.get()
-                        _purpose = (self.purpose or '').strip()
-                        _purpose_caps = {
-                            'Duty Sentinel': max(_ss.duty_sentinel_rifle_short_mag_qty,
-                                                 _ss.duty_sentinel_rifle_long_mag_qty),
-                            'Duty Vigil':    max(_ss.duty_vigil_rifle_short_mag_qty,
-                                                 _ss.duty_vigil_rifle_long_mag_qty),
-                            'Duty Security': max(_ss.duty_security_rifle_short_mag_qty,
-                                                 _ss.duty_security_rifle_long_mag_qty),
-                            'Honor Guard':   max(_ss.honor_guard_rifle_short_mag_qty,
-                                                 _ss.honor_guard_rifle_long_mag_qty),
-                            'Others':        max(_ss.others_rifle_short_mag_qty,
-                                                 _ss.others_rifle_long_mag_qty),
-                            'OREX':          max(_ss.orex_rifle_short_mag_qty,
-                                                 _ss.orex_rifle_long_mag_qty),
-                        }
-                        loadout_max = _purpose_caps.get(_purpose, 0)
+                        _tp_mag = TransactionPurpose.get_by_name(self.purpose)
+                        loadout_max = max(
+                            _tp_mag.rifle_short_mag_qty,
+                            _tp_mag.rifle_long_mag_qty,
+                        ) if _tp_mag else 0
                         effective_cap = max(global_cap, loadout_max)
                     except Exception:
                         effective_cap = global_cap

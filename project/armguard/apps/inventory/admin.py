@@ -6,7 +6,7 @@ from django.contrib.admin import SimpleListFilter
 from django.utils import timezone
 from datetime import timedelta
 from armguard.apps.inventory.inventory_analytics_model import (
-    DUTY_TYPE_CHOICES, LOG_STATUS_CHOICES,
+    DUTY_TYPE_CHOICES, LOG_STATUS_CHOICES, _get_duty_type_choices,
 )
 
 
@@ -236,7 +236,7 @@ class InventoryAnalyticsAdmin(admin.ModelAdmin):
         parameter_name = 'duty_type'
 
         def lookups(self, request, model_admin):
-            return DUTY_TYPE_CHOICES
+            return _get_duty_type_choices()
 
         def queryset(self, request, queryset):
             return queryset  # handled in changelist_view

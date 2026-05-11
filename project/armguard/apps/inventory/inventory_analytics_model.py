@@ -28,8 +28,23 @@ DUTY_TYPE_CHOICES = [
     ('Duty Sentinel', 'Duty Sentinel'),
     ('Duty Vigil', 'Duty Vigil'),
     ('Duty Security', 'Duty Security'),
+    ('Honor Guard', 'Honor Guard'),
     ('Others', 'Others'),
+    ('OREX', 'OREX'),
 ]
+
+
+def _get_duty_type_choices():
+    """Return purpose choices from DB (TransactionPurpose). Falls back to the
+    static DUTY_TYPE_CHOICES list if the table is not yet available."""
+    try:
+        from armguard.apps.transactions.models import TransactionPurpose
+        choices = TransactionPurpose.get_choices()
+        if choices:
+            return choices
+    except Exception:
+        pass
+    return DUTY_TYPE_CHOICES
 
 # ---------------------------------------------------------------------------
 # ITEM TYPES / CATEGORIES — synced with inventory/models.py ITEMS_CHOICES

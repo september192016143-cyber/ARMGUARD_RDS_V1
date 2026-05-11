@@ -1,6 +1,18 @@
 from django import forms
-from .models import Transaction, TransactionLogs, PURPOSE_CHOICES
+from .models import Transaction, TransactionLogs, PURPOSE_CHOICES, TransactionPurpose
 from armguard.apps.inventory.models import Pistol, Rifle
+
+
+def _get_purpose_choices():
+    """Return purpose choices from the DB, falling back to the legacy static list."""
+    try:
+        choices = TransactionPurpose.get_choices()
+        if choices:
+            return choices
+    except Exception:
+        pass
+    return PURPOSE_CHOICES
+
 
 class TransactionAdminForm(forms.ModelForm):
     # Explicit purpose field: renders a dropdown in admin but accepts any string value
@@ -8,7 +20,7 @@ class TransactionAdminForm(forms.ModelForm):
     purpose = forms.CharField(
         required=True,
         label="Purpose",
-        widget=forms.Select(choices=PURPOSE_CHOICES),
+        widget=forms.Select(choices=_get_purpose_choices),
     )
     par_document = forms.FileField(
         required=False,
@@ -92,78 +104,71 @@ class TransactionAdminForm(forms.ModelForm):
         personnel = cleaned_data.get('personnel')
 
         # ── AUTO-FILL: Duty Sentinel + Glock 17 9mm ──────────────────────────────
-        # When a Withdrawal is being processed for a Glock 17 9mm under Duty Sentinel,
-        # automatically populate the standard loadout if the user left those fields blank.
-        # Note: if the Pistol visibility column is disabled via SystemSettings for Duty
-        # Sentinel, the JS hides the pistol field and it will not be submitted, so
-        # `pistol` will be None here and this block will not fire — safe by design.
         purpose_val = cleaned_data.get('purpose')
-        from armguard.apps.users.models import SystemSettings as _SS
-        try:
-            _s = _SS.get()
-        except Exception as _ss_exc:
-            raise forms.ValidationError(
-                'System settings are unavailable — ensure all database migrations have been applied.'
-            ) from _ss_exc
+
+        # Look up the TransactionPurpose row for this purpose value.
+        # For custom 'Others' text the name won't match any row directly —
+        # get_by_name() falls back to the is_others_type row automatically.
+        _tp = TransactionPurpose.get_by_name(purpose_val) if purpose_val else None
+
+        def _lq(field_suffix, fallback=0):
+            """Return a loadout quantity from the TransactionPurpose row."""
+            if _tp is None:
+                return fallback
+            return int(getattr(_tp, field_suffix, fallback) or fallback)
+
         if (
             transaction_type == 'Withdrawal'
             and purpose_val == 'Duty Sentinel'
             and pistol
             and getattr(pistol, 'model', None) == 'Glock 17 9mm'
-            and (_s.purpose_duty_sentinel_auto_accessories or _s.purpose_duty_sentinel_auto_consumables)
+            and _tp and (_tp.auto_accessories or _tp.auto_consumables)
         ):
             from armguard.apps.inventory.models import Magazine, Ammunition
-            if _s.purpose_duty_sentinel_auto_accessories:
+            if _tp.auto_accessories:
                 # Pistol Holster
-                if not pistol_holster_quantity and _s.duty_sentinel_holster_qty > 0:
-                    cleaned_data['pistol_holster_quantity'] = _s.duty_sentinel_holster_qty
-                    pistol_holster_quantity = _s.duty_sentinel_holster_qty
+                if not pistol_holster_quantity and _lq('holster_qty') > 0:
+                    cleaned_data['pistol_holster_quantity'] = _lq('holster_qty')
+                    pistol_holster_quantity = _lq('holster_qty')
                     cleaned_data['include_pistol_holster'] = True
                 # Magazine Pouch
-                if not magazine_pouch_quantity and _s.duty_sentinel_mag_pouch_qty > 0:
-                    cleaned_data['magazine_pouch_quantity'] = _s.duty_sentinel_mag_pouch_qty
-                    magazine_pouch_quantity = _s.duty_sentinel_mag_pouch_qty
+                if not magazine_pouch_quantity and _lq('mag_pouch_qty') > 0:
+                    cleaned_data['magazine_pouch_quantity'] = _lq('mag_pouch_qty')
+                    magazine_pouch_quantity = _lq('mag_pouch_qty')
                     cleaned_data['include_magazine_pouch'] = True
-            if _s.purpose_duty_sentinel_auto_consumables:
+            if _tp.auto_consumables:
                 # Pistol Magazine — Duty Sentinel is always Glock 17 9mm (outer guard)
                 if not pistol_magazine:
                     mag_pool = Magazine.objects.filter(type='Mag Assy, 9mm: Glock 17').order_by('-quantity').first()
                     if mag_pool:
                         cleaned_data['pistol_magazine'] = mag_pool
                         pistol_magazine = mag_pool
-                if not pistol_magazine_quantity and _s.duty_sentinel_pistol_mag_qty > 0:
-                    cleaned_data['pistol_magazine_quantity'] = _s.duty_sentinel_pistol_mag_qty
-                    pistol_magazine_quantity = _s.duty_sentinel_pistol_mag_qty
+                if not pistol_magazine_quantity and _lq('pistol_mag_qty') > 0:
+                    cleaned_data['pistol_magazine_quantity'] = _lq('pistol_mag_qty')
+                    pistol_magazine_quantity = _lq('pistol_mag_qty')
                 # Pistol Ammunition — M882
                 if not pistol_ammunition:
                     ammo_pool = Ammunition.objects.filter(type='M882 9x19mm Ball 435 Ctg').first()
                     if ammo_pool:
                         cleaned_data['pistol_ammunition'] = ammo_pool
                         pistol_ammunition = ammo_pool
-                if not pistol_ammunition_quantity and _s.duty_sentinel_pistol_ammo_qty > 0:
-                    cleaned_data['pistol_ammunition_quantity'] = _s.duty_sentinel_pistol_ammo_qty
-                    pistol_ammunition_quantity = _s.duty_sentinel_pistol_ammo_qty
+                if not pistol_ammunition_quantity and _lq('pistol_ammo_qty') > 0:
+                    cleaned_data['pistol_ammunition_quantity'] = _lq('pistol_ammo_qty')
+                    pistol_ammunition_quantity = _lq('pistol_ammo_qty')
         # ── AUTO-FILL: Duty Security + Rifle ─────────────────────────────────────
-        # When a Withdrawal is processed for any Rifle under Duty Security,
-        # automatically populate the standard loadout if the user left those fields blank.
         if (
             transaction_type == 'Withdrawal'
             and purpose_val == 'Duty Security'
             and rifle
-            and (_s.purpose_duty_security_auto_accessories or _s.purpose_duty_security_auto_consumables)
+            and _tp and (_tp.auto_accessories or _tp.auto_consumables)
         ):
             from armguard.apps.inventory.models import Magazine, Ammunition
-            if _s.purpose_duty_security_auto_accessories:
-                # Rifle Sling — standard issue for Duty Security
-                if not rifle_sling_quantity and _s.duty_security_rifle_sling_qty > 0:
-                    cleaned_data['rifle_sling_quantity'] = _s.duty_security_rifle_sling_qty
-                    rifle_sling_quantity = _s.duty_security_rifle_sling_qty
+            if _tp.auto_accessories:
+                if not rifle_sling_quantity and _lq('rifle_sling_qty') > 0:
+                    cleaned_data['rifle_sling_quantity'] = _lq('rifle_sling_qty')
+                    rifle_sling_quantity = _lq('rifle_sling_qty')
                     cleaned_data['include_rifle_sling'] = True
-            if _s.purpose_duty_security_auto_consumables:
-                # Rifle Magazine — caliber-aware:
-                #   M14 7.62mm   → 'M14' capacity pool
-                #   EMTAN 5.56mm → 'EMTAN' capacity (30-rounds EMTAN-specific mag)
-                #   Other 5.56mm → generic '30-rounds' alloy pool
+            if _tp.auto_consumables:
                 if not rifle_magazine:
                     _ds_rifle_model = getattr(rifle, 'model', '') if rifle else ''
                     if _ds_rifle_model == 'M14 Rifle 7.62mm':
@@ -176,11 +181,10 @@ class TransactionAdminForm(forms.ModelForm):
                         cleaned_data['rifle_magazine'] = mag_pool
                         rifle_magazine = mag_pool
                 if not rifle_magazine_quantity:
-                    _long_qty = _s.duty_security_rifle_long_mag_qty
+                    _long_qty = _lq('rifle_long_mag_qty')
                     if _long_qty > 0:
                         cleaned_data['rifle_magazine_quantity'] = _long_qty
                         rifle_magazine_quantity = _long_qty
-                # Rifle Ammunition — caliber-aware: use AMMO_WEAPON_COMPATIBILITY to match the issued rifle.
                 if not rifle_ammunition:
                     from armguard.apps.inventory.models import AMMO_WEAPON_COMPATIBILITY
                     _ds_rifle_model = getattr(rifle, 'model', '') if rifle else ''
@@ -191,37 +195,12 @@ class TransactionAdminForm(forms.ModelForm):
                                 cleaned_data['rifle_ammunition'] = ammo_pool
                                 rifle_ammunition = ammo_pool
                             break
-                if not rifle_ammunition_quantity and _s.duty_security_rifle_ammo_qty > 0:
-                    cleaned_data['rifle_ammunition_quantity'] = _s.duty_security_rifle_ammo_qty
-                    rifle_ammunition_quantity = _s.duty_security_rifle_ammo_qty
+                if not rifle_ammunition_quantity and _lq('rifle_ammo_qty') > 0:
+                    cleaned_data['rifle_ammunition_quantity'] = _lq('rifle_ammo_qty')
+                    rifle_ammunition_quantity = _lq('rifle_ammo_qty')
         # ── AUTO-ASSIGN: Pistol magazine pool whenever quantity is given ──────────
-        # All 6 purposes are now independently configurable for auto-consumables.
-        # NOTE: all blocks below are Withdrawal-only; the transaction_type guard is
-        # applied individually so Returns never receive auto-filled FKs or quantities.
-        _purpose_consumables_map = {
-            'Duty Sentinel': _s.purpose_duty_sentinel_auto_consumables,
-            'Duty Vigil':    _s.purpose_duty_vigil_auto_consumables,
-            'Duty Security': _s.purpose_duty_security_auto_consumables,
-            'Honor Guard':   _s.purpose_honor_guard_auto_consumables,
-            'Others':        _s.purpose_others_auto_consumables,
-            'OREX':          _s.purpose_orex_auto_consumables,
-        }
-        _no_auto_consumables = not bool(_purpose_consumables_map.get(purpose_val, False))
-        # Per-purpose loadout quantity helper
-        _purpose_prefix_map = {
-            'Duty Sentinel': 'duty_sentinel',
-            'Duty Vigil':    'duty_vigil',
-            'Duty Security': 'duty_security',
-            'Honor Guard':   'honor_guard',
-            'Others':        'others',
-            'OREX':          'orex',
-        }
-        _pfx = _purpose_prefix_map.get(purpose_val, '')
-        def _lq(field_suffix, fallback=0):
-            if _pfx:
-                val = getattr(_s, f'{_pfx}_{field_suffix}', fallback)
-                return int(val) if val is not None else fallback
-            return fallback
+        # All purposes are independently configurable via TransactionPurpose.
+        _no_auto_consumables = not (_tp and _tp.auto_consumables)
         if transaction_type == 'Withdrawal' and not _no_auto_consumables and pistol_magazine_quantity and not pistol_magazine:
             from armguard.apps.inventory.models import Magazine, MAG_WEAPON_COMPATIBILITY
             _pa_pistol_model = getattr(pistol, 'model', '') if pistol else ''
@@ -330,15 +309,7 @@ class TransactionAdminForm(forms.ModelForm):
         # ── AUTO-ASSIGN: Accessories ──────────────────────────────────────────────
         # If auto_accessories is True for this purpose, auto-flag the standard
         # accessories for the weapon type (pistol → holster + mag pouch; rifle → sling).
-        _purpose_accessories_map = {
-            'Duty Sentinel': _s.purpose_duty_sentinel_auto_accessories,
-            'Duty Vigil':    _s.purpose_duty_vigil_auto_accessories,
-            'Duty Security': _s.purpose_duty_security_auto_accessories,
-            'Honor Guard':   _s.purpose_honor_guard_auto_accessories,
-            'Others':        _s.purpose_others_auto_accessories,
-            'OREX':          _s.purpose_orex_auto_accessories,
-        }
-        _auto_accessories = bool(_purpose_accessories_map.get(purpose_val, False))
+        _auto_accessories = bool(_tp and _tp.auto_accessories)
         if transaction_type == 'Withdrawal' and _auto_accessories:
             if pistol and not pistol_holster_quantity and _lq('holster_qty') > 0:
                 cleaned_data['include_pistol_holster'] = True
@@ -833,7 +804,9 @@ class WithdrawalReturnTransactionForm(TransactionAdminForm):
         cleaned_data = super().clean()
         purpose = cleaned_data.get('purpose')
         purpose_other = cleaned_data.get('purpose_other')
-        if purpose == 'Others':
+        # Check if the selected purpose is the "others" free-text type via the DB flag.
+        _tp = TransactionPurpose.get_by_name(purpose) if purpose else None
+        if _tp and _tp.is_others_type:
             if not purpose_other:
                 self.add_error('purpose_other', 'Please specify the purpose.')
             else:

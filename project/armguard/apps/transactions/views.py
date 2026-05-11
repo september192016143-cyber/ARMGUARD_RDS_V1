@@ -321,6 +321,7 @@ def create_transaction(request):
     if not _can_create_transaction(request.user):
         return HttpResponseForbidden("You do not have permission to create transactions.")
     from armguard.apps.users.models import SystemSettings
+    from armguard.apps.transactions.models import TransactionPurpose
     try:
         _s = SystemSettings.get()
     except Exception as _ss_exc:
@@ -331,48 +332,12 @@ def create_transaction(request):
             ' If this persists, contact the system administrator.',
         )
         return redirect(request.path)
-    _purpose_config = json.dumps({
-        'Duty Sentinel': {
-            'pistol': _s.purpose_duty_sentinel_show_pistol,  'rifle': _s.purpose_duty_sentinel_show_rifle,
-            'holster_qty': _s.duty_sentinel_holster_qty, 'mag_pouch_qty': _s.duty_sentinel_mag_pouch_qty,
-            'rifle_sling_qty': _s.duty_sentinel_rifle_sling_qty, 'bandoleer_qty': _s.duty_sentinel_bandoleer_qty,
-            'rifle_short_mag_qty': _s.duty_sentinel_rifle_short_mag_qty, 'rifle_long_mag_qty': _s.duty_sentinel_rifle_long_mag_qty,
-        },
-        'Duty Vigil': {
-            'pistol': _s.purpose_duty_vigil_show_pistol,     'rifle': _s.purpose_duty_vigil_show_rifle,
-            'holster_qty': _s.duty_vigil_holster_qty, 'mag_pouch_qty': _s.duty_vigil_mag_pouch_qty,
-            'rifle_sling_qty': _s.duty_vigil_rifle_sling_qty, 'bandoleer_qty': _s.duty_vigil_bandoleer_qty,
-            'rifle_short_mag_qty': _s.duty_vigil_rifle_short_mag_qty, 'rifle_long_mag_qty': _s.duty_vigil_rifle_long_mag_qty,
-        },
-        'Duty Security': {
-            'pistol': _s.purpose_duty_security_show_pistol,  'rifle': _s.purpose_duty_security_show_rifle,
-            'holster_qty': _s.duty_security_holster_qty, 'mag_pouch_qty': _s.duty_security_mag_pouch_qty,
-            'rifle_sling_qty': _s.duty_security_rifle_sling_qty, 'bandoleer_qty': _s.duty_security_bandoleer_qty,
-            'rifle_short_mag_qty': _s.duty_security_rifle_short_mag_qty, 'rifle_long_mag_qty': _s.duty_security_rifle_long_mag_qty,
-        },
-        'Honor Guard': {
-            'pistol': _s.purpose_honor_guard_show_pistol,    'rifle': _s.purpose_honor_guard_show_rifle,
-            'holster_qty': _s.honor_guard_holster_qty, 'mag_pouch_qty': _s.honor_guard_mag_pouch_qty,
-            'rifle_sling_qty': _s.honor_guard_rifle_sling_qty, 'bandoleer_qty': _s.honor_guard_bandoleer_qty,
-            'rifle_short_mag_qty': _s.honor_guard_rifle_short_mag_qty, 'rifle_long_mag_qty': _s.honor_guard_rifle_long_mag_qty,
-        },
-        'Others': {
-            'pistol': _s.purpose_others_show_pistol,         'rifle': _s.purpose_others_show_rifle,
-            'holster_qty': _s.others_holster_qty, 'mag_pouch_qty': _s.others_mag_pouch_qty,
-            'rifle_sling_qty': _s.others_rifle_sling_qty, 'bandoleer_qty': _s.others_bandoleer_qty,
-            'rifle_short_mag_qty': _s.others_rifle_short_mag_qty, 'rifle_long_mag_qty': _s.others_rifle_long_mag_qty,
-        },
-        'OREX': {
-            'pistol': _s.purpose_orex_show_pistol,           'rifle': _s.purpose_orex_show_rifle,
-            'holster_qty': _s.orex_holster_qty, 'mag_pouch_qty': _s.orex_mag_pouch_qty,
-            'rifle_sling_qty': _s.orex_rifle_sling_qty, 'bandoleer_qty': _s.orex_bandoleer_qty,
-            'rifle_short_mag_qty': _s.orex_rifle_short_mag_qty, 'rifle_long_mag_qty': _s.orex_rifle_long_mag_qty,
-        },
-    })
+    _purpose_config = json.dumps(TransactionPurpose.get_config_dict())
     _txn_context = {
         'purpose_config':          _purpose_config,
         'tr_default_return_hours': _s.tr_default_return_hours,
         'default_issuance_type':   _s.default_issuance_type,
+        'active_purposes':         TransactionPurpose.get_active(),
     }
     if request.method == 'POST':
         form = WithdrawalReturnTransactionForm(request.POST, request.FILES)
@@ -465,18 +430,12 @@ def create_transaction(request):
             # Auto-print: if the per-purpose setting is enabled and this is a TR Withdrawal,
             # redirect straight to the print page instead of the detail page.
             try:
-                from armguard.apps.users.models import SystemSettings as _SS_print
-                _ss_print = _SS_print.get()
-                _purpose_auto_map = {
-                    'Duty Sentinel': 'auto_print_tr_duty_sentinel',
-                    'Duty Vigil':    'auto_print_tr_duty_vigil',
-                    'Duty Security': 'auto_print_tr_duty_security',
-                    'Honor Guard':   'auto_print_tr_honor_guard',
-                    'Others':        'auto_print_tr_others',
-                    'OREX':          'auto_print_tr_orex',
-                }
-                _auto_field = _purpose_auto_map.get(txn.purpose, '')
-                _auto = bool(_auto_field and getattr(_ss_print, _auto_field, False))
+                from armguard.apps.transactions.models import TransactionPurpose as _TP_print
+                _tp_print = _TP_print.get_by_name(txn.purpose)
+                _auto = bool(
+                    _tp_print
+                    and _tp_print.auto_print_tr
+                )
             except Exception:
                 _auto = False
             if (_auto

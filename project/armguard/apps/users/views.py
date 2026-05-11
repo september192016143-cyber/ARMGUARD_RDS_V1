@@ -746,15 +746,10 @@ class SystemSettingsView(LoginRequiredMixin, View):
             .select_related('profile')
             .order_by('username')
         )
-        purpose_visibility_rows = [
-            {'label': 'Duty Sentinel',  'pistol_field': 'purpose_duty_sentinel_show_pistol',  'pistol_value': s.purpose_duty_sentinel_show_pistol,  'rifle_field': 'purpose_duty_sentinel_show_rifle',  'rifle_value': s.purpose_duty_sentinel_show_rifle,  'auto_consumables_field': 'purpose_duty_sentinel_auto_consumables', 'auto_consumables_value': s.purpose_duty_sentinel_auto_consumables, 'auto_accessories_field': 'purpose_duty_sentinel_auto_accessories', 'auto_accessories_value': s.purpose_duty_sentinel_auto_accessories, 'auto_print_field': 'auto_print_tr_duty_sentinel', 'auto_print_value': s.auto_print_tr_duty_sentinel},
-            {'label': 'Duty Vigil',     'pistol_field': 'purpose_duty_vigil_show_pistol',     'pistol_value': s.purpose_duty_vigil_show_pistol,     'rifle_field': 'purpose_duty_vigil_show_rifle',     'rifle_value': s.purpose_duty_vigil_show_rifle,     'auto_consumables_field': 'purpose_duty_vigil_auto_consumables',    'auto_consumables_value': s.purpose_duty_vigil_auto_consumables,    'auto_accessories_field': 'purpose_duty_vigil_auto_accessories',    'auto_accessories_value': s.purpose_duty_vigil_auto_accessories,    'auto_print_field': 'auto_print_tr_duty_vigil',    'auto_print_value': s.auto_print_tr_duty_vigil},
-            {'label': 'Duty Security',  'pistol_field': 'purpose_duty_security_show_pistol',  'pistol_value': s.purpose_duty_security_show_pistol,  'rifle_field': 'purpose_duty_security_show_rifle',  'rifle_value': s.purpose_duty_security_show_rifle,  'auto_consumables_field': 'purpose_duty_security_auto_consumables', 'auto_consumables_value': s.purpose_duty_security_auto_consumables, 'auto_accessories_field': 'purpose_duty_security_auto_accessories', 'auto_accessories_value': s.purpose_duty_security_auto_accessories, 'auto_print_field': 'auto_print_tr_duty_security', 'auto_print_value': s.auto_print_tr_duty_security},
-            {'label': 'Honor Guard',    'pistol_field': 'purpose_honor_guard_show_pistol',    'pistol_value': s.purpose_honor_guard_show_pistol,    'rifle_field': 'purpose_honor_guard_show_rifle',    'rifle_value': s.purpose_honor_guard_show_rifle,    'auto_consumables_field': 'purpose_honor_guard_auto_consumables',   'auto_consumables_value': s.purpose_honor_guard_auto_consumables,   'auto_accessories_field': 'purpose_honor_guard_auto_accessories',   'auto_accessories_value': s.purpose_honor_guard_auto_accessories,   'auto_print_field': 'auto_print_tr_honor_guard',   'auto_print_value': s.auto_print_tr_honor_guard},
-            {'label': 'Others',         'pistol_field': 'purpose_others_show_pistol',         'pistol_value': s.purpose_others_show_pistol,         'rifle_field': 'purpose_others_show_rifle',         'rifle_value': s.purpose_others_show_rifle,         'auto_consumables_field': 'purpose_others_auto_consumables',        'auto_consumables_value': s.purpose_others_auto_consumables,        'auto_accessories_field': 'purpose_others_auto_accessories',        'auto_accessories_value': s.purpose_others_auto_accessories,        'auto_print_field': 'auto_print_tr_others',        'auto_print_value': s.auto_print_tr_others},
-            {'label': 'OREX',           'pistol_field': 'purpose_orex_show_pistol',           'pistol_value': s.purpose_orex_show_pistol,           'rifle_field': 'purpose_orex_show_rifle',           'rifle_value': s.purpose_orex_show_rifle,           'auto_consumables_field': 'purpose_orex_auto_consumables',          'auto_consumables_value': s.purpose_orex_auto_consumables,          'auto_accessories_field': 'purpose_orex_auto_accessories',          'auto_accessories_value': s.purpose_orex_auto_accessories,          'auto_print_field': 'auto_print_tr_orex',          'auto_print_value': s.auto_print_tr_orex},
-        ]
-        auto_consumable_rows = []  # retired — now in purpose_visibility_rows
+        from armguard.apps.transactions.models import TransactionPurpose
+        _all_purposes = list(TransactionPurpose.objects.order_by('order', 'name'))
+        purpose_visibility_rows = []   # retired — replaced by the dynamic TransactionPurpose card
+        auto_consumable_rows    = []   # retired
         from django.db.models import Count, Value, IntegerField, Subquery, OuterRef
         from django.db.models.functions import Coalesce
         personnel_groups = PersonnelGroup.objects.annotate(
@@ -790,6 +785,7 @@ class SystemSettingsView(LoginRequiredMixin, View):
             'enrolled_2fa_ids':        enrolled_pks,
             'purpose_visibility_rows': purpose_visibility_rows,
             'auto_consumable_rows':    auto_consumable_rows,
+            'all_purposes':            _all_purposes,
             'personnel_groups':        personnel_groups,
             'personnel_squadrons':     personnel_squadrons,
         })
@@ -862,47 +858,6 @@ class SystemSettingsView(LoginRequiredMixin, View):
             if obj.app_logo:
                 obj.app_logo.delete(save=False)
             obj.app_logo = _logo_file
-        # ── Per-purpose auto TR print ─────────────────────────────────────────
-        for field in [
-            'auto_print_tr_duty_sentinel', 'auto_print_tr_duty_vigil',
-            'auto_print_tr_duty_security', 'auto_print_tr_honor_guard',
-            'auto_print_tr_others',        'auto_print_tr_orex',
-        ]:
-            setattr(obj, field, field in request.POST)
-
-        # Per-purpose weapon field visibility
-        for field in [
-            'purpose_duty_sentinel_show_pistol',  'purpose_duty_sentinel_show_rifle',
-            'purpose_duty_vigil_show_pistol',     'purpose_duty_vigil_show_rifle',
-            'purpose_duty_security_show_pistol',  'purpose_duty_security_show_rifle',
-            'purpose_honor_guard_show_pistol',    'purpose_honor_guard_show_rifle',
-            'purpose_others_show_pistol',         'purpose_others_show_rifle',
-            'purpose_orex_show_pistol',           'purpose_orex_show_rifle',
-        ]:
-            setattr(obj, field, field in request.POST)
-        # Guard: every purpose must expose at least one weapon column.
-        # If both pistol and rifle are unchecked for a purpose the transaction
-        # form would show no weapon fields at all, making that purpose unusable.
-        _purpose_pairs = [
-            ('Duty Sentinel',  'purpose_duty_sentinel_show_pistol',  'purpose_duty_sentinel_show_rifle'),
-            ('Duty Vigil',     'purpose_duty_vigil_show_pistol',     'purpose_duty_vigil_show_rifle'),
-            ('Duty Security',  'purpose_duty_security_show_pistol',  'purpose_duty_security_show_rifle'),
-            ('Honor Guard',    'purpose_honor_guard_show_pistol',    'purpose_honor_guard_show_rifle'),
-            ('Others',         'purpose_others_show_pistol',         'purpose_others_show_rifle'),
-            ('OREX',           'purpose_orex_show_pistol',           'purpose_orex_show_rifle'),
-        ]
-        invalid_purposes = [
-            label for label, pf, rf in _purpose_pairs
-            if not getattr(obj, pf) and not getattr(obj, rf)
-        ]
-        if invalid_purposes:
-            messages.error(
-                request,
-                'Each purpose must have at least one weapon field (Pistol or Rifle) enabled. '
-                'Both are disabled for: ' + ', '.join(invalid_purposes) + '.'
-            )
-            return redirect('system-settings')
-
         # ── TR / PAR defaults ─────────────────────────────────────────────────
         try:
             obj.tr_default_return_hours = max(1, int(request.POST.get('tr_default_return_hours', 24)))
@@ -914,86 +869,14 @@ class SystemSettingsView(LoginRequiredMixin, View):
             'TR (Temporary Receipt)', 'PAR (Property Acknowledgement Receipt)'
         ) else 'TR (Temporary Receipt)'
 
-        # ── Per-purpose auto-consumables & accessories ────────────────────────
-        for field in [
-            'purpose_duty_sentinel_auto_consumables', 'purpose_duty_vigil_auto_consumables',
-            'purpose_duty_security_auto_consumables', 'purpose_honor_guard_auto_consumables',
-            'purpose_others_auto_consumables',        'purpose_orex_auto_consumables',
-            'purpose_duty_sentinel_auto_accessories', 'purpose_duty_vigil_auto_accessories',
-            'purpose_duty_security_auto_accessories', 'purpose_honor_guard_auto_accessories',
-            'purpose_others_auto_accessories',        'purpose_orex_auto_accessories',
-        ]:
-            setattr(obj, field, field in request.POST)
-
-        # ── Per-purpose loadout defaults + accessory max quantities ──────────
-        _psi_fields = {
-            # Duty Sentinel
-            'duty_sentinel_holster_qty':           1,
-            'duty_sentinel_mag_pouch_qty':         3,
-            'duty_sentinel_pistol_mag_qty':        4,
-            'duty_sentinel_pistol_ammo_qty':       42,
-            'duty_sentinel_rifle_sling_qty':       1,
-            'duty_sentinel_rifle_short_mag_qty':   7,
-            'duty_sentinel_rifle_long_mag_qty':    7,
-            'duty_sentinel_rifle_ammo_qty':        210,
-            # Duty Vigil
-            'duty_vigil_holster_qty':              1,
-            'duty_vigil_mag_pouch_qty':            1,
-            'duty_vigil_pistol_mag_qty':           2,
-            'duty_vigil_pistol_ammo_qty':          21,
-            'duty_vigil_rifle_sling_qty':          1,
-            'duty_vigil_rifle_short_mag_qty':      7,
-            'duty_vigil_rifle_long_mag_qty':       7,
-            'duty_vigil_rifle_ammo_qty':           210,
-            # Duty Security
-            'duty_security_holster_qty':           1,
-            'duty_security_mag_pouch_qty':         1,
-            'duty_security_pistol_mag_qty':        2,
-            'duty_security_pistol_ammo_qty':       21,
-            'duty_security_rifle_sling_qty':       1,
-            'duty_security_rifle_short_mag_qty':   7,
-            'duty_security_rifle_long_mag_qty':    7,
-            'duty_security_rifle_ammo_qty':        210,
-            # Honor Guard
-            'honor_guard_holster_qty':             1,
-            'honor_guard_mag_pouch_qty':           1,
-            'honor_guard_pistol_mag_qty':          2,
-            'honor_guard_pistol_ammo_qty':         21,
-            'honor_guard_rifle_sling_qty':         1,
-            'honor_guard_rifle_short_mag_qty':     7,
-            'honor_guard_rifle_long_mag_qty':      7,
-            'honor_guard_rifle_ammo_qty':          210,
-            # Others
-            'others_holster_qty':                  1,
-            'others_mag_pouch_qty':                1,
-            'others_pistol_mag_qty':               4,
-            'others_pistol_ammo_qty':              42,
-            'others_rifle_sling_qty':              1,
-            'others_rifle_short_mag_qty':          7,
-            'others_rifle_long_mag_qty':           7,
-            'others_rifle_ammo_qty':               210,
-            # OREX
-            'orex_holster_qty':                    1,
-            'orex_mag_pouch_qty':                  1,
-            'orex_pistol_mag_qty':                 4,
-            'orex_pistol_ammo_qty':                42,
-            'orex_rifle_sling_qty':                1,
-            'orex_rifle_short_mag_qty':            7,
-            'orex_rifle_long_mag_qty':             7,
-            'orex_rifle_ammo_qty':                 210,
-            'duty_sentinel_bandoleer_qty':         0,
-            'duty_vigil_bandoleer_qty':            0,
-            'duty_security_bandoleer_qty':         0,
-            'honor_guard_bandoleer_qty':           0,
-            'others_bandoleer_qty':                0,
-            'orex_bandoleer_qty':                  0,
-            # Accessory max quantities
-            'max_pistol_holster_qty':              1,
-            'max_magazine_pouch_qty':              3,
-            'max_rifle_sling_qty':                 1,
-            'max_bandoleer_qty':                   1,
+        # ── Accessory max quantities ──────────────────────────────────────────
+        _max_fields = {
+            'max_pistol_holster_qty': 1,
+            'max_magazine_pouch_qty': 3,
+            'max_rifle_sling_qty':    1,
+            'max_bandoleer_qty':      1,
         }
-        for field, default in _psi_fields.items():
+        for field, default in _max_fields.items():
             try:
                 setattr(obj, field, max(0, int(request.POST.get(field, default))))
             except (ValueError, TypeError):
@@ -1154,6 +1037,108 @@ def squadron_delete(request, pk):
         return redirect('system-settings')
     squadron.delete()
     messages.success(request, f'Squadron "{squadron.name}" deleted.')
+    return redirect('system-settings')
+
+
+# ── Transaction Purpose management (Settings page — superuser only) ──────────
+
+@login_required
+@require_POST
+def purpose_add(request):
+    """Add a new TransactionPurpose."""
+    if not request.user.is_superuser:
+        messages.error(request, 'Access denied.')
+        return redirect('system-settings')
+    from armguard.apps.transactions.models import TransactionPurpose
+    name = request.POST.get('name', '').strip()
+    hotkey = request.POST.get('hotkey', '').strip()[:20]
+    if not name:
+        messages.error(request, 'Purpose name cannot be empty.')
+        return redirect('system-settings')
+    if len(name) > 100:
+        messages.error(request, 'Purpose name must be 100 characters or fewer.')
+        return redirect('system-settings')
+    if TransactionPurpose.objects.filter(name=name).exists():
+        messages.warning(request, f'A purpose named "{name}" already exists.')
+        return redirect('system-settings')
+    order = TransactionPurpose.objects.count() * 10 + 10
+    tp = TransactionPurpose.objects.create(name=name, hotkey=hotkey, order=order)
+    messages.success(request, f'Purpose "{tp.name}" added.')
+    return redirect('system-settings')
+
+
+@login_required
+@require_POST
+def purpose_edit(request, pk):
+    """Update a TransactionPurpose's name, hotkey, flags, and loadout quantities."""
+    if not request.user.is_superuser:
+        messages.error(request, 'Access denied.')
+        return redirect('system-settings')
+    from armguard.apps.transactions.models import TransactionPurpose
+    tp = get_object_or_404(TransactionPurpose, pk=pk)
+
+    name = request.POST.get('name', '').strip()
+    if not name:
+        messages.error(request, 'Purpose name cannot be empty.')
+        return redirect('system-settings')
+    if len(name) > 100:
+        messages.error(request, 'Purpose name must be 100 characters or fewer.')
+        return redirect('system-settings')
+    if TransactionPurpose.objects.filter(name=name).exclude(pk=pk).exists():
+        messages.error(request, f'A purpose named "{name}" already exists.')
+        return redirect('system-settings')
+
+    tp.name            = name
+    tp.hotkey          = request.POST.get('hotkey', '').strip()[:20]
+    tp.is_active       = 'is_active' in request.POST
+    tp.is_others_type  = 'is_others_type' in request.POST
+    tp.show_pistol     = 'show_pistol' in request.POST
+    tp.show_rifle      = 'show_rifle' in request.POST
+    tp.auto_consumables = 'auto_consumables' in request.POST
+    tp.auto_accessories = 'auto_accessories' in request.POST
+    tp.auto_print_tr   = 'auto_print_tr' in request.POST
+
+    # Guard: at least one weapon must be enabled for an active purpose
+    if tp.is_active and not tp.show_pistol and not tp.show_rifle:
+        messages.error(request, f'"{tp.name}" must have at least one weapon (Pistol or Rifle) enabled.')
+        return redirect('system-settings')
+
+    _int_fields = [
+        'holster_qty', 'mag_pouch_qty', 'pistol_mag_qty', 'pistol_ammo_qty',
+        'rifle_sling_qty', 'rifle_short_mag_qty', 'rifle_long_mag_qty',
+        'rifle_ammo_qty', 'bandoleer_qty', 'order',
+    ]
+    for field in _int_fields:
+        try:
+            setattr(tp, field, max(0, int(request.POST.get(field, 0))))
+        except (ValueError, TypeError):
+            pass
+
+    tp.save()
+    messages.success(request, f'Purpose "{tp.name}" updated.')
+    return redirect('system-settings')
+
+
+@login_required
+@require_POST
+def purpose_delete(request, pk):
+    """Delete a TransactionPurpose if it has no linked transactions."""
+    if not request.user.is_superuser:
+        messages.error(request, 'Access denied.')
+        return redirect('system-settings')
+    from armguard.apps.transactions.models import TransactionPurpose, Transaction
+    tp = get_object_or_404(TransactionPurpose, pk=pk)
+    # Count transactions that used this purpose name
+    count = Transaction.objects.filter(purpose=tp.name).count()
+    if count > 0:
+        messages.error(
+            request,
+            f'Cannot delete "{tp.name}" — {count} transaction{"s" if count != 1 else ""} '
+            f'use this purpose. Deactivate it instead.'
+        )
+        return redirect('system-settings')
+    tp.delete()
+    messages.success(request, f'Purpose "{tp.name}" deleted.')
     return redirect('system-settings')
 
 
@@ -1474,11 +1459,11 @@ def _run_orex_background(run_id, user_pk):
             )
             return
 
-        # ── OREX loadout from SystemSettings ──────────────────────────────────
-        from armguard.apps.users.models import SystemSettings
+        # ── OREX loadout from TransactionPurpose ──────────────────────────────
+        from armguard.apps.transactions.models import TransactionPurpose as _TxnPurpose
         from armguard.apps.inventory.models import Magazine as _Magazine
 
-        ss = SystemSettings.get()
+        _tp_orex = _TxnPurpose.get_by_name('OREX')
 
         # Magazine pool selection is now done per-transaction inside the loop
         # because different rifle models require different magazine calibers:
@@ -1504,8 +1489,8 @@ def _run_orex_background(run_id, user_pk):
 
         _rifle_mag_qty = 1  # OREX standard: 1 magazine per rifle
 
-        _rifle_sling_qty = ss.orex_rifle_sling_qty if ss.orex_rifle_sling_qty else None
-        _bandoleer_qty   = ss.orex_bandoleer_qty   if ss.orex_bandoleer_qty   else None
+        _rifle_sling_qty = (_tp_orex.rifle_sling_qty if _tp_orex and _tp_orex.rifle_sling_qty else None)
+        _bandoleer_qty   = (_tp_orex.bandoleer_qty   if _tp_orex and _tp_orex.bandoleer_qty   else None)
 
         pairs      = list(zip(personnel_list, available_rifles))
         _pairs_needed = len(pairs)
