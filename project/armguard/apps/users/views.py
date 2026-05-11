@@ -1355,8 +1355,7 @@ def truncate_data(request):
         _logger.error('Data truncation failed: %s', _exc, exc_info=True)
         messages.error(
             request,
-            f'Truncation failed ({type(_exc).__name__}). No data was changed. '
-            f'Check server logs for details.',
+            f'Truncation failed ({type(_exc).__name__}): {_exc}',
         )
 
     return redirect('system-settings')
