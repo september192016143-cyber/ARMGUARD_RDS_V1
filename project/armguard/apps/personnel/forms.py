@@ -26,11 +26,11 @@ def _simulate_personnel_id(rank: str, afsn: str) -> str | None:
 
 class PersonnelForm(forms.ModelForm):
 	tel = forms.CharField(
-		min_length=11,
+		min_length=10,
 		max_length=11,
 		required=True,
-		validators=[RegexValidator(r'^\d{11}$', 'Enter exactly 11 digits (e.g. 09XXXXXXXXX).')],
-		help_text="Contact telephone number — exactly 11 digits (e.g. 09XXXXXXXXX).",
+		validators=[RegexValidator(r'^(9\d{9}|0\d{10})$', 'Enter 10 digits starting with 9 (e.g. 9XXXXXXXXX) or 11 digits starting with 0 (e.g. 09XXXXXXXXX).')],
+		help_text="Contact telephone number — 10 digits starting with 9 or 11 digits starting with 0.",
 	)
 
 	# Declare group explicitly as a plain ChoiceField so Django never locks it

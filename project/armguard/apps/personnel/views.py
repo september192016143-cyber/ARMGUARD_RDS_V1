@@ -496,8 +496,8 @@ def _import_rows(request, data_rows, group_override='', upsert=False):
 			row_errors.append(f'invalid group "{group}" (valid: {", ".join(sorted(valid_groups))})')
 		if not squadron:
 			row_errors.append('squadron required')
-		if tel and not _re.fullmatch(r'\d{11}', tel):
-			row_errors.append(f'tel "{tel}" must be exactly 11 digits (e.g. 09XXXXXXXXX)')
+		if tel and not _re.fullmatch(r'(9\d{9}|0\d{10})', tel):
+			row_errors.append(f'tel "{tel}" must be 10 digits starting with 9 (e.g. 9XXXXXXXXX) or 11 digits starting with 0 (e.g. 09XXXXXXXXX)')
 		if row_errors:
 			skipped.append(f'Row {i}: {"; ".join(row_errors)}')
 			continue
