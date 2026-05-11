@@ -23,10 +23,18 @@
   var roleSelect   = document.getElementById('id_role');
   var adminPerms   = document.getElementById('admin-perm-section');
 
-  var ADMIN_ROLES = ['Armorer', 'Administrator', 'Administrator \u2014 View Only', 'Administrator \u2014 Edit & Add'];
+  var ADMIN_ROLES = ['System Administrator', 'Armorer', 'Administrator \u2014 View Only', 'Administrator \u2014 Edit & Add'];
 
   // Default flag sets matching _GROUP_ROLE_MAP
   var ROLE_DEFAULTS = {
+    'System Administrator': {
+      id_perm_inventory_view: true,  id_perm_inventory_add: true,
+      id_perm_inventory_edit: true,  id_perm_inventory_delete: true,
+      id_perm_personnel_view: true,  id_perm_personnel_add: true,
+      id_perm_personnel_edit: true,  id_perm_personnel_delete: true,
+      id_perm_transaction_view: true, id_perm_transaction_create: true,
+      id_perm_reports: true, id_perm_print: true, id_perm_users_manage: true,
+    },
     'Armorer': {
       id_perm_inventory_view: true,  id_perm_inventory_add: false,
       id_perm_inventory_edit: false, id_perm_inventory_delete: false,
