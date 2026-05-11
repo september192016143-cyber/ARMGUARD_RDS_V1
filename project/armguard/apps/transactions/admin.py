@@ -211,8 +211,8 @@ admin.site.register(TransactionLogs, TransactionLogsAdmin)
 @admin.register(TransactionPurpose)
 class TransactionPurposeAdmin(admin.ModelAdmin):
     list_display = [
-        'name', 'hotkey', 'display_order', 'active',
-        'pistol_holster_qty', 'magazine_pouch_qty', 'rifle_sling_qty', 'bandoleer_qty',
+        'name', 'hotkey', 'order', 'is_active',
+        'holster_qty', 'mag_pouch_qty', 'rifle_sling_qty', 'bandoleer_qty',
     ]
-    list_editable = ['display_order', 'active']
-    ordering = ['display_order']
+    list_editable = ['order', 'is_active']
+    ordering = ['order']
