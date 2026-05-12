@@ -38,18 +38,20 @@ def _resync_row(log_row, dry_run=False):
     """
     # Each log row links to up to two Withdrawal transactions (pistol/rifle).
     # Collect the unique Withdrawal transactions referenced by this row.
+    # Bug 1 fix: model FK fields are named WITH _id suffix (e.g. withdrawal_pistol_transaction_id);
+    # using names WITHOUT _id caused getattr() to silently return None for every FK.
     withdrawal_transactions = {}
     fk_to_tx = [
-        ('withdrawal_pistol_transaction',               'pistol'),
-        ('withdrawal_rifle_transaction',                'rifle'),
-        ('withdrawal_pistol_magazine_transaction',      'pistol_magazine'),
-        ('withdrawal_rifle_magazine_transaction',       'rifle_magazine'),
-        ('withdrawal_pistol_ammunition_transaction',    'pistol_ammunition'),
-        ('withdrawal_rifle_ammunition_transaction',     'rifle_ammunition'),
-        ('withdrawal_pistol_holster_transaction',       'pistol_holster'),
-        ('withdrawal_magazine_pouch_transaction',       'magazine_pouch'),
-        ('withdrawal_rifle_sling_transaction',          'rifle_sling'),
-        ('withdrawal_bandoleer_transaction',            'bandoleer'),
+        ('withdrawal_pistol_transaction_id',               'pistol'),
+        ('withdrawal_rifle_transaction_id',                'rifle'),
+        ('withdrawal_pistol_magazine_transaction_id',      'pistol_magazine'),
+        ('withdrawal_rifle_magazine_transaction_id',       'rifle_magazine'),
+        ('withdrawal_pistol_ammunition_transaction_id',    'pistol_ammunition'),
+        ('withdrawal_rifle_ammunition_transaction_id',     'rifle_ammunition'),
+        ('withdrawal_pistol_holster_transaction_id',       'pistol_holster'),
+        ('withdrawal_magazine_pouch_transaction_id',       'magazine_pouch'),
+        ('withdrawal_rifle_sling_transaction_id',          'rifle_sling'),
+        ('withdrawal_bandoleer_transaction_id',            'bandoleer'),
     ]
     for fk_attr, _ in fk_to_tx:
         tx = getattr(log_row, fk_attr, None)
@@ -59,57 +61,105 @@ def _resync_row(log_row, dry_run=False):
     if not withdrawal_transactions:
         return False
 
-    update_kwargs = {}
+    # Bug 2 fix: initialise all 40 consumable keys to None first, then let each
+    # transaction fill in ONLY the consumable groups it actually has.  Previously
+    # update_kwargs.update({all 40 keys}) was called for every tx, so the last tx
+    # in the iteration overwrote all keys set by earlier txs — e.g. a rifle-only
+    # tx would clear pistol-magazine data written by a preceding pistol tx.
+    update_kwargs = {
+        # --- Magazines ---
+        'withdrawal_pistol_magazine_transaction_id':      None,
+        'withdraw_pistol_magazine_id':                    None,
+        'withdraw_pistol_magazine_quantity':              None,
+        'withdraw_pistol_magazine_timestamp':             None,
+        'withdraw_pistol_magazine_transaction_personnel': None,
+        'withdrawal_rifle_magazine_transaction_id':       None,
+        'withdraw_rifle_magazine_id':                     None,
+        'withdraw_rifle_magazine_quantity':               None,
+        'withdraw_rifle_magazine_timestamp':              None,
+        'withdraw_rifle_magazine_transaction_personnel':  None,
+        # --- Ammunition ---
+        'withdrawal_pistol_ammunition_transaction_id':       None,
+        'withdraw_pistol_ammunition_id':                     None,
+        'withdraw_pistol_ammunition_quantity':               None,
+        'withdraw_pistol_ammunition_timestamp':              None,
+        'withdraw_pistol_ammunition_transaction_personnel':  None,
+        'withdrawal_rifle_ammunition_transaction_id':        None,
+        'withdraw_rifle_ammunition_id':                      None,
+        'withdraw_rifle_ammunition_quantity':                None,
+        'withdraw_rifle_ammunition_timestamp':               None,
+        'withdraw_rifle_ammunition_transaction_personnel':   None,
+        # --- Accessories ---
+        'withdrawal_pistol_holster_transaction_id':       None,
+        'withdraw_pistol_holster_quantity':               None,
+        'withdraw_pistol_holster_timestamp':              None,
+        'withdraw_pistol_holster_transaction_personnel':  None,
+        'withdrawal_magazine_pouch_transaction_id':       None,
+        'withdraw_magazine_pouch_quantity':               None,
+        'withdraw_magazine_pouch_timestamp':              None,
+        'withdraw_magazine_pouch_transaction_personnel':  None,
+        'withdrawal_rifle_sling_transaction_id':          None,
+        'withdraw_rifle_sling_quantity':                  None,
+        'withdraw_rifle_sling_timestamp':                 None,
+        'withdraw_rifle_sling_transaction_personnel':     None,
+        'withdrawal_bandoleer_transaction_id':            None,
+        'withdraw_bandoleer_quantity':                    None,
+        'withdraw_bandoleer_timestamp':                   None,
+        'withdraw_bandoleer_transaction_personnel':       None,
+    }
 
     for tx in withdrawal_transactions.values():
         ts = tx.timestamp
         operator = tx.transaction_personnel
 
-        # Always write all consumable fields; None clears items removed from the tx.
-        # IMPORTANT: FK transaction fields use the raw attname (_id suffix) so that
+        # Only fill in keys for consumables THIS transaction actually has.
+        # FK transaction fields use raw attname (_id suffix) so that
         # setattr + save(update_fields=[...]) resolves the correct DB column.
-        # Pass tx.pk (integer), not the tx object, to match how Django stores FK IDs.
-        update_kwargs.update({
-            # --- Magazines ---
-            'withdrawal_pistol_magazine_transaction_id':     tx.pk if tx.pistol_magazine_id else None,
-            'withdraw_pistol_magazine_id':                   tx.pistol_magazine_id,
-            'withdraw_pistol_magazine_quantity':             tx.pistol_magazine_quantity if tx.pistol_magazine_id else None,
-            'withdraw_pistol_magazine_timestamp':            ts if tx.pistol_magazine_id else None,
-            'withdraw_pistol_magazine_transaction_personnel': operator if tx.pistol_magazine_id else None,
-            'withdrawal_rifle_magazine_transaction_id':      tx.pk if tx.rifle_magazine_id else None,
-            'withdraw_rifle_magazine_id':                    tx.rifle_magazine_id,
-            'withdraw_rifle_magazine_quantity':              tx.rifle_magazine_quantity if tx.rifle_magazine_id else None,
-            'withdraw_rifle_magazine_timestamp':             ts if tx.rifle_magazine_id else None,
-            'withdraw_rifle_magazine_transaction_personnel': operator if tx.rifle_magazine_id else None,
-            # --- Ammunition ---
-            'withdrawal_pistol_ammunition_transaction_id':      tx.pk if tx.pistol_ammunition_id else None,
-            'withdraw_pistol_ammunition_id':                    tx.pistol_ammunition_id,
-            'withdraw_pistol_ammunition_quantity':              tx.pistol_ammunition_quantity if tx.pistol_ammunition_id else None,
-            'withdraw_pistol_ammunition_timestamp':             ts if tx.pistol_ammunition_id else None,
-            'withdraw_pistol_ammunition_transaction_personnel': operator if tx.pistol_ammunition_id else None,
-            'withdrawal_rifle_ammunition_transaction_id':       tx.pk if tx.rifle_ammunition_id else None,
-            'withdraw_rifle_ammunition_id':                     tx.rifle_ammunition_id,
-            'withdraw_rifle_ammunition_quantity':               tx.rifle_ammunition_quantity if tx.rifle_ammunition_id else None,
-            'withdraw_rifle_ammunition_timestamp':              ts if tx.rifle_ammunition_id else None,
-            'withdraw_rifle_ammunition_transaction_personnel':  operator if tx.rifle_ammunition_id else None,
-            # --- Accessories ---
-            'withdrawal_pistol_holster_transaction_id':      tx.pk if tx.pistol_holster_quantity else None,
-            'withdraw_pistol_holster_quantity':              tx.pistol_holster_quantity or None,
-            'withdraw_pistol_holster_timestamp':             ts if tx.pistol_holster_quantity else None,
-            'withdraw_pistol_holster_transaction_personnel': operator if tx.pistol_holster_quantity else None,
-            'withdrawal_magazine_pouch_transaction_id':      tx.pk if tx.magazine_pouch_quantity else None,
-            'withdraw_magazine_pouch_quantity':              tx.magazine_pouch_quantity or None,
-            'withdraw_magazine_pouch_timestamp':             ts if tx.magazine_pouch_quantity else None,
-            'withdraw_magazine_pouch_transaction_personnel': operator if tx.magazine_pouch_quantity else None,
-            'withdrawal_rifle_sling_transaction_id':         tx.pk if tx.rifle_sling_quantity else None,
-            'withdraw_rifle_sling_quantity':                 tx.rifle_sling_quantity or None,
-            'withdraw_rifle_sling_timestamp':                ts if tx.rifle_sling_quantity else None,
-            'withdraw_rifle_sling_transaction_personnel':    operator if tx.rifle_sling_quantity else None,
-            'withdrawal_bandoleer_transaction_id':           tx.pk if tx.bandoleer_quantity else None,
-            'withdraw_bandoleer_quantity':                   tx.bandoleer_quantity or None,
-            'withdraw_bandoleer_timestamp':                  ts if tx.bandoleer_quantity else None,
-            'withdraw_bandoleer_transaction_personnel':      operator if tx.bandoleer_quantity else None,
-        })
+        # Pass tx.pk (integer), not the tx object.
+        if tx.pistol_magazine_id:
+            update_kwargs['withdrawal_pistol_magazine_transaction_id']      = tx.pk
+            update_kwargs['withdraw_pistol_magazine_id']                    = tx.pistol_magazine_id
+            update_kwargs['withdraw_pistol_magazine_quantity']              = tx.pistol_magazine_quantity
+            update_kwargs['withdraw_pistol_magazine_timestamp']             = ts
+            update_kwargs['withdraw_pistol_magazine_transaction_personnel'] = operator
+        if tx.rifle_magazine_id:
+            update_kwargs['withdrawal_rifle_magazine_transaction_id']       = tx.pk
+            update_kwargs['withdraw_rifle_magazine_id']                     = tx.rifle_magazine_id
+            update_kwargs['withdraw_rifle_magazine_quantity']               = tx.rifle_magazine_quantity
+            update_kwargs['withdraw_rifle_magazine_timestamp']              = ts
+            update_kwargs['withdraw_rifle_magazine_transaction_personnel']  = operator
+        if tx.pistol_ammunition_id:
+            update_kwargs['withdrawal_pistol_ammunition_transaction_id']      = tx.pk
+            update_kwargs['withdraw_pistol_ammunition_id']                    = tx.pistol_ammunition_id
+            update_kwargs['withdraw_pistol_ammunition_quantity']              = tx.pistol_ammunition_quantity
+            update_kwargs['withdraw_pistol_ammunition_timestamp']             = ts
+            update_kwargs['withdraw_pistol_ammunition_transaction_personnel'] = operator
+        if tx.rifle_ammunition_id:
+            update_kwargs['withdrawal_rifle_ammunition_transaction_id']       = tx.pk
+            update_kwargs['withdraw_rifle_ammunition_id']                     = tx.rifle_ammunition_id
+            update_kwargs['withdraw_rifle_ammunition_quantity']               = tx.rifle_ammunition_quantity
+            update_kwargs['withdraw_rifle_ammunition_timestamp']              = ts
+            update_kwargs['withdraw_rifle_ammunition_transaction_personnel']  = operator
+        if tx.pistol_holster_quantity:
+            update_kwargs['withdrawal_pistol_holster_transaction_id']       = tx.pk
+            update_kwargs['withdraw_pistol_holster_quantity']               = tx.pistol_holster_quantity
+            update_kwargs['withdraw_pistol_holster_timestamp']              = ts
+            update_kwargs['withdraw_pistol_holster_transaction_personnel']  = operator
+        if tx.magazine_pouch_quantity:
+            update_kwargs['withdrawal_magazine_pouch_transaction_id']       = tx.pk
+            update_kwargs['withdraw_magazine_pouch_quantity']               = tx.magazine_pouch_quantity
+            update_kwargs['withdraw_magazine_pouch_timestamp']              = ts
+            update_kwargs['withdraw_magazine_pouch_transaction_personnel']  = operator
+        if tx.rifle_sling_quantity:
+            update_kwargs['withdrawal_rifle_sling_transaction_id']          = tx.pk
+            update_kwargs['withdraw_rifle_sling_quantity']                  = tx.rifle_sling_quantity
+            update_kwargs['withdraw_rifle_sling_timestamp']                 = ts
+            update_kwargs['withdraw_rifle_sling_transaction_personnel']     = operator
+        if tx.bandoleer_quantity:
+            update_kwargs['withdrawal_bandoleer_transaction_id']            = tx.pk
+            update_kwargs['withdraw_bandoleer_quantity']                    = tx.bandoleer_quantity
+            update_kwargs['withdraw_bandoleer_timestamp']                   = ts
+            update_kwargs['withdraw_bandoleer_transaction_personnel']       = operator
 
     # Skip rows that are already correct.
     # FK fields whose field.name ends in _transaction_id store their raw PK
@@ -168,24 +218,26 @@ class Command(BaseCommand):
 
         # Only consider log rows that have at least one linked Withdrawal Transaction
         # (i.e. at least one of the pistol/rifle transaction FKs is set).
+        # Bug 1 fix: field names on TransactionLogs are withdrawal_*_transaction_id
+        # (WITH _id suffix); using the name without _id raises FieldError at runtime.
         candidate_filter = (
-            Q(withdrawal_pistol_transaction__isnull=False) |
-            Q(withdrawal_rifle_transaction__isnull=False)
+            Q(withdrawal_pistol_transaction_id__isnull=False) |
+            Q(withdrawal_rifle_transaction_id__isnull=False)
         )
         rows = (
             TransactionLogs.objects
             .filter(candidate_filter)
             .select_related(
-                'withdrawal_pistol_transaction',
-                'withdrawal_rifle_transaction',
-                'withdrawal_pistol_magazine_transaction',
-                'withdrawal_rifle_magazine_transaction',
-                'withdrawal_pistol_ammunition_transaction',
-                'withdrawal_rifle_ammunition_transaction',
-                'withdrawal_pistol_holster_transaction',
-                'withdrawal_magazine_pouch_transaction',
-                'withdrawal_rifle_sling_transaction',
-                'withdrawal_bandoleer_transaction',
+                'withdrawal_pistol_transaction_id',
+                'withdrawal_rifle_transaction_id',
+                'withdrawal_pistol_magazine_transaction_id',
+                'withdrawal_rifle_magazine_transaction_id',
+                'withdrawal_pistol_ammunition_transaction_id',
+                'withdrawal_rifle_ammunition_transaction_id',
+                'withdrawal_pistol_holster_transaction_id',
+                'withdrawal_magazine_pouch_transaction_id',
+                'withdrawal_rifle_sling_transaction_id',
+                'withdrawal_bandoleer_transaction_id',
             )
         )
 
