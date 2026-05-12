@@ -330,7 +330,10 @@
 
 <span id="dashboard-poll-meta" data-url="{% url 'dashboard-cards-json' %}" hidden></span>
 <span id="dashboard-tables-poll-meta" data-url="{% url 'dashboard-tables-json' %}" hidden></span>
+
+{% endblock %}
+
+{% block extra_js %}
 <script src="{% static 'js/dashboard_cards.js' %}"></script>
 <script src="{% static 'js/dashboard_tables.js' %}"></script>
-
 {% endblock %}
