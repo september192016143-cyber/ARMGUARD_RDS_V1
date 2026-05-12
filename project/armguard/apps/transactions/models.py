@@ -866,6 +866,15 @@ class Transaction(models.Model):
         # M6: Inherit issuance_type from the matching Withdrawal when not set
         propagate_issuance_type(self)
 
+        # Bug 3 fix: enforce issuance_type for existing Withdrawal records saved
+        # programmatically (e.g. management commands, shell) where clean() is not
+        # called automatically.  Must run AFTER propagate_issuance_type so that a
+        # just-propagated value is accepted rather than raising unnecessarily.
+        if self.pk and self.transaction_type == 'Withdrawal' and not (self.issuance_type or '').strip():
+            raise ValidationError(
+                {'issuance_type': 'Issuance type (PAR or TR) is required for Withdrawal transactions.'}
+            )
+
         # Auto-set return_by for TR withdrawals using the configured default hours
         if (self.transaction_type == 'Withdrawal' and
                 self.issuance_type and 'TR' in self.issuance_type and
