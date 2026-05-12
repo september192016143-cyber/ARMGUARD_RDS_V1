@@ -142,6 +142,7 @@ class TransactionPurpose(models.Model):
                 'bandoleer_qty':       p.bandoleer_qty,
                 'rifle_short_mag_qty': p.rifle_short_mag_qty,
                 'rifle_long_mag_qty':  p.rifle_long_mag_qty,
+                'rifle_ammo_qty':      p.rifle_ammo_qty,
                 'hotkey':              p.hotkey,
                 'is_others_type':      p.is_others_type,
                 'auto_accessories':    p.auto_accessories,

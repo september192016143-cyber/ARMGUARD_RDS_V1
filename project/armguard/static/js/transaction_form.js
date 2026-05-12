@@ -1259,6 +1259,8 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
   var rifleEl   = document.querySelector('[name="rifle"]');
   var magQtyEl  = document.querySelector('[name="pistol_magazine_quantity"]');
   var ammoQtyEl = document.querySelector('[name="pistol_ammunition_quantity"]');
+  var rifleQtyEl    = document.querySelector('[name="rifle_magazine_quantity"]');
+  var rifleAmmoQtyEl = document.querySelector('[name="rifle_ammunition_quantity"]');
   var pistolLabel = document.getElementById('pistol-ammo-type-label');
   var rifleLabel  = document.getElementById('rifle-ammo-type-label');
 
@@ -1312,12 +1314,21 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
       if (magQtyEl  && !magQtyEl.value  && cfg.pistol_mag_qty)  magQtyEl.value  = cfg.pistol_mag_qty;
       if (ammoQtyEl && !ammoQtyEl.value && cfg.pistol_ammo_qty) ammoQtyEl.value = cfg.pistol_ammo_qty;
     }
+    var hasRifle = rifleEl && rifleEl.value;
+    if (hasRifle) {
+      var rifleText = getSelectedText(rifleEl);
+      var rifleQty = rifleText.indexOf('M14') !== -1
+        ? (cfg.rifle_short_mag_qty || 0)
+        : (cfg.rifle_long_mag_qty  || 0);
+      if (rifleQtyEl    && !rifleQtyEl.value    && rifleQty)          rifleQtyEl.value    = rifleQty;
+      if (rifleAmmoQtyEl && !rifleAmmoQtyEl.value && cfg.rifle_ammo_qty) rifleAmmoQtyEl.value = cfg.rifle_ammo_qty;
+    }
     updateAmmoLabels();
   }
 
   if (dutyEl)   dutyEl.addEventListener('change', applyPurposeDefaults);
   if (pistolEl) pistolEl.addEventListener('change', applyPurposeDefaults);
-  if (rifleEl)  rifleEl.addEventListener('change', updateAmmoLabels);
+  if (rifleEl)  rifleEl.addEventListener('change', applyPurposeDefaults);
   applyPurposeDefaults();
 })();
 
