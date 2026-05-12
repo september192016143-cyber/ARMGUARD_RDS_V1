@@ -178,9 +178,15 @@ def _resync_row(log_row, dry_run=False):
         return False
 
     if not dry_run:
+        update_fields = []
         for attr, val in update_kwargs.items():
-            setattr(log_row, attr, val)
-        log_row.save(update_fields=list(update_kwargs.keys()))
+            # FK fields whose field.name ends in _transaction_id have
+            # attname = field.name + '_id'.  Use the attname to bypass the
+            # FK descriptor's __set__, which requires a model instance.
+            attname = (attr + '_id') if attr.endswith('_transaction_id') else attr
+            setattr(log_row, attname, val)
+            update_fields.append(attname)
+        log_row.save(update_fields=update_fields)
         audit_logger.info(
             "[AUDIT] action=BACKFILL  model=TransactionLogs  "
             "log_id=%s tx_ids=%s fields=%d",
