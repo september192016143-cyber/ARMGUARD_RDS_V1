@@ -830,10 +830,8 @@
 
 {% if request.user.is_superuser %}
 <!-- ── OREX Simulation ──────────────────────────────────────────────────── -->
-<div style="display:flex;flex-wrap:wrap;gap:1.25rem;align-items:flex-start;margin-top:1.5rem;margin-bottom:.5rem;max-width:980px">
-
 <!-- Form card -->
-<div class="card mb-2" style="flex:0 0 auto;max-width:980px;border:1.5px solid #1a6b3a44">
+<div class="card mb-2" style="max-width:980px;margin-top:1.5rem;border:1.5px solid #1a6b3a44">
   <div class="card-header" style="background:rgba(26,107,58,.08)">
     <span class="card-title" style="color:#1a6b3a">
       <i class="fa-solid fa-person-rifle"></i> OREX Withdrawal Simulation
@@ -875,7 +873,7 @@
 </div>
 
 <!-- Status card (live-polling) -->
-<div class="card mb-2" style="flex:1 1 340px;min-width:300px;max-width:500px;border:1.5px solid #1a6b3a44">
+<div class="card mb-2" style="max-width:980px;border:1.5px solid #1a6b3a44">
   <div class="card-header" style="background:rgba(26,107,58,.08)">
     <span class="card-title" style="color:#1a6b3a">
       <i class="fa-solid fa-chart-line"></i> Simulation Status
@@ -886,7 +884,6 @@
   </div>
 </div>
 
-</div><!-- end flex row -->
 <span id="sim-status-meta"
       data-url="{% url 'simulate-orex-status' %}"
       data-reset-url="{% url 'simulate-orex-reset' %}"

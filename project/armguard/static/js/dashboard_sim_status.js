@@ -151,6 +151,8 @@
   }
 
   function poll() {
+    /* Stop polling if PJAX navigated away from the settings page. */
+    if (!document.body.contains(meta)) { timer = null; return; }
     fetch(apiUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(function (r) { return r.json(); })
       .then(function (d) { render(d); })
