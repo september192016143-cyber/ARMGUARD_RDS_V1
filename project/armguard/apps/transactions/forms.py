@@ -199,9 +199,13 @@ class TransactionAdminForm(forms.ModelForm):
                     cleaned_data['rifle_ammunition_quantity'] = _lq('rifle_ammo_qty')
                     rifle_ammunition_quantity = _lq('rifle_ammo_qty')
         # ── AUTO-ASSIGN: Pistol magazine pool whenever quantity is given ──────────
-        # All purposes are independently configurable via TransactionPurpose.
+        # Always resolve the FK when a quantity is present (whether auto-filled OR
+        # manually entered by the operator). auto_consumables only controls whether
+        # quantities are auto-filled from the purpose config; it must NOT block FK
+        # resolution for manually-entered quantities (e.g. Firing purpose where
+        # auto_consumables=False but the operator types a quantity).
         _no_auto_consumables = not (_tp and _tp.auto_consumables)
-        if transaction_type == 'Withdrawal' and not _no_auto_consumables and pistol_magazine_quantity and not pistol_magazine:
+        if transaction_type == 'Withdrawal' and pistol_magazine_quantity and not pistol_magazine:
             from armguard.apps.inventory.models import Magazine, MAG_WEAPON_COMPATIBILITY
             _pa_pistol_model = getattr(pistol, 'model', '') if pistol else ''
             _pa_allowed_types = [t for t, models in MAG_WEAPON_COMPATIBILITY.items() if _pa_pistol_model in models]
