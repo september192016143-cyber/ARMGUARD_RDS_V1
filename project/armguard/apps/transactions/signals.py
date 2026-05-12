@@ -212,7 +212,12 @@ def _resync_log_consumable_fields(transaction):
         if not actually_changed:
             continue
         for attr, val in update_kwargs.items():
-            setattr(log_row, attr, val)
+            # FK fields whose field.name ends in _transaction_id have attname
+            # field.name + '_id'.  setattr with the field.name hits the FK
+            # descriptor __set__ which requires a model instance, not an integer.
+            # Using the attname bypasses the descriptor and writes the raw PK.
+            attname = (attr + '_id') if attr.endswith('_transaction_id') else attr
+            setattr(log_row, attname, val)
         log_row.save(update_fields=update_field_names)
         rows_updated += 1
 

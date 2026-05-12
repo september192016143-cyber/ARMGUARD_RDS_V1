@@ -968,15 +968,26 @@ class Transaction(models.Model):
                     # leaving the adjusted row unprotected against concurrent writes.
                     _lock(Accessory.objects.filter(type=_acc_type).order_by('-quantity')).first()
 
+            # Capture _is_new BEFORE super().save() assigns a pk to new records.
+            # create_withdrawal_log and adjust_consumable_quantities must only run
+            # on the initial creation — calling them on UPDATE creates duplicate
+            # TransactionLogs rows and double-deducts consumable pool quantities.
+            # On UPDATE the signal _resync_log_consumable_fields handles TransactionLogs
+            # and sync_personnel_and_items (below) keeps the Personnel record current.
+            _is_new = not self.pk
+
             super().save(*args, **kwargs)
 
             sync_personnel_and_items(self, username)
-            adjust_consumable_quantities(self)
+            if _is_new:
+                adjust_consumable_quantities(self)
 
             if self.transaction_type == 'Withdrawal':
-                create_withdrawal_log(self, username, TransactionLogs)
+                if _is_new:
+                    create_withdrawal_log(self, username, TransactionLogs)
             elif self.transaction_type == 'Return':
-                update_return_logs(self, username, user, TransactionLogs)
+                if _is_new:
+                    update_return_logs(self, username, user, TransactionLogs)
 
             write_audit_entry(self, username)
 
