@@ -86,14 +86,20 @@ def _resync_log_issuance_type(transaction):
     query = Q()
     for fk in fk_fields:
         query |= Q(**{f'{fk}__pk': transaction.pk})
-    updated = TransactionLogs.objects.filter(query).update(
-        issuance_type=transaction.issuance_type
-    )
-    if updated:
+    # Bug 2 fix: use per-row save() instead of bulk .update() so that the
+    # post_save signal fires for each row and _write_audit_log() is called,
+    # persisting an AuditLog DB record for every issuance_type correction.
+    rows_updated = 0
+    for log_row in TransactionLogs.objects.filter(query):
+        if log_row.issuance_type != transaction.issuance_type:
+            log_row.issuance_type = transaction.issuance_type
+            log_row.save(update_fields=['issuance_type'])
+            rows_updated += 1
+    if rows_updated:
         audit_logger.info(
             "[AUDIT] action=RESYNC   model=TransactionLogs      "
             "reason=issuance_type_drift transaction_id=%s rows_updated=%d",
-            transaction.pk, updated,
+            transaction.pk, rows_updated,
         )
 
 
@@ -193,6 +199,18 @@ def _resync_log_consumable_fields(transaction):
 
     rows_updated = 0
     for log_row in TransactionLogs.objects.filter(query):
+        # Bug 1 fix: skip rows that are already correct to avoid spurious
+        # AuditLog DB entries on every Withdrawal save.
+        # FK fields whose field.name ends in _transaction_id store their raw PK
+        # under field.attname = field.name + '_id' in __dict__.  Non-FK fields
+        # and FK attnames (e.g. withdraw_pistol_magazine_id) are stored as-is.
+        raw_cache = log_row.__dict__
+        actually_changed = any(
+            raw_cache.get(k + '_id', raw_cache.get(k)) != v
+            for k, v in update_kwargs.items()
+        )
+        if not actually_changed:
+            continue
         for attr, val in update_kwargs.items():
             setattr(log_row, attr, val)
         log_row.save(update_fields=update_field_names)

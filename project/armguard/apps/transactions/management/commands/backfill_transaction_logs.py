@@ -111,9 +111,19 @@ def _resync_row(log_row, dry_run=False):
             'withdraw_bandoleer_transaction_personnel':      operator if tx.bandoleer_quantity else None,
         })
 
-    # Skip rows that are already correct (Bug 2 fix: previously always returned True
-    # because update_kwargs is always populated now, even when all values are unchanged).
-    actually_changed = any(getattr(log_row, k) != v for k, v in update_kwargs.items())
+    # Skip rows that are already correct.
+    # FK fields whose field.name ends in _transaction_id store their raw PK
+    # under field.attname = field.name + '_id' in __dict__.  getattr() on a
+    # field.name returns the descriptor-resolved Transaction *object*, so
+    # comparing it against an integer (tx.pk) is always True — breaking
+    # idempotency.  Reading from __dict__ returns the raw integer instead.
+    # Non-FK fields and FK attnames (e.g. withdraw_pistol_magazine_id) are
+    # stored as-is in __dict__ so the fallback lookup covers them correctly.
+    raw_cache = log_row.__dict__
+    actually_changed = any(
+        raw_cache.get(k + '_id', raw_cache.get(k)) != v
+        for k, v in update_kwargs.items()
+    )
     if not actually_changed:
         return False
 
