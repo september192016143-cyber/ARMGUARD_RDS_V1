@@ -40,11 +40,13 @@ function toggleDutyOther() {
   var sel = document.getElementById('tb_purpose');
   var other = document.getElementById('tb_purpose_other');
   if (!sel || !other) return;
-  // Check is_others_type from the purpose config (injected via data-purpose-config)
-  var formEl = document.getElementById('txn-form');
-  var pcfgAll = {};
-  if (formEl && formEl.dataset.purposeConfig) {
-    try { pcfgAll = JSON.parse(formEl.dataset.purposeConfig); } catch (_) {}
+  // Check is_others_type from the purpose config (prefer live-fetched, fall back to inline)
+  var pcfgAll = window._livePurposeConfig || {};
+  if (!Object.keys(pcfgAll).length) {
+    var formEl = document.getElementById('txn-form');
+    if (formEl && formEl.dataset.purposeConfig) {
+      try { pcfgAll = JSON.parse(formEl.dataset.purposeConfig); } catch (_) {}
+    }
   }
   var cfg = pcfgAll[sel.value] || {};
   var isOthersType = cfg.is_others_type === true;
@@ -103,6 +105,10 @@ function toggleWeaponSections() {
   var isReturn = (document.getElementById('tb_transaction_type') || {}).value === 'Return';
   var cfg     = {};
   try { cfg = JSON.parse((form && form.dataset.purposeConfig) || '{}'); } catch (e) {}
+  // Prefer live-fetched config (updated after purpose edits without reload)
+  if (window._livePurposeConfig && Object.keys(window._livePurposeConfig).length) {
+    cfg = window._livePurposeConfig;
+  }
   // On Return, always show both pistol and rifle regardless of purpose config.
   var pcfg       = isReturn ? {pistol: true, rifle: true} : (cfg[val] || {pistol: true, rifle: true});
   var showPistol = pcfg.pistol !== false;
@@ -1305,7 +1311,11 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
     if (!dutyEl || !dutyEl.value) { updateAmmoLabels(); return; }
     var formEl = document.getElementById('txn-form');
     var pcfgAll = {};
-    if (formEl && formEl.dataset.purposeConfig) {
+    // Prefer live-fetched config (updated after purpose edits without reload);
+    // fall back to the server-rendered inline blob.
+    if (window._livePurposeConfig) {
+      pcfgAll = window._livePurposeConfig;
+    } else if (formEl && formEl.dataset.purposeConfig) {
       try { pcfgAll = JSON.parse(formEl.dataset.purposeConfig); } catch (_) {}
     }
     var cfg = pcfgAll[dutyEl.value] || {};
@@ -1330,6 +1340,34 @@ document.querySelectorAll('#txn-form select, #txn-form input[type=number], #txn-
   if (pistolEl) pistolEl.addEventListener('change', applyPurposeDefaults);
   if (rifleEl)  rifleEl.addEventListener('change', applyPurposeDefaults);
   applyPurposeDefaults();
+
+  // Fetch live purpose config from the API so the form picks up any purpose
+  // changes made in Settings without needing a full page reload.
+  (function fetchLivePurposeConfig() {
+    fetch('/transactions/api/purpose-config/', { credentials: 'same-origin' })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (!data) return;
+        window._livePurposeConfig = data;
+        // Also refresh the purpose dropdown options with the live list
+        if (dutyEl) {
+          var currentVal = dutyEl.value;
+          // Remove dynamically-added options (keep any blank placeholder)
+          while (dutyEl.options.length > 1) dutyEl.remove(1);
+          Object.keys(data).forEach(function(name) {
+            var opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            if (data[name].hotkey) opt.setAttribute('data-hotkey', data[name].hotkey);
+            if (name === currentVal) opt.selected = true;
+            dutyEl.appendChild(opt);
+          });
+          if (currentVal) dutyEl.value = currentVal;
+        }
+        applyPurposeDefaults();
+      })
+      .catch(function() { /* silent — fall back to inline config */ });
+  })();
 })();
 
 // ── PAR issuance section toggle ───────────────────────────────────────────────

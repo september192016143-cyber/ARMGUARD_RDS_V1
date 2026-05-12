@@ -742,6 +742,18 @@ def item_status_check(request):
 
 @login_required
 @require_GET
+def purpose_config_json(request):
+    """
+    Returns the current TransactionPurpose config dict as JSON.
+    Called by transaction_form.js on DOMContentLoaded so the form always
+    has fresh purpose data even if the page was opened before settings changed.
+    """
+    from armguard.apps.transactions.models import TransactionPurpose
+    return JsonResponse(TransactionPurpose.get_config_dict())
+
+
+@login_required
+@require_GET
 @ratelimit(rate='60/m')
 def overdue_tr_check(request):
     """
