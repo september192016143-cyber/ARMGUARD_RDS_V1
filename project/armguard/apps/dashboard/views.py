@@ -589,7 +589,7 @@ def dashboard_cards_json(request):
     if not _can_view_inv(request.user):
         return JsonResponse({'error': 'Forbidden'}, status=403)
     from armguard.apps.personnel.models import Personnel
-    from armguard.apps.inventory.models import Magazine
+    from armguard.apps.inventory.models import Pistol, Rifle, Magazine
     from armguard.apps.transactions.models import Transaction, TransactionLogs
     from django.db.models import Sum
 
@@ -603,53 +603,67 @@ def dashboard_cards_json(request):
                       'BGEN', 'MGEN', 'LTGEN', 'GEN'}
 
     _open = ('Open', 'Partially Returned')
-    issued_tr = (
-        TransactionLogs.objects.filter(
-            log_status__in=_open,
-            issuance_type='TR (Temporary Receipt)',
-            withdraw_pistol__isnull=False, return_pistol__isnull=True,
-        ).count()
-        + TransactionLogs.objects.filter(
-            log_status__in=_open,
-            issuance_type='TR (Temporary Receipt)',
-            withdraw_rifle__isnull=False, return_rifle__isnull=True,
-        ).count()
+    _TR  = 'TR (Temporary Receipt)'
+    _PAR = 'PAR (Property Acknowledgement Receipt)'
+
+    _pistol = Pistol.objects.aggregate(
+        total=Count('item_id'),
+        available=Count('item_id', filter=Q(item_status='Available')),
+        issued=Count('item_id', filter=Q(item_status='Issued')),
     )
-    issued_par = (
-        TransactionLogs.objects.filter(
-            log_status__in=_open,
-            issuance_type='PAR (Property Acknowledgement Receipt)',
-            withdraw_pistol__isnull=False, return_pistol__isnull=True,
-        ).count()
-        + TransactionLogs.objects.filter(
-            log_status__in=_open,
-            issuance_type='PAR (Property Acknowledgement Receipt)',
-            withdraw_rifle__isnull=False, return_rifle__isnull=True,
-        ).count()
+    _rifle = Rifle.objects.aggregate(
+        total=Count('item_id'),
+        available=Count('item_id', filter=Q(item_status='Available')),
+        issued=Count('item_id', filter=Q(item_status='Issued')),
     )
 
-    withdrawals_today = Transaction.objects.filter(
-        transaction_type='Withdrawal', timestamp__date=today).count()
-    returns_today = Transaction.objects.filter(
-        transaction_type='Return', timestamp__date=today).count()
+    _logs = TransactionLogs.objects.filter(log_status__in=_open).aggregate(
+        tr_pistol=Count('record_id', filter=Q(issuance_type=_TR,
+            withdraw_pistol__isnull=False, return_pistol__isnull=True)),
+        tr_rifle=Count('record_id', filter=Q(issuance_type=_TR,
+            withdraw_rifle__isnull=False, return_rifle__isnull=True)),
+        par_pistol=Count('record_id', filter=Q(issuance_type=_PAR,
+            withdraw_pistol__isnull=False, return_pistol__isnull=True)),
+        par_rifle=Count('record_id', filter=Q(issuance_type=_PAR,
+            withdraw_rifle__isnull=False, return_rifle__isnull=True)),
+        short_mag_w=Sum('withdraw_rifle_magazine_quantity',
+            filter=Q(withdraw_rifle_magazine__capacity='20-rounds')),
+        short_mag_r=Sum('return_rifle_magazine_quantity',
+            filter=Q(withdraw_rifle_magazine__capacity='20-rounds')),
+        long_mag_w=Sum('withdraw_rifle_magazine_quantity',
+            filter=Q(withdraw_rifle_magazine__capacity__in=['30-rounds', 'EMTAN'])),
+        long_mag_r=Sum('return_rifle_magazine_quantity',
+            filter=Q(withdraw_rifle_magazine__capacity__in=['30-rounds', 'EMTAN'])),
+    )
+
+    issued_tr  = _logs['tr_pistol']  + _logs['tr_rifle']
+    issued_par = _logs['par_pistol'] + _logs['par_rifle']
+
+    _txn = Transaction.objects.aggregate(
+        withdrawals_today=Count('transaction_id', filter=Q(transaction_type='Withdrawal', timestamp__date=today)),
+        returns_today=Count('transaction_id', filter=Q(transaction_type='Return', timestamp__date=today)),
+    )
+    withdrawals_today = _txn['withdrawals_today'] or 0
+    returns_today     = _txn['returns_today'] or 0
 
     data = {
         # Personnel card
         'total_personnel':          Personnel.objects.filter(status='Active').count(),
         'officers_count':           Personnel.objects.filter(status='Active', rank__in=list(_officer_ranks)).count(),
         'enlisted_count':           Personnel.objects.filter(status='Active').exclude(rank__in=list(_officer_ranks)).count(),
+        # Firearms card
+        'total_pistols':            _pistol['total']     or 0,
+        'pistols_available':        _pistol['available'] or 0,
+        'pistols_issued':           _pistol['issued']    or 0,
+        'total_rifles':             _rifle['total']      or 0,
+        'rifles_available':         _rifle['available']  or 0,
+        'rifles_issued':            _rifle['issued']     or 0,
         # Magazine card
         'total_magazine_qty':       Magazine.objects.aggregate(t=Sum('quantity'))['t'] or 0,
         'short_magazine_available': Magazine.objects.filter(weapon_type='Rifle', capacity='20-rounds').aggregate(t=Sum('quantity'))['t'] or 0,
         'long_magazine_available':  Magazine.objects.filter(weapon_type='Rifle', capacity__in=['30-rounds', 'EMTAN']).aggregate(t=Sum('quantity'))['t'] or 0,
-        'short_magazine_issued': (lambda a: max((a['w'] or 0) - (a['r'] or 0), 0))(
-            TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__capacity='20-rounds')
-            .aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
-        ),
-        'long_magazine_issued': (lambda a: max((a['w'] or 0) - (a['r'] or 0), 0))(
-            TransactionLogs.objects.filter(log_status__in=_open, withdraw_rifle_magazine__capacity__in=['30-rounds', 'EMTAN'])
-            .aggregate(w=Sum('withdraw_rifle_magazine_quantity'), r=Sum('return_rifle_magazine_quantity'))
-        ),
+        'short_magazine_issued':    max((_logs['short_mag_w'] or 0) - (_logs['short_mag_r'] or 0), 0),
+        'long_magazine_issued':     max((_logs['long_mag_w']  or 0) - (_logs['long_mag_r']  or 0), 0),
         # Issued Firearms card
         'issued_TR':                issued_tr,
         'issued_PAR':               issued_par,
