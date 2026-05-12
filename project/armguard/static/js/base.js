@@ -909,6 +909,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     fetch(url, {
       credentials: 'same-origin',
+      cache: 'no-store',
       headers: { 'X-Requested-With': 'XMLHttpRequest' }
     })
     .then(function (res) {
