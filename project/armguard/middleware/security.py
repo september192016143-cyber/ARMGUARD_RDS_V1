@@ -79,6 +79,16 @@ class SecurityHeadersMiddleware:
         content_type = response.get('Content-Type', '')
         if 'text/html' in content_type:
             response['Content-Security-Policy'] = self.CSP
+            # Prevent browsers from caching authenticated HTML pages.
+            # Without this, browsers use heuristic freshness (RFC 7234 §4.2.2)
+            # and may serve stale HTML — causing PJAX to display old page content
+            # even after the server has been updated (e.g. template changes, JS
+            # file moves).  Only added if the view hasn't already set its own
+            # Cache-Control directive (e.g. a print view that wants a longer TTL).
+            # Static assets (JS/CSS/images) are served by Nginx with content-hashed
+            # filenames + immutable cache headers, so they are unaffected.
+            if not response.has_header('Cache-Control'):
+                response['Cache-Control'] = 'no-store'
         response['Referrer-Policy'] = 'same-origin'
         response['Permissions-Policy'] = self.PERMISSIONS_POLICY
         return response
