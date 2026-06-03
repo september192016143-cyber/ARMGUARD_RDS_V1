@@ -442,12 +442,18 @@ if [[ -f "$NGINX_SRC" ]]; then
         _DOMAIN=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
         _LAN_IP="$_DOMAIN"
     fi
+    # Derive router WAN IP (first 3 octets + .1) — same logic as deploy.sh.
+    # On a /22 network (e.g. 10.100.5.52) this gives 10.100.5.1 which may not
+    # be the real gateway; the value is only used in server_name so a wrong
+    # value is harmless — it simply won't match for that extra hostname.
+    _ROUTER_WAN_IP=$(echo "$_LAN_IP" | awk -F. '{printf "%s.%s.%s.1",$1,$2,$3}')
     # Substitute all placeholders in the template before deploying
     sed \
         -e "s|__STATIC_ROOT__|${_STATIC_ROOT}|g" \
         -e "s|__MEDIA_ROOT__|${_MEDIA_ROOT}|g" \
         -e "s|__DOMAIN__|${_DOMAIN}|g" \
         -e "s|__LAN_IP__|${_LAN_IP}|g" \
+        -e "s|__ROUTER_WAN_IP__|${_ROUTER_WAN_IP}|g" \
         "$NGINX_SRC" > "$NGINX_DEST"
     # Ensure .mjs → JavaScript MIME type is registered in the system mime.types.
     # Nginx 1.24 on Ubuntu 24.04 does not ship .mjs in its mime.types.
@@ -691,6 +697,29 @@ if [[ "$NO_RESTART" == "false" ]]; then
     fi
 else
     info "Skipping service restart (--no-restart)."
+fi
+
+# ---------------------------------------------------------------------------
+# 7b. Reinstall armguard-autoip service if updated by this git pull
+# ---------------------------------------------------------------------------
+AUTOIP_SRC="$DEPLOY_DIR/scripts/armguard-autoip.service"
+AUTOIP_DEST="/etc/systemd/system/armguard-autoip.service"
+
+if [[ -f "$AUTOIP_SRC" ]]; then
+    # Re-copy only if the source is newer or destination is missing
+    if [[ ! -f "$AUTOIP_DEST" ]] || [[ "$AUTOIP_SRC" -nt "$AUTOIP_DEST" ]]; then
+        sed "s|/var/www/ARMGUARD_RDS_V1|${DEPLOY_DIR}|g" \
+            "$AUTOIP_SRC" > "$AUTOIP_DEST"
+        chmod 644 "$AUTOIP_DEST"
+        chmod +x "$DEPLOY_DIR/scripts/armguard-autoip.sh" 2>/dev/null || true
+        systemctl daemon-reload
+        systemctl enable armguard-autoip.service 2>/dev/null || true
+        success "armguard-autoip.service reinstalled and enabled."
+    else
+        info "armguard-autoip.service is up-to-date."
+    fi
+else
+    info "armguard-autoip.service not found in scripts/ — skipping."
 fi
 
 # ---------------------------------------------------------------------------
