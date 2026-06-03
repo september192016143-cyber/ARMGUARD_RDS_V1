@@ -1,10 +1,10 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Print ID Cards – ArmGuard</title>
+    <title>Print ID Cards – ARMGUARD</title>
     <style>
         /* ------------------------------------------------------------------ */
         /*  Screen preview                                                      */
@@ -215,7 +215,7 @@
     </style>
 </head>
 <body>
-<div class="print-watermark">ARMGUARD RDS<br>{{ request.user.get_full_name|default:request.user.username }}</div>
+<div class="print-watermark">ARMGUARD<br>{{ request.user.get_full_name|default:request.user.username }}</div>
 
 <div class="no-print">
     <h2>🖨️ ID Card Print – {{ cards|length }} card{{ cards|length|pluralize }}{% if side == 'back' %} (Back Side Only){% elif side == 'front' %} (Front Side Only){% endif %}</h2>

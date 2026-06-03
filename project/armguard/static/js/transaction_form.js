@@ -1,5 +1,5 @@
-/**
- * ArmGuard RDS — transaction_form.js
+﻿/**
+ * ARMGUARD — transaction_form.js
  *
  * F1  FIX: Extracted from transaction_form.html to comply with CSP script-src 'self'
  *          (no 'unsafe-inline' needed).  All inline <script> blocks and inline event

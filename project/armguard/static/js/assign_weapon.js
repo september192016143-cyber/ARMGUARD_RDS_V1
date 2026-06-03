@@ -1,5 +1,5 @@
-/**
- * ArmGuard RDS — assign_weapon.js
+﻿/**
+ * ARMGUARD — assign_weapon.js
  *
  * Barcode/QR scanner support for the Assign Weapon page.
  *

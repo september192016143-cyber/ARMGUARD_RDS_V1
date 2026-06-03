@@ -1,5 +1,5 @@
-"""
-ArmGuard RDS V1 — Users app models.
+﻿"""
+ARMGUARD V1 — Users app models.
 
 Models:
   UserProfile     — extends built-in User with armory role + single-session key

@@ -1,5 +1,5 @@
-"""
-Custom static-file storage backend for ARMGUARD RDS.
+﻿"""
+Custom static-file storage backend for ARMGUARD.
 
 Subclasses WhiteNoise's CompressedManifestStaticFilesStorage to prevent
 URL-rewriting (post-processing) on .mjs files.  PDF.js bundles
@@ -10,7 +10,7 @@ All other static files behave normally (hashed, compressed, URL-rewritten).
 from whitenoise.storage import CompressedManifestStaticFilesStorage
 
 
-class ArmguardStaticStorage(CompressedManifestStaticFilesStorage):
+class ARMGUARDtaticStorage(CompressedManifestStaticFilesStorage):
     """Skip URL-rewriting (but not hashing/copying/compression) for .mjs files."""
 
     # Degrade gracefully when a file is absent from the manifest (e.g. stale

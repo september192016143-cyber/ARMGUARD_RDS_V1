@@ -154,7 +154,7 @@ class TransactionFormFiller:
         # Set document metadata to indicate Legal paper
         new_doc.set_metadata({
             'title': 'Transaction Receipt - Legal Size',
-            'producer': 'ArmGuard System'
+            'producer': 'ARMGUARD'
         })
         
         return new_doc

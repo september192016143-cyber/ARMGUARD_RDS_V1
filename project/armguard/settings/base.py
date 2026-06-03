@@ -1,5 +1,5 @@
-"""
-ARMGUARD RDS — Base settings shared across all environments.
+﻿"""
+ARMGUARD — Base settings shared across all environments.
 
 Environment-specific overrides live in development.py and production.py.
 Never use this file as DJANGO_SETTINGS_MODULE directly.
@@ -235,7 +235,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # .mjs files (large PDF.js bundles that would be corrupted by the rewriter).
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "armguard.storage.ArmguardStaticStorage"},
+    "staticfiles": {"BACKEND": "armguard.storage.ARMGUARDtaticStorage"},
 }
 
 MEDIA_URL = '/media/'
@@ -303,9 +303,9 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 # Schema is available at /api/v1/schema/ — staff login required.
 # ---------------------------------------------------------------------------
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'ArmGuard RDS API',
+    'TITLE': 'ARMGUARD API',
     'DESCRIPTION': (
-        'Read-only REST API for the ArmGuard Resource Data System. '
+        'Read-only REST API for the ARMGUARD. '
         'All write operations must go through the web UI to preserve '
         'business-rule enforcement (audit logs, select_for_update, etc.).'
     ),
@@ -319,7 +319,7 @@ SECURE_REFERRER_POLICY = 'same-origin'
 
 # G15: TOTP issuer name shown in authenticator apps (e.g. Google Authenticator).
 # Without this, only the username is displayed — no system label.
-OTP_TOTP_ISSUER = 'ArmGuard RDS'
+OTP_TOTP_ISSUER = 'ARMGUARD'
 
 # G12: Opt-in API — set ARMGUARD_API_ENABLED=True in .env to expose /api/v1/.
 # Defaults to False so fresh deployments do not expose the endpoint until needed.

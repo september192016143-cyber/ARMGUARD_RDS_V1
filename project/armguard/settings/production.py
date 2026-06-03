@@ -1,5 +1,5 @@
-"""
-ARMGUARD RDS — Production settings.
+﻿"""
+ARMGUARD — Production settings.
 
 Usage:
     DJANGO_SETTINGS_MODULE=armguard.settings.production gunicorn armguard.wsgi

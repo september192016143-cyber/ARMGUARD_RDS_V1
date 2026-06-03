@@ -1,5 +1,5 @@
 # qr_generator.py
-# Unified QR Code Generator for ArmGuard System
+# Unified QR Code Generator for ARMGUARD
 # Standard settings matching JavaScript QRCode library
 
 import qrcode

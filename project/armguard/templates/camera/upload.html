@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>ArmGuard — Camera Upload</title>
+  <title>ARMGUARD � Camera Upload</title>
   <!-- HMAC rotating API key (5-minute window). JS reads this; refreshed via AJAX when expired. -->
   <meta name="x-camera-key"          content="{{ current_api_key }}">
   <meta name="x-camera-key-expires"  content="{{ key_expires_ms }}">
@@ -107,14 +107,14 @@
 </head>
 <body>
 
-<!-- ── PIN gate ─────────────────────────────────────────────────────── -->
+<!-- -- PIN gate ------------------------------------------------------- -->
 <div id="pin-gate" class="{% if pin_verified %}hidden{% endif %}">
   <div class="pin-card">
     <h2>&#128274; Enter Session PIN</h2>
-    <p>Check the ArmGuard pair page on the admin’s screen for the current 6-digit PIN.
+    <p>Check the ARMGUARD pair page on the admin's screen for the current 6-digit PIN.
 It changes every 30 seconds.</p>
     <input id="pin-input" type="tel" inputmode="numeric" maxlength="6"
-           pattern="[0-9]{6}" autocomplete="one-time-code" placeholder="••••••">
+           pattern="[0-9]{6}" autocomplete="one-time-code" placeholder="������">
     <div id="pin-err"></div>
     <button id="pin-submit" disabled>Verify PIN</button>
     <p class="pin-note">This PIN is required once per session.</p>
@@ -122,8 +122,8 @@ It changes every 30 seconds.</p>
 </div>
 
 <div class="card" id="upload-card">
-  <h1>&#128247; ArmGuard Camera Upload</h1>
-  <p class="sub">Take or choose a photo — it will be saved to the armory server.</p>
+  <h1>&#128247; ARMGUARD Camera Upload</h1>
+  <p class="sub">Take or choose a photo � it will be saved to the armory server.</p>
 
   <div class="device-badge">
     Device: <span>{{ device.device_name|default:"unnamed" }}</span>
@@ -131,7 +131,7 @@ It changes every 30 seconds.</p>
     <div class="key-bar" id="key-timer">Key valid for <span id="key-countdown">--</span>s</div>
   </div>
 
-  <!-- Standby state — shown until the armory desk sends a capture request -->
+  <!-- Standby state � shown until the armory desk sends a capture request -->
   <div id="standby-state" style="text-align:center;padding:2rem 0 1.25rem;">
     <div style="font-size:2.5rem;margin-bottom:.75rem;">&#128274;</div>
     <div style="font-size:1rem;font-weight:700;color:#f8fafc;margin-bottom:.4rem;">Standby</div>
@@ -143,10 +143,10 @@ It changes every 30 seconds.</p>
   </div>
 </div>
 
-{# Hidden form — keeps CSRF token in DOM for AJAX requests #}
+{# Hidden form � keeps CSRF token in DOM for AJAX requests #}
 <form id="csrf-form" style="display:none">{% csrf_token %}</form>
 
-<!-- ── Serial capture task overlay ──────────────────────────────────────── -->
+<!-- -- Serial capture task overlay ---------------------------------------- -->
 <div id="serial-task-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;padding:1.5rem;">
   <div style="background:#1e293b;border-radius:1rem;padding:2rem 1.5rem;width:100%;max-width:400px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.5);">
     <div style="font-size:2rem;margin-bottom:.75rem;">&#128247;</div>
@@ -166,7 +166,7 @@ It changes every 30 seconds.</p>
   </div>
 </div>
 
-{# Page data for camera_upload.js — type=application/json is not executed by the browser (CSP-safe) #}
+{# Page data for camera_upload.js � type=application/json is not executed by the browser (CSP-safe) #}
 <script type="application/json" id="camera-upload-data">{"keyRefreshUrl":"{% url 'camera:key_refresh' %}","pinApiUrl":"{% url 'camera:pin_api' %}","uploadUrl":"{% url 'camera:upload_image' %}","taskApiUrl":"{% url 'camera:task_api' %}"}</script>
 <script src="{% static 'js/camera_upload.js' %}"></script>
 </body>

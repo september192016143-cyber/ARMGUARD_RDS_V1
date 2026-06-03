@@ -1,5 +1,5 @@
-"""
-H1 FIX: Centralised permission helpers for ArmGuard RDS.
+﻿"""
+H1 FIX: Centralised permission helpers for ARMGUARD.
 
 Per-module granular permissions replace the old global perm_can_add/perm_can_edit.
 All checks follow this priority order:

@@ -12,7 +12,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from django.core.exceptions import ValidationError
 import logging
 from django.contrib import messages
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from armguard.utils.permissions import (
     can_view_personnel as _can_view_personnel,
     can_add_personnel  as _can_add_personnel,
@@ -433,8 +433,9 @@ def _download_drive_photo(file_id: str) -> bytes | None:
 		if data[:5] in (b'<!DOC', b'<html'):
 			return None
 		# REC-08: Verify magic bytes before accepting the download as an image.
-		_IMAGE_SIGS = (b'\xff\xd8\xff', b'\x89PNG', b'GIF8', b'RIFF', b'\x00\x00\x01\x00')
-		if not any(data.startswith(sig) for sig in _IMAGE_SIGS):
+		_IMAGE_SIGS = (b'\xff\xd8\xff', b'\x89PNG', b'GIF8', b'\x00\x00\x01\x00')
+		if not (any(data.startswith(sig) for sig in _IMAGE_SIGS) or
+				(data[:4] == b'RIFF' and data[8:12] == b'WEBP')):
 			return None
 		return data
 	except Exception:
@@ -443,9 +444,10 @@ def _download_drive_photo(file_id: str) -> bytes | None:
 
 def _save_personnel_photo(p: 'Personnel', photo_bytes: bytes) -> None:
 	"""Write photo_bytes to a media path and set p.personnel_image."""
-	import os, uuid
+	import os, re, uuid
 	from django.conf import settings
-	rel = f'personnel_id_cards/{p.AFSN}_{uuid.uuid4().hex[:8]}.jpg'
+	safe_afsn = re.sub(r'[^\w\-]', '_', str(p.AFSN))
+	rel = f'personnel_id_cards/{safe_afsn}_{uuid.uuid4().hex[:8]}.jpg'
 	abs_path = os.path.join(settings.MEDIA_ROOT, rel)
 	os.makedirs(os.path.dirname(abs_path), exist_ok=True)
 	with open(abs_path, 'wb') as fh:
@@ -543,8 +545,11 @@ def _import_rows(request, data_rows, group_override='', upsert=False, progress_c
 							_save_personnel_photo(existing, photo_bytes)
 				existing.save(user=request.user)
 				updated_count += 1
+			except IntegrityError:
+				skipped.append(f'Row {i}: duplicate record — already exists')
 			except Exception as exc:
-				skipped.append(f'Row {i}: {exc}')
+				logger.exception('Import row %d failed', i)
+				skipped.append(f'Row {i}: unexpected error (check server logs)')
 
 		elif existing and not upsert:
 			skipped.append(f'Row {i}: AFSN {afsn} already registered (use "Update existing" to overwrite)')
@@ -582,8 +587,11 @@ def _import_rows(request, data_rows, group_override='', upsert=False, progress_c
 							_save_personnel_photo(p, photo_bytes)
 				p.save(user=request.user)
 				created_count += 1
+			except IntegrityError:
+				skipped.append(f'Row {i}: duplicate record — already exists')
 			except Exception as exc:
-				skipped.append(f'Row {i}: {exc}')
+				logger.exception('Import row %d failed', i)
+				skipped.append(f'Row {i}: unexpected error (check server logs)')
 
 		if progress_cb:
 			progress_cb(i - 1, total, created_count, updated_count, skipped)
@@ -642,6 +650,13 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 		if not xlsx_file.name.endswith('.xlsx'):
 			messages.error(request, 'Only .xlsx files are accepted.')
 			return render(request, self.template_name, self._ctx())
+		_XLSX_MIME = {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}
+		if xlsx_file.content_type not in _XLSX_MIME:
+			messages.error(request, 'Only .xlsx files are accepted.')
+			return render(request, self.template_name, self._ctx())
+		if xlsx_file.size > 5 * 1024 * 1024:
+			messages.error(request, 'File too large. Maximum upload size is 5 MB.')
+			return render(request, self.template_name, self._ctx())
 
 		valid_groups_set = PersonnelGroup.get_names_set()
 		group_override = request.POST.get('group_override', '').strip()
@@ -660,6 +675,9 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 		rows = list(ws.iter_rows(values_only=True))
 		if not rows:
 			messages.error(request, 'The Excel file is empty.')
+			return render(request, self.template_name, self._ctx())
+		if len(rows) > 5001:
+			messages.error(request, 'File has too many rows. Maximum is 5,000 data rows.')
 			return render(request, self.template_name, self._ctx())
 
 		headers = [str(h).strip().lower().replace(' ', '_') if h is not None else '' for h in rows[0]]
@@ -692,6 +710,10 @@ class PersonnelImportView(LoginRequiredMixin, UserPassesTestMixin, View):
 		sheet_url = request.POST.get('sheet_url', '').strip()
 		if not sheet_url:
 			messages.error(request, 'Please enter a Google Sheet URL.')
+			return render(request, self.template_name, self._ctx())
+		import re as _gurl_re
+		if not _gurl_re.match(r'https://docs\.google\.com/spreadsheets/d/[a-zA-Z0-9_\-]+', sheet_url):
+			messages.error(request, 'Please enter a valid Google Sheets URL (https://docs.google.com/spreadsheets/d/...).')
 			return render(request, self.template_name, self._ctx())
 
 		valid_groups_set = PersonnelGroup.get_names_set()
@@ -757,6 +779,11 @@ class PersonnelImportStreamView(LoginRequiredMixin, UserPassesTestMixin, View):
 			return self._error_stream('Please upload an Excel (.xlsx) file.')
 		if not xlsx_file.name.endswith('.xlsx'):
 			return self._error_stream('Only .xlsx files are accepted.')
+		_XLSX_MIME = {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}
+		if xlsx_file.content_type not in _XLSX_MIME:
+			return self._error_stream('Only .xlsx files are accepted.')
+		if xlsx_file.size > 5 * 1024 * 1024:
+			return self._error_stream('File too large. Maximum upload size is 5 MB.')
 
 		valid_groups_set = PersonnelGroup.get_names_set()
 		group_override = request.POST.get('group_override', '').strip()
@@ -774,6 +801,8 @@ class PersonnelImportStreamView(LoginRequiredMixin, UserPassesTestMixin, View):
 		rows = list(ws.iter_rows(values_only=True))
 		if not rows:
 			return self._error_stream('The Excel file is empty.')
+		if len(rows) > 5001:
+			return self._error_stream('File has too many rows. Maximum is 5,000 data rows.')
 
 		headers = [str(h).strip().lower().replace(' ', '_') if h is not None else '' for h in rows[0]]
 		required = {'rank', 'first_name', 'last_name', 'middle_initial', 'afsn', 'squadron'}
@@ -887,8 +916,11 @@ class PersonnelImportStreamView(LoginRequiredMixin, UserPassesTestMixin, View):
 										_save_personnel_photo(existing, photo_bytes)
 							existing.save(user=request.user)
 							updated_count += 1
+						except IntegrityError:
+							skipped_list.append(f'Row {idx}: duplicate record — already exists')
 						except Exception as exc:
-							skipped_list.append(f'Row {idx}: {exc}')
+							logger.exception('Import row %d failed', idx)
+							skipped_list.append(f'Row {idx}: unexpected error (check server logs)')
 
 				elif existing and not upsert:
 					skipped_list.append(f'Row {idx}: AFSN {afsn} already registered (use "Update existing" to overwrite)')
@@ -921,8 +953,11 @@ class PersonnelImportStreamView(LoginRequiredMixin, UserPassesTestMixin, View):
 										_save_personnel_photo(p, photo_bytes)
 							p.save(user=request.user)
 							created_count += 1
+						except IntegrityError:
+							skipped_list.append(f'Row {idx}: duplicate record — already exists')
 						except Exception as exc:
-							skipped_list.append(f'Row {idx}: {exc}')
+							logger.exception('Import row %d failed', idx)
+							skipped_list.append(f'Row {idx}: unexpected error (check server logs)')
 
 			current = idx - 1
 			yield self._sse({

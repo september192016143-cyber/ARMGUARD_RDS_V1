@@ -1,5 +1,5 @@
-"""
-ARMGUARD RDS — Development settings.
+﻿"""
+ARMGUARD — Development settings.
 
 Usage:
     DJANGO_SETTINGS_MODULE=armguard.settings.development python manage.py runserver

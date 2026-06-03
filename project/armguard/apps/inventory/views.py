@@ -1,4 +1,6 @@
 import json
+import logging
+from django.db import IntegrityError
 from django.views.generic import ListView, View
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -1128,6 +1130,13 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
         if not xlsx_file.name.endswith('.xlsx'):
             messages.error(request, 'Only .xlsx files are accepted.')
             return redirect('inventory-import')
+        _XLSX_MIME = {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}
+        if xlsx_file.content_type not in _XLSX_MIME:
+            messages.error(request, 'Only .xlsx files are accepted.')
+            return redirect('inventory-import')
+        if xlsx_file.size > 5 * 1024 * 1024:
+            messages.error(request, 'File too large. Maximum upload size is 5 MB.')
+            return redirect('inventory-import')
 
         valid_pistol_models = {m for m, _ in PISTOL_MODELS}
         valid_rifle_models  = {m for m, _ in RIFLE_MODELS}
@@ -1153,6 +1162,9 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
         rows = list(ws.iter_rows(values_only=True))
         if not rows:
             messages.error(request, 'The Excel file is empty.')
+            return redirect('inventory-import')
+        if len(rows) > 5001:
+            messages.error(request, 'File has too many rows. Maximum is 5,000 data rows.')
             return redirect('inventory-import')
 
         headers = [str(h).strip().lower().replace(' ', '_') if h is not None else '' for h in rows[0]]
@@ -1265,8 +1277,11 @@ class InventoryImportView(LoginRequiredMixin, UserPassesTestMixin, View):
                     )
                 obj.save(user=request.user)
                 created_count += 1
+            except IntegrityError:
+                skipped.append(f'Row {i}: duplicate record — already exists')
             except Exception as exc:
-                skipped.append(f'Row {i}: {exc}')
+                logging.getLogger(__name__).exception('Import row %d failed', i)
+                skipped.append(f'Row {i}: unexpected error (check server logs)')
 
         if created_count:
             messages.success(request, f'Successfully imported {created_count} item(s).')

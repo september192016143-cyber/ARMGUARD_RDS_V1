@@ -1,5 +1,5 @@
-"""
-Activity logging middleware for ARMGUARD RDS.
+﻿"""
+Activity logging middleware for ARMGUARD.
 
 Records every HTTP request to the ActivityLog database table.  Each entry is
 auto-classified with a severity flag so reviewers can filter instantly:

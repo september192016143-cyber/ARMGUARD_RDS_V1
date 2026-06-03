@@ -1,4 +1,4 @@
-from django.contrib import admin
+﻿from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User, Group, Permission
 from django.utils.html import format_html
@@ -15,8 +15,8 @@ def _superuser_only(self, request):
 admin.site.__class__.has_permission = _superuser_only
 
 # ── Branding ──────────────────────────────────────────────────────────────────
-admin.site.site_header = "ArmGuard RDS Administration"
-admin.site.site_title  = "ArmGuard RDS"
+admin.site.site_header = "ARMGUARD Administration"
+admin.site.site_title  = "ARMGUARD"
 admin.site.index_title = "Database Administration"
 
 # ── Remove unused / sensitive built-in models ─────────────────────────────────
@@ -41,8 +41,8 @@ class UserProfileInline(admin.StackedInline):
     """
     model = UserProfile
     can_delete = False
-    verbose_name = "ArmGuard Permissions"
-    verbose_name_plural = "ArmGuard Permissions"
+    verbose_name = "ARMGUARD Permissions"
+    verbose_name_plural = "ARMGUARD Permissions"
     fields = (
         'role',
         'perm_inventory_view', 'perm_inventory_add', 'perm_inventory_edit', 'perm_inventory_delete',
@@ -95,7 +95,7 @@ class PersonnelInline(admin.StackedInline):
 class CustomUserAdmin(BaseUserAdmin):
     """
     Extends the default UserAdmin to include:
-      - ArmGuard Role Group assignment at the top
+      - ARMGUARD Role Group assignment at the top
       - UserProfile inline showing effective role + permission flags
       - Personnel Record inline
       - Role column in the list view
@@ -116,10 +116,10 @@ class CustomUserAdmin(BaseUserAdmin):
         ('Personal info', {
             'fields': ('first_name', 'last_name', 'email'),
         }),
-        ('ArmGuard Role', {
+        ('ARMGUARD Role', {
             'description': (
                 'Assign the user to exactly one role Group below. '
-                'The ArmGuard Role inline will update automatically on save. '
+                'The ARMGUARD Role inline will update automatically on save. '
                 '<br><strong>Armorer</strong> — view transactions, view inventory '
                 '<br><strong>Administrator — View Only</strong> — view all records '
                 '<br><strong>Administrator — Edit &amp; Add</strong> — create and edit records '
@@ -144,7 +144,7 @@ class CustomUserAdmin(BaseUserAdmin):
             'classes': ('wide',),
             'fields': ('username', 'password1', 'password2'),
         }),
-        ('ArmGuard Role', {
+        ('ARMGUARD Role', {
             'fields': ('groups', 'is_superuser'),
         }),
         ('Personal info', {

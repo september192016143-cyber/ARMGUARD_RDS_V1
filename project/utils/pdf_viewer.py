@@ -1,5 +1,5 @@
-"""
-Centralized, audited PDF serving for ARMGUARD RDS.
+﻿"""
+Centralized, audited PDF serving for ARMGUARD.
 
 All views that serve PDFs should use serve_pdf() or serve_pdf_bytes()
 instead of constructing FileResponse/HttpResponse directly.

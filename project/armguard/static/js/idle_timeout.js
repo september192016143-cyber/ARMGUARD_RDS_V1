@@ -1,5 +1,5 @@
-/**
- * idle_timeout.js — ArmGuard RDS
+﻿/**
+ * idle_timeout.js — ARMGUARD
  *
  * Tracks user activity (mouse, keyboard, touch, scroll).
  * After IDLE_TIMEOUT seconds of inactivity, shows a warning modal

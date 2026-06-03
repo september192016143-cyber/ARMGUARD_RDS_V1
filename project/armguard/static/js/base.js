@@ -1,5 +1,5 @@
-/**
- * ArmGuard RDS — base.js
+﻿/**
+ * ARMGUARD — base.js
  *
  * C2 FIX: Extracted from base.html to eliminate 'unsafe-inline' from
  * Content-Security-Policy script-src.

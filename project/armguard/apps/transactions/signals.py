@@ -1,5 +1,5 @@
-"""
-Signal-based audit logging for ARMGUARD RDS.
+﻿"""
+Signal-based audit logging for ARMGUARD.
 
 Captures create / update / delete events on Transaction, TransactionLogs,
 Pistol, Rifle, and Personnel and writes them to the 'armguard.audit' logger.

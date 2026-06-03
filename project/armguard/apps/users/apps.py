@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 from django.apps import AppConfig
 
 _startup_logger = logging.getLogger('armguard.system')
@@ -24,7 +24,7 @@ def _log_startup_once(sender, **kwargs):
         import django
         log_system_event(
             'STARTUP', 'app_ready',
-            message='ArmGuard RDS application started.',
+            message='ARMGUARD application started.',
             django_version=django.__version__,
         )
     except Exception as exc:

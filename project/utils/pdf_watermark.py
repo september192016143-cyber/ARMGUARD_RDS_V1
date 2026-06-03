@@ -1,8 +1,8 @@
-"""
-PDF watermarking for ARMGUARD RDS.
+﻿"""
+PDF watermarking for ARMGUARD.
 
 Uses PyMuPDF (fitz) to stamp a diagonal, semi-transparent watermark
-containing "ARMGUARD RDS", the accessing user's display name, and a UTC
+containing "ARMGUARD", the accessing user's display name, and a UTC
 access timestamp onto every page of a PDF document.
 
 Gracefully degrades — returns the original bytes unchanged when:

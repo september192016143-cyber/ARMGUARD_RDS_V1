@@ -1,5 +1,5 @@
-/**
- * hot_key.js — Global keyboard shortcuts for ArmGuard RDS
+﻿/**
+ * hot_key.js — Global keyboard shortcuts for ARMGUARD
  * Loaded once on every page via base.html.
  *
  * Alt+N  Navigate to New Transaction (works on every page)
