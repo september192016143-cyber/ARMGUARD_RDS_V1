@@ -203,7 +203,57 @@ class TransactionLogsAdmin(admin.ModelAdmin):
         'return_pistol_timestamp',
         'return_rifle_timestamp',
     ]
-    readonly_fields = ['log_status']
+    # All return-side fields are read-only in admin.  The only correct way to
+    # record a return is through the Transaction form (which enforces all
+    # binding rules and updates consumable pool quantities atomically).
+    # Direct editing of these fields bypasses the binding rule entirely.
+    readonly_fields = [
+        'log_status',
+        'return_pistol_transaction_id',
+        'return_pistol',
+        'return_pistol_timestamp',
+        'return_pistol_transaction_personnel',
+        'return_rifle_transaction_id',
+        'return_rifle',
+        'return_rifle_timestamp',
+        'return_rifle_transaction_personnel',
+        'return_pistol_magazine_transaction_id',
+        'return_pistol_magazine',
+        'return_pistol_magazine_quantity',
+        'return_pistol_magazine_timestamp',
+        'return_pistol_magazine_transaction_personnel',
+        'return_rifle_magazine_transaction_id',
+        'return_rifle_magazine',
+        'return_rifle_magazine_quantity',
+        'return_rifle_magazine_timestamp',
+        'return_rifle_magazine_transaction_personnel',
+        'return_pistol_ammunition_transaction_id',
+        'return_pistol_ammunition',
+        'return_pistol_ammunition_quantity',
+        'return_pistol_ammunition_timestamp',
+        'return_pistol_ammunition_transaction_personnel',
+        'return_rifle_ammunition_transaction_id',
+        'return_rifle_ammunition',
+        'return_rifle_ammunition_quantity',
+        'return_rifle_ammunition_timestamp',
+        'return_rifle_ammunition_transaction_personnel',
+        'return_pistol_holster_transaction_id',
+        'return_pistol_holster_quantity',
+        'return_pistol_holster_timestamp',
+        'return_pistol_holster_transaction_personnel',
+        'return_magazine_pouch_transaction_id',
+        'return_magazine_pouch_quantity',
+        'return_magazine_pouch_timestamp',
+        'return_magazine_pouch_transaction_personnel',
+        'return_rifle_sling_transaction_id',
+        'return_rifle_sling_quantity',
+        'return_rifle_sling_timestamp',
+        'return_rifle_sling_transaction_personnel',
+        'return_bandoleer_transaction_id',
+        'return_bandoleer_quantity',
+        'return_bandoleer_timestamp',
+        'return_bandoleer_transaction_personnel',
+    ]
 
 admin.site.register(TransactionLogs, TransactionLogsAdmin)
 

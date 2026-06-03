@@ -30,6 +30,7 @@ LOG_STATUS_CHOICES = [
     ('Open', 'Open'),
     ('Partially Returned', 'Partially Returned'),
     ('Closed', 'Closed'),
+    ('Closed (Discrepancy)', 'Closed (Discrepancy)'),
 ]
 
  # Legacy static choices — kept so existing imports don't break.
@@ -618,6 +619,9 @@ class Transaction(models.Model):
 
             # BINDING RULE: When returning a pistol, ALL unreturned consumables that were
             # withdrawn together (same TransactionLog record) must be included in this return.
+            # EXCEPTION: if _discrepancy_items includes an item key, that item may be omitted
+            # because it is being formally reported as a discrepancy (lost/missing).
+            _disc_items = getattr(self, '_discrepancy_items', set())
             if self.pistol:
                 _pistol_open_log = TransactionLogs.objects.filter(
                     personnel_id=self.personnel,
@@ -631,7 +635,7 @@ class Transaction(models.Model):
                     if _pistol_open_log.withdraw_pistol_magazine_id and not _pistol_open_log.return_pistol_magazine_id:
                         required_qty = _pistol_open_log.withdraw_pistol_magazine_quantity or 0
                         returned_qty = self.pistol_magazine_quantity or 0
-                        if not self.pistol_magazine or returned_qty < required_qty:
+                        if (not self.pistol_magazine or returned_qty < required_qty) and 'pistol_magazine' not in _disc_items:
                             _missing.append(
                                 f"Pistol Magazine '{_pistol_open_log.withdraw_pistol_magazine}' ×{required_qty} (returned: {returned_qty})"
                             )
@@ -639,7 +643,7 @@ class Transaction(models.Model):
                     if _pistol_open_log.withdraw_pistol_ammunition_id and not _pistol_open_log.return_pistol_ammunition_id:
                         required_qty = _pistol_open_log.withdraw_pistol_ammunition_quantity or 0
                         returned_qty = self.pistol_ammunition_quantity or 0
-                        if not self.pistol_ammunition or returned_qty < required_qty:
+                        if (not self.pistol_ammunition or returned_qty < required_qty) and 'pistol_ammunition' not in _disc_items:
                             _missing.append(
                                 f"Pistol Ammunition '{_pistol_open_log.withdraw_pistol_ammunition}' ×{required_qty} rounds (returned: {returned_qty})"
                             )
@@ -647,7 +651,7 @@ class Transaction(models.Model):
                     if _pistol_open_log.withdraw_pistol_holster_quantity and not _pistol_open_log.return_pistol_holster_quantity:
                         required_qty = _pistol_open_log.withdraw_pistol_holster_quantity or 0
                         returned_qty = self.pistol_holster_quantity or 0
-                        if returned_qty < required_qty:
+                        if returned_qty < required_qty and 'pistol_holster' not in _disc_items:
                             _missing.append(
                                 f"Pistol Holster ×{required_qty} (returned: {returned_qty})"
                             )
@@ -655,14 +659,14 @@ class Transaction(models.Model):
                     if _pistol_open_log.withdraw_magazine_pouch_quantity and not _pistol_open_log.return_magazine_pouch_quantity:
                         required_qty = _pistol_open_log.withdraw_magazine_pouch_quantity or 0
                         returned_qty = self.magazine_pouch_quantity or 0
-                        if returned_qty < required_qty:
+                        if returned_qty < required_qty and 'magazine_pouch' not in _disc_items:
                             _missing.append(
                                 f"Magazine Pouch ×{required_qty} (returned: {returned_qty})"
                             )
                     if _missing:
                         raise ValidationError(
                             "Cannot return the pistol without also returning all items issued with it. "
-                            "The following must be included in this return: "
+                            "The following must be included in this return (or reported as a discrepancy): "
                             + "; ".join(_missing) + "."
                         )
 
@@ -680,7 +684,7 @@ class Transaction(models.Model):
                     if _rifle_open_log.withdraw_rifle_magazine_id and not _rifle_open_log.return_rifle_magazine_id:
                         _required_qty = _rifle_open_log.withdraw_rifle_magazine_quantity or 0
                         _returned_qty = self.rifle_magazine_quantity or 0
-                        if not self.rifle_magazine or _returned_qty < _required_qty:
+                        if (not self.rifle_magazine or _returned_qty < _required_qty) and 'rifle_magazine' not in _disc_items:
                             _missing.append(
                                 f"Rifle Magazine '{_rifle_open_log.withdraw_rifle_magazine}'"
                                 f" ×{_required_qty} (returned: {_returned_qty})"
@@ -688,7 +692,7 @@ class Transaction(models.Model):
                     if _rifle_open_log.withdraw_rifle_ammunition_id and not _rifle_open_log.return_rifle_ammunition_id:
                         _required_qty = _rifle_open_log.withdraw_rifle_ammunition_quantity or 0
                         _returned_qty = self.rifle_ammunition_quantity or 0
-                        if not self.rifle_ammunition or _returned_qty < _required_qty:
+                        if (not self.rifle_ammunition or _returned_qty < _required_qty) and 'rifle_ammunition' not in _disc_items:
                             _missing.append(
                                 f"Rifle Ammunition '{_rifle_open_log.withdraw_rifle_ammunition}'"
                                 f" ×{_required_qty} rounds (returned: {_returned_qty})"
@@ -696,21 +700,21 @@ class Transaction(models.Model):
                     if _rifle_open_log.withdraw_rifle_sling_quantity and not _rifle_open_log.return_rifle_sling_quantity:
                         _required_qty = _rifle_open_log.withdraw_rifle_sling_quantity or 0
                         _returned_qty = self.rifle_sling_quantity or 0
-                        if _returned_qty < _required_qty:
+                        if _returned_qty < _required_qty and 'rifle_sling' not in _disc_items:
                             _missing.append(
                                 f"Rifle Sling ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _rifle_open_log.withdraw_bandoleer_quantity and not _rifle_open_log.return_bandoleer_quantity:
                         _required_qty = _rifle_open_log.withdraw_bandoleer_quantity or 0
                         _returned_qty = self.bandoleer_quantity or 0
-                        if _returned_qty < _required_qty:
+                        if _returned_qty < _required_qty and 'bandoleer' not in _disc_items:
                             _missing.append(
                                 f"Bandoleer ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _missing:
                         raise ValidationError(
                             "Cannot return the rifle without also returning all items issued with it. "
-                            "The following must be included in this return: "
+                            "The following must be included in this return (or reported as a discrepancy): "
                             + "; ".join(_missing) + "."
                         )
 
@@ -899,7 +903,13 @@ class Transaction(models.Model):
         with db_transaction.atomic():
             # M-12: Re-run clean() INSIDE atomic() so that validation reads are
             # serialised with the write, eliminating the TOCTOU window.
+            # For new records, run clean() on all transaction types.
+            # For updates to Return transactions (e.g., superuser admin edits), also
+            # run clean() to re-enforce the binding rule so consumables cannot be
+            # removed from an existing Return record.
             if not self.pk and not getattr(self, '_validated_from_form', False):
+                self.clean()
+            elif self.pk and self.transaction_type == 'Return':
                 self.clean()
             # L10: Row-level locks prevent double-issuance race under PostgreSQL.
             # SQLite serialises all writers at the file level inside atomic(), so
@@ -1306,6 +1316,15 @@ class TransactionLogs(models.Model):
         blank=True, null=True,
         help_text="Optional remarks about this log record"
     )
+    # Comma-separated item keys closed via discrepancy report instead of physical return.
+    # E.g. "rifle_sling,rifle_magazine". Set by update_return_logs() when the operator
+    # reports missing accessories as discrepancies during a Return transaction.
+    discrepancy_items = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="Item keys closed via discrepancy (e.g. 'rifle_sling,rifle_magazine')."
+    )
 
 
     def update_log_status(self):
@@ -1323,6 +1342,8 @@ class TransactionLogs(models.Model):
 
         Call this method before save() whenever any return field is updated on this record.
         """
+        # Items closed via discrepancy (not physically returned but formally reported missing).
+        _disc_set = set(self.discrepancy_items.split(',')) if self.discrepancy_items else set()
         # Map each item type to whether it was withdrawn and whether it was returned
         withdrawn = {
             'pistol':             bool(self.withdraw_pistol_id),
@@ -1336,17 +1357,18 @@ class TransactionLogs(models.Model):
             'rifle_sling':        bool(self.withdraw_rifle_sling_quantity),
             'bandoleer':          bool(self.withdraw_bandoleer_quantity),
         }
+        # An item is considered 'accounted for' if physically returned OR closed via discrepancy.
         returned = {
-            'pistol':             bool(self.return_pistol_id),
-            'rifle':              bool(self.return_rifle_id),
-            'pistol_magazine':    bool(self.return_pistol_magazine_id),
-            'rifle_magazine':     bool(self.return_rifle_magazine_id),
-            'pistol_ammunition':  bool(self.return_pistol_ammunition_id),
-            'rifle_ammunition':   bool(self.return_rifle_ammunition_id),
-            'pistol_holster':     bool(self.return_pistol_holster_quantity),
-            'magazine_pouch':     bool(self.return_magazine_pouch_quantity),
-            'rifle_sling':        bool(self.return_rifle_sling_quantity),
-            'bandoleer':          bool(self.return_bandoleer_quantity),
+            'pistol':             bool(self.return_pistol_id)            or 'pistol' in _disc_set,
+            'rifle':              bool(self.return_rifle_id)             or 'rifle' in _disc_set,
+            'pistol_magazine':    bool(self.return_pistol_magazine_id)   or 'pistol_magazine' in _disc_set,
+            'rifle_magazine':     bool(self.return_rifle_magazine_id)    or 'rifle_magazine' in _disc_set,
+            'pistol_ammunition':  bool(self.return_pistol_ammunition_id) or 'pistol_ammunition' in _disc_set,
+            'rifle_ammunition':   bool(self.return_rifle_ammunition_id)  or 'rifle_ammunition' in _disc_set,
+            'pistol_holster':     bool(self.return_pistol_holster_quantity)  or 'pistol_holster' in _disc_set,
+            'magazine_pouch':     bool(self.return_magazine_pouch_quantity)  or 'magazine_pouch' in _disc_set,
+            'rifle_sling':        bool(self.return_rifle_sling_quantity)     or 'rifle_sling' in _disc_set,
+            'bandoleer':          bool(self.return_bandoleer_quantity)        or 'bandoleer' in _disc_set,
         }
 
         total_withdrawn = sum(withdrawn.values())
@@ -1357,7 +1379,9 @@ class TransactionLogs(models.Model):
             # Defensive fallback — no items means nothing to track
             self.log_status = 'Open'
         elif total_returned >= total_withdrawn:
-            self.log_status = 'Closed'
+            # All items accounted for; distinguish physical return vs discrepancy closure.
+            _has_disc_closure = _disc_set and any(k in _disc_set for k in withdrawn if withdrawn[k])
+            self.log_status = 'Closed (Discrepancy)' if _has_disc_closure else 'Closed'
         elif total_returned == 0:
             self.log_status = 'Open'
         else:

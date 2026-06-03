@@ -442,6 +442,66 @@ def update_return_logs(transaction, username, user, TransactionLogs):
         lobj.update_log_status()
         lobj.save(user=user)
 
+    # ── Discrepancy-item log closure ───────────────────────────────────────
+    # When the operator reports one or more accessories as missing (discrepancy),
+    # the Transaction form sets txn._discrepancy_items = {'rifle_sling', ...}.
+    # Here we find the matching open TransactionLog for each discrepancy item,
+    # stamp its discrepancy_items field, and recompute log_status so that the
+    # log reaches 'Closed (Discrepancy)' once all outstanding items are resolved.
+    _disc_items = getattr(txn, '_discrepancy_items', set())
+    if _disc_items:
+        # Mapping: item key → filter kwargs to locate the open log row.
+        _disc_filter_map = {
+            'pistol_magazine':   {'personnel_id': txn.personnel,
+                                  'withdraw_pistol_magazine__isnull': False,
+                                  'return_pistol_magazine__isnull': True},
+            'rifle_magazine':    {'personnel_id': txn.personnel,
+                                  'withdraw_rifle_magazine__isnull': False,
+                                  'return_rifle_magazine__isnull': True},
+            'pistol_ammunition': {'personnel_id': txn.personnel,
+                                  'withdraw_pistol_ammunition__isnull': False,
+                                  'return_pistol_ammunition__isnull': True},
+            'rifle_ammunition':  {'personnel_id': txn.personnel,
+                                  'withdraw_rifle_ammunition__isnull': False,
+                                  'return_rifle_ammunition__isnull': True},
+            'pistol_holster':    {'personnel_id': txn.personnel,
+                                  'withdraw_pistol_holster_quantity__isnull': False,
+                                  'return_pistol_holster_quantity__isnull': True},
+            'magazine_pouch':    {'personnel_id': txn.personnel,
+                                  'withdraw_magazine_pouch_quantity__isnull': False,
+                                  'return_magazine_pouch_quantity__isnull': True},
+            'rifle_sling':       {'personnel_id': txn.personnel,
+                                  'withdraw_rifle_sling_quantity__isnull': False,
+                                  'return_rifle_sling_quantity__isnull': True},
+            'bandoleer':         {'personnel_id': txn.personnel,
+                                  'withdraw_bandoleer_quantity__isnull': False,
+                                  'return_bandoleer_quantity__isnull': True},
+        }
+        # Accumulate updates into a separate dict keyed by record_id so we
+        # don't re-save rows already handled by the return-field loop above.
+        _disc_logs_to_save = {}
+        for _item_key in _disc_items:
+            if _item_key not in _disc_filter_map:
+                continue
+            _dobj = _lock(TransactionLogs.objects).filter(
+                **_disc_filter_map[_item_key]
+            ).order_by('-pk').first()
+            if _dobj is None:
+                continue
+            # Prefer the already-updated version from the first loop (same row may have
+            # had its pistol/rifle return fields stamped there).
+            _log_entry = logs_to_save.get(_dobj.record_id, _dobj)
+            existing_disc = set(
+                _log_entry.discrepancy_items.split(',')
+            ) if _log_entry.discrepancy_items else set()
+            existing_disc.add(_item_key)
+            _log_entry.discrepancy_items = ','.join(sorted(existing_disc))
+            _disc_logs_to_save[_log_entry.record_id] = _log_entry
+
+        for lobj in _disc_logs_to_save.values():
+            lobj.update_log_status()
+            lobj.save(user=user)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 6. Audit log entry  (N3 fix)

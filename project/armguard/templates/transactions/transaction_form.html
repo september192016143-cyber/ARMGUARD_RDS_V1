@@ -329,6 +329,82 @@
       </div>
     </div>
 
+    <!-- Missing accessory discrepancy (Return mode only) ─────────────────── -->
+    <!-- Each row is hidden by default; transaction_form.js shows/hides based on  -->
+    <!-- which consumable items are currently outstanding for the selected personnel. -->
+    <div id="acc-discrepancy-section" style="display:none;padding-top:.75rem;margin-top:.75rem;border-top:1px solid var(--border);">
+      <div style="font-size:.82rem;font-weight:600;color:#fca5a5;margin-bottom:.5rem;">
+        <i class="fa-solid fa-triangle-exclamation" style="margin-right:.4rem;font-size:.75rem;"></i>
+        Report Missing Accessories / Consumables
+      </div>
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:.65rem;line-height:1.4;">
+        Check the box next to any issued item that <strong>cannot be physically returned</strong>
+        (lost, stolen, or damaged beyond use). A discrepancy record will be opened for each
+        flagged item and the transaction log will be closed with a discrepancy notation.
+      </div>
+      <div id="acc-disc-rows" style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.65rem;">
+        <!-- Pistol accessories -->
+        <div id="disc-row-pistol_magazine"   class="acc-disc-row" style="display:none;">
+          <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;user-select:none;">
+            <input type="checkbox" name="disc_pistol_magazine"   value="1" style="width:14px;height:14px;accent-color:#ef4444;">
+            <span style="font-size:.8rem;">Pistol Magazine — <span id="disc-label-pistol_magazine"   style="color:#fca5a5;"></span></span>
+          </label>
+        </div>
+        <div id="disc-row-pistol_ammunition" class="acc-disc-row" style="display:none;">
+          <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;user-select:none;">
+            <input type="checkbox" name="disc_pistol_ammunition" value="1" style="width:14px;height:14px;accent-color:#ef4444;">
+            <span style="font-size:.8rem;">Pistol Ammunition — <span id="disc-label-pistol_ammunition" style="color:#fca5a5;"></span></span>
+          </label>
+        </div>
+        <div id="disc-row-pistol_holster"    class="acc-disc-row" style="display:none;">
+          <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;user-select:none;">
+            <input type="checkbox" name="disc_pistol_holster"    value="1" style="width:14px;height:14px;accent-color:#ef4444;">
+            <span style="font-size:.8rem;">Pistol Holster</span>
+          </label>
+        </div>
+        <div id="disc-row-magazine_pouch"    class="acc-disc-row" style="display:none;">
+          <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;user-select:none;">
+            <input type="checkbox" name="disc_magazine_pouch"    value="1" style="width:14px;height:14px;accent-color:#ef4444;">
+            <span style="font-size:.8rem;">Magazine Pouch — <span id="disc-label-magazine_pouch"    style="color:#fca5a5;"></span></span>
+          </label>
+        </div>
+        <!-- Rifle accessories -->
+        <div id="disc-row-rifle_magazine"    class="acc-disc-row" style="display:none;">
+          <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;user-select:none;">
+            <input type="checkbox" name="disc_rifle_magazine"    value="1" style="width:14px;height:14px;accent-color:#ef4444;">
+            <span style="font-size:.8rem;">Rifle Magazine — <span id="disc-label-rifle_magazine"    style="color:#fca5a5;"></span></span>
+          </label>
+        </div>
+        <div id="disc-row-rifle_ammunition"  class="acc-disc-row" style="display:none;">
+          <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;user-select:none;">
+            <input type="checkbox" name="disc_rifle_ammunition"  value="1" style="width:14px;height:14px;accent-color:#ef4444;">
+            <span style="font-size:.8rem;">Rifle Ammunition — <span id="disc-label-rifle_ammunition"  style="color:#fca5a5;"></span></span>
+          </label>
+        </div>
+        <div id="disc-row-rifle_sling"       class="acc-disc-row" style="display:none;">
+          <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;user-select:none;">
+            <input type="checkbox" name="disc_rifle_sling"       value="1" style="width:14px;height:14px;accent-color:#ef4444;">
+            <span style="font-size:.8rem;">Rifle Sling — <span id="disc-label-rifle_sling"       style="color:#fca5a5;"></span></span>
+          </label>
+        </div>
+        <div id="disc-row-bandoleer"         class="acc-disc-row" style="display:none;">
+          <label style="display:flex;align-items:center;gap:.6rem;cursor:pointer;user-select:none;">
+            <input type="checkbox" name="disc_bandoleer"         value="1" style="width:14px;height:14px;accent-color:#ef4444;">
+            <span style="font-size:.8rem;">Bandoleer — <span id="disc-label-bandoleer"         style="color:#fca5a5;"></span></span>
+          </label>
+        </div>
+      </div>
+      <!-- Single description for all missing accessory discrepancies -->
+      <div id="acc-disc-desc-row" style="display:none;flex-direction:column;gap:.35rem;">
+        <label class="form-label" style="font-size:.78rem;" for="acc_disc_desc">
+          Missing Item Description <span class="req">*</span>
+        </label>
+        <textarea id="acc_disc_desc" name="acc_discrepancy_description" rows="2"
+                  class="form-control" style="resize:vertical;color:#fff;font-size:.8rem;"
+                  placeholder="Briefly describe what happened to the missing item(s)…"></textarea>
+      </div>
+    </div>
+
   </div>
 
 

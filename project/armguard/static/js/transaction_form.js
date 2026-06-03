@@ -203,6 +203,9 @@ function toggleReturnMode() {
   // Discrepancy section — only relevant on Return
   var discSection = document.getElementById('discrepancy-section');
   if (discSection) discSection.style.display = isReturn ? '' : 'none';
+  // Accessory discrepancy section — also only for Return
+  var accDiscSection = document.getElementById('acc-discrepancy-section');
+  if (accDiscSection) accDiscSection.style.display = 'none'; // hidden until personnel chosen
   if (!isReturn && discSection) {
     var cb = document.getElementById('cb_report_discrepancy');
     if (cb) cb.checked = false;
@@ -212,6 +215,12 @@ function toggleReturnMode() {
     var disDesc = document.getElementById('dis_desc');
     if (disType) { disType.required = false; disType.value = ''; disType.style.borderColor = ''; }
     if (disDesc) { disDesc.required = false; disDesc.value = ''; disDesc.style.borderColor = ''; }
+    // Also clear any checked accessory discrepancy boxes
+    document.querySelectorAll('.acc-disc-row input[type="checkbox"]').forEach(function (el) {
+      el.checked = false;
+    });
+    var accDescEl = document.getElementById('acc_disc_desc');
+    if (accDescEl) accDescEl.value = '';
   }
   // When switching away from Return mode, clear any auto-filled consumable values
   // so they don't bleed into a Withdrawal form submission.
@@ -488,6 +497,37 @@ function autoFillReturnConsumables(d) {
 
   var bandoleer = document.querySelector('[name="include_bandoleer"]');
   if (bandoleer) bandoleer.checked = !!d.bandoleer_issued;
+
+  // ── Per-item missing-accessory discrepancy checkboxes ──────────────────────
+  // Show a checkbox row for each consumable that is currently outstanding so the
+  // operator can flag it as "missing" instead of physically returning it.
+  // Each entry: [item_key, isOutstanding, optional label override]
+  var _discRowData = [
+    ['pistol_magazine',   !!(d.open_pistol_mag_id),  d.pistol_mag_qty  ? '\u00d7' + d.pistol_mag_qty  : ''],
+    ['pistol_ammunition', !!(d.open_pistol_ammo_id), d.pistol_ammo_qty ? d.pistol_ammo_qty + ' rounds' : ''],
+    ['pistol_holster',    !!(d.holster_issued),       ''],
+    ['magazine_pouch',    !!(d.mag_pouch_issued),     d.mag_pouch_qty   ? '\u00d7' + d.mag_pouch_qty   : ''],
+    ['rifle_magazine',    !!(d.open_rifle_mag_id),   d.rifle_mag_qty   ? '\u00d7' + d.rifle_mag_qty   : ''],
+    ['rifle_ammunition',  !!(d.open_rifle_ammo_id),  d.rifle_ammo_qty  ? d.rifle_ammo_qty + ' rounds'  : ''],
+    ['rifle_sling',       !!(d.rifle_sling_issued),  d.rifle_sling_qty ? '\u00d7' + d.rifle_sling_qty  : ''],
+    ['bandoleer',         !!(d.bandoleer_issued),    d.bandoleer_qty   ? '\u00d7' + d.bandoleer_qty    : ''],
+  ];
+  var _hasAnyOutstanding = false;
+  _discRowData.forEach(function (entry) {
+    var key = entry[0], isOut = entry[1], lbl = entry[2];
+    var row = document.getElementById('disc-row-' + key);
+    if (row) row.style.display = isOut ? '' : 'none';
+    if (!isOut) {
+      // Also uncheck and reset the checkbox when the item is no longer outstanding.
+      var cb = row ? row.querySelector('input[type="checkbox"]') : null;
+      if (cb) cb.checked = false;
+    }
+    var labelEl = document.getElementById('disc-label-' + key);
+    if (labelEl && lbl) labelEl.textContent = lbl;
+    if (isOut) _hasAnyOutstanding = true;
+  });
+  var accSection = document.getElementById('acc-discrepancy-section');
+  if (accSection) accSection.style.display = _hasAnyOutstanding ? '' : 'none';
 
   // Auto-select pistol and rifle in the dropdowns if issued to this personnel
   if (d.pistol_issued) {
@@ -964,6 +1004,22 @@ function _attachSelectStyles(el) {
       }
     });
   }
+
+  // ── Accessory discrepancy checkboxes — show description when any is checked ──
+  function _syncAccDiscDesc() {
+    var anyChecked = false;
+    document.querySelectorAll('.acc-disc-row input[type="checkbox"]').forEach(function (el) {
+      if (el.checked) anyChecked = true;
+    });
+    var descRow = document.getElementById('acc-disc-desc-row');
+    var descEl  = document.getElementById('acc_disc_desc');
+    if (descRow) descRow.style.display = anyChecked ? 'flex' : 'none';
+    if (descEl)  descEl.required = anyChecked;
+    if (!anyChecked && descEl) descEl.value = '';
+  }
+  document.querySelectorAll('.acc-disc-row input[type="checkbox"]').forEach(function (el) {
+    el.addEventListener('change', _syncAccDiscDesc);
+  });
 
   // Form submit — sync topbar selects into hidden inputs; clear persisted type
   if (form) {

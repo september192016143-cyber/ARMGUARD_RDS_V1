@@ -132,6 +132,33 @@ class FirearmDiscrepancy(models.Model):
     image_4 = models.ImageField(upload_to='discrepancy_images/', blank=True, null=True)
     image_5 = models.ImageField(upload_to='discrepancy_images/', blank=True, null=True)
 
+    # ── Accessory / consumable fields ────────────────────────────────────────
+    # When the discrepancy concerns a consumable rather than the firearm itself
+    # (e.g., a missing rifle sling or magazine), set accessory_type to identify
+    # the item. pistol / rifle FKs may still be set to link to the issuing firearm.
+    ACCESSORY_TYPE_CHOICES = [
+        ('Pistol Magazine',    'Pistol Magazine'),
+        ('Pistol Ammunition',  'Pistol Ammunition'),
+        ('Pistol Holster',     'Pistol Holster'),
+        ('Magazine Pouch',     'Magazine Pouch'),
+        ('Rifle Magazine',     'Rifle Magazine'),
+        ('Rifle Ammunition',   'Rifle Ammunition'),
+        ('Rifle Sling',        'Rifle Sling'),
+        ('Bandoleer',          'Bandoleer'),
+    ]
+    accessory_type = models.CharField(
+        max_length=50,
+        choices=ACCESSORY_TYPE_CHOICES,
+        null=True,
+        blank=True,
+        help_text='Set when the discrepancy relates to a consumable/accessory rather than the firearm itself.',
+    )
+    accessory_quantity = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text='Quantity of the consumable that is discrepant.',
+    )
+
     class Meta:
         app_label = 'inventory'
         ordering = ['-reported_at']
@@ -141,24 +168,27 @@ class FirearmDiscrepancy(models.Model):
     # ── Derived property ──────────────────────────────────────────────────────
     @property
     def firearm_type(self):
-        """Return 'Pistol', 'Rifle', or None — derived from the set FK."""
+        """Return 'Pistol', 'Rifle', the accessory_type label, or None."""
         if self.pistol_id is not None:
             return 'Pistol'
         if self.rifle_id is not None:
             return 'Rifle'
+        if self.accessory_type:
+            return self.accessory_type
         return None
 
     # ── Validation ────────────────────────────────────────────────────────────
     def clean(self):
         has_pistol = self.pistol_id is not None
         has_rifle = self.rifle_id is not None
+        has_accessory = bool(self.accessory_type)
         if has_pistol and has_rifle:
             raise ValidationError(
                 'A discrepancy must link to either a Pistol or a Rifle — not both.'
             )
-        if not has_pistol and not has_rifle:
+        if not has_pistol and not has_rifle and not has_accessory:
             raise ValidationError(
-                'A discrepancy must link to either a Pistol or a Rifle.'
+                'A discrepancy must link to a Pistol, a Rifle, or specify an accessory type.'
             )
 
     def save(self, *args, **kwargs):

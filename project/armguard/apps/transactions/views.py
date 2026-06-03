@@ -366,6 +366,10 @@ def create_transaction(request):
         if _form_ok:
             txn = form.save(commit=False)
             txn.transaction_personnel = request.user.get_full_name() or request.user.username
+            # Propagate discrepancy flags from the form to the transaction instance so
+            # Transaction.clean() and update_return_logs() can access them during save().
+            if not hasattr(txn, '_discrepancy_items'):
+                txn._discrepancy_items = getattr(form.instance, '_discrepancy_items', set())
             try:
                 txn.save(user=request.user)
             except ValidationError as ve:
@@ -441,6 +445,61 @@ def create_transaction(request):
                                 'Discrepancy creation failed for transaction #%s: %s',
                                 txn.transaction_id, _disc_exc,
                             )  # Error must never block the Return
+
+            # ── Per-accessory missing-item discrepancy records ──────────────────
+            # When the operator flags accessories as missing during a Return (via
+            # disc_<key> checkboxes), create one FirearmDiscrepancy record per item.
+            # The log closure was already handled by update_return_logs() above.
+            _acc_disc_items = getattr(txn, '_discrepancy_items', set())
+            if _acc_disc_items and txn.transaction_type == 'Return':
+                from armguard.apps.inventory.pistol_rifle_discrepancy_model import (
+                    FirearmDiscrepancy as _FD,
+                )
+                _ACC_LABELS = {
+                    'pistol_magazine':   'Pistol Magazine',
+                    'pistol_ammunition': 'Pistol Ammunition',
+                    'pistol_holster':    'Pistol Holster',
+                    'magazine_pouch':    'Magazine Pouch',
+                    'rifle_magazine':    'Rifle Magazine',
+                    'rifle_ammunition':  'Rifle Ammunition',
+                    'rifle_sling':       'Rifle Sling',
+                    'bandoleer':         'Bandoleer',
+                }
+                _acc_disc_desc = (
+                    request.POST.get('acc_discrepancy_description', '').strip()
+                    or 'Missing accessory reported during return transaction.'
+                )
+                _created_labels = []
+                for _akey in _acc_disc_items:
+                    _label = _ACC_LABELS.get(_akey)
+                    if not _label:
+                        continue
+                    try:
+                        _FD.objects.create(
+                            pistol=txn.pistol,
+                            rifle=txn.rifle,
+                            accessory_type=_label,
+                            withdrawer=txn.personnel,
+                            related_transaction=txn,
+                            discrepancy_type='Missing',
+                            description=_acc_disc_desc,
+                            status='Open',
+                            reported_by=request.user,
+                        )
+                        _created_labels.append(_label)
+                    except Exception as _acc_exc:
+                        import logging as _acc_log
+                        _acc_log.getLogger(__name__).exception(
+                            'Accessory discrepancy creation failed for transaction #%s item %s: %s',
+                            txn.transaction_id, _akey, _acc_exc,
+                        )
+                if _created_labels:
+                    messages.warning(
+                        request,
+                        'Missing item discrepancy report created for: '
+                        + ', '.join(_created_labels) + '. '
+                        'These items have been flagged as missing and require follow-up.',
+                    )
 
             messages.success(request, f'Transaction #{txn.transaction_id} recorded successfully.')
             # Auto-print: if the per-purpose setting is enabled and this is a TR Withdrawal,

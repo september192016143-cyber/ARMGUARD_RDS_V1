@@ -507,7 +507,21 @@ class TransactionAdminForm(forms.ModelForm):
             # BINDING RULE (form-level): When returning a pistol, ALL unreturned consumables
             # that were issued together on the same TransactionLog must be included in this
             # return. Operator cannot return the weapon alone and leave ammo/accessories open.
+            # EXCEPTION: an item may be skipped if the operator reports it as a discrepancy
+            # (lost/missing) via the disc_<key> checkbox in the Return form.
             from .models import TransactionLogs as _TL
+            # Collect per-item discrepancy flags from POST data (disc_<key> checkboxes).
+            _disc_items = set()
+            if hasattr(self, 'data'):
+                for _dkey in ['pistol_magazine', 'pistol_ammunition', 'pistol_holster',
+                               'magazine_pouch', 'rifle_magazine', 'rifle_ammunition',
+                               'rifle_sling', 'bandoleer']:
+                    if self.data.get(f'disc_{_dkey}'):
+                        _disc_items.add(_dkey)
+            # Store on the instance so Transaction.clean() (model-level) can use the
+            # same set without re-parsing POST data (no request context there).
+            self.instance._discrepancy_items = _disc_items
+
             if pistol and personnel:
                 _pistol_open_log = _TL.objects.filter(
                     personnel_id=personnel,
@@ -518,29 +532,39 @@ class TransactionAdminForm(forms.ModelForm):
                 if _pistol_open_log:
                     _missing = []
                     if _pistol_open_log.withdraw_pistol_magazine_id and not _pistol_open_log.return_pistol_magazine_id:
-                        if not pistol_magazine:
+                        _required_qty = _pistol_open_log.withdraw_pistol_magazine_quantity or 0
+                        _returned_qty = pistol_magazine_quantity or 0
+                        if (not pistol_magazine or _returned_qty < _required_qty) and 'pistol_magazine' not in _disc_items:
                             _missing.append(
-                                f"Pistol Magazine ×{_pistol_open_log.withdraw_pistol_magazine_quantity}"
+                                f"Pistol Magazine '{_pistol_open_log.withdraw_pistol_magazine}'"
+                                f" ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _pistol_open_log.withdraw_pistol_ammunition_id and not _pistol_open_log.return_pistol_ammunition_id:
-                        if not pistol_ammunition:
+                        _required_qty = _pistol_open_log.withdraw_pistol_ammunition_quantity or 0
+                        _returned_qty = pistol_ammunition_quantity or 0
+                        if (not pistol_ammunition or _returned_qty < _required_qty) and 'pistol_ammunition' not in _disc_items:
                             _missing.append(
-                                f"Pistol Ammunition ×{_pistol_open_log.withdraw_pistol_ammunition_quantity} rounds"
+                                f"Pistol Ammunition '{_pistol_open_log.withdraw_pistol_ammunition}'"
+                                f" ×{_required_qty} rounds (returned: {_returned_qty})"
                             )
                     if _pistol_open_log.withdraw_pistol_holster_quantity and not _pistol_open_log.return_pistol_holster_quantity:
-                        if not pistol_holster_quantity:
+                        _required_qty = _pistol_open_log.withdraw_pistol_holster_quantity or 0
+                        _returned_qty = pistol_holster_quantity or 0
+                        if _returned_qty < _required_qty and 'pistol_holster' not in _disc_items:
                             _missing.append(
-                                f"Pistol Holster ×{_pistol_open_log.withdraw_pistol_holster_quantity}"
+                                f"Pistol Holster ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _pistol_open_log.withdraw_magazine_pouch_quantity and not _pistol_open_log.return_magazine_pouch_quantity:
-                        if not magazine_pouch_quantity:
+                        _required_qty = _pistol_open_log.withdraw_magazine_pouch_quantity or 0
+                        _returned_qty = magazine_pouch_quantity or 0
+                        if _returned_qty < _required_qty and 'magazine_pouch' not in _disc_items:
                             _missing.append(
-                                f"Magazine Pouch ×{_pistol_open_log.withdraw_magazine_pouch_quantity}"
+                                f"Magazine Pouch ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _missing:
                         errors.append(
                             "Cannot return the pistol without also returning all items issued with it. "
-                            "The following must be included in this return: " + "; ".join(_missing) + "."
+                            "The following must be included in this return (or reported as a discrepancy): " + "; ".join(_missing) + "."
                         )
 
             # BINDING RULE (form-level): When returning a rifle, ALL unreturned consumables
@@ -557,35 +581,35 @@ class TransactionAdminForm(forms.ModelForm):
                     if _rifle_open_log.withdraw_rifle_magazine_id and not _rifle_open_log.return_rifle_magazine_id:
                         _required_qty = _rifle_open_log.withdraw_rifle_magazine_quantity or 0
                         _returned_qty = rifle_magazine_quantity or 0
-                        if not rifle_magazine or _returned_qty < _required_qty:
+                        if (not rifle_magazine or _returned_qty < _required_qty) and 'rifle_magazine' not in _disc_items:
                             _missing.append(
                                 f"Rifle Magazine ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _rifle_open_log.withdraw_rifle_ammunition_id and not _rifle_open_log.return_rifle_ammunition_id:
                         _required_qty = _rifle_open_log.withdraw_rifle_ammunition_quantity or 0
                         _returned_qty = rifle_ammunition_quantity or 0
-                        if not rifle_ammunition or _returned_qty < _required_qty:
+                        if (not rifle_ammunition or _returned_qty < _required_qty) and 'rifle_ammunition' not in _disc_items:
                             _missing.append(
                                 f"Rifle Ammunition ×{_required_qty} rounds (returned: {_returned_qty})"
                             )
                     if _rifle_open_log.withdraw_rifle_sling_quantity and not _rifle_open_log.return_rifle_sling_quantity:
                         _required_qty = _rifle_open_log.withdraw_rifle_sling_quantity or 0
                         _returned_qty = rifle_sling_quantity or 0
-                        if _returned_qty < _required_qty:
+                        if _returned_qty < _required_qty and 'rifle_sling' not in _disc_items:
                             _missing.append(
                                 f"Rifle Sling ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _rifle_open_log.withdraw_bandoleer_quantity and not _rifle_open_log.return_bandoleer_quantity:
                         _required_qty = _rifle_open_log.withdraw_bandoleer_quantity or 0
                         _returned_qty = bandoleer_quantity or 0
-                        if _returned_qty < _required_qty:
+                        if _returned_qty < _required_qty and 'bandoleer' not in _disc_items:
                             _missing.append(
                                 f"Bandoleer ×{_required_qty} (returned: {_returned_qty})"
                             )
                     if _missing:
                         errors.append(
                             "Cannot return the rifle without also returning all items issued with it. "
-                            "The following must be included in this return: " + "; ".join(_missing) + "."
+                            "The following must be included in this return (or reported as a discrepancy): " + "; ".join(_missing) + "."
                         )
 
             # FIX ISSUE 14: Validate magazine/ammo/accessory returns have a matching open log.
