@@ -22,7 +22,7 @@
 #
 # Options:
 #   --server-ip IP     IP (or DNS name) clients use to reach this machine.
-#                      LAN access  → use the server LAN IP (default: 192.168.0.11)
+#                      LAN access  → use the server LAN IP (default: 10.100.5.52)
 #                      Remote access → use the public IP / FQDN instead
 #   --wg-port PORT     WireGuard listen port            (default: 51820)
 #   --wg-subnet CIDR   WireGuard IP subnet              (default: 10.8.0.0/24)
@@ -40,7 +40,7 @@ ENV_FILE="$DEPLOY_DIR/.env"
 # ---------------------------------------------------------------------------
 # Defaults
 # ---------------------------------------------------------------------------
-SERVER_IP="192.168.0.11"       # LAN IP — override with public IP for remote access
+SERVER_IP="10.100.5.52"       # LAN IP — override with public IP for remote access
 WG_PORT=51820
 WG_SUBNET="10.8.0.0/24"
 WG_SERVER_IP="10.8.0.1"

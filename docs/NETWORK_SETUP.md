@@ -11,40 +11,44 @@
 ### Physical Topology (Switch-Centric)
 
 ```
-Internet
+ISP / Modem
    |
-[HomeRouter-PT-AC]  ─  WAN IP: 192.168.0.1 (switch subnet)
+[Switch1]  ← internet / WAN uplink (source of internet)
    |  |
-   |  +── Wireless ── PC9 (192.168.1.x  — HomeRouter DHCP)
+   |  +── PC8  (10.100.x.x)
    |
-[Switch0]  ───────────────────────────────+
-   |│││                                   |
-   |+-- PC0 SERVER  192.168.0.11      [Switch1]── PC8 (192.168.0.x)
-   |+-- PC1         192.168.0.x
-   |+-- PC2         192.168.0.x
+[Switch0]  ────────────────────────────────────
+   +── PC0 SERVER  10.100.5.52
+   +── PC1         10.100.x.x
+   +── PC2         10.100.x.x
+   +── HomeRouter-PT-AC
+           WAN: 10.100.x.x (DHCP from switch network)
+           LAN: 192.168.1.1
+           |
+           +── Wireless ── PC9 (192.168.1.x)
 ```
 
 **Key change:** The server (PC0) was moved FROM the HomeRouter's LAN port TO Switch0.
-The HomeRouter's WAN/Internet port now connects to Switch0, making it the
-default gateway (`192.168.0.1`) for all switch-connected devices.
+Switch1 is the WAN/internet uplink (connected to ISP/modem). The network gateway
+is `10.100.4.5` (on Switch1's upstream side).
 
 ### Device Table
 
 | Device | Role | IP Address | Subnet | Gateway | Reachable |
 |--------|------|------------|--------|---------|-----------|
-| **PC0** | **Server** | `192.168.0.11` | `192.168.0.x` | `192.168.0.1` | ✅ Direct |
-| **Dev PC** | Admin/Dev | `192.168.0.82` | `192.168.0.x` | `192.168.0.1` | ✅ Direct |
-| **PC1** | Workstation | `192.168.0.x` | `192.168.0.x` | `192.168.0.1` | ✅ Direct |
-| **PC2** | Workstation | `192.168.0.x` | `192.168.0.x` | `192.168.0.1` | ✅ Direct |
-| **PC8** | Workstation | `192.168.0.x` (via Switch1) | `192.168.0.x` | `192.168.0.1` | ✅ Via Switch1 |
-| **PC9** | Wireless | `192.168.1.x` | `192.168.1.x` | `192.168.1.1` | ⚠️ Via port forward |
-| **HomeRouter** | Gateway | WAN: `192.168.0.1`, LAN: `192.168.1.1` | Both | — | — |
+| **PC0** | **Server** | `10.100.5.52` | `10.100.4.0/22` | `10.100.4.5` | ✅ Direct |
+| **Dev PC** | Admin/Dev | `10.100.5.55` | `10.100.4.0/22` | `10.100.4.5` | ✅ Direct |
+| **PC1** | Workstation | `10.100.x.x` | `10.100.4.0/22` | `10.100.4.5` | ✅ Direct |
+| **PC2** | Workstation | `10.100.x.x` | `10.100.4.0/22` | `10.100.4.5` | ✅ Direct |
+| **PC8** | Workstation | `10.100.x.x` (via Switch1) | `10.100.4.0/22` | `10.100.4.5` | ✅ Via Switch1 |
+| **PC9** | Wireless | `192.168.1.x` | `192.168.1.0/24` | `192.168.1.1` | ⚠️ Via port forward |
+| **HomeRouter** | Wireless AP/Router | WAN: `10.100.x.x` (DHCP), LAN: `192.168.1.1` | Both | — | — |
 
 > **PC9 access requires HomeRouter port forwarding:** Forward TCP 80 and 443 from
-> the HomeRouter's WAN side to `192.168.0.11`. Without forwarding, PC9 cannot
-> reach the server because it is on a different subnet (`192.168.1.x` vs `192.168.0.x`).
+> the HomeRouter's WAN side to `10.100.5.52`. Without forwarding, PC9 cannot
+> reach the server because it is on a different subnet (`192.168.1.x` vs `10.100.4.0/22`).
 
-All devices must be on the **same subnet** (`192.168.0.x`) OR behind the HomeRouter
+All devices must be on the **same subnet** (`10.100.4.0/22`) OR behind the HomeRouter
 with port forwarding configured to communicate with the server.
 
 ---
@@ -57,8 +61,8 @@ the server (`192.168.0.x`). To allow PC9 to reach the ARMGUARD server, configure
 
 | Forward | Protocol | External Port | Internal IP | Internal Port |
 |---------|----------|--------------|-------------|---------------|
-| HTTP | TCP | 80 | `192.168.0.11` | 80 |
-| HTTPS | TCP | 443 | `192.168.0.11` | 443 |
+| HTTP | TCP | 80 | `10.100.5.52` | 80 |
+| HTTPS | TCP | 443 | `10.100.5.52` | 443 |
 
 On a Cisco-style HomeRouter (e.g. Packet Tracer HomeRouter-PT-AC):
 1. Access the router admin page (usually `192.168.1.1` from a wireless client).
@@ -66,7 +70,7 @@ On a Cisco-style HomeRouter (e.g. Packet Tracer HomeRouter-PT-AC):
 3. Add rules for TCP port 80 and TCP port 443, both pointing to `192.168.0.11`.
 
 After forwarding is configured, PC9 can reach the server at:
-- `http://192.168.0.1` → redirected to `https://192.168.0.1` → proxied to server
+- `http://10.100.x.x` (HomeRouter WAN IP) → redirected to `https://10.100.x.x` → proxied to server
 - `https://armguard.local` (if mDNS reflector is enabled — see `avahi-daemon.conf`)
 
 > The server-side scripts (`deploy.sh`, `avahi-daemon.conf`) have already been
@@ -83,11 +87,11 @@ SSH into the server or run directly on it:
 ip a
 ```
 
-Look for the `enp1s0` interface — the server's LAN IP is the `inet` line:
+Look for the `enp2s0` interface — the server's LAN IP is the `inet` line:
 
 ```
-2: enp1s0: ...
-    inet 192.168.0.11/24 ...
+2: enp2s0: ...
+    inet 10.100.5.52/22 ...
 ```
 
 For a quick one-liner:
@@ -120,18 +124,18 @@ Select **"Use the following IP address"** and fill in:
 
 | Field | Value |
 |-------|-------|
-| IP Address | `192.168.0.XX` *(pick an unused address — see §4)* |
-| Subnet Mask | `255.255.255.0` |
-| Default Gateway | `192.168.0.1` |
+| IP Address | `10.100.0.XX` *(pick an unused address in the 10.100.4.0–10.100.7.255 range)*|
+| Subnet Mask | `255.255.252.0` |
+| Default Gateway | `10.100.4.5` |
 | Preferred DNS | `8.8.8.8` |
 | Alternate DNS | `8.8.4.4` |
 
 > **Recommended static addresses by role:**
 > | Role | Suggested IP |
 > |------|-------------|
-> | Armory PC | `192.168.0.50` |
-> | Admin / Dev PC | `192.168.0.82` *(already set)* |
-> | Spare workstation | `192.168.0.51`–`192.168.0.60` |
+> | Armory PC | `10.100.5.50` |
+> | Admin / Dev PC | `10.100.5.55` *(already set)* |
+> | Spare workstation | `10.100.5.51`–`10.100.5.60` |
 
 ### Step 5 — Apply
 
@@ -144,7 +148,7 @@ Click **OK** → **OK**. No reboot required.
 From the **server**, ping the candidate address before assigning it:
 
 ```bash
-ping -c 3 192.168.0.50
+ping -c 3 10.100.5.50
 ```
 
 - **All timeouts** → address is free, safe to assign.
@@ -157,13 +161,13 @@ ping -c 3 192.168.0.50
 After changing the IP on the client PC, open **Command Prompt** and run:
 
 ```cmd
-ping 192.168.0.11
+ping 10.100.5.52
 ```
 
 Expected output (success):
 ```
-Reply from 192.168.0.11: bytes=32 time<1ms TTL=64
-Reply from 192.168.0.11: bytes=32 time<1ms TTL=64
+Reply from 10.100.5.52: bytes=32 time<1ms TTL=64
+Reply from 10.100.5.52: bytes=32 time<1ms TTL=64
 ```
 
 If you see `Request timed out` — double-check the IP, subnet mask, and gateway settings.
@@ -175,18 +179,18 @@ If you see `Request timed out` — double-check the IP, subnet mask, and gateway
 Once ping succeeds, open a browser on the client PC and navigate to:
 
 ```
-http://192.168.0.11
+http://10.100.5.52
 ```
 
 For HTTPS (after SSL certificate is installed):
 
 ```
-https://192.168.0.11
+https://10.100.5.52
 ```
 
 > **Self-signed certificate:** The first time you visit via HTTPS, the browser will warn about an untrusted certificate. Download and install the server's certificate from:
 > ```
-> http://192.168.0.11/download/ssl-cert/
+> http://10.100.5.52/download/ssl-cert/
 > ```
 > Then import it into your browser's/OS's trusted certificate store.
 
@@ -196,11 +200,11 @@ https://192.168.0.11
 
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
-| `Request timed out` on ping | Wrong subnet or firewall | Verify IP is `192.168.0.x`; check UFW on server |
+| `Request timed out` on ping | Wrong subnet or firewall | Verify IP is in `10.100.4.0/22`; check UFW on server |
 | Ping works but browser fails | Nginx not running | SSH to server: `sudo systemctl status nginx` |
 | `Connection refused` on port 80 | Gunicorn or Nginx down | `sudo systemctl restart armguard-gunicorn nginx` |
 | Intermittent dropouts | DHCP lease conflict | Assign a static IP (this guide) |
-| Cannot reach internet from client | Wrong gateway | Ensure Default Gateway is `192.168.0.1` |
+| Cannot reach internet from client | Wrong gateway | Ensure Default Gateway is `10.100.4.5` |
 
 ### Check server services (run on server):
 
@@ -285,11 +289,12 @@ ping 192.168.1.1
 ## 9. Reference — Server Network Config
 
 ```
-Interface : enp1s0
-IP Address: 192.168.0.11
-Subnet    : 255.255.255.0  (/24)
-Gateway   : 192.168.0.1
-MAC       : ac:e2:d3:04:9b:70
+Interface : enp2s0
+IP Address: 10.100.5.52
+Subnet    : 255.255.252.0  (/22)
+Gateway   : 10.100.4.5
+Network   : 10.100.4.0/22  (usable: 10.100.4.1 – 10.100.7.254)
+MAC       : 18:c0:4d:c1:51:e8
 ```
 
 ## 10. Reference — Armory PC Original Config (before ARMGUARD setup)
@@ -306,8 +311,8 @@ Hostname  : jay
 
 ```
 Interface : Ethernet
-IP Address: 192.168.0.82
-Subnet    : 255.255.255.0  (/24)
-Gateway   : 192.168.0.1
+IP Address: 10.100.5.55
+Subnet    : 255.255.252.0  (/22)
+Gateway   : 10.100.4.5
 Hostname  : 9533RDS
 ```

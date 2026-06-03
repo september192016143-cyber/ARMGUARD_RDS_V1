@@ -240,9 +240,14 @@ if [[ -n "${STATIC_IP_SET:-}" ]]; then
 fi
 
 # Derive router WAN IP (defaults to the gateway — the HomeRouter's IP on the
-# switch subnet, e.g. 192.168.0.1) and the HomeRouter wireless LAN subnet.
+# switch subnet, e.g. 10.100.4.5) and the HomeRouter wireless LAN subnet.
 # Both values are used to expand ALLOWED_HOSTS, SSL certificate SANs, and
 # UFW rules so devices on the HomeRouter's wireless side can reach the server.
+#
+# WARNING: The auto-derive below computes <first-3-octets>.1 (e.g. 10.100.5.1
+# for 10.100.5.52). This is WRONG on /22 networks where the gateway is at a
+# different address (e.g. 10.100.4.5). Always pass --gateway explicitly on
+# non-/24 subnets to avoid a misconfigured static route on the server.
 _derived_gw=$(echo "${STATIC_IP_SET:-${LAN_IP}}" | awk -F. '{printf "%s.%s.%s.1", $1,$2,$3}')
 [[ -z "$ROUTER_WAN_IP" ]]     && ROUTER_WAN_IP="${GATEWAY_SET:-${_derived_gw}}"
 [[ -z "$ROUTER_LAN_SUBNET" ]] && ROUTER_LAN_SUBNET="192.168.1.0/24"

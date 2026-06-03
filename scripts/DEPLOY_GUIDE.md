@@ -29,9 +29,15 @@ You will be prompted for the IP, gateway, and DNS — or pass them directly:
 
 ```bash
 sudo bash /var/www/ARMGUARD_RDS_V1/scripts/set-static-ip.sh \
-  --ip 192.168.0.11 \
-  --gateway 192.168.0.1
+  --ip 10.100.5.52 \
+  --gateway 10.100.4.5 \
+  --prefix 22
 ```
+
+> **Important for this network:** The subnet is `/22` (`255.255.252.0`), so you must
+> pass `--prefix 22` explicitly. The script auto-detects the prefix from the current
+> interface, so if the server already has `10.100.x.x/22` via DHCP the default will
+> be correct. Always verify the prefix before applying.
 
 To preview without applying:
 
@@ -72,23 +78,29 @@ This single command installs all system packages, creates the `armguard` system 
 
 ```bash
 cd /var/www/ARMGUARD_RDS_V1
-sudo bash scripts/deploy.sh --domain 192.168.0.11 --lan-ip 192.168.0.11
+sudo bash scripts/deploy.sh --domain 10.100.5.52 --lan-ip 10.100.5.52
 ```
 
-Replace `192.168.0.11` with your actual server LAN IP. If you have a real domain name, use `--domain yourdomain.com`.
+Replace `10.100.5.52` with your actual server LAN IP. If you have a real domain name, use `--domain yourdomain.com`.
 
 **One-liner: set static IP and deploy at the same time:**
 
 ```bash
-# Uses 192.168.0.11, derives gateway 192.168.0.1 automatically
-# Router WAN IP defaults to gateway; router wireless LAN defaults to 192.168.1.0/24
-sudo bash scripts/deploy.sh --static-ip 192.168.0.11 --lan-ip 192.168.0.11 --domain 192.168.0.11
+# /22 network — gateway MUST be specified explicitly (auto-derive gives wrong result)
+sudo bash scripts/deploy.sh \
+  --static-ip 10.100.5.52 --prefix 22 --gateway 10.100.4.5 \
+  --lan-ip 10.100.5.52 --domain 10.100.5.52
 
-# With explicit gateway and router subnet options
-sudo bash scripts/deploy.sh --static-ip 192.168.0.11 --gateway 192.168.0.1 \
-  --lan-ip 192.168.0.11 --domain 192.168.0.11 \
-  --router-wan-ip 192.168.0.1 --router-lan-subnet 192.168.1.0/24
+# With explicit router subnet options (for HomeRouter wireless client access)
+sudo bash scripts/deploy.sh \
+  --static-ip 10.100.5.52 --prefix 22 --gateway 10.100.4.5 \
+  --lan-ip 10.100.5.52 --domain 10.100.5.52 \
+  --router-lan-subnet 192.168.1.0/24
 ```
+
+> **Note:** The gateway auto-derive logic uses `<first-3-octets>.1`, which produces
+> `10.100.5.1` for this network — **incorrect**. Always pass `--gateway 10.100.4.5`
+> explicitly on non-/24 networks.
 
 **What the script sets up automatically:**
 
@@ -187,24 +199,24 @@ sudo systemctl restart armguard-gunicorn
 
 ## STEP 6b — Self-Signed SSL for LAN-Only (No Public Domain)
 
-> Use this instead of Step 6 when the server has **no domain name** and is only accessible inside the local network (e.g. `192.168.0.11`).
+> Use this instead of Step 6 when the server has **no domain name** and is only accessible inside the local network (e.g. `10.100.5.52`).
 
 ### Part 1 — Generate the certificate on the server
 
-Run this on the **Ubuntu server** (replace `192.168.0.11` with your server's LAN IP):
+Run this on the **Ubuntu server** (replace `10.100.5.52` with your server's LAN IP):
 
 ```bash
 sudo openssl req -x509 -nodes -days 1095 -newkey rsa:2048 \
   -keyout /etc/ssl/private/armguard-selfsigned.key \
   -out /etc/ssl/certs/armguard-selfsigned.crt \
-  -subj "/C=PH/ST=Metro Manila/L=Manila/O=ArmGuard RDS/CN=192.168.0.11" \
-  -addext "subjectAltName=IP:192.168.0.11,IP:192.168.0.1,DNS:armguard.local"
+  -subj "/C=PH/ST=Metro Manila/L=Manila/O=ArmGuard RDS/CN=10.100.5.52" \
+  -addext "subjectAltName=IP:10.100.5.52,IP:10.100.4.5,DNS:armguard.local"
 ```
 
-> Replace `192.168.0.11` with your server LAN IP and `192.168.0.1` with your
-> HomeRouter WAN IP (the switch-side gateway). Including both IPs means browser
-> certificate warnings are suppressed for clients on the switch subnet AND for
-> clients connecting via the HomeRouter.
+> Replace `10.100.5.52` with your server LAN IP and `10.100.4.5` with your
+> network gateway. Including both IPs means browser certificate warnings are
+> suppressed for clients on the switch subnet AND for clients connecting via
+> the HomeRouter.
 
 ### Part 2 — Apply the SSL Nginx config
 
@@ -227,7 +239,7 @@ Update these lines (replace the IP with your actual server IP):
 SECURE_SSL_REDIRECT=True
 SESSION_COOKIE_SECURE=True
 CSRF_COOKIE_SECURE=True
-CSRF_TRUSTED_ORIGINS=https://192.168.0.11
+CSRF_TRUSTED_ORIGINS=https://10.100.5.52
 ```
 
 Restart Gunicorn to apply:
@@ -243,7 +255,7 @@ sudo systemctl restart armguard-gunicorn
 **Step 4a — Copy the cert from the server to your Desktop:**
 
 ```powershell
-scp rds@192.168.0.11:/etc/ssl/certs/armguard-selfsigned.crt "$env:USERPROFILE\Desktop\armguard.crt"
+scp rds@10.100.5.52:/etc/ssl/certs/armguard-selfsigned.crt "$env:USERPROFILE\Desktop\armguard.crt"
 ```
 
 **Step 4b — Import the cert as a Trusted Root CA (open PowerShell as Administrator):**
@@ -254,7 +266,7 @@ certutil -addstore "Root" "$env:USERPROFILE\Desktop\armguard.crt"
 
 **Step 4c — Close and reopen Chrome completely** (all windows, or use `chrome://restart`).
 
-Navigate to `https://192.168.0.11` — the padlock should now be green with no "Not secure" warning.
+Navigate to `https://10.100.5.52` — the padlock should now be green with no "Not secure" warning.
 
 > **Before renewing the certificate**, remove the old one first:
 > ```powershell
@@ -294,7 +306,7 @@ sudo bash /var/www/ARMGUARD_RDS_V1/scripts/setup-wireguard.sh --server-ip <PUBLI
 
 ```bash
 # From your PC (Windows PowerShell)
-scp rds@192.168.0.11:/etc/wireguard/peers/peer1.conf "$env:USERPROFILE\Desktop\armguard-vpn.conf"
+scp rds@10.100.5.52:/etc/wireguard/peers/peer1.conf "$env:USERPROFILE\Desktop\armguard-vpn.conf"
 ```
 
 ### Part 3 — Import and connect

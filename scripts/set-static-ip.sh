@@ -4,11 +4,12 @@
 #
 # Usage:
 #   sudo bash scripts/set-static-ip.sh
-#   sudo bash scripts/set-static-ip.sh --ip 192.168.0.11 --gateway 192.168.0.1
+#   sudo bash scripts/set-static-ip.sh --ip 10.100.5.52 --gateway 10.100.4.5 --prefix 22
 #
 # Options:
-#   --ip       Static IP to assign (with /24 prefix assumed, e.g. 192.168.0.11)
-#   --gateway  Router/gateway IP (e.g. 192.168.0.1)
+#   --ip       Static IP to assign (e.g. 10.100.5.52)
+#   --gateway  Router/gateway IP (e.g. 10.100.4.5)
+#   --prefix   Subnet prefix length in bits (default: 24; use 22 for /22 networks)
 #   --dns      DNS servers, comma-separated (default: 8.8.8.8,8.8.4.4)
 #   --iface    Network interface name (auto-detected if omitted)
 #   --dry-run  Print the netplan YAML without applying
@@ -26,12 +27,14 @@ STATIC_IP=""
 GATEWAY=""
 DNS_SERVERS=""
 IFACE=""
+PREFIX=""           # subnet prefix bits; detected or prompted if empty
 
 # ── Argument parsing ──────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --ip)      STATIC_IP="$2";   shift 2 ;;
     --gateway) GATEWAY="$2";     shift 2 ;;
+    --prefix)  PREFIX="$2";      shift 2 ;;
     --dns)     DNS_SERVERS="$2"; shift 2 ;;
     --iface)   IFACE="$2";       shift 2 ;;
     --dry-run) DRY_RUN=true;     shift   ;;
@@ -58,10 +61,15 @@ fi
 # ── Detect current IP and gateway as smart defaults ───────────────────────────
 DEFAULT_IP=$(ip -4 addr show "$IFACE" 2>/dev/null \
   | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n1)
-DEFAULT_IP="${DEFAULT_IP:-192.168.0.11}"
+DEFAULT_IP="${DEFAULT_IP:-10.100.5.52}"
 
 DEFAULT_GW=$(ip -4 route show default 2>/dev/null | awk '{print $3}' | head -n1)
-DEFAULT_GW="${DEFAULT_GW:-192.168.0.1}"
+DEFAULT_GW="${DEFAULT_GW:-10.100.4.5}"
+
+# Detect current prefix length for smart default (e.g. /22 for 10.100.x.x)
+DEFAULT_PREFIX=$(ip -4 addr show "$IFACE" 2>/dev/null \
+  | grep -oP '(?<=inet\s)\d+(\.\d+){3}/\K\d+' | head -n1)
+DEFAULT_PREFIX="${DEFAULT_PREFIX:-24}"
 
 # ── Interactive prompts for missing values ────────────────────────────────────
 if [[ -z "$STATIC_IP" ]]; then
@@ -72,6 +80,11 @@ fi
 if [[ -z "$GATEWAY" ]]; then
   read -rp "Gateway (router) IP [${DEFAULT_GW}]: " GATEWAY
   GATEWAY="${GATEWAY:-$DEFAULT_GW}"
+fi
+
+if [[ -z "$PREFIX" ]]; then
+  read -rp "Subnet prefix bits (e.g. 22 for /22, 24 for /24) [${DEFAULT_PREFIX}]: " PREFIX
+  PREFIX="${PREFIX:-$DEFAULT_PREFIX}"
 fi
 
 if [[ -z "$DNS_SERVERS" ]]; then
@@ -96,7 +109,7 @@ YAML_CONTENT="network:
     ${IFACE}:
       dhcp4: no
       addresses:
-        - ${STATIC_IP}/24
+        - ${STATIC_IP}/${PREFIX}
       routes:
         - to: default
           via: ${GATEWAY}
