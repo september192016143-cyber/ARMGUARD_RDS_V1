@@ -298,19 +298,35 @@ class TransactionDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView)
                     .first()
                 )
             else:
-                # Accessories-only withdrawal: look up any matching Return for
-                # this personnel after this timestamp so OVERDUE is not shown
-                # perpetually once the accessories have been returned.
+                # Accessories-only withdrawal: look for a Return by this personnel
+                # that includes at least one of the same consumable/accessory items
+                # so the OVERDUE badge isn't suppressed by an unrelated firearm return.
+                _acc_filter = _Q()
+                if transaction.pistol_magazine_id:
+                    _acc_filter |= _Q(pistol_magazine_id=transaction.pistol_magazine_id)
+                if transaction.rifle_magazine_id:
+                    _acc_filter |= _Q(rifle_magazine_id=transaction.rifle_magazine_id)
+                if transaction.pistol_ammunition_id:
+                    _acc_filter |= _Q(pistol_ammunition_id=transaction.pistol_ammunition_id)
+                if transaction.rifle_ammunition_id:
+                    _acc_filter |= _Q(rifle_ammunition_id=transaction.rifle_ammunition_id)
+                if transaction.pistol_holster_quantity:
+                    _acc_filter |= _Q(pistol_holster_quantity__isnull=False)
+                if transaction.magazine_pouch_quantity:
+                    _acc_filter |= _Q(magazine_pouch_quantity__isnull=False)
+                if transaction.rifle_sling_quantity:
+                    _acc_filter |= _Q(rifle_sling_quantity__isnull=False)
+                if transaction.bandoleer_quantity:
+                    _acc_filter |= _Q(bandoleer_quantity__isnull=False)
+                _acc_qs = Transaction.objects.filter(
+                    transaction_type='Return',
+                    personnel=transaction.personnel,
+                    timestamp__gt=transaction.timestamp,
+                )
+                if _acc_filter:
+                    _acc_qs = _acc_qs.filter(_acc_filter)
                 ctx['transaction_returned_at'] = (
-                    Transaction.objects
-                    .filter(
-                        transaction_type='Return',
-                        personnel=transaction.personnel,
-                        timestamp__gt=transaction.timestamp,
-                    )
-                    .order_by('timestamp')
-                    .values_list('timestamp', flat=True)
-                    .first()
+                    _acc_qs.order_by('timestamp').values_list('timestamp', flat=True).first()
                 )
         return ctx
 
@@ -832,17 +848,33 @@ def overdue_tr_check(request):
         p = log.personnel_id
         personnel_name = ' '.join(filter(None, [p.rank, p.first_name, p.last_name])) if p else 'Unknown'
 
+        # Only list items that are still outstanding (not yet returned).
         items = []
-        if log.withdraw_pistol_id:              items.append('Pistol')
-        if log.withdraw_rifle_id:               items.append('Rifle')
-        if log.withdraw_pistol_magazine_id:     items.append('Pistol Mag')
-        if log.withdraw_rifle_magazine_id:      items.append('Rifle Mag')
-        if log.withdraw_pistol_ammunition_id:   items.append('Pistol Ammo')
-        if log.withdraw_rifle_ammunition_id:    items.append('Rifle Ammo')
-        if log.withdraw_pistol_holster_quantity:  items.append('Pistol Holster')
-        if log.withdraw_magazine_pouch_quantity:  items.append('Mag Pouch')
-        if log.withdraw_rifle_sling_quantity:     items.append('Rifle Sling')
-        if log.withdraw_bandoleer_quantity:       items.append('Bandoleer')
+        if log.withdraw_pistol_id and not log.return_pistol_id:
+            items.append('Pistol')
+        if log.withdraw_rifle_id and not log.return_rifle_id:
+            items.append('Rifle')
+        if log.withdraw_pistol_magazine_id and not log.return_pistol_magazine_id:
+            items.append('Pistol Mag')
+        if log.withdraw_rifle_magazine_id and not log.return_rifle_magazine_id:
+            items.append('Rifle Mag')
+        if log.withdraw_pistol_ammunition_id and not log.return_pistol_ammunition_id:
+            items.append('Pistol Ammo')
+        if log.withdraw_rifle_ammunition_id and not log.return_rifle_ammunition_id:
+            items.append('Rifle Ammo')
+        if (log.withdraw_pistol_holster_quantity or 0) > (log.return_pistol_holster_quantity or 0):
+            items.append('Pistol Holster')
+        if (log.withdraw_magazine_pouch_quantity or 0) > (log.return_magazine_pouch_quantity or 0):
+            items.append('Mag Pouch')
+        if (log.withdraw_rifle_sling_quantity or 0) > (log.return_rifle_sling_quantity or 0):
+            items.append('Rifle Sling')
+        if (log.withdraw_bandoleer_quantity or 0) > (log.return_bandoleer_quantity or 0):
+            items.append('Bandoleer')
+
+        # Skip logs where all items have been returned (status not yet closed due to
+        # data inconsistency — the next save will fix log_status).
+        if not items:
+            continue
 
         # First non-null withdrawal transaction FK → use its ID for a direct detail link
         txn_id = None
