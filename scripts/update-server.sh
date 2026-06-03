@@ -486,6 +486,50 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 2c. Sync DJANGO_ALLOWED_HOSTS and CSRF_TRUSTED_ORIGINS with live LAN IP
+# ---------------------------------------------------------------------------
+# When the server is moved to a new network (new IP), the .env still contains
+# the old IP from the original deploy.  This block adds the current IP to both
+# settings so Django accepts requests immediately after an update.
+step "2c/8 Syncing ALLOWED_HOSTS and CSRF with live IP"
+
+_LIVE_IP=$(ip -o -4 route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' | head -n1)
+_LIVE_IP="${_LIVE_IP:-$(hostname -I 2>/dev/null | awk '{print $1}')}"
+
+if [[ -n "$_LIVE_IP" ]] && [[ -f "$ENV_FILE" ]]; then
+    # ── DJANGO_ALLOWED_HOSTS ──────────────────────────────────────────────
+    _cur_hosts=$(grep "^DJANGO_ALLOWED_HOSTS=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || true)
+    if [[ -n "$_cur_hosts" ]]; then
+        if echo "$_cur_hosts" | grep -qF "$_LIVE_IP"; then
+            info "DJANGO_ALLOWED_HOSTS already contains $_LIVE_IP."
+        else
+            _new_hosts="${_LIVE_IP},${_cur_hosts}"
+            sed -i "s|^DJANGO_ALLOWED_HOSTS=.*|DJANGO_ALLOWED_HOSTS=${_new_hosts}|" "$ENV_FILE"
+            success "DJANGO_ALLOWED_HOSTS: added $_LIVE_IP → ${_new_hosts}"
+        fi
+    else
+        warn "DJANGO_ALLOWED_HOSTS not found in .env — skipping hosts update."
+    fi
+
+    # ── CSRF_TRUSTED_ORIGINS ─────────────────────────────────────────────
+    _cur_csrf=$(grep "^CSRF_TRUSTED_ORIGINS=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || true)
+    _https_ip="https://${_LIVE_IP}"
+    if [[ -n "$_cur_csrf" ]]; then
+        if echo "$_cur_csrf" | grep -qF "$_https_ip"; then
+            info "CSRF_TRUSTED_ORIGINS already contains $_https_ip."
+        else
+            _new_csrf="${_https_ip},${_cur_csrf}"
+            sed -i "s|^CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=${_new_csrf}|" "$ENV_FILE"
+            success "CSRF_TRUSTED_ORIGINS: added $_https_ip → ${_new_csrf}"
+        fi
+    else
+        warn "CSRF_TRUSTED_ORIGINS not found in .env — skipping CSRF update."
+    fi
+else
+    warn "Could not determine live IP or .env missing — skipping ALLOWED_HOSTS sync."
+fi
+
+# ---------------------------------------------------------------------------
 step "3/8 Updating Python dependencies"
 
 REQUIREMENTS="$DEPLOY_DIR/requirements.txt"
