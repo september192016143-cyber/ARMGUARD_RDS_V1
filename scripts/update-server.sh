@@ -561,6 +561,7 @@ fi
 if [[ "$SKIP_MIGRATE" == "false" ]]; then
     step "4/8 Running database migrations"
     sudo -u "$DEPLOY_USER" bash -c "
+        set -e
         export DJANGO_SETTINGS_MODULE=armguard.settings.production
         [[ -f '$ENV_FILE' ]] && set -a && source <(grep -v '^\s*#' '$ENV_FILE' | grep '=') && set +a
         cd '$PROJECT_DIR'
