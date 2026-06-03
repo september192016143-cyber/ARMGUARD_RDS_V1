@@ -1,0 +1,23 @@
+[Unit]
+Description=ArmGuard Auto Static IP — detect live DHCP IP and promote to static
+Documentation=https://github.com/september192016143-cyber/ARMGUARD_RDS_V1
+# Run after the network stack is up and DHCP has had a chance to assign an IP.
+After=network-online.target avahi-daemon.service
+Wants=network-online.target
+# Must complete before the application server starts so Gunicorn and Nginx
+# bind to the correct, stable IP address.
+Before=armguard-gunicorn.service
+
+[Service]
+Type=oneshot
+# Keep the "success" state visible to dependent units after the script exits.
+RemainAfterExit=yes
+ExecStart=/bin/bash /var/www/ARMGUARD_RDS_V1/scripts/armguard-autoip.sh
+StandardOutput=journal
+StandardError=journal
+# Do not fail the boot if the script exits non-zero (e.g. no network yet).
+# The existing static config (if any) remains and the server still starts.
+SuccessExitStatus=0 1
+
+[Install]
+WantedBy=multi-user.target

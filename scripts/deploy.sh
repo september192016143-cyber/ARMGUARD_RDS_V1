@@ -676,6 +676,30 @@ systemctl restart "$SERVICE_NAME"
 success "Service '$SERVICE_NAME' installed and started."
 
 # ---------------------------------------------------------------------------
+# 8b. Auto-IP service — detect DHCP IP and promote to static on every boot
+# ---------------------------------------------------------------------------
+step "Installing armguard-autoip service (auto static IP)"
+
+AUTOIP_SERVICE_FILE="/etc/systemd/system/armguard-autoip.service"
+AUTOIP_SCRIPT_DEST="/var/www/ARMGUARD_RDS_V1/scripts/armguard-autoip.sh"
+
+if [[ -f "$SCRIPT_DIR/armguard-autoip.service" ]]; then
+    # Substitute the real deploy path in case it differs from the default
+    sed "s|/var/www/ARMGUARD_RDS_V1|${DEPLOY_DIR}|g" \
+        "$SCRIPT_DIR/armguard-autoip.service" > "$AUTOIP_SERVICE_FILE"
+    chmod 644 "$AUTOIP_SERVICE_FILE"
+
+    # Ensure the script itself is executable at its installed location
+    chmod +x "${DEPLOY_DIR}/scripts/armguard-autoip.sh" 2>/dev/null || true
+
+    systemctl daemon-reload
+    systemctl enable armguard-autoip.service
+    success "armguard-autoip.service enabled (runs on every boot before gunicorn)."
+else
+    warn "armguard-autoip.service not found in scripts/ — skipping auto-IP service."
+fi
+
+# ---------------------------------------------------------------------------
 # 9. Nginx configuration
 # ---------------------------------------------------------------------------
 step "Configuring Nginx"

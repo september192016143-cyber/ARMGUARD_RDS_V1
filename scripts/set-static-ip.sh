@@ -13,6 +13,7 @@
 #   --dns      DNS servers, comma-separated (default: 8.8.8.8,8.8.4.4)
 #   --iface    Network interface name (auto-detected if omitted)
 #   --dry-run  Print the netplan YAML without applying
+#   --auto     Non-interactive: use all auto-detected values; no prompts
 # ─────────────────────────────────────────────────────────────────────────────
 
 set -euo pipefail
@@ -38,9 +39,12 @@ while [[ $# -gt 0 ]]; do
     --dns)     DNS_SERVERS="$2"; shift 2 ;;
     --iface)   IFACE="$2";       shift 2 ;;
     --dry-run) DRY_RUN=true;     shift   ;;
+    --auto)    AUTO=true;        shift   ;;   # non-interactive: use auto-detected values
     *) echo "Unknown option: $1"; exit 1  ;;
   esac
 done
+
+AUTO="${AUTO:-false}"
 
 # ── Root check ────────────────────────────────────────────────────────────────
 if [[ "$DRY_RUN" == false ]] && [[ $EUID -ne 0 ]]; then
@@ -71,25 +75,33 @@ DEFAULT_PREFIX=$(ip -4 addr show "$IFACE" 2>/dev/null \
   | grep -oP '(?<=inet\s)\d+(\.\d+){3}/\K\d+' | head -n1)
 DEFAULT_PREFIX="${DEFAULT_PREFIX:-24}"
 
-# ── Interactive prompts for missing values ────────────────────────────────────
-if [[ -z "$STATIC_IP" ]]; then
-  read -rp "Static IP address [${DEFAULT_IP}]: " STATIC_IP
+# ── Interactive prompts for missing values (skipped with --auto) ──────────────
+if [[ "$AUTO" == true ]]; then
   STATIC_IP="${STATIC_IP:-$DEFAULT_IP}"
-fi
-
-if [[ -z "$GATEWAY" ]]; then
-  read -rp "Gateway (router) IP [${DEFAULT_GW}]: " GATEWAY
   GATEWAY="${GATEWAY:-$DEFAULT_GW}"
-fi
-
-if [[ -z "$PREFIX" ]]; then
-  read -rp "Subnet prefix bits (e.g. 22 for /22, 24 for /24) [${DEFAULT_PREFIX}]: " PREFIX
   PREFIX="${PREFIX:-$DEFAULT_PREFIX}"
-fi
-
-if [[ -z "$DNS_SERVERS" ]]; then
-  read -rp "DNS servers, comma-separated [${DEFAULT_DNS}]: " DNS_SERVERS
   DNS_SERVERS="${DNS_SERVERS:-$DEFAULT_DNS}"
+  echo "Auto mode: IP=${STATIC_IP}/${PREFIX}  GW=${GATEWAY}  DNS=${DNS_SERVERS}  iface=${IFACE}"
+else
+  if [[ -z "$STATIC_IP" ]]; then
+    read -rp "Static IP address [${DEFAULT_IP}]: " STATIC_IP
+    STATIC_IP="${STATIC_IP:-$DEFAULT_IP}"
+  fi
+
+  if [[ -z "$GATEWAY" ]]; then
+    read -rp "Gateway (router) IP [${DEFAULT_GW}]: " GATEWAY
+    GATEWAY="${GATEWAY:-$DEFAULT_GW}"
+  fi
+
+  if [[ -z "$PREFIX" ]]; then
+    read -rp "Subnet prefix bits (e.g. 22 for /22, 24 for /24) [${DEFAULT_PREFIX}]: " PREFIX
+    PREFIX="${PREFIX:-$DEFAULT_PREFIX}"
+  fi
+
+  if [[ -z "$DNS_SERVERS" ]]; then
+    read -rp "DNS servers, comma-separated [${DEFAULT_DNS}]: " DNS_SERVERS
+    DNS_SERVERS="${DNS_SERVERS:-$DEFAULT_DNS}"
+  fi
 fi
 
 # ── Format DNS for YAML list ──────────────────────────────────────────────────
