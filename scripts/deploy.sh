@@ -12,6 +12,11 @@
 #   --lan-ip IP      Set the LAN IP address for Nginx binding
 #   --static-ip IP   Configure a static LAN IP via netplan before deploying
 #   --gateway IP     Gateway IP used with --static-ip (default: first 3 octets + .1)
+#   --router-wan-ip IP    HomeRouter WAN IP on the switch subnet (default: same as gateway).
+#                         Required only when HomeRouter wireless clients (192.168.1.x)
+#                         also need to reach the server.
+#   --router-lan-subnet CIDR  HomeRouter wireless LAN subnet (default: 192.168.1.0/24).
+#                             Used to open UFW and expand ALLOWED_HOSTS for router clients.
 #   --external-drive Auto-detect, format (if blank), mount and fstab-register the
 #                    external backup drive at /mnt/backup
 #   --help           Show this help message
@@ -118,6 +123,8 @@ DOMAIN=""
 LAN_IP=""
 STATIC_IP_SET=""
 GATEWAY_SET=""
+ROUTER_WAN_IP=""          # HomeRouter WAN IP on the switch subnet (default: gateway)
+ROUTER_LAN_SUBNET=""      # HomeRouter wireless LAN CIDR (default: 192.168.1.0/24)
 SETUP_EXT_DRIVE=false
 
 usage() {
@@ -133,6 +140,8 @@ while [[ $# -gt 0 ]]; do
         --lan-ip)      LAN_IP="$2"; shift 2 ;;
         --static-ip)   STATIC_IP_SET="$2"; shift 2 ;;
         --gateway)     GATEWAY_SET="$2"; shift 2 ;;
+        --router-wan-ip)      ROUTER_WAN_IP="$2"; shift 2 ;;
+        --router-lan-subnet)  ROUTER_LAN_SUBNET="$2"; shift 2 ;;
         --external-drive) SETUP_EXT_DRIVE=true; shift ;;
         --help|-h)     usage ;;
         *) die "Unknown argument: $1" ;;
@@ -230,6 +239,16 @@ if [[ -n "${STATIC_IP_SET:-}" ]]; then
     success "Static IP configured. Continuing deployment…"
 fi
 
+# Derive router WAN IP (defaults to the gateway — the HomeRouter's IP on the
+# switch subnet, e.g. 192.168.0.1) and the HomeRouter wireless LAN subnet.
+# Both values are used to expand ALLOWED_HOSTS, SSL certificate SANs, and
+# UFW rules so devices on the HomeRouter's wireless side can reach the server.
+_derived_gw=$(echo "${STATIC_IP_SET:-${LAN_IP}}" | awk -F. '{printf "%s.%s.%s.1", $1,$2,$3}')
+[[ -z "$ROUTER_WAN_IP" ]]     && ROUTER_WAN_IP="${GATEWAY_SET:-${_derived_gw}}"
+[[ -z "$ROUTER_LAN_SUBNET" ]] && ROUTER_LAN_SUBNET="192.168.1.0/24"
+info "Router WAN IP (switch-side gateway): $ROUTER_WAN_IP"
+info "Router wireless LAN subnet:          $ROUTER_LAN_SUBNET"
+
 # ---------------------------------------------------------------------------
 # 1. System packages
 # ---------------------------------------------------------------------------
@@ -290,10 +309,10 @@ if [[ ! -f "$SSL_CERT" ]]; then
         -keyout "$SSL_KEY" \
         -out    "$SSL_CERT" \
         -subj   "/C=PH/ST=Metro Manila/L=Manila/O=ArmGuard RDS ${SSL_YEAR}/OU=Security/CN=${MDNS_HOSTNAME}.local" \
-        -addext "subjectAltName=IP:${LAN_IP},DNS:${MDNS_HOSTNAME}.local"
+        -addext "subjectAltName=IP:${LAN_IP},IP:${ROUTER_WAN_IP},DNS:${MDNS_HOSTNAME}.local"
     chmod 644 "$SSL_CERT"
     chmod 600 "$SSL_KEY"
-    success "SSL certificate generated (CN=${MDNS_HOSTNAME}.local, SAN: IP:${LAN_IP} + DNS:${MDNS_HOSTNAME}.local)"
+    success "SSL certificate generated (CN=${MDNS_HOSTNAME}.local, SAN: IP:${LAN_IP} + IP:${ROUTER_WAN_IP} + DNS:${MDNS_HOSTNAME}.local)"
 else
     info "SSL certificate already exists at $SSL_CERT — skipping generation."
 fi
@@ -414,7 +433,7 @@ if [[ -f "$ENV_FILE" ]]; then
     if grep -q "^DJANGO_ALLOWED_HOSTS=" "$ENV_FILE"; then
         _current_hosts=$(grep "^DJANGO_ALLOWED_HOSTS=" "$ENV_FILE" | cut -d= -f2-)
         _updated_hosts="$_current_hosts"
-        for _host in "$DOMAIN" "$LAN_IP"; do
+        for _host in "$DOMAIN" "$LAN_IP" "$ROUTER_WAN_IP"; do
             if [[ -n "$_host" ]] && ! echo "$_updated_hosts" | grep -qE "(^|,)${_host}(,|$)"; then
                 _updated_hosts="${_updated_hosts},${_host}"
                 info "Adding '$_host' to ALLOWED_HOSTS."
@@ -439,7 +458,7 @@ else
 # Django core
 DJANGO_SECRET_KEY=$SECRET_KEY
 DJANGO_DEBUG=False
-DJANGO_ALLOWED_HOSTS=$DOMAIN,$LAN_IP,armguard.local,localhost,127.0.0.1
+DJANGO_ALLOWED_HOSTS=$DOMAIN,$LAN_IP,$ROUTER_WAN_IP,armguard.local,localhost,127.0.0.1
 
 # Custom admin URL (change this to something not guessable)
 DJANGO_ADMIN_URL=secure-admin-$(python3 -c "import secrets; print(secrets.token_hex(4))")
@@ -459,7 +478,7 @@ SECURE_SSL_REDIRECT=False
 SESSION_COOKIE_SECURE=False
 CSRF_COOKIE_SECURE=False
 SECURE_HSTS_SECONDS=31536000
-CSRF_TRUSTED_ORIGINS=https://$DOMAIN,https://armguard.local,https://$LAN_IP
+CSRF_TRUSTED_ORIGINS=https://$DOMAIN,https://armguard.local,https://$LAN_IP,https://${ROUTER_WAN_IP}
 # SSL certificate path (used by the in-app cert download + notification feature)
 # Default is correct for standard deploy; override only if cert lives elsewhere.
 SSL_CERT_PATH=/etc/ssl/certs/armguard-selfsigned.crt
@@ -668,7 +687,7 @@ if [[ -f "$NGINX_AVAILABLE" ]]; then
     info "To reset it: sudo rm $NGINX_AVAILABLE && sudo bash scripts/deploy.sh ..."
 elif [[ -f "$SCRIPT_DIR/nginx-armguard-ssl-lan.conf" ]]; then
     # SSL cert is always generated — use the HTTPS config by default.
-    sed "s|__DOMAIN__|$DOMAIN|g; s|__LAN_IP__|$LAN_IP|g; \
+    sed "s|__DOMAIN__|$DOMAIN|g; s|__LAN_IP__|$LAN_IP|g; s|__ROUTER_WAN_IP__|$ROUTER_WAN_IP|g; \
          s|__STATIC_ROOT__|$STATIC_ROOT|g; \
          s|__MEDIA_ROOT__|$MEDIA_ROOT|g" \
         "$SCRIPT_DIR/nginx-armguard-ssl-lan.conf" > "$NGINX_AVAILABLE"
@@ -680,7 +699,7 @@ elif [[ -f "$SCRIPT_DIR/nginx-armguard-ssl-lan.conf" ]]; then
         success "SSL redirect and secure cookies enabled in .env"
     fi
 elif [[ -f "$SCRIPT_DIR/nginx-armguard.conf" ]]; then
-    sed "s|__DOMAIN__|$DOMAIN|g; s|__LAN_IP__|$LAN_IP|g; \
+    sed "s|__DOMAIN__|$DOMAIN|g; s|__LAN_IP__|$LAN_IP|g; s|__ROUTER_WAN_IP__|$ROUTER_WAN_IP|g; \
          s|__STATIC_ROOT__|$STATIC_ROOT|g; \
          s|__MEDIA_ROOT__|$MEDIA_ROOT|g" \
         "$SCRIPT_DIR/nginx-armguard.conf" > "$NGINX_AVAILABLE"
@@ -783,7 +802,11 @@ step "Configuring UFW firewall"
 
 if command -v ufw &>/dev/null; then
     if [[ -f "$SCRIPT_DIR/setup-firewall.sh" ]]; then
-        bash "$SCRIPT_DIR/setup-firewall.sh"
+        _FW_ARGS=()
+        # Pass the HomeRouter wireless LAN subnet so UFW permits traffic from
+        # router-side clients (e.g. 192.168.1.x) reaching the server.
+        [[ -n "$ROUTER_LAN_SUBNET" ]] && _FW_ARGS+=("--allow-router-lan" "$ROUTER_LAN_SUBNET")
+        bash "$SCRIPT_DIR/setup-firewall.sh" "${_FW_ARGS[@]}"
     else
         ufw --force reset
         ufw default deny incoming

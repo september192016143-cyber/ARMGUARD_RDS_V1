@@ -8,13 +8,70 @@
 
 ## 1. Network Overview
 
-| Device | Hostname | IP Address | Subnet |
-|--------|----------|------------|--------|
-| **Server** | `9533rds` | `192.168.0.11` | `192.168.0.x` |
-| **Dev PC** | `9533RDS` | `192.168.0.82` | `192.168.0.x` ✅ |
-| **Armory PC** | `jay` | `192.168.1.66` | `192.168.1.x` ❌ Wrong subnet |
+### Physical Topology (Switch-Centric)
 
-All devices must be on the **same subnet** (`192.168.0.x`) to communicate with the server.
+```
+Internet
+   |
+[HomeRouter-PT-AC]  ─  WAN IP: 192.168.0.1 (switch subnet)
+   |  |
+   |  +── Wireless ── PC9 (192.168.1.x  — HomeRouter DHCP)
+   |
+[Switch0]  ───────────────────────────────+
+   |│││                                   |
+   |+-- PC0 SERVER  192.168.0.11      [Switch1]── PC8 (192.168.0.x)
+   |+-- PC1         192.168.0.x
+   |+-- PC2         192.168.0.x
+```
+
+**Key change:** The server (PC0) was moved FROM the HomeRouter's LAN port TO Switch0.
+The HomeRouter's WAN/Internet port now connects to Switch0, making it the
+default gateway (`192.168.0.1`) for all switch-connected devices.
+
+### Device Table
+
+| Device | Role | IP Address | Subnet | Gateway | Reachable |
+|--------|------|------------|--------|---------|-----------|
+| **PC0** | **Server** | `192.168.0.11` | `192.168.0.x` | `192.168.0.1` | ✅ Direct |
+| **Dev PC** | Admin/Dev | `192.168.0.82` | `192.168.0.x` | `192.168.0.1` | ✅ Direct |
+| **PC1** | Workstation | `192.168.0.x` | `192.168.0.x` | `192.168.0.1` | ✅ Direct |
+| **PC2** | Workstation | `192.168.0.x` | `192.168.0.x` | `192.168.0.1` | ✅ Direct |
+| **PC8** | Workstation | `192.168.0.x` (via Switch1) | `192.168.0.x` | `192.168.0.1` | ✅ Via Switch1 |
+| **PC9** | Wireless | `192.168.1.x` | `192.168.1.x` | `192.168.1.1` | ⚠️ Via port forward |
+| **HomeRouter** | Gateway | WAN: `192.168.0.1`, LAN: `192.168.1.1` | Both | — | — |
+
+> **PC9 access requires HomeRouter port forwarding:** Forward TCP 80 and 443 from
+> the HomeRouter's WAN side to `192.168.0.11`. Without forwarding, PC9 cannot
+> reach the server because it is on a different subnet (`192.168.1.x` vs `192.168.0.x`).
+
+All devices must be on the **same subnet** (`192.168.0.x`) OR behind the HomeRouter
+with port forwarding configured to communicate with the server.
+
+---
+
+## 1b. HomeRouter Port Forwarding (for PC9 / wireless clients)
+
+PC9 lives on the HomeRouter's wireless LAN (`192.168.1.x`) — a different subnet from
+the server (`192.168.0.x`). To allow PC9 to reach the ARMGUARD server, configure
+**port forwarding** on the HomeRouter:
+
+| Forward | Protocol | External Port | Internal IP | Internal Port |
+|---------|----------|--------------|-------------|---------------|
+| HTTP | TCP | 80 | `192.168.0.11` | 80 |
+| HTTPS | TCP | 443 | `192.168.0.11` | 443 |
+
+On a Cisco-style HomeRouter (e.g. Packet Tracer HomeRouter-PT-AC):
+1. Access the router admin page (usually `192.168.1.1` from a wireless client).
+2. Navigate to **Port Forwarding** or **Applications & Gaming**.
+3. Add rules for TCP port 80 and TCP port 443, both pointing to `192.168.0.11`.
+
+After forwarding is configured, PC9 can reach the server at:
+- `http://192.168.0.1` → redirected to `https://192.168.0.1` → proxied to server
+- `https://armguard.local` (if mDNS reflector is enabled — see `avahi-daemon.conf`)
+
+> The server-side scripts (`deploy.sh`, `avahi-daemon.conf`) have already been
+> updated to support this dual-subnet topology. The mDNS reflector
+> (`enable-reflector=yes`) forwards `armguard.local` resolution across both networks.
 
 ---
 

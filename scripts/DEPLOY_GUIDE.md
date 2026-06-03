@@ -81,10 +81,13 @@ Replace `192.168.0.11` with your actual server LAN IP. If you have a real domain
 
 ```bash
 # Uses 192.168.0.11, derives gateway 192.168.0.1 automatically
+# Router WAN IP defaults to gateway; router wireless LAN defaults to 192.168.1.0/24
 sudo bash scripts/deploy.sh --static-ip 192.168.0.11 --lan-ip 192.168.0.11 --domain 192.168.0.11
 
-# With explicit gateway
-sudo bash scripts/deploy.sh --static-ip 192.168.0.11 --gateway 192.168.0.1 --lan-ip 192.168.0.11 --domain 192.168.0.11
+# With explicit gateway and router subnet options
+sudo bash scripts/deploy.sh --static-ip 192.168.0.11 --gateway 192.168.0.1 \
+  --lan-ip 192.168.0.11 --domain 192.168.0.11 \
+  --router-wan-ip 192.168.0.1 --router-lan-subnet 192.168.1.0/24
 ```
 
 **What the script sets up automatically:**
@@ -195,10 +198,13 @@ sudo openssl req -x509 -nodes -days 1095 -newkey rsa:2048 \
   -keyout /etc/ssl/private/armguard-selfsigned.key \
   -out /etc/ssl/certs/armguard-selfsigned.crt \
   -subj "/C=PH/ST=Metro Manila/L=Manila/O=ArmGuard RDS/CN=192.168.0.11" \
-  -addext "subjectAltName=IP:192.168.0.11"
+  -addext "subjectAltName=IP:192.168.0.11,IP:192.168.0.1,DNS:armguard.local"
 ```
 
-> The `-addext "subjectAltName=..."` flag is **required** — without it, Chrome and modern browsers will still show "Not secure" even after importing the cert.
+> Replace `192.168.0.11` with your server LAN IP and `192.168.0.1` with your
+> HomeRouter WAN IP (the switch-side gateway). Including both IPs means browser
+> certificate warnings are suppressed for clients on the switch subnet AND for
+> clients connecting via the HomeRouter.
 
 ### Part 2 — Apply the SSL Nginx config
 

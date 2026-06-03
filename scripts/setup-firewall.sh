@@ -7,7 +7,10 @@
 #
 # Options:
 #   --ssh-port PORT   SSH port if not 22 (default: 22)
-#   --allow-lan CIDR  Allow all traffic from LAN subnet (e.g. 192.168.1.0/24)
+#   --allow-lan CIDR  Allow all traffic from LAN subnet (e.g. 192.168.0.0/24)
+#   --allow-router-lan CIDR  Allow HTTP/HTTPS from the HomeRouter wireless LAN
+#                            subnet (e.g. 192.168.1.0/24). Use when router-side
+#                            clients need to reach the server via port forwarding.
 #   --no-ipv6         Disable IPv6 rules
 #   --status          Show current UFW status and exit
 #   --help            Show this help
@@ -28,6 +31,7 @@ set -Eeo pipefail
 # ---------------------------------------------------------------------------
 SSH_PORT=22
 ALLOW_LAN=""
+ALLOW_ROUTER_LAN=""   # HomeRouter wireless LAN subnet (e.g. 192.168.1.0/24)
 DISABLE_IPV6=false
 
 # ---------------------------------------------------------------------------
@@ -49,6 +53,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --ssh-port)   SSH_PORT="$2"; shift 2 ;;
         --allow-lan)  ALLOW_LAN="$2"; shift 2 ;;
+        --allow-router-lan) ALLOW_ROUTER_LAN="$2"; shift 2 ;;
         --no-ipv6)    DISABLE_IPV6=true; shift ;;
         --status)
             command -v ufw &>/dev/null || die "UFW not installed."
@@ -122,6 +127,16 @@ ufw deny 8000/tcp comment "Block direct Gunicorn (use Nginx proxy)"
 if [[ -n "$ALLOW_LAN" ]]; then
     ufw allow from "$ALLOW_LAN" comment "LAN subnet full access"
     info "LAN subnet $ALLOW_LAN: all traffic allowed."
+fi
+
+# Optional HomeRouter wireless LAN access
+# Permits HTTP (80) and HTTPS (443) from the router's wireless subnet so that
+# devices on the HomeRouter's LAN side (e.g. 192.168.1.x) can reach the server
+# when the HomeRouter port-forwards 80/443 to the server's switch-side IP.
+if [[ -n "$ALLOW_ROUTER_LAN" ]]; then
+    ufw allow from "$ALLOW_ROUTER_LAN" to any port 80  proto tcp comment "HTTP from router wireless LAN"
+    ufw allow from "$ALLOW_ROUTER_LAN" to any port 443 proto tcp comment "HTTPS from router wireless LAN"
+    info "Router wireless LAN $ALLOW_ROUTER_LAN: HTTP/HTTPS allowed."
 fi
 
 # ---------------------------------------------------------------------------
