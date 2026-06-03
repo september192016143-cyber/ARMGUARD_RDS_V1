@@ -530,6 +530,31 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 2d. Redeploy Avahi config (ensures mDNS reflector stays enabled)
+# ---------------------------------------------------------------------------
+# The repo ships avahi-daemon.conf with enable-reflector=yes so that WiFi and
+# wired clients on the same router can resolve armguard.local without any
+# configuration on their side.  This step keeps the live config in sync with
+# the repo after every update-server.sh run.
+step "2d/8 Syncing Avahi mDNS config"
+
+AVAHI_SRC="$DEPLOY_DIR/scripts/avahi-daemon.conf"
+AVAHI_DEST="/etc/avahi/avahi-daemon.conf"
+
+if [[ -f "$AVAHI_SRC" ]]; then
+    if cmp -s "$AVAHI_SRC" "$AVAHI_DEST" 2>/dev/null; then
+        info "Avahi config unchanged — skipping restart."
+    else
+        mkdir -p /etc/avahi
+        cp "$AVAHI_SRC" "$AVAHI_DEST"
+        systemctl restart avahi-daemon
+        success "Avahi config updated and restarted (enable-reflector=yes)."
+    fi
+else
+    warn "avahi-daemon.conf not found in repo at $AVAHI_SRC — skipping."
+fi
+
+# ---------------------------------------------------------------------------
 step "3/8 Updating Python dependencies"
 
 REQUIREMENTS="$DEPLOY_DIR/requirements.txt"
