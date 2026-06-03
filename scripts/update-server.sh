@@ -701,10 +701,12 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 7b. Reinstall armguard-autoip service if updated by this git pull
+# 7b. Reinstall armguard-autoip service if updated by this git pull,
+#     then run it now to verify / apply static IP.
 # ---------------------------------------------------------------------------
 AUTOIP_SRC="$DEPLOY_DIR/scripts/armguard-autoip.service"
 AUTOIP_DEST="/etc/systemd/system/armguard-autoip.service"
+AUTOIP_SCRIPT="$DEPLOY_DIR/scripts/armguard-autoip.sh"
 
 if [[ -f "$AUTOIP_SRC" ]]; then
     # Re-copy only if the source is newer or destination is missing
@@ -712,7 +714,6 @@ if [[ -f "$AUTOIP_SRC" ]]; then
         sed "s|/var/www/ARMGUARD_RDS_V1|${DEPLOY_DIR}|g" \
             "$AUTOIP_SRC" > "$AUTOIP_DEST"
         chmod 644 "$AUTOIP_DEST"
-        chmod +x "$DEPLOY_DIR/scripts/armguard-autoip.sh" 2>/dev/null || true
         systemctl daemon-reload
         systemctl enable armguard-autoip.service 2>/dev/null || true
         success "armguard-autoip.service reinstalled and enabled."
@@ -721,6 +722,37 @@ if [[ -f "$AUTOIP_SRC" ]]; then
     fi
 else
     info "armguard-autoip.service not found in scripts/ — skipping."
+fi
+
+# Run the auto-IP script now (not just on next boot) so the static IP is
+# verified / applied immediately and the result is visible in this output.
+step "7c/8 Verifying static IP configuration"
+
+if [[ -f "$AUTOIP_SCRIPT" ]]; then
+    chmod +x "$AUTOIP_SCRIPT"
+    bash "$AUTOIP_SCRIPT"   # prints its own [armguard-autoip] log lines
+
+    # Display a clear network summary regardless of whether the IP changed.
+    _IFACE=$(ip -o -4 route show to default 2>/dev/null | awk '{print $5}' | head -n1)
+    _IP=$(ip -4 addr show "$_IFACE" 2>/dev/null \
+        | grep -oP '(?<=inet\s)\d+(\.\d+){3}/\d+' | head -n1)
+    _GW=$(ip -4 route show default 2>/dev/null | awk '{print $3}' | head -n1)
+    _NETPLAN="/etc/netplan/99-armguard-static.yaml"
+
+    echo ""
+    echo -e "${BOLD}  ┌─────────────────────────────────────────[Network]──────┐${NC}"
+    printf  "  │  %-12s : %-38s│\n" "Interface"  "${_IFACE:-unknown}"
+    printf  "  │  %-12s : %-38s│\n" "IP / Prefix" "${_IP:-unknown}"
+    printf  "  │  %-12s : %-38s│\n" "Gateway"    "${_GW:-unknown}"
+    if [[ -f "$_NETPLAN" ]]; then
+        printf "  │  %-12s : %-38s│\n" "Static cfg"  "$_NETPLAN [exists]"
+    else
+        printf "  │  %-12s : %-38s│\n" "Static cfg"  "NOT SET — still DHCP"
+    fi
+    echo -e "  └────────────────────────────────────────────────────────┘"
+    echo ""
+else
+    warn "armguard-autoip.sh not found — skipping IP verification."
 fi
 
 # ---------------------------------------------------------------------------
